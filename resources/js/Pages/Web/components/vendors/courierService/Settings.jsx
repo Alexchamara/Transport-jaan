@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { BellRing, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
+import { BellRing, ChevronDown, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
 import useCourierActionModal from "./common/useCourierActionModal";
 
@@ -51,6 +51,34 @@ const DEFAULT_SETTINGS = {
         opsLeadCanReassign: true,
         financeCanViewRates: true,
         enforce2FA: true,
+        approvalControl: {
+            enabled: true,
+            makerChecker: true,
+            approvalTtlMinutes: 240,
+            sensitiveActions: {
+                high_value_cancellation: {
+                    enabled: true,
+                    minAmount: 50000,
+                    requiredApprovals: 1,
+                },
+                refund: {
+                    enabled: true,
+                    level1MinAmount: 25000,
+                    level2MinAmount: 100000,
+                    requiredApprovalsLevel1: 1,
+                    requiredApprovalsLevel2: 2,
+                },
+                ownership_transfer: {
+                    enabled: true,
+                    requiredApprovals: 2,
+                },
+                client_list_export: {
+                    enabled: true,
+                    minRows: 100,
+                    requiredApprovals: 1,
+                },
+            },
+        },
         teamAccessControl: {
             defaultDirectPermissionsByRole: {},
             defaultDataScopeByRole: {},
@@ -148,6 +176,7 @@ const Settings = () => {
     const teamRoleCatalog = Array.isArray(props.teamRoleCatalog) ? props.teamRoleCatalog : [];
     const teamRoleTemplates = props.teamRoleTemplates && typeof props.teamRoleTemplates === "object" ? props.teamRoleTemplates : {};
     const teamAccessAudit = Array.isArray(props.teamAccessAudit) ? props.teamAccessAudit : [];
+    const teamSensitiveApprovals = Array.isArray(props.teamSensitiveApprovals) ? props.teamSensitiveApprovals : [];
     const permissionModelMeta = props.permissionModelMeta && typeof props.permissionModelMeta === "object" ? props.permissionModelMeta : {};
     const permissionResources = Array.isArray(permissionModelMeta.resources) ? permissionModelMeta.resources : ["shipments", "bookings", "clients", "reports", "pricing", "payouts"];
     const permissionActions = Array.isArray(permissionModelMeta.actions) ? permissionModelMeta.actions : ["view", "create", "update", "cancel", "reassign", "export", "approve", "refund"];
@@ -203,6 +232,16 @@ const Settings = () => {
             team: {
                 ...DEFAULT_SETTINGS.team,
                 ...incomingTeam,
+                approvalControl: {
+                    ...DEFAULT_SETTINGS.team.approvalControl,
+                    ...(incomingTeam.approvalControl && typeof incomingTeam.approvalControl === "object" ? incomingTeam.approvalControl : {}),
+                    sensitiveActions: {
+                        ...DEFAULT_SETTINGS.team.approvalControl.sensitiveActions,
+                        ...(incomingTeam.approvalControl?.sensitiveActions && typeof incomingTeam.approvalControl.sensitiveActions === "object"
+                            ? incomingTeam.approvalControl.sensitiveActions
+                            : {}),
+                    },
+                },
                 teamAccessControl: {
                     ...DEFAULT_SETTINGS.team.teamAccessControl,
                     ...incomingTeamAccessControl,
@@ -280,6 +319,13 @@ const Settings = () => {
         description: "",
         permissions: [],
     });
+    const [teamPolicyPanels, setTeamPolicyPanels] = useState({
+        basic: true,
+        approvalDualControl: false,
+        advancedModel: false,
+    });
+    const [approvalQueue, setApprovalQueue] = useState(teamSensitiveApprovals);
+    const [approvalActionBusyId, setApprovalActionBusyId] = useState(null);
 
     const {
         feedback,
@@ -298,6 +344,13 @@ const Settings = () => {
                 ...prev[section],
                 [key]: value,
             },
+        }));
+    };
+
+    const toggleTeamPolicyPanel = (panelKey) => {
+        setTeamPolicyPanels((prev) => ({
+            ...prev,
+            [panelKey]: !prev[panelKey],
         }));
     };
 
@@ -660,6 +713,10 @@ const Settings = () => {
     }, [auditTypeFilter, auditResourceFilter, auditSearch]);
 
     useEffect(() => {
+        setApprovalQueue(teamSensitiveApprovals);
+    }, [teamSensitiveApprovals]);
+
+    useEffect(() => {
         if (teamRoleOptions.length > 0 && !teamRoleOptions.includes(activeRoleForDefaults)) {
             setActiveRoleForDefaults(teamRoleOptions[0]);
         }
@@ -797,6 +854,70 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const updateApprovalControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                approvalControl: {
+                    ...(prev.team.approvalControl || DEFAULT_SETTINGS.team.approvalControl),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updateApprovalActionControl = (actionKey, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                approvalControl: {
+                    ...(prev.team.approvalControl || DEFAULT_SETTINGS.team.approvalControl),
+                    sensitiveActions: {
+                        ...((prev.team.approvalControl && prev.team.approvalControl.sensitiveActions) || DEFAULT_SETTINGS.team.approvalControl.sensitiveActions),
+                        [actionKey]: {
+                            ...(((prev.team.approvalControl && prev.team.approvalControl.sensitiveActions && prev.team.approvalControl.sensitiveActions[actionKey])
+                                || DEFAULT_SETTINGS.team.approvalControl.sensitiveActions[actionKey]
+                                || {})),
+                            [key]: value,
+                        },
+                    },
+                },
+            },
+        }));
+    };
+
+    const approveSensitiveAction = async (approvalId) => {
+        setApprovalActionBusyId(approvalId);
+
+        try {
+            const payload = await requestJson("POST", route("courierService.team.sensitive-approvals.approve", { approval: approvalId }));
+            setFeedback({ type: "success", message: payload?.message || "Approval recorded." });
+            router.reload({ only: ["teamSensitiveApprovals"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to approve request." });
+        } finally {
+            setApprovalActionBusyId(null);
+        }
+    };
+
+    const rejectSensitiveAction = async (approvalId) => {
+        setApprovalActionBusyId(approvalId);
+
+        try {
+            const payload = await requestJson("POST", route("courierService.team.sensitive-approvals.reject", { approval: approvalId }), {
+                reason: "Rejected by approver from Team Access Control queue.",
+            });
+            setFeedback({ type: "success", message: payload?.message || "Approval rejected." });
+            router.reload({ only: ["teamSensitiveApprovals"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to reject request." });
+        } finally {
+            setApprovalActionBusyId(null);
+        }
     };
 
     const updateRoleDefaultDataScope = (key, value) => {
@@ -1376,19 +1497,264 @@ const Settings = () => {
                 <SectionCard title="Team Access Control" description="Set role powers for key operational decisions.">
                     {activeTeamAccessTopic === "policy-controls" && (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
-                                <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
-                                <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
-                                <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                            <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleTeamPolicyPanel("basic")}
+                                    className="w-full flex items-center justify-between gap-3 text-left"
+                                >
+                                    <div>
+                                        <p className="text-[14px] font-[700] text-[#111827]">Core Team Policy Toggles</p>
+                                        <p className="text-[12px] text-[#6B7280] mt-1">Quick operational gates for cancellation, reassignment, rates, and 2FA enforcement.</p>
+                                    </div>
+                                    <ChevronDown size={16} className={`text-[#6B7280] transition-transform ${teamPolicyPanels.basic ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {teamPolicyPanels.basic && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                        <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
+                                        <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
+                                        <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
+                                        <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                                    </div>
+                                )}
                             </div>
 
                             <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
-                                <div className="flex items-center justify-between gap-3 mb-3">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleTeamPolicyPanel("approvalDualControl")}
+                                    className="w-full flex items-center justify-between gap-3 text-left"
+                                >
                                     <div>
-                                        <p className="text-[14px] font-[700] text-[#111827]">Advanced Permission Model</p>
-                                        <p className="text-[12px] text-[#6B7280]">Configure action-level permissions by resource, role scope, and sensitive field visibility.</p>
+                                        <p className="text-[14px] font-[700] text-[#111827]">Approval and Dual Control</p>
+                                        <p className="text-[12px] text-[#6B7280] mt-1">Require maker-checker approvals for high-risk actions (cancellation, refunds, ownership transfer, and full client exports).</p>
                                     </div>
+                                    <ChevronDown size={16} className={`text-[#6B7280] transition-transform ${teamPolicyPanels.approvalDualControl ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {teamPolicyPanels.approvalDualControl && (
+                                <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                    <Toggle
+                                        label="Enable Sensitive Action Approval"
+                                        checked={Boolean(settings.team?.approvalControl?.enabled)}
+                                        onChange={(next) => updateApprovalControl("enabled", next)}
+                                        description="When enabled, configured sensitive actions create approval requests before execution."
+                                    />
+                                    <Toggle
+                                        label="Enforce Maker-Checker"
+                                        checked={Boolean(settings.team?.approvalControl?.makerChecker)}
+                                        onChange={(next) => updateApprovalControl("makerChecker", next)}
+                                        description="Requester and approver must be different users."
+                                    />
+                                </div>
+
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                    <Field label="Approval TTL (minutes)">
+                                        <input
+                                            type="number"
+                                            min={10}
+                                            max={10080}
+                                            className="h-[38px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                            value={settings.team?.approvalControl?.approvalTtlMinutes ?? 240}
+                                            onChange={(e) => updateApprovalControl("approvalTtlMinutes", Number(e.target.value || 240))}
+                                        />
+                                    </Field>
+                                </div>
+
+                                <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Sensitive Action Thresholds</p>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                            <Toggle
+                                                label="High-Value Cancellation"
+                                                checked={Boolean(settings.team?.approvalControl?.sensitiveActions?.high_value_cancellation?.enabled)}
+                                                onChange={(next) => updateApprovalActionControl("high_value_cancellation", "enabled", next)}
+                                            />
+                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                <Field label="Min Amount (LKR)">
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.high_value_cancellation?.minAmount ?? 50000}
+                                                        onChange={(e) => updateApprovalActionControl("high_value_cancellation", "minAmount", Number(e.target.value || 0))}
+                                                    />
+                                                </Field>
+                                                <Field label="Required Approvals">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={3}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.high_value_cancellation?.requiredApprovals ?? 1}
+                                                        onChange={(e) => updateApprovalActionControl("high_value_cancellation", "requiredApprovals", Number(e.target.value || 1))}
+                                                    />
+                                                </Field>
+                                            </div>
+                                        </div>
+
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                            <Toggle
+                                                label="Refund Approval"
+                                                checked={Boolean(settings.team?.approvalControl?.sensitiveActions?.refund?.enabled)}
+                                                onChange={(next) => updateApprovalActionControl("refund", "enabled", next)}
+                                            />
+                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                <Field label="Level 1 Min (LKR)">
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.refund?.level1MinAmount ?? 25000}
+                                                        onChange={(e) => updateApprovalActionControl("refund", "level1MinAmount", Number(e.target.value || 0))}
+                                                    />
+                                                </Field>
+                                                <Field label="L1 Approvals">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={3}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.refund?.requiredApprovalsLevel1 ?? 1}
+                                                        onChange={(e) => updateApprovalActionControl("refund", "requiredApprovalsLevel1", Number(e.target.value || 1))}
+                                                    />
+                                                </Field>
+                                                <Field label="Level 2 Min (LKR)">
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.refund?.level2MinAmount ?? 100000}
+                                                        onChange={(e) => updateApprovalActionControl("refund", "level2MinAmount", Number(e.target.value || 0))}
+                                                    />
+                                                </Field>
+                                                <Field label="L2 Approvals">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={3}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.refund?.requiredApprovalsLevel2 ?? 2}
+                                                        onChange={(e) => updateApprovalActionControl("refund", "requiredApprovalsLevel2", Number(e.target.value || 2))}
+                                                    />
+                                                </Field>
+                                            </div>
+                                        </div>
+
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                            <Toggle
+                                                label="Ownership Transfer"
+                                                checked={Boolean(settings.team?.approvalControl?.sensitiveActions?.ownership_transfer?.enabled)}
+                                                onChange={(next) => updateApprovalActionControl("ownership_transfer", "enabled", next)}
+                                            />
+                                            <Field label="Required Approvals">
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={3}
+                                                    className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={settings.team?.approvalControl?.sensitiveActions?.ownership_transfer?.requiredApprovals ?? 2}
+                                                    onChange={(e) => updateApprovalActionControl("ownership_transfer", "requiredApprovals", Number(e.target.value || 2))}
+                                                />
+                                            </Field>
+                                        </div>
+
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                            <Toggle
+                                                label="Full Client Export"
+                                                checked={Boolean(settings.team?.approvalControl?.sensitiveActions?.client_list_export?.enabled)}
+                                                onChange={(next) => updateApprovalActionControl("client_list_export", "enabled", next)}
+                                            />
+                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                <Field label="Min Rows">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.client_list_export?.minRows ?? 100}
+                                                        onChange={(e) => updateApprovalActionControl("client_list_export", "minRows", Number(e.target.value || 100))}
+                                                    />
+                                                </Field>
+                                                <Field label="Required Approvals">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={3}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.approvalControl?.sensitiveActions?.client_list_export?.requiredApprovals ?? 1}
+                                                        onChange={(e) => updateApprovalActionControl("client_list_export", "requiredApprovals", Number(e.target.value || 1))}
+                                                    />
+                                                </Field>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Sensitive Action Approval Queue</p>
+                                    {(approvalQueue || []).length === 0 && (
+                                        <p className="text-[12px] text-[#6B7280]">No pending or approved requests waiting execution.</p>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        {(approvalQueue || []).map((item) => (
+                                            <div key={`approval-${item.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[12px] font-[700] text-[#111827]">{titleCase(item.actionKey || "action")}</p>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-[700] ${item.status === "approved" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEF3C7] text-[#92400E]"}`}>
+                                                        {titleCase(item.status || "pending")}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-[#6B7280] mt-1">
+                                                    Requested by {item.requester?.name || "-"} • Approvals {item.approvedCount || 0}/{item.requiredApprovals || 0}
+                                                    {item.amount !== null ? ` • Amount LKR ${item.amount}` : ""}
+                                                </p>
+                                                <p className="text-[11px] text-[#6B7280] mt-1">Created at {item.createdAt || "-"} • Expires at {item.expiresAt || "-"}</p>
+
+                                                {canAssignPermissions && item.status === "pending" && (
+                                                    <div className="mt-2 flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            disabled={approvalActionBusyId === item.id}
+                                                            className="h-[30px] px-2 rounded-[6px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
+                                                            onClick={() => approveSensitiveAction(item.id)}
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={approvalActionBusyId === item.id}
+                                                            className="h-[30px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700] disabled:opacity-50"
+                                                            onClick={() => rejectSensitiveAction(item.id)}
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                </>
+                                )}
+                            </div>
+
+                            <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                                <div className="flex items-center justify-between gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleTeamPolicyPanel("advancedModel")}
+                                        className="flex-1 flex items-center justify-between gap-3 text-left"
+                                    >
+                                        <div>
+                                            <p className="text-[14px] font-[700] text-[#111827]">Advanced Permission Model</p>
+                                            <p className="text-[12px] text-[#6B7280]">Configure action-level permissions by resource, role scope, and sensitive field visibility.</p>
+                                        </div>
+                                        <ChevronDown size={16} className={`text-[#6B7280] transition-transform ${teamPolicyPanels.advancedModel ? "rotate-180" : ""}`} />
+                                    </button>
                                     <button
                                         type="button"
                                         role="switch"
@@ -1400,6 +1766,8 @@ const Settings = () => {
                                     </button>
                                 </div>
 
+                                {teamPolicyPanels.advancedModel && (
+                                <>
                                 <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 mb-3">
                                     <div>
                                         <label className="text-[12px] font-[700] text-[#374151]">Role</label>
@@ -1898,6 +2266,8 @@ const Settings = () => {
                                         </button>
                                     </div>
                                 </div>
+                                </>
+                                )}
                             </div>
                         </div>
                     )}

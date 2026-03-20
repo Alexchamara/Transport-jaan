@@ -1260,6 +1260,14 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
     Route::post('/courierService/team/ownership/{newOwner}', [CourierTeamController::class, 'transferOwnership'])
         ->middleware(['service.permission:courier.team.transfer_ownership', 'throttle:10,1'])
         ->name('courierService.team.transfer-ownership');
+
+    Route::post('/courierService/team/sensitive-approvals/{approval}/approve', [CourierTeamController::class, 'approveSensitiveApproval'])
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
+        ->name('courierService.team.sensitive-approvals.approve');
+
+    Route::post('/courierService/team/sensitive-approvals/{approval}/reject', [CourierTeamController::class, 'rejectSensitiveApproval'])
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
+        ->name('courierService.team.sensitive-approvals.reject');
 });
 
 

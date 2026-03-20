@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\CourierControllers\Vendor;
 
 use App\Http\Controllers\Controller;
+use App\Models\Courier\CourierSensitiveActionApproval;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\ServiceWorkspace;
 use App\Models\User;
 use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
+use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
 use Illuminate\Http\Request;
@@ -43,6 +45,7 @@ class CourierTeamController extends Controller
         $this->middleware('service.permission:courier.team.sessions.view')->only(['listSessions']);
         $this->middleware('service.permission:courier.team.sessions.revoke')->only(['revokeSession', 'revokeAllSessions']);
         $this->middleware('service.permission:courier.team.transfer_ownership')->only(['transferOwnership']);
+        $this->middleware('service.permission:courier.team.assign_permissions')->only(['approveSensitiveApproval', 'rejectSensitiveApproval']);
     }
 
     public function index(Request $request)
@@ -993,6 +996,8 @@ class CourierTeamController extends Controller
     {
         $vendorUserId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $approvalService = app(CourierSensitiveActionApprovalService::class);
+        $approvalPolicy = $this->resolveApprovalControlPolicy($vendorUserId);
 
         $workspace = ServiceWorkspace::query()
             ->where('id', $workspaceId)
@@ -1015,6 +1020,24 @@ class CourierTeamController extends Controller
 
         if (!$membership) {
             abort(422, 'New owner must be an active team member.');
+        }
+
+        $approvalGate = $approvalService->ensureApprovedOrQueue(
+            $request,
+            $vendorUserId,
+            $workspaceId,
+            $approvalPolicy,
+            CourierSensitiveActionApprovalService::ACTION_OWNERSHIP_TRANSFER,
+            [
+                'resourceType' => 'service_workspace',
+                'resourceId' => (int) $workspace->id,
+                'subject' => 'ownership_transfer',
+                'subjectIds' => [(int) $newOwner->id],
+            ]
+        );
+
+        if (!(bool) ($approvalGate['ok'] ?? false)) {
+            return back()->with('error', (string) ($approvalGate['message'] ?? 'Ownership transfer requires approval.'));
         }
 
         DB::transaction(function () use ($workspace, $newOwner, $vendorUserId, $workspaceId, $request) {
@@ -1052,7 +1075,95 @@ class CourierTeamController extends Controller
             );
         });
 
+        if (($approvalGate['approval'] ?? null) instanceof CourierSensitiveActionApproval) {
+            $approvalService->markExecuted($approvalGate['approval']);
+        }
+
         return back()->with('success', 'Courier ownership transferred successfully.');
+    }
+
+    public function approveSensitiveApproval(Request $request, CourierSensitiveActionApproval $approval)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $approval->vendor_user_id !== $vendorUserId) {
+            abort(404, 'Approval request not found.');
+        }
+
+        if ($approval->service_workspace_id !== null && (int) $approval->service_workspace_id !== $workspaceId) {
+            abort(404, 'Approval request not found for this workspace.');
+        }
+
+        $service = app(CourierSensitiveActionApprovalService::class);
+        $result = $service->approveRequest($request, $approval, $this->resolveApprovalControlPolicy($vendorUserId));
+
+        if (!(bool) ($result['ok'] ?? false)) {
+            return response()->json(['message' => (string) ($result['message'] ?? 'Unable to approve request.')], 422);
+        }
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_sensitive_action_approval_approved',
+            'sensitive_approval',
+            (int) $approval->id,
+            'Sensitive action approval decision recorded as approved.',
+            [
+                'approval_id' => (int) $approval->id,
+                'approval_status' => (string) ($result['status'] ?? ''),
+                'approved_count' => (int) (($result['approval']->approved_count ?? 0)),
+                'required_approvals' => (int) (($result['approval']->required_approvals ?? 0)),
+            ],
+        );
+
+        return response()->json([
+            'message' => (string) ($result['message'] ?? 'Approval recorded.'),
+            'status' => (string) ($result['status'] ?? ''),
+        ]);
+    }
+
+    public function rejectSensitiveApproval(Request $request, CourierSensitiveActionApproval $approval)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $approval->vendor_user_id !== $vendorUserId) {
+            abort(404, 'Approval request not found.');
+        }
+
+        if ($approval->service_workspace_id !== null && (int) $approval->service_workspace_id !== $workspaceId) {
+            abort(404, 'Approval request not found for this workspace.');
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $service = app(CourierSensitiveActionApprovalService::class);
+        $result = $service->rejectRequest($request, $approval, (string) ($validated['reason'] ?? ''));
+
+        if (!(bool) ($result['ok'] ?? false)) {
+            return response()->json(['message' => (string) ($result['message'] ?? 'Unable to reject request.')], 422);
+        }
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_sensitive_action_approval_rejected',
+            'sensitive_approval',
+            (int) $approval->id,
+            'Sensitive action approval request rejected.',
+            [
+                'approval_id' => (int) $approval->id,
+                'reason' => (string) ($validated['reason'] ?? ''),
+            ],
+        );
+
+        return response()->json([
+            'message' => (string) ($result['message'] ?? 'Approval request rejected.'),
+            'status' => CourierSensitiveActionApprovalService::STATUS_REJECTED,
+        ]);
     }
 
     private function assertCanManageMember(
@@ -1314,6 +1425,16 @@ class CourierTeamController extends Controller
             ->map(fn ($role) => (string) $role)
             ->values()
             ->all();
+    }
+
+    private function resolveApprovalControlPolicy(int $vendorUserId): array
+    {
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorUserId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $team = is_array($settings['team'] ?? null) ? $settings['team'] : [];
+        $approvalControl = is_array($team['approvalControl'] ?? null) ? $team['approvalControl'] : [];
+
+        return app(CourierSensitiveActionApprovalService::class)->normalizePolicy($approvalControl);
     }
 
     private function assignableRoleNames(int $workspaceId): array

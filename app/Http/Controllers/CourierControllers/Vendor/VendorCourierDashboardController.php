@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CourierControllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierContact;
+use App\Models\Courier\CourierSensitiveActionApproval;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierClientProfile;
@@ -11,6 +12,7 @@ use App\Models\VendorActivityLog;
 use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
+use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
 use Carbon\Carbon;
@@ -300,11 +302,30 @@ class VendorCourierDashboardController extends Controller
             return back()->with('error', $cancelGuard['message']);
         }
 
+        $approvalGate = $this->ensureSensitiveActionApproval(
+            $request,
+            $policy,
+            (string) $validated['action'],
+            [
+                'resourceType' => 'courier_shipment',
+                'resourceId' => (int) $shipment->id,
+                'subject' => (string) $shipment->reference,
+                'subjectIds' => [(int) $shipment->id],
+                'amount' => (float) ($shipment->estimated_cost ?? 0),
+            ]
+        );
+
+        if (!$approvalGate['ok']) {
+            return back()->with('error', (string) $approvalGate['message']);
+        }
+
         $result = $this->applyBookingAction($shipment, $validated['action']);
 
         if (!$result['ok']) {
             return back()->with('error', $result['message']);
         }
+
+        $this->markSensitiveActionApprovalExecuted($approvalGate['approval'] ?? null);
 
         return back()->with('success', 'Booking updated successfully.');
     }
@@ -361,6 +382,22 @@ class VendorCourierDashboardController extends Controller
 
         $shipments = $shipments->get();
 
+        $approvalGate = $this->ensureSensitiveActionApproval(
+            $request,
+            $policy,
+            (string) $action,
+            [
+                'resourceType' => 'courier_shipment_batch',
+                'subject' => 'booking_lifecycle_bulk',
+                'subjectIds' => $shipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+                'amount' => (float) $shipments->max('estimated_cost'),
+            ]
+        );
+
+        if (!$approvalGate['ok']) {
+            return back()->with('error', (string) $approvalGate['message']);
+        }
+
         $successCount = 0;
         $blockedCount = 0;
 
@@ -378,6 +415,8 @@ class VendorCourierDashboardController extends Controller
             return back()->with('error', 'No bookings were updated. Selected action is not allowed for current booking statuses.');
         }
 
+        $this->markSensitiveActionApprovalExecuted($approvalGate['approval'] ?? null);
+
         $message = $successCount . ' booking(s) updated successfully.';
 
         if ($blockedCount > 0) {
@@ -390,6 +429,34 @@ class VendorCourierDashboardController extends Controller
     public function clients(Request $request)
     {
         [$filters, $clientsPayload] = $this->buildClientsPayload($request);
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+
+        if ($request->query('export') === 'csv') {
+            $this->assertAdvancedPermission($request, $policy, 'clients', 'export');
+
+            $approvalGate = $this->ensureSensitiveActionApproval(
+                $request,
+                $policy,
+                '__client_export__',
+                [
+                    'resourceType' => 'client_list',
+                    'subject' => 'client_export',
+                    'rowCount' => (int) ($clientsPayload['pagination']['total'] ?? 0),
+                ]
+            );
+
+            if (!$approvalGate['ok']) {
+                return back()->with('error', (string) $approvalGate['message']);
+            }
+
+            $response = $this->downloadClientsCsv(collect($clientsPayload['allRows'] ?? []));
+            $this->markSensitiveActionApprovalExecuted($approvalGate['approval'] ?? null);
+
+            return $response;
+        }
+
+        unset($clientsPayload['allRows']);
 
         return Inertia::render('Web/home/vendors/courierService/Client', [
             'courierClients' => $clientsPayload,
@@ -546,6 +613,7 @@ class VendorCourierDashboardController extends Controller
                 'customerAccounts' => $customerScopeOptions,
             ],
             'teamAccessAudit' => $teamAccessAudit,
+            'teamSensitiveApprovals' => $this->listTeamSensitiveApprovals($vendorId, $workspaceId),
         ]);
     }
 
@@ -2006,6 +2074,7 @@ class VendorCourierDashboardController extends Controller
 
         return [$filters, [
             'summary' => $summary,
+            'allRows' => $rows,
             'rows' => $pagedRows,
             'filters' => array_merge($filters, ['page' => $page, 'perPage' => $perPage]),
             'pagination' => [
@@ -2632,6 +2701,47 @@ class VendorCourierDashboardController extends Controller
         }, $filename, ['Content-Type' => 'text/csv']);
     }
 
+    private function downloadClientsCsv(Collection $rows)
+    {
+        $filename = 'courier-clients-export-' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, [
+                'Client Name',
+                'Company',
+                'Email',
+                'Phone',
+                'Tier',
+                'Risk',
+                'Watchlist',
+                'Total Shipments',
+                'Active Shipments',
+                'Delivered Rate',
+                'SLA Performance',
+            ]);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row['name'] ?? '',
+                    $row['company'] ?? '',
+                    $row['email'] ?? '',
+                    $row['phone'] ?? '',
+                    $row['clientTier'] ?? '',
+                    $row['riskLevel'] ?? '',
+                    !empty($row['watchlist']) ? 'Yes' : 'No',
+                    $row['totalShipments'] ?? 0,
+                    $row['activeShipments'] ?? 0,
+                    $row['deliveredRate'] ?? 0,
+                    $row['slaPerformance'] ?? 0,
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     private function normalizeServiceLabel(?string $service): string
     {
         $value = strtolower((string) $service);
@@ -2698,6 +2808,7 @@ class VendorCourierDashboardController extends Controller
                 'opsLeadCanReassign' => true,
                 'financeCanViewRates' => true,
                 'enforce2FA' => true,
+                'approvalControl' => app(CourierSensitiveActionApprovalService::class)->defaultPolicy(),
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
                     'defaultDataScopeByRole' => [],
@@ -2729,6 +2840,9 @@ class VendorCourierDashboardController extends Controller
         if (!is_array($merged['teamAccessControl']['onboardingBundles'] ?? null)) {
             $merged['teamAccessControl']['onboardingBundles'] = [];
         }
+
+        $approvalControl = is_array($merged['approvalControl'] ?? null) ? $merged['approvalControl'] : [];
+        $merged['approvalControl'] = app(CourierSensitiveActionApprovalService::class)->normalizePolicy($approvalControl);
 
         $merged['permissionModel'] = $this->normalizeAdvancedPermissionModel(
             is_array($merged['permissionModel'] ?? null)
@@ -3597,6 +3711,13 @@ class VendorCourierDashboardController extends Controller
         }
 
         if (!$shipment) {
+            if ($action === 'refund') {
+                $this->ensureSensitiveActionApproval($request, $policy, '__refund__', [
+                    'resourceType' => $resource,
+                    'subject' => 'refund_action',
+                    'amount' => (float) ($extraContext['amount'] ?? 0),
+                ], true);
+            }
             return;
         }
 
@@ -3660,6 +3781,112 @@ class VendorCourierDashboardController extends Controller
         } catch (\Throwable) {
             // Ignore audit write failures to avoid breaking settings updates.
         }
+    }
+
+    private function listTeamSensitiveApprovals(int $vendorId, int $workspaceId): array
+    {
+        return CourierSensitiveActionApproval::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where(function (Builder $query) use ($workspaceId) {
+                $query->whereNull('service_workspace_id')
+                    ->orWhere('service_workspace_id', $workspaceId);
+            })
+            ->whereIn('status', [
+                CourierSensitiveActionApprovalService::STATUS_PENDING,
+                CourierSensitiveActionApprovalService::STATUS_APPROVED,
+            ])
+            ->with(['requester:id,name,email', 'approver:id,name,email'])
+            ->orderByDesc('id')
+            ->limit(80)
+            ->get()
+            ->map(function (CourierSensitiveActionApproval $item) {
+                return [
+                    'id' => (int) $item->id,
+                    'actionKey' => (string) $item->action_key,
+                    'status' => (string) $item->status,
+                    'requiredApprovals' => (int) $item->required_approvals,
+                    'approvedCount' => (int) $item->approved_count,
+                    'amount' => $item->amount !== null ? (float) $item->amount : null,
+                    'thresholdLevel' => (string) ($item->threshold_level ?? ''),
+                    'reason' => (string) ($item->reason ?? ''),
+                    'context' => is_array($item->context) ? $item->context : [],
+                    'requester' => [
+                        'id' => (int) ($item->requester?->id ?? 0),
+                        'name' => (string) ($item->requester?->name ?? ''),
+                        'email' => (string) ($item->requester?->email ?? ''),
+                    ],
+                    'lastApprover' => [
+                        'id' => (int) ($item->approver?->id ?? 0),
+                        'name' => (string) ($item->approver?->name ?? ''),
+                        'email' => (string) ($item->approver?->email ?? ''),
+                    ],
+                    'expiresAt' => optional($item->expires_at)->format('Y-m-d H:i:s'),
+                    'createdAt' => optional($item->created_at)->format('Y-m-d H:i:s'),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function ensureSensitiveActionApproval(
+        Request $request,
+        array $policy,
+        string $action,
+        array $context = [],
+        bool $throwOnPending = false
+    ): array {
+        $actionKey = match ($action) {
+            'cancel_booking', 'cancel_shipment' => CourierSensitiveActionApprovalService::ACTION_HIGH_VALUE_CANCELLATION,
+            '__refund__' => CourierSensitiveActionApprovalService::ACTION_REFUND,
+            '__ownership_transfer__' => CourierSensitiveActionApprovalService::ACTION_OWNERSHIP_TRANSFER,
+            '__client_export__' => CourierSensitiveActionApprovalService::ACTION_CLIENT_LIST_EXPORT,
+            default => null,
+        };
+
+        if (!$actionKey) {
+            return ['ok' => true, 'approval' => null, 'message' => null];
+        }
+
+        $service = app(CourierSensitiveActionApprovalService::class);
+        $result = $service->ensureApprovedOrQueue(
+            $request,
+            (int) $request->attributes->get('vendor_user_id'),
+            (int) $request->attributes->get('service_workspace_id'),
+            is_array($policy['approvalControl'] ?? null) ? $policy['approvalControl'] : [],
+            $actionKey,
+            $context
+        );
+
+        if (!(bool) ($result['ok'] ?? false) && $throwOnPending) {
+            abort(403, (string) ($result['message'] ?? 'Sensitive action approval is required.'));
+        }
+
+        if (!(bool) ($result['ok'] ?? false)) {
+            $this->logPermissionDenied($request, 'team_access', 'approval_required', [
+                'reason' => 'approval_required',
+                'approval_action' => $actionKey,
+                'approval_message' => (string) ($result['message'] ?? ''),
+            ]);
+        }
+
+        return [
+            'ok' => (bool) ($result['ok'] ?? false),
+            'approval' => $result['approval'] ?? null,
+            'message' => (string) ($result['message'] ?? ''),
+        ];
+    }
+
+    private function markSensitiveActionApprovalExecuted($approval): void
+    {
+        if (!$approval instanceof CourierSensitiveActionApproval) {
+            return;
+        }
+
+        if ($approval->status !== CourierSensitiveActionApprovalService::STATUS_APPROVED) {
+            return;
+        }
+
+        app(CourierSensitiveActionApprovalService::class)->markExecuted($approval);
     }
 
     private function applyShipmentScopeFilter(Builder $query, string $scope, Request $request, int $vendorId): void
