@@ -329,7 +329,7 @@ class VendorCourierDashboardController extends Controller
         ]);
     }
 
-    public function settings(Request $request, ?string $module = null)
+    public function settings(Request $request, ?string $module = null, ?string $teamTopic = null)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
@@ -347,6 +347,16 @@ class VendorCourierDashboardController extends Controller
         $selectedModule = in_array((string) $module, $allowedModules, true)
             ? (string) $module
             : 'business';
+
+        $allowedTeamTopics = [
+            'policy-controls',
+            'user-defaults',
+            'role-studio',
+        ];
+
+        $selectedTeamTopic = in_array((string) $teamTopic, $allowedTeamTopics, true)
+            ? (string) $teamTopic
+            : 'policy-controls';
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
@@ -370,6 +380,7 @@ class VendorCourierDashboardController extends Controller
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
             'initialSettingsModule' => $selectedModule,
+            'initialTeamAccessTopic' => $selectedTeamTopic,
             'teamPermissionOptions' => Permission::query()
                 ->where('name', 'like', 'courier.%')
                 ->orderBy('name')
@@ -383,6 +394,11 @@ class VendorCourierDashboardController extends Controller
                 'assignRole' => $request->user()->can('courier.team.assign_role'),
             ],
         ]);
+    }
+
+    public function settingsTeamTopic(Request $request, string $topic)
+    {
+        return $this->settings($request, 'team', $topic);
     }
 
     public function updateSettings(Request $request)

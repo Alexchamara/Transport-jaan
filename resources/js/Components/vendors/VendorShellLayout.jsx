@@ -81,7 +81,7 @@ const SERVICE_CONFIG = {
             { key: "tracking", label: "Tracking", route: () => route("courierService.settings.module", { module: "tracking" }) },
             { key: "notifications", label: "Notifications", route: () => route("courierService.settings.module", { module: "notifications" }) },
             { key: "integrations", label: "Integrations", route: () => route("courierService.settings.module", { module: "integrations" }) },
-            { key: "team", label: "Team Access", route: () => route("courierService.settings.module", { module: "team" }) },
+            { key: "team", label: "Team Access", route: () => route("courierService.settings.team.topic", { topic: "policy-controls" }) },
         ],
         profile: () => route("courierService.profile"),
     },
@@ -311,7 +311,7 @@ const VendorShellLayout = ({
         if (!routeFn) return false;
         const p = routePath(routeFn);
         if (!p) return false;
-        return currentPath === p;
+        return currentPath === p || currentPath.startsWith(`${p}/`);
     };
 
     const settingsModuleActive = Array.isArray(cfg.settingsModules)

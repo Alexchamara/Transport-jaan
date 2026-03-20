@@ -67,6 +67,12 @@ const TAB_CONFIG = [
     { key: "team", label: "Team Access", icon: Users },
 ];
 
+const TEAM_ACCESS_TOPIC_CONFIG = [
+    { key: "policy-controls", label: "Team Policy Controls" },
+    { key: "user-defaults", label: "Team User Creation Defaults" },
+    { key: "role-studio", label: "Role Studio" },
+];
+
 const SectionCard = ({ title, description, children }) => (
     <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
         <div className="mb-4">
@@ -114,12 +120,18 @@ const Settings = () => {
     const teamRoleCatalog = Array.isArray(props.teamRoleCatalog) ? props.teamRoleCatalog : [];
     const teamRoleTemplates = props.teamRoleTemplates && typeof props.teamRoleTemplates === "object" ? props.teamRoleTemplates : {};
     const initialSettingsModule = String(props.initialSettingsModule || "business");
+    const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
 
     const [activeTab] = useState(
         TAB_CONFIG.some((tab) => tab.key === initialSettingsModule) ? initialSettingsModule : "business",
+    );
+    const [activeTeamAccessTopic, setActiveTeamAccessTopic] = useState(
+        TEAM_ACCESS_TOPIC_CONFIG.some((topic) => topic.key === initialTeamAccessTopic)
+            ? initialTeamAccessTopic
+            : "policy-controls",
     );
     const [settings, setSettings] = useState(() => {
         const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
@@ -472,6 +484,19 @@ const Settings = () => {
         }));
     };
 
+    const navigateTeamAccessTopic = (topicKey) => {
+        if (!TEAM_ACCESS_TOPIC_CONFIG.some((topic) => topic.key === topicKey)) {
+            return;
+        }
+
+        setActiveTeamAccessTopic(topicKey);
+        router.get(route("courierService.settings.team.topic", { topic: topicKey }), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const createCustomRole = () => {
         if (!canAssignRole || !canAssignPermissions) {
             return;
@@ -813,70 +838,96 @@ const Settings = () => {
         }
 
         return (
-            <SectionCard title="Team Access Control" description="Set role powers for key operational decisions.">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                    <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
-                    <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
-                    <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
-                    <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
-                </div>
-
-                <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
-                    <p className="text-[15px] font-[700] text-[#111827]">Team User Creation Defaults</p>
-                    <p className="text-[12px] text-[#6B7280] mt-1">Configure permissions auto-applied when creating courier team users.</p>
-
-                    <div className="mt-3 mb-2">
-                        <label className="text-[12px] font-[700] text-[#374151]">Role To Configure</label>
-                        <select
-                            className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
-                            disabled={!canAssignPermissions}
-                            value={activeRoleForDefaults}
-                            onChange={(e) => setActiveRoleForDefaults(e.target.value)}
-                        >
-                            {teamRoleOptions.map((role) => (
-                                <option key={role} value={role}>{titleCase(role)}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <p className="text-[12px] font-[700] text-[#374151] mt-3 mb-2">Default Direct Permissions For Selected Role</p>
-                    <input
-                        className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-3 mb-2 text-[13px]"
-                        placeholder="Search default permissions"
-                        disabled={!canAssignPermissions}
-                        value={teamDefaultPermissionSearch}
-                        onChange={(e) => setTeamDefaultPermissionSearch(e.target.value)}
-                    />
-
-                    <div className="max-h-[220px] overflow-y-auto border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
-                        {Object.keys(groupedTeamPermissions).length === 0 && (
-                            <p className="text-[12px] text-[#6B7280] px-1 py-2">No courier permissions found.</p>
-                        )}
-
-                        {Object.keys(groupedTeamPermissions).map((group) => (
-                            <div key={group} className="mb-2">
-                                <p className="text-[11px] font-[700] uppercase text-[#6B7280] mb-1">{group.replaceAll("_", " ")}</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {groupedTeamPermissions[group]
-                                        .filter((perm) => perm.toLowerCase().includes(teamDefaultPermissionSearch.toLowerCase()))
-                                        .map((perm) => (
-                                            <label key={perm} className="inline-flex items-center gap-2 text-[12px]">
-                                                <input
-                                                    type="checkbox"
-                                                    disabled={!canAssignPermissions}
-                                                    checked={activeRoleDefaultPermissions.includes(perm)}
-                                                    onChange={() => toggleRoleDefaultPermission(perm)}
-                                                />
-                                                {perm}
-                                            </label>
-                                        ))}
-                                </div>
-                            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
+                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Team Access Topics</p>
+                    <div className="space-y-2">
+                        {TEAM_ACCESS_TOPIC_CONFIG.map((topic) => (
+                            <button
+                                key={topic.key}
+                                type="button"
+                                onClick={() => navigateTeamAccessTopic(topic.key)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${
+                                    activeTeamAccessTopic === topic.key
+                                        ? "bg-[#0955AC] text-white"
+                                        : "bg-[#F3F4F6] text-[#374151]"
+                                }`}
+                            >
+                                <span>{topic.label}</span>
+                            </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-white mt-4">
+                <SectionCard title="Team Access Control" description="Set role powers for key operational decisions.">
+                    {activeTeamAccessTopic === "policy-controls" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
+                            <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
+                            <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
+                            <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                        </div>
+                    )}
+
+                    {activeTeamAccessTopic === "user-defaults" && (
+                        <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                            <p className="text-[15px] font-[700] text-[#111827]">Team User Creation Defaults</p>
+                            <p className="text-[12px] text-[#6B7280] mt-1">Configure permissions auto-applied when creating courier team users.</p>
+
+                            <div className="mt-3 mb-2">
+                                <label className="text-[12px] font-[700] text-[#374151]">Role To Configure</label>
+                                <select
+                                    className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                    disabled={!canAssignPermissions}
+                                    value={activeRoleForDefaults}
+                                    onChange={(e) => setActiveRoleForDefaults(e.target.value)}
+                                >
+                                    {teamRoleOptions.map((role) => (
+                                        <option key={role} value={role}>{titleCase(role)}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <p className="text-[12px] font-[700] text-[#374151] mt-3 mb-2">Default Direct Permissions For Selected Role</p>
+                            <input
+                                className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-3 mb-2 text-[13px]"
+                                placeholder="Search default permissions"
+                                disabled={!canAssignPermissions}
+                                value={teamDefaultPermissionSearch}
+                                onChange={(e) => setTeamDefaultPermissionSearch(e.target.value)}
+                            />
+
+                            <div className="max-h-[220px] overflow-y-auto border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                {Object.keys(groupedTeamPermissions).length === 0 && (
+                                    <p className="text-[12px] text-[#6B7280] px-1 py-2">No courier permissions found.</p>
+                                )}
+
+                                {Object.keys(groupedTeamPermissions).map((group) => (
+                                    <div key={group} className="mb-2">
+                                        <p className="text-[11px] font-[700] uppercase text-[#6B7280] mb-1">{group.replaceAll("_", " ")}</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {groupedTeamPermissions[group]
+                                                .filter((perm) => perm.toLowerCase().includes(teamDefaultPermissionSearch.toLowerCase()))
+                                                .map((perm) => (
+                                                    <label key={perm} className="inline-flex items-center gap-2 text-[12px]">
+                                                        <input
+                                                            type="checkbox"
+                                                            disabled={!canAssignPermissions}
+                                                            checked={activeRoleDefaultPermissions.includes(perm)}
+                                                            onChange={() => toggleRoleDefaultPermission(perm)}
+                                                        />
+                                                        {perm}
+                                                    </label>
+                                                ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTeamAccessTopic === "role-studio" && (
+                        <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-white">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                         <div>
                             <p className="text-[16px] font-[700] text-[#111827]">Role Studio</p>
@@ -1196,8 +1247,10 @@ const Settings = () => {
                             ))}
                         </div>
                     </div>
-                </div>
-            </SectionCard>
+                        </div>
+                    )}
+                </SectionCard>
+            </div>
         );
     })();
 

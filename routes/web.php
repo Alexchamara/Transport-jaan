@@ -1180,6 +1180,11 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
         ->middleware('service.permission:courier.settings.view')
         ->name('courierService.settings.module');
 
+    Route::get('/courierService/settingsPage/team/{topic}', [VendorCourierDashboardController::class, 'settingsTeamTopic'])
+        ->where('topic', 'policy-controls|user-defaults|role-studio')
+        ->middleware('service.permission:courier.settings.view')
+        ->name('courierService.settings.team.topic');
+
     Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
         ->middleware('service.permission:courier.settings.update')
         ->name('courierService.settings.update');
