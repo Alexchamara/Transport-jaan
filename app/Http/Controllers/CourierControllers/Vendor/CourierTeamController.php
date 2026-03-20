@@ -242,25 +242,12 @@ class CourierTeamController extends Controller
         }
 
         $teamAccessControl = $this->readTeamAccessControlSettings($vendorUserId);
-        $applyRoleDefaults = (bool) ($teamAccessControl['applyRoleDefaultsOnCreate'] ?? true);
 
         $requestedDirectPermissions = collect($validated['directPermissions'] ?? [])
             ->map(fn ($perm) => (string) $perm);
 
-        $adminDefaultPermissions = collect($teamAccessControl['defaultDirectPermissions'] ?? [])
+        $roleDefaultPermissions = collect($teamAccessControl['defaultDirectPermissionsByRole'][$validated['role']] ?? [])
             ->map(fn ($perm) => (string) $perm);
-
-        $roleDefaultPermissions = collect();
-        if ($applyRoleDefaults && !empty($validated['role'])) {
-            $roleDefaultPermissions = Role::query()
-                ->where('name', (string) $validated['role'])
-                ->with('permissions:id,name')
-                ->first()
-                ?->permissions
-                ->pluck('name')
-                ->map(fn ($perm) => (string) $perm)
-                ?? collect();
-        }
 
         $validCourierPermissions = Permission::query()
             ->where('name', 'like', 'courier.%')
@@ -270,7 +257,6 @@ class CourierTeamController extends Controller
 
         $resolvedDirectPermissions = $canAssignPermissions
             ? $requestedDirectPermissions
-                ->merge($adminDefaultPermissions)
                 ->merge($roleDefaultPermissions)
                 ->filter(fn ($perm) => $validCourierPermissions->contains($perm))
                 ->unique()
@@ -288,7 +274,7 @@ class CourierTeamController extends Controller
             return back()->with('error', 'This user already belongs to another vendor.');
         }
 
-        DB::transaction(function () use ($validated, $email, $actor, $vendorUserId, $workspaceId, $resolvedDirectPermissions, $teamAccessControl, $applyRoleDefaults) {
+        DB::transaction(function () use ($validated, $email, $actor, $vendorUserId, $workspaceId, $resolvedDirectPermissions, $teamAccessControl) {
             $user = User::query()->firstOrCreate(
                 ['email' => $email],
                 [
@@ -336,8 +322,7 @@ class CourierTeamController extends Controller
                     'email' => $email,
                     'role' => $validated['role'],
                     'direct_permissions_count' => count($resolvedDirectPermissions),
-                    'apply_role_defaults_on_create' => $applyRoleDefaults,
-                    'admin_default_permissions_count' => count($teamAccessControl['defaultDirectPermissions'] ?? []),
+                    'role_default_permissions_count' => count($teamAccessControl['defaultDirectPermissionsByRole'][$validated['role']] ?? []),
                     'blocked_service_keys' => $validated['blockedServiceKeys'] ?? [],
                 ],
             );
@@ -508,10 +493,31 @@ class CourierTeamController extends Controller
             ->all();
 
         $validated = $request->validate([
-            'applyRoleDefaultsOnCreate' => ['required', 'boolean'],
-            'defaultDirectPermissions' => ['nullable', 'array'],
-            'defaultDirectPermissions.*' => ['string', Rule::in($validCourierPermissions)],
+            'defaultDirectPermissionsByRole' => ['nullable', 'array'],
+            'defaultDirectPermissionsByRole.*' => ['array'],
+            'defaultDirectPermissionsByRole.*.*' => ['string', Rule::in($validCourierPermissions)],
         ]);
+
+        $validCourierRoles = Role::query()
+            ->where('name', 'like', 'courier_%')
+            ->pluck('name')
+            ->map(fn ($role) => (string) $role)
+            ->values()
+            ->all();
+
+        $incomingByRole = is_array($validated['defaultDirectPermissionsByRole'] ?? null)
+            ? $validated['defaultDirectPermissionsByRole']
+            : [];
+
+        $sanitizedByRole = [];
+        foreach ($validCourierRoles as $role) {
+            $sanitizedByRole[$role] = collect($incomingByRole[$role] ?? [])
+                ->map(fn ($perm) => (string) $perm)
+                ->filter(fn ($perm) => in_array($perm, $validCourierPermissions, true))
+                ->unique()
+                ->values()
+                ->all();
+        }
 
         $setting = VendorCourierSetting::query()->firstOrCreate(
             ['vendor_user_id' => $vendorUserId],
@@ -522,13 +528,7 @@ class CourierTeamController extends Controller
         $teamSettings = is_array($settings['team'] ?? null) ? $settings['team'] : [];
 
         $teamSettings['teamAccessControl'] = [
-            'applyRoleDefaultsOnCreate' => (bool) $validated['applyRoleDefaultsOnCreate'],
-            'defaultDirectPermissions' => collect($validated['defaultDirectPermissions'] ?? [])
-                ->map(fn ($perm) => (string) $perm)
-                ->filter(fn ($perm) => in_array($perm, $validCourierPermissions, true))
-                ->unique()
-                ->values()
-                ->all(),
+            'defaultDirectPermissionsByRole' => $sanitizedByRole,
         ];
 
         $settings['team'] = $teamSettings;
@@ -543,8 +543,10 @@ class CourierTeamController extends Controller
             $vendorUserId,
             'Courier team access control defaults updated.',
             [
-                'apply_role_defaults_on_create' => (bool) $validated['applyRoleDefaultsOnCreate'],
-                'default_permissions_count' => count($settings['team']['teamAccessControl']['defaultDirectPermissions']),
+                'roles_configured_count' => count(array_filter(
+                    $settings['team']['teamAccessControl']['defaultDirectPermissionsByRole'],
+                    fn ($permissions) => is_array($permissions) && count($permissions) > 0
+                )),
             ],
         );
 
@@ -863,8 +865,7 @@ class CourierTeamController extends Controller
     private function defaultTeamAccessControlSettings(): array
     {
         return [
-            'applyRoleDefaultsOnCreate' => false,
-            'defaultDirectPermissions' => [],
+            'defaultDirectPermissionsByRole' => [],
         ];
     }
 
@@ -880,14 +881,29 @@ class CourierTeamController extends Controller
             ? $teamSettings['teamAccessControl']
             : (is_array($settings['teamAccessControl'] ?? null) ? $settings['teamAccessControl'] : []);
 
-        return [
-            'applyRoleDefaultsOnCreate' => (bool) ($current['applyRoleDefaultsOnCreate'] ?? $defaults['applyRoleDefaultsOnCreate']),
-            'defaultDirectPermissions' => collect($current['defaultDirectPermissions'] ?? $defaults['defaultDirectPermissions'])
+        $validCourierRoles = Role::query()
+            ->where('name', 'like', 'courier_%')
+            ->pluck('name')
+            ->map(fn ($role) => (string) $role)
+            ->values()
+            ->all();
+
+        $rawByRole = is_array($current['defaultDirectPermissionsByRole'] ?? null)
+            ? $current['defaultDirectPermissionsByRole']
+            : [];
+
+        $normalizedByRole = [];
+        foreach ($validCourierRoles as $role) {
+            $normalizedByRole[$role] = collect($rawByRole[$role] ?? [])
                 ->map(fn ($perm) => (string) $perm)
                 ->filter(fn ($perm) => $perm !== '')
                 ->unique()
                 ->values()
-                ->all(),
+                ->all();
+        }
+
+        return [
+            'defaultDirectPermissionsByRole' => $normalizedByRole,
         ];
     }
 }

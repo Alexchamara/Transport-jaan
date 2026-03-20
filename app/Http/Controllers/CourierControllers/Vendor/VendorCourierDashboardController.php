@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class VendorCourierDashboardController extends Controller
@@ -335,6 +336,11 @@ class VendorCourierDashboardController extends Controller
             'courierSettings' => $mergedSettings,
             'teamPermissionOptions' => Permission::query()
                 ->where('name', 'like', 'courier.%')
+                ->orderBy('name')
+                ->pluck('name')
+                ->values(),
+            'teamRoleOptions' => Role::query()
+                ->where('name', 'like', 'courier_%')
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),
@@ -2346,8 +2352,7 @@ class VendorCourierDashboardController extends Controller
                 'financeCanViewRates' => true,
                 'enforce2FA' => true,
                 'teamAccessControl' => [
-                    'applyRoleDefaultsOnCreate' => false,
-                    'defaultDirectPermissions' => [],
+                    'defaultDirectPermissionsByRole' => [],
                 ],
             ],
         ];

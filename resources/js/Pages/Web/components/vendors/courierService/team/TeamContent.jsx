@@ -17,8 +17,7 @@ const EMPTY = {
     rolePermissionMap: {},
     permissionOptions: [],
     teamAccessControl: {
-        applyRoleDefaultsOnCreate: false,
-        defaultDirectPermissions: [],
+        defaultDirectPermissionsByRole: {},
     },
     serviceKey: "courier_service",
     filters: {
@@ -93,10 +92,10 @@ const TeamContent = () => {
     });
 
     const [teamAccessControlForm, setTeamAccessControlForm] = useState({
-        applyRoleDefaultsOnCreate: Boolean(team.teamAccessControl?.applyRoleDefaultsOnCreate ?? false),
-        defaultDirectPermissions: Array.isArray(team.teamAccessControl?.defaultDirectPermissions)
-            ? team.teamAccessControl.defaultDirectPermissions
-            : [],
+        defaultDirectPermissionsByRole: team.teamAccessControl?.defaultDirectPermissionsByRole
+        && typeof team.teamAccessControl.defaultDirectPermissionsByRole === "object"
+            ? team.teamAccessControl.defaultDirectPermissionsByRole
+            : {},
     });
 
     const [editForm, setEditForm] = useState({
@@ -134,11 +133,6 @@ const TeamContent = () => {
         }, {});
     }, [team.permissionOptions]);
 
-    const selectedCreateRolePermissions = useMemo(
-        () => Array.isArray(team.rolePermissionMap?.[createForm.role]) ? team.rolePermissionMap[createForm.role] : [],
-        [team.rolePermissionMap, createForm.role],
-    );
-
     const selectedEditRolePermissions = useMemo(
         () => Array.isArray(team.rolePermissionMap?.[editForm.role]) ? team.rolePermissionMap[editForm.role] : [],
         [team.rolePermissionMap, editForm.role],
@@ -146,20 +140,20 @@ const TeamContent = () => {
 
     const effectiveCreatePermissions = useMemo(
         () => {
-            const alwaysAppliedDefaults = Array.isArray(teamAccessControlForm.defaultDirectPermissions)
-                ? teamAccessControlForm.defaultDirectPermissions
-                : [];
-            const roleDefaults = teamAccessControlForm.applyRoleDefaultsOnCreate
-                ? (selectedCreateRolePermissions || [])
+            const roleDefaults = Array.isArray(teamAccessControlForm.defaultDirectPermissionsByRole?.[createForm.role])
+                ? teamAccessControlForm.defaultDirectPermissionsByRole[createForm.role]
                 : [];
 
             return Array.from(new Set([
                 ...(roleDefaults || []),
-                ...(alwaysAppliedDefaults || []),
                 ...(createForm.directPermissions || []),
             ]));
         },
-        [selectedCreateRolePermissions, createForm.directPermissions, teamAccessControlForm.applyRoleDefaultsOnCreate, teamAccessControlForm.defaultDirectPermissions],
+        [
+            createForm.directPermissions,
+            createForm.role,
+            teamAccessControlForm.defaultDirectPermissionsByRole,
+        ],
     );
 
     const effectiveEditPermissions = useMemo(
@@ -613,12 +607,6 @@ const TeamContent = () => {
                             <p className="text-[12px] text-[#DC2626] mt-2">{errors.name || errors.email || errors.password || errors.role}</p>
                         )}
 
-                        <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3">
-                            <p className="text-[12px] font-[700] text-[#374151]">Role Preset Preview</p>
-                            <p className="text-[11px] text-[#6B7280] mt-1">{createForm.role} gives {selectedCreateRolePermissions.length} permissions by default.</p>
-                            <p className="text-[11px] text-[#6B7280] mt-1">Effective permissions after direct grants: {effectiveCreatePermissions.length}</p>
-                        </div>
-
                         <div className="mt-4">
                             <p className="text-[13px] font-[700] mb-2">Direct Permissions</p>
                             <input
@@ -636,10 +624,10 @@ const TeamContent = () => {
                                                 .filter((perm) => perm.toLowerCase().includes(permissionSearchCreate.toLowerCase()))
                                                 .map((perm) => (
                                                     (() => {
-                                                        const roleDefaultChecked = Boolean(teamAccessControlForm.applyRoleDefaultsOnCreate) && selectedCreateRolePermissions.includes(perm);
-                                                        const adminDefaultChecked = teamAccessControlForm.defaultDirectPermissions.includes(perm);
+                                                        const roleDefaultChecked = Array.isArray(teamAccessControlForm.defaultDirectPermissionsByRole?.[createForm.role])
+                                                            && teamAccessControlForm.defaultDirectPermissionsByRole[createForm.role].includes(perm);
                                                         const checked = effectiveCreatePermissions.includes(perm);
-                                                        const lockedByDefault = roleDefaultChecked || adminDefaultChecked;
+                                                        const lockedByDefault = roleDefaultChecked;
 
                                                         return (
                                                     <label key={perm} className="inline-flex items-center gap-2 text-[12px]">
@@ -651,8 +639,7 @@ const TeamContent = () => {
                                                         />
                                                         <span>
                                                             {perm}
-                                                            {roleDefaultChecked && <span className="ml-1 text-[10px] text-[#0F3D8A]">(role default)</span>}
-                                                            {adminDefaultChecked && <span className="ml-1 text-[10px] text-[#166534]">(admin default)</span>}
+                                                            {roleDefaultChecked && <span className="ml-1 text-[10px] text-[#166534]">(role default)</span>}
                                                         </span>
                                                     </label>
                                                         );

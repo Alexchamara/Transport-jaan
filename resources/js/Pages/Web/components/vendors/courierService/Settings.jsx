@@ -52,8 +52,7 @@ const DEFAULT_SETTINGS = {
         financeCanViewRates: true,
         enforce2FA: true,
         teamAccessControl: {
-            applyRoleDefaultsOnCreate: false,
-            defaultDirectPermissions: [],
+            defaultDirectPermissionsByRole: {},
         },
     },
 };
@@ -104,11 +103,14 @@ const Toggle = ({ label, checked, onChange, description }) => (
     </div>
 );
 
+const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
 const Settings = () => {
     const props = usePage().props;
     const flash = props.flash || {};
     const incoming = props.courierSettings || {};
     const teamPermissionOptions = Array.isArray(props.teamPermissionOptions) ? props.teamPermissionOptions : [];
+    const teamRoleOptions = Array.isArray(props.teamRoleOptions) ? props.teamRoleOptions : [];
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
 
@@ -128,14 +130,16 @@ const Settings = () => {
                 teamAccessControl: {
                     ...DEFAULT_SETTINGS.team.teamAccessControl,
                     ...incomingTeamAccessControl,
-                    defaultDirectPermissions: Array.isArray(incomingTeamAccessControl.defaultDirectPermissions)
-                        ? incomingTeamAccessControl.defaultDirectPermissions
-                        : [],
+                    defaultDirectPermissionsByRole: incomingTeamAccessControl.defaultDirectPermissionsByRole
+                    && typeof incomingTeamAccessControl.defaultDirectPermissionsByRole === "object"
+                        ? incomingTeamAccessControl.defaultDirectPermissionsByRole
+                        : {},
                 },
             },
         };
     });
     const [teamDefaultPermissionSearch, setTeamDefaultPermissionSearch] = useState("");
+    const [activeRoleForDefaults, setActiveRoleForDefaults] = useState(() => teamRoleOptions[0] || "courier_dispatcher");
 
     const {
         feedback,
@@ -153,19 +157,6 @@ const Settings = () => {
             [section]: {
                 ...prev[section],
                 [key]: value,
-            },
-        }));
-    };
-
-    const updateTeamAccessControlValue = (key, value) => {
-        setSettings((prev) => ({
-            ...prev,
-            team: {
-                ...prev.team,
-                teamAccessControl: {
-                    ...prev.team.teamAccessControl,
-                    [key]: value,
-                },
             },
         }));
     };
@@ -190,6 +181,35 @@ const Settings = () => {
             return acc;
         }, {});
     }, [teamPermissionOptions]);
+
+    const activeRoleDefaultPermissions = useMemo(() => {
+        const byRole = settings.team?.teamAccessControl?.defaultDirectPermissionsByRole;
+
+        if (!byRole || typeof byRole !== "object") {
+            return [];
+        }
+
+        const selected = byRole[activeRoleForDefaults];
+        return Array.isArray(selected) ? selected : [];
+    }, [activeRoleForDefaults, settings.team]);
+
+    const toggleRoleDefaultPermission = (permission) => {
+        const nextRoleDefaults = toggleInArray(activeRoleDefaultPermissions, permission);
+
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                teamAccessControl: {
+                    ...prev.team.teamAccessControl,
+                    defaultDirectPermissionsByRole: {
+                        ...(prev.team.teamAccessControl.defaultDirectPermissionsByRole || {}),
+                        [activeRoleForDefaults]: nextRoleDefaults,
+                    },
+                },
+            },
+        }));
+    };
 
     const saveSection = (sectionKey) => {
         router.post(
@@ -407,17 +427,21 @@ const Settings = () => {
                     <p className="text-[15px] font-[700] text-[#111827]">Team User Creation Defaults</p>
                     <p className="text-[12px] text-[#6B7280] mt-1">Configure permissions auto-applied when creating courier team users.</p>
 
-                    <label className="inline-flex items-center gap-2 text-[13px] font-[600] mt-3">
-                        <input
-                            type="checkbox"
+                    <div className="mt-3 mb-2">
+                        <label className="text-[12px] font-[700] text-[#374151]">Role To Configure</label>
+                        <select
+                            className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
                             disabled={!canAssignPermissions}
-                            checked={Boolean(settings.team.teamAccessControl.applyRoleDefaultsOnCreate)}
-                            onChange={(e) => updateTeamAccessControlValue("applyRoleDefaultsOnCreate", e.target.checked)}
-                        />
-                        Auto-apply selected role default permissions for new users
-                    </label>
+                            value={activeRoleForDefaults}
+                            onChange={(e) => setActiveRoleForDefaults(e.target.value)}
+                        >
+                            {teamRoleOptions.map((role) => (
+                                <option key={role} value={role}>{titleCase(role)}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                    <p className="text-[12px] font-[700] text-[#374151] mt-4 mb-2">Always Add These Default Direct Permissions</p>
+                    <p className="text-[12px] font-[700] text-[#374151] mt-3 mb-2">Default Direct Permissions For Selected Role</p>
                     <input
                         className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-3 mb-2 text-[13px]"
                         placeholder="Search default permissions"
@@ -442,11 +466,8 @@ const Settings = () => {
                                                 <input
                                                     type="checkbox"
                                                     disabled={!canAssignPermissions}
-                                                    checked={settings.team.teamAccessControl.defaultDirectPermissions.includes(perm)}
-                                                    onChange={() => updateTeamAccessControlValue(
-                                                        "defaultDirectPermissions",
-                                                        toggleInArray(settings.team.teamAccessControl.defaultDirectPermissions, perm),
-                                                    )}
+                                                    checked={activeRoleDefaultPermissions.includes(perm)}
+                                                    onChange={() => toggleRoleDefaultPermission(perm)}
                                                 />
                                                 {perm}
                                             </label>
@@ -462,7 +483,10 @@ const Settings = () => {
         activeTab,
         canAssignPermissions,
         groupedTeamPermissions,
+        activeRoleDefaultPermissions,
+        activeRoleForDefaults,
         settings,
+        teamRoleOptions,
         teamDefaultPermissionSearch,
     ]);
 
