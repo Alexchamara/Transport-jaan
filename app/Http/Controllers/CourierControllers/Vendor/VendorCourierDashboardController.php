@@ -3409,7 +3409,7 @@ class VendorCourierDashboardController extends Controller
             return false;
         }
 
-        if (!$this->passesContextualRestrictionChecks($request, $policy, 'pricing', 'view', null, [], null, null)) {
+        if (!$this->passesContextualRestrictionChecks($request, $policy, 'pricing', 'view', null, [])) {
             return false;
         }
 
