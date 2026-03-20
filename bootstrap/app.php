@@ -44,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'vendor.service.approved' => \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
             'service.workspace' => \App\Http\Middleware\SetServiceWorkspaceContext::class,
             'service.permission' => \App\Http\Middleware\EnsureServicePermission::class,
+            'courier.session.security' => \App\Http\Middleware\CourierSessionSecurityMiddleware::class,
         ]);
 
         //

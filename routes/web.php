@@ -1106,7 +1106,7 @@ Route::get('/ticketBooking/settingsPage', function () {
 
 
 // vendor dashboard - courier service (service-scoped RBAC)
-Route::middleware(['auth', 'service.workspace:courier_service'])->group(function () {
+Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session.security'])->group(function () {
     Route::get('/courierService/bookings', [VendorCourierDashboardController::class, 'bookings'])
         ->middleware('service.permission:courier.bookings.view')
         ->name('courierService.bookings');
@@ -1291,6 +1291,22 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
     Route::post('/courierService/team/temporary-access/break-glass', [CourierTeamController::class, 'activateBreakGlassAccess'])
         ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:10,1'])
         ->name('courierService.team.temporary-access.break-glass');
+
+    Route::get('/courierService/security/session-status', [CourierTeamController::class, 'sessionSecurityStatus'])
+        ->middleware('service.permission:courier.team.view')
+        ->name('courierService.security.status');
+
+    Route::post('/courierService/security/step-up/request', [CourierTeamController::class, 'requestStepUpVerification'])
+        ->middleware(['service.permission:courier.team.view', 'throttle:10,1'])
+        ->name('courierService.security.step-up.request');
+
+    Route::post('/courierService/security/step-up/verify', [CourierTeamController::class, 'verifyStepUpVerification'])
+        ->middleware(['service.permission:courier.team.view', 'throttle:20,1'])
+        ->name('courierService.security.step-up.verify');
+
+    Route::post('/courierService/security/device/trust', [CourierTeamController::class, 'trustCurrentDevice'])
+        ->middleware(['service.permission:courier.team.view', 'throttle:15,1'])
+        ->name('courierService.security.device.trust');
 });
 
 

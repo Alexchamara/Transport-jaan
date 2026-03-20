@@ -121,6 +121,60 @@ const DEFAULT_SETTINGS = {
                 alertWebhookUrl: "",
             },
         },
+        sessionSecurity: {
+            enabled: true,
+            deviceTrust: {
+                enabled: true,
+                enforceForRoles: [],
+                trustDurationDays: 30,
+            },
+            concurrentSessions: {
+                enabled: true,
+                mode: "revoke_oldest",
+                defaultLimit: 3,
+                limitsByRole: {
+                    courier_owner: 2,
+                    courier_admin: 2,
+                    courier_dispatcher: 3,
+                    courier_finance: 2,
+                    courier_support: 3,
+                    courier_tracking_officer: 4,
+                    courier_viewer: 5,
+                },
+            },
+            anomalyDetection: {
+                enabled: true,
+                rapidSwitchMinutes: 45,
+                clearStepUpOnAnomaly: true,
+                ipAllowList: [],
+                ipDenyList: [],
+            },
+            stepUp: {
+                enabled: true,
+                ttlMinutes: 20,
+                twoFactorTtlMinutes: 20,
+                sensitiveRouteNames: [
+                    "courierService.team.access.update",
+                    "courierService.team.bulk",
+                    "courierService.team.transfer-ownership",
+                    "courierService.team.roles.store",
+                    "courierService.team.roles.store-template",
+                    "courierService.team.roles.clone",
+                    "courierService.team.roles.update",
+                    "courierService.team.sensitive-approvals.approve",
+                    "courierService.team.sensitive-approvals.reject",
+                    "courierService.team.temporary-access.approve",
+                    "courierService.team.temporary-access.reject",
+                    "courierService.team.temporary-access.revoke",
+                    "courierService.team.temporary-access.break-glass",
+                ],
+            },
+            mandatory2FA: {
+                enabled: true,
+                roles: ["courier_owner", "courier_admin"],
+                forSensitiveActions: true,
+            },
+        },
         teamAccessControl: {
             defaultDirectPermissionsByRole: {},
             defaultDataScopeByRole: {},
@@ -220,6 +274,9 @@ const Settings = () => {
     const teamAccessAudit = Array.isArray(props.teamAccessAudit) ? props.teamAccessAudit : [];
     const teamSensitiveApprovals = Array.isArray(props.teamSensitiveApprovals) ? props.teamSensitiveApprovals : [];
     const teamTemporaryAccessGrants = Array.isArray(props.teamTemporaryAccessGrants) ? props.teamTemporaryAccessGrants : [];
+    const teamSessionSecurityStatus = props.teamSessionSecurityStatus && typeof props.teamSessionSecurityStatus === "object"
+        ? props.teamSessionSecurityStatus
+        : {};
     const permissionModelMeta = props.permissionModelMeta && typeof props.permissionModelMeta === "object" ? props.permissionModelMeta : {};
     const permissionResources = Array.isArray(permissionModelMeta.resources) ? permissionModelMeta.resources : ["shipments", "bookings", "clients", "reports", "pricing", "payouts"];
     const permissionActions = Array.isArray(permissionModelMeta.actions) ? permissionModelMeta.actions : ["view", "create", "update", "cancel", "reassign", "export", "approve", "refund"];
@@ -268,6 +325,9 @@ const Settings = () => {
         const incomingTemporaryAccessControl = incomingTeam.temporaryAccessControl && typeof incomingTeam.temporaryAccessControl === "object"
             ? incomingTeam.temporaryAccessControl
             : {};
+        const incomingSessionSecurity = incomingTeam.sessionSecurity && typeof incomingTeam.sessionSecurity === "object"
+            ? incomingTeam.sessionSecurity
+            : {};
         const incomingPermissionModel = incomingTeam.permissionModel && typeof incomingTeam.permissionModel === "object"
             ? incomingTeam.permissionModel
             : {};
@@ -309,6 +369,36 @@ const Settings = () => {
                         ...(incomingTemporaryAccessControl.breakGlass && typeof incomingTemporaryAccessControl.breakGlass === "object"
                             ? incomingTemporaryAccessControl.breakGlass
                             : {}),
+                    },
+                },
+                sessionSecurity: {
+                    ...DEFAULT_SETTINGS.team.sessionSecurity,
+                    ...incomingSessionSecurity,
+                    deviceTrust: {
+                        ...DEFAULT_SETTINGS.team.sessionSecurity.deviceTrust,
+                        ...(incomingSessionSecurity.deviceTrust && typeof incomingSessionSecurity.deviceTrust === "object" ? incomingSessionSecurity.deviceTrust : {}),
+                    },
+                    concurrentSessions: {
+                        ...DEFAULT_SETTINGS.team.sessionSecurity.concurrentSessions,
+                        ...(incomingSessionSecurity.concurrentSessions && typeof incomingSessionSecurity.concurrentSessions === "object" ? incomingSessionSecurity.concurrentSessions : {}),
+                        limitsByRole: {
+                            ...DEFAULT_SETTINGS.team.sessionSecurity.concurrentSessions.limitsByRole,
+                            ...(incomingSessionSecurity.concurrentSessions && incomingSessionSecurity.concurrentSessions.limitsByRole && typeof incomingSessionSecurity.concurrentSessions.limitsByRole === "object"
+                                ? incomingSessionSecurity.concurrentSessions.limitsByRole
+                                : {}),
+                        },
+                    },
+                    anomalyDetection: {
+                        ...DEFAULT_SETTINGS.team.sessionSecurity.anomalyDetection,
+                        ...(incomingSessionSecurity.anomalyDetection && typeof incomingSessionSecurity.anomalyDetection === "object" ? incomingSessionSecurity.anomalyDetection : {}),
+                    },
+                    stepUp: {
+                        ...DEFAULT_SETTINGS.team.sessionSecurity.stepUp,
+                        ...(incomingSessionSecurity.stepUp && typeof incomingSessionSecurity.stepUp === "object" ? incomingSessionSecurity.stepUp : {}),
+                    },
+                    mandatory2FA: {
+                        ...DEFAULT_SETTINGS.team.sessionSecurity.mandatory2FA,
+                        ...(incomingSessionSecurity.mandatory2FA && typeof incomingSessionSecurity.mandatory2FA === "object" ? incomingSessionSecurity.mandatory2FA : {}),
                     },
                 },
                 teamAccessControl: {
@@ -409,6 +499,11 @@ const Settings = () => {
         durationMinutes: 30,
         ticketRef: "",
         reason: "",
+    });
+    const [sessionSecurityStatus, setSessionSecurityStatus] = useState(teamSessionSecurityStatus);
+    const [stepUpForm, setStepUpForm] = useState({
+        currentPassword: "",
+        otpCode: "",
     });
 
     const {
@@ -805,6 +900,10 @@ const Settings = () => {
     }, [teamTemporaryAccessGrants]);
 
     useEffect(() => {
+        setSessionSecurityStatus(teamSessionSecurityStatus);
+    }, [teamSessionSecurityStatus]);
+
+    useEffect(() => {
         if (teamRoleOptions.length > 0 && !teamRoleOptions.includes(activeRoleForDefaults)) {
             setActiveRoleForDefaults(teamRoleOptions[0]);
         }
@@ -1117,6 +1216,94 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const updateSessionSecurityControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                sessionSecurity: {
+                    ...(prev.team.sessionSecurity || DEFAULT_SETTINGS.team.sessionSecurity),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updateSessionSecurityNested = (groupKey, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                sessionSecurity: {
+                    ...(prev.team.sessionSecurity || DEFAULT_SETTINGS.team.sessionSecurity),
+                    [groupKey]: {
+                        ...((prev.team.sessionSecurity && prev.team.sessionSecurity[groupKey]) || DEFAULT_SETTINGS.team.sessionSecurity[groupKey]),
+                        [key]: value,
+                    },
+                },
+            },
+        }));
+    };
+
+    const updateSessionRoleLimit = (roleName, limit) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                sessionSecurity: {
+                    ...(prev.team.sessionSecurity || DEFAULT_SETTINGS.team.sessionSecurity),
+                    concurrentSessions: {
+                        ...((prev.team.sessionSecurity && prev.team.sessionSecurity.concurrentSessions) || DEFAULT_SETTINGS.team.sessionSecurity.concurrentSessions),
+                        limitsByRole: {
+                            ...(((prev.team.sessionSecurity && prev.team.sessionSecurity.concurrentSessions && prev.team.sessionSecurity.concurrentSessions.limitsByRole) || DEFAULT_SETTINGS.team.sessionSecurity.concurrentSessions.limitsByRole)),
+                            [roleName]: Number(limit || 1),
+                        },
+                    },
+                },
+            },
+        }));
+    };
+
+    const requestStepUpCode = async () => {
+        try {
+            const payload = await requestJson("POST", route("courierService.security.step-up.request"));
+            setFeedback({ type: "success", message: payload?.message || "Step-up verification code sent." });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to request step-up code." });
+        }
+    };
+
+    const verifyStepUp = async () => {
+        if (!String(stepUpForm.currentPassword || "").trim() || !String(stepUpForm.otpCode || "").trim()) {
+            setFeedback({ type: "error", message: "Current password and OTP code are required." });
+            return;
+        }
+
+        try {
+            const payload = await requestJson("POST", route("courierService.security.step-up.verify"), {
+                currentPassword: stepUpForm.currentPassword,
+                otpCode: stepUpForm.otpCode,
+            });
+            setFeedback({ type: "success", message: payload?.message || "Step-up verification completed." });
+            router.reload({ only: ["teamSessionSecurityStatus"], preserveScroll: true, preserveState: true });
+            setStepUpForm({ currentPassword: "", otpCode: "" });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to complete step-up verification." });
+        }
+    };
+
+    const trustThisDevice = async () => {
+        try {
+            const payload = await requestJson("POST", route("courierService.security.device.trust"), {
+                label: "Current Browser",
+            });
+            setFeedback({ type: "success", message: payload?.message || "Current device trusted." });
+            router.reload({ only: ["teamSessionSecurityStatus"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to trust current device." });
+        }
     };
 
     const approveSensitiveAction = async (approvalId) => {
@@ -2125,6 +2312,178 @@ const Settings = () => {
                                                             </div>
                                                         </div>
                                                     ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Session and Device Security</p>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <Toggle
+                                                    label="Enable Session Security"
+                                                    checked={Boolean(settings.team?.sessionSecurity?.enabled)}
+                                                    onChange={(next) => updateSessionSecurityControl("enabled", next)}
+                                                    description="Central enforcement for trusted devices, session limits, anomaly handling, and step-up checks."
+                                                />
+                                                <Toggle
+                                                    label="Enable Device Trust"
+                                                    checked={Boolean(settings.team?.sessionSecurity?.deviceTrust?.enabled)}
+                                                    onChange={(next) => updateSessionSecurityNested("deviceTrust", "enabled", next)}
+                                                    description="Roles configured below can operate only from trusted devices."
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                                                <Field label="Trust Duration (days)">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={365}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Number(settings.team?.sessionSecurity?.deviceTrust?.trustDurationDays || 30)}
+                                                        onChange={(e) => updateSessionSecurityNested("deviceTrust", "trustDurationDays", Number(e.target.value || 30))}
+                                                    />
+                                                </Field>
+                                                <Field label="Default Concurrent Sessions">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={10}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Number(settings.team?.sessionSecurity?.concurrentSessions?.defaultLimit || 3)}
+                                                        onChange={(e) => updateSessionSecurityNested("concurrentSessions", "defaultLimit", Number(e.target.value || 3))}
+                                                    />
+                                                </Field>
+                                                <Field label="Anomaly Rapid-Switch Window (minutes)">
+                                                    <input
+                                                        type="number"
+                                                        min={5}
+                                                        max={720}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Number(settings.team?.sessionSecurity?.anomalyDetection?.rapidSwitchMinutes || 45)}
+                                                        onChange={(e) => updateSessionSecurityNested("anomalyDetection", "rapidSwitchMinutes", Number(e.target.value || 45))}
+                                                    />
+                                                </Field>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                                <Toggle
+                                                    label="Enable Concurrent Session Limits"
+                                                    checked={Boolean(settings.team?.sessionSecurity?.concurrentSessions?.enabled)}
+                                                    onChange={(next) => updateSessionSecurityNested("concurrentSessions", "enabled", next)}
+                                                />
+                                                <Toggle
+                                                    label="Enable Geo/IP Anomaly Detection"
+                                                    checked={Boolean(settings.team?.sessionSecurity?.anomalyDetection?.enabled)}
+                                                    onChange={(next) => updateSessionSecurityNested("anomalyDetection", "enabled", next)}
+                                                />
+                                                <Toggle
+                                                    label="Enable Step-up for Risky Actions"
+                                                    checked={Boolean(settings.team?.sessionSecurity?.stepUp?.enabled)}
+                                                    onChange={(next) => updateSessionSecurityNested("stepUp", "enabled", next)}
+                                                />
+                                                <Toggle
+                                                    label="Enable Mandatory 2FA Controls"
+                                                    checked={Boolean(settings.team?.sessionSecurity?.mandatory2FA?.enabled)}
+                                                    onChange={(next) => updateSessionSecurityNested("mandatory2FA", "enabled", next)}
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                                                <Field label="Step-up TTL (minutes)">
+                                                    <input
+                                                        type="number"
+                                                        min={5}
+                                                        max={120}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.ttlMinutes || 20)}
+                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "ttlMinutes", Number(e.target.value || 20))}
+                                                    />
+                                                </Field>
+                                                <Field label="2FA TTL (minutes)">
+                                                    <input
+                                                        type="number"
+                                                        min={5}
+                                                        max={120}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.twoFactorTtlMinutes || 20)}
+                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "twoFactorTtlMinutes", Number(e.target.value || 20))}
+                                                    />
+                                                </Field>
+                                            </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2">
+                                                <p className="text-[12px] font-[700] text-[#111827] mb-2">Concurrent Session Limits by Role</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                    {(teamRoleOptions || []).map((roleName) => (
+                                                        <Field key={`ssl-${roleName}`} label={titleCase(roleName)}>
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                max={10}
+                                                                className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={Number(settings.team?.sessionSecurity?.concurrentSessions?.limitsByRole?.[roleName] || settings.team?.sessionSecurity?.concurrentSessions?.defaultLimit || 3)}
+                                                                onChange={(e) => updateSessionRoleLimit(roleName, Number(e.target.value || 1))}
+                                                            />
+                                                        </Field>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-[#F8FAFC]">
+                                                <p className="text-[12px] font-[700] text-[#111827] mb-1">Step-up Verification (Runtime)</p>
+                                                <p className="text-[11px] text-[#6B7280] mb-2">Risky actions are blocked until step-up is verified with password + one-time code.</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                                    <input
+                                                        type="password"
+                                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        placeholder="Current password"
+                                                        value={stepUpForm.currentPassword}
+                                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                                                    />
+                                                    <input
+                                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        placeholder="OTP code"
+                                                        value={stepUpForm.otpCode}
+                                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, otpCode: e.target.value }))}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="h-[34px] rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                                        onClick={requestStepUpCode}
+                                                    >
+                                                        Request OTP
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="h-[34px] rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700]"
+                                                        onClick={verifyStepUp}
+                                                    >
+                                                        Verify Step-up
+                                                    </button>
+                                                </div>
+                                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[#475569]">
+                                                    <span>Step-up: {sessionSecurityStatus?.stepUpVerifiedAt || "Not verified"}</span>
+                                                    <span>2FA: {sessionSecurityStatus?.twoFactorVerifiedAt || "Not verified"}</span>
+                                                    <span>Anomaly Flag: {sessionSecurityStatus?.anomalyDetectedAt || "None"}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="h-[28px] px-2 rounded-[6px] border border-[#D1D5DB] text-[10px] font-[700]"
+                                                        onClick={trustThisDevice}
+                                                    >
+                                                        Trust This Device
+                                                    </button>
+                                                </div>
+                                                <div className="mt-2 space-y-1">
+                                                    {(sessionSecurityStatus?.trustedDevices || []).map((device) => (
+                                                        <p key={`td-${device.id}`} className="text-[11px] text-[#6B7280]">
+                                                            {(device.label || "Trusted Device")} • Last IP: {(device.lastIpAddress || "-")} • Expires: {(device.expiresAt || "-")}
+                                                        </p>
+                                                    ))}
+                                                    {(!Array.isArray(sessionSecurityStatus?.trustedDevices) || sessionSecurityStatus.trustedDevices.length === 0) && (
+                                                        <p className="text-[11px] text-[#6B7280]">No trusted devices recorded for current actor.</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

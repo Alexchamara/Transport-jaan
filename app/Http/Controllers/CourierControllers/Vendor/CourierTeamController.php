@@ -13,6 +13,7 @@ use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierBreakGlassAlertService;
+use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
@@ -20,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -1497,6 +1499,176 @@ class CourierTeamController extends Controller
             'message' => (string) ($result['message'] ?? 'Break-glass access activated.'),
             'status' => (string) ($grant?->status ?? CourierTemporaryAccessService::STATUS_ACTIVE),
         ], 201);
+    }
+
+    public function sessionSecurityStatus(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $actor = $request->user();
+        $service = app(CourierSessionSecurityService::class);
+
+        return response()->json([
+            'policy' => $service->resolvePolicyForVendor($vendorUserId),
+            'trustedDevices' => $service->trustedDevicesForActor($vendorUserId, $workspaceId, (int) optional($actor)->id),
+            'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
+            'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
+            'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
+        ]);
+    }
+
+    public function requestStepUpVerification(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $actor = $request->user();
+
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $code = (string) random_int(100000, 999999);
+        $challenge = [
+            'code_hash' => Hash::make($code),
+            'expires_at' => now()->addMinutes(10)->format('Y-m-d H:i:s'),
+            'attempts' => 0,
+            'max_attempts' => 5,
+            'sent_to' => (string) ($actor->email ?? ''),
+        ];
+
+        $request->session()->put('courier_security.challenge', $challenge);
+
+        try {
+            Mail::raw(
+                "Courier step-up verification code: {$code}\nThis code expires in 10 minutes.",
+                function ($message) use ($actor) {
+                    $message->to((string) $actor->email)
+                        ->subject('[Courier] Step-up verification code');
+                }
+            );
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to send courier step-up verification email.', [
+                'vendor_user_id' => $vendorUserId,
+                'user_id' => (int) $actor->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $actor->id,
+            'courier_team_security_stepup_requested',
+            'security',
+            0,
+            'Step-up verification challenge requested.',
+            ['channel' => 'email'],
+        );
+
+        return response()->json(['message' => 'Step-up verification code issued. Check your email inbox.']);
+    }
+
+    public function verifyStepUpVerification(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $actor = $request->user();
+
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $validated = $request->validate([
+            'currentPassword' => ['required', 'string', 'min:8'],
+            'otpCode' => ['required', 'string', 'size:6'],
+        ]);
+
+        $challenge = $request->session()->get('courier_security.challenge', []);
+        if (!is_array($challenge) || empty($challenge['code_hash']) || empty($challenge['expires_at'])) {
+            return response()->json(['message' => 'Step-up challenge not found. Request a new verification code.'], 422);
+        }
+
+        $challengeExpiresAt = \Illuminate\Support\Carbon::parse((string) $challenge['expires_at']);
+        if (now()->gt($challengeExpiresAt)) {
+            $request->session()->forget('courier_security.challenge');
+            return response()->json(['message' => 'Step-up challenge expired. Request a new verification code.'], 422);
+        }
+
+        $attempts = (int) ($challenge['attempts'] ?? 0);
+        $maxAttempts = max(1, (int) ($challenge['max_attempts'] ?? 5));
+        if ($attempts >= $maxAttempts) {
+            $request->session()->forget('courier_security.challenge');
+            return response()->json(['message' => 'Maximum verification attempts exceeded. Request a new code.'], 422);
+        }
+
+        if (!Hash::check((string) $validated['currentPassword'], (string) ($actor->password ?? ''))) {
+            return response()->json(['message' => 'Current password is invalid.'], 422);
+        }
+
+        if (!Hash::check((string) $validated['otpCode'], (string) $challenge['code_hash'])) {
+            $challenge['attempts'] = $attempts + 1;
+            $request->session()->put('courier_security.challenge', $challenge);
+            return response()->json(['message' => 'Verification code is invalid.'], 422);
+        }
+
+        $now = now()->format('Y-m-d H:i:s');
+        $request->session()->put('courier_security.step_up_verified_at', $now);
+        $request->session()->put('courier_security.two_factor_verified_at', $now);
+        $request->session()->forget('courier_security.challenge');
+        $request->session()->forget('courier_security.anomaly_detected_at');
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $actor->id,
+            'courier_team_security_stepup_verified',
+            'security',
+            0,
+            'Step-up verification completed successfully.',
+            [],
+        );
+
+        return response()->json(['message' => 'Step-up verification completed successfully.']);
+    }
+
+    public function trustCurrentDevice(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $actor = $request->user();
+
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $validated = $request->validate([
+            'label' => ['nullable', 'string', 'max:140'],
+        ]);
+
+        $device = app(CourierSessionSecurityService::class)->trustCurrentDevice(
+            $request,
+            $vendorUserId,
+            $workspaceId,
+            (string) ($validated['label'] ?? 'Current Device')
+        );
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $actor->id,
+            'courier_team_security_device_trusted',
+            'security',
+            (int) $device->id,
+            'Current device marked as trusted.',
+            [
+                'device_label' => (string) ($device->device_label ?? ''),
+                'expires_at' => optional($device->expires_at)->toDateTimeString(),
+            ],
+        );
+
+        return response()->json([
+            'message' => 'Current device is now trusted.',
+            'device' => [
+                'id' => (int) $device->id,
+                'label' => (string) ($device->device_label ?? ''),
+                'expiresAt' => optional($device->expires_at)->format('Y-m-d H:i:s'),
+            ],
+        ]);
     }
 
     private function assertCanManageMember(

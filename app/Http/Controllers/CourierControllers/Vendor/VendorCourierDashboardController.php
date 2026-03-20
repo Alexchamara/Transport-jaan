@@ -15,6 +15,7 @@ use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
+use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
@@ -619,6 +620,12 @@ class VendorCourierDashboardController extends Controller
             'teamAccessAudit' => $teamAccessAudit,
             'teamSensitiveApprovals' => $this->listTeamSensitiveApprovals($vendorId, $workspaceId),
             'teamTemporaryAccessGrants' => $this->listTeamTemporaryAccessGrants($vendorId, $workspaceId),
+            'teamSessionSecurityStatus' => [
+                'trustedDevices' => app(CourierSessionSecurityService::class)->trustedDevicesForActor($vendorId, $workspaceId, (int) optional($request->user())->id),
+                'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
+                'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
+                'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
+            ],
         ]);
     }
 
@@ -2816,6 +2823,7 @@ class VendorCourierDashboardController extends Controller
                 'approvalControl' => app(CourierSensitiveActionApprovalService::class)->defaultPolicy(),
                 'sodControl' => $this->defaultSodControlPolicy(),
                 'temporaryAccessControl' => app(CourierTemporaryAccessService::class)->defaultPolicy(),
+                'sessionSecurity' => app(CourierSessionSecurityService::class)->defaultPolicy(),
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
                     'defaultDataScopeByRole' => [],
@@ -2855,11 +2863,16 @@ class VendorCourierDashboardController extends Controller
                 ? $merged['sodControl']
                 : []
         );
-            $merged['temporaryAccessControl'] = app(CourierTemporaryAccessService::class)->normalizePolicy(
-                is_array($merged['temporaryAccessControl'] ?? null)
+        $merged['temporaryAccessControl'] = app(CourierTemporaryAccessService::class)->normalizePolicy(
+            is_array($merged['temporaryAccessControl'] ?? null)
                 ? $merged['temporaryAccessControl']
                 : []
-            );
+        );
+        $merged['sessionSecurity'] = app(CourierSessionSecurityService::class)->normalizePolicy(
+            is_array($merged['sessionSecurity'] ?? null)
+                ? $merged['sessionSecurity']
+                : []
+        );
 
         $merged['permissionModel'] = $this->normalizeAdvancedPermissionModel(
             is_array($merged['permissionModel'] ?? null)
