@@ -329,10 +329,24 @@ class VendorCourierDashboardController extends Controller
         ]);
     }
 
-    public function settings(Request $request)
+    public function settings(Request $request, ?string $module = null)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        $allowedModules = [
+            'business',
+            'operations',
+            'sla',
+            'tracking',
+            'notifications',
+            'integrations',
+            'team',
+        ];
+
+        $selectedModule = in_array((string) $module, $allowedModules, true)
+            ? (string) $module
+            : 'business';
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
@@ -355,6 +369,7 @@ class VendorCourierDashboardController extends Controller
 
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
+            'initialSettingsModule' => $selectedModule,
             'teamPermissionOptions' => Permission::query()
                 ->where('name', 'like', 'courier.%')
                 ->orderBy('name')

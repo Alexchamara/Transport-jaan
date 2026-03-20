@@ -73,7 +73,16 @@ const SERVICE_CONFIG = {
         drivers: null,
         payment: () => route("courierService.payment"),
         expenses: () => route("courierService.expenses"),
-        settings: () => route("courierService.settingsPage"),
+        settings: () => route("courierService.settings.module", { module: "business" }),
+        settingsModules: [
+            { key: "business", label: "Business", route: () => route("courierService.settings.module", { module: "business" }) },
+            { key: "operations", label: "Operations", route: () => route("courierService.settings.module", { module: "operations" }) },
+            { key: "sla", label: "SLA", route: () => route("courierService.settings.module", { module: "sla" }) },
+            { key: "tracking", label: "Tracking", route: () => route("courierService.settings.module", { module: "tracking" }) },
+            { key: "notifications", label: "Notifications", route: () => route("courierService.settings.module", { module: "notifications" }) },
+            { key: "integrations", label: "Integrations", route: () => route("courierService.settings.module", { module: "integrations" }) },
+            { key: "team", label: "Team Access", route: () => route("courierService.settings.module", { module: "team" }) },
+        ],
         profile: () => route("courierService.profile"),
     },
     "Warehousing": {
@@ -143,6 +152,7 @@ const VendorShellLayout = ({
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showFinancial, setShowFinancial] = useState(false);
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const [shellFlash, setShellFlash] = useState(null);
     const [showComingSoon, setShowComingSoon] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -303,6 +313,16 @@ const VendorShellLayout = ({
         if (!p) return false;
         return currentPath === p;
     };
+
+    const settingsModuleActive = Array.isArray(cfg.settingsModules)
+        ? cfg.settingsModules.some((moduleItem) => isActive(moduleItem.route))
+        : false;
+
+    useEffect(() => {
+        if (settingsModuleActive) {
+            setShowSettingsMenu(true);
+        }
+    }, [settingsModuleActive]);
 
     const menuCls = (active) =>
         `flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${active
@@ -523,10 +543,45 @@ const VendorShellLayout = ({
                                 )}
 
                                 {cfg.settings && hasCourierPermission("courier.settings.view") && (
-                                    <div className={menuCls(isActive(cfg.settings))} onClick={() => navigate(cfg.settings)}>
-                                        <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
-                                        <span>Settings</span>
-                                    </div>
+                                    Array.isArray(cfg.settingsModules) && cfg.settingsModules.length > 0 ? (
+                                        <>
+                                            <div
+                                                className={menuCls(isActive(cfg.settings) || settingsModuleActive)}
+                                                onClick={() => setShowSettingsMenu((prev) => !prev)}
+                                            >
+                                                <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
+                                                <span>Settings</span>
+                                                <svg
+                                                    className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${showSettingsMenu ? "rotate-180" : ""}`}
+                                                    fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+
+                                            {showSettingsMenu && (
+                                                <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
+                                                    {cfg.settingsModules.map((moduleItem) => (
+                                                        <div
+                                                            key={moduleItem.key}
+                                                            className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(moduleItem.route)
+                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                                : "text-[#00000066] hover:bg-gray-50"
+                                                                }`}
+                                                            onClick={() => navigate(moduleItem.route)}
+                                                        >
+                                                            {moduleItem.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={menuCls(isActive(cfg.settings))} onClick={() => navigate(cfg.settings)}>
+                                            <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
+                                            <span>Settings</span>
+                                        </div>
+                                    )
                                 )}
 
                                 {cfg.profile && hasCourierPermission("courier.profile.view") && (

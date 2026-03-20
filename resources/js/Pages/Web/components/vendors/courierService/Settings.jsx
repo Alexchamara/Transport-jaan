@@ -113,11 +113,14 @@ const Settings = () => {
     const teamRoleOptions = Array.isArray(props.teamRoleOptions) ? props.teamRoleOptions : [];
     const teamRoleCatalog = Array.isArray(props.teamRoleCatalog) ? props.teamRoleCatalog : [];
     const teamRoleTemplates = props.teamRoleTemplates && typeof props.teamRoleTemplates === "object" ? props.teamRoleTemplates : {};
+    const initialSettingsModule = String(props.initialSettingsModule || "business");
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
 
-    const [activeTab, setActiveTab] = useState("business");
+    const [activeTab] = useState(
+        TAB_CONFIG.some((tab) => tab.key === initialSettingsModule) ? initialSettingsModule : "business",
+    );
     const [settings, setSettings] = useState(() => {
         const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
         const incomingTeamAccessControl = incomingTeam.teamAccessControl && typeof incomingTeam.teamAccessControl === "object"
@@ -1238,42 +1241,16 @@ const Settings = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-5">
-                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                    <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Settings Modules</p>
-                    <div className="space-y-2">
-                        {TAB_CONFIG.map((tab) => {
-                            const Icon = tab.icon;
-                            return (
-                                <button
-                                    key={tab.key}
-                                    type="button"
-                                    onClick={() => setActiveTab(tab.key)}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${
-                                        activeTab === tab.key
-                                            ? "bg-[#0955AC] text-white"
-                                            : "bg-[#F3F4F6] text-[#374151]"
-                                    }`}
-                                >
-                                    <Icon size={16} />
-                                    <span>{tab.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    {tabContent}
-                    <div className="flex justify-end">
-                        <button
-                            type="button"
-                            onClick={() => saveSection(activeTab)}
-                            className="h-[38px] px-5 rounded-[8px] bg-[#111827] text-white text-[13px] font-[700]"
-                        >
-                            Save {saveButtonLabel}
-                        </button>
-                    </div>
+            <div className="space-y-4">
+                {tabContent}
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={() => saveSection(activeTab)}
+                        className="h-[38px] px-5 rounded-[8px] bg-[#111827] text-white text-[13px] font-[700]"
+                    >
+                        Save {saveButtonLabel}
+                    </button>
                 </div>
             </div>
         </div>
