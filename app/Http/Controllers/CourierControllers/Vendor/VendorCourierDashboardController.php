@@ -6,6 +6,7 @@ use App\Http\Middleware\CourierTemporaryAccessLifecycle;
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierSensitiveActionApproval;
+use App\Models\Courier\CourierTeamSecurityAudit;
 use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
@@ -17,6 +18,7 @@ use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierSessionSecurityService;
+use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
@@ -564,22 +566,32 @@ class VendorCourierDashboardController extends Controller
                 ];
             })
             ->values();
-        $teamAccessAudit = VendorActivityLog::query()
-            ->where('vendor_id', $vendorId)
-            ->whereIn('action', [
-                'courier_permission_denied',
-                'courier_team_permission_model_updated',
-            ])
-            ->orderByDesc('created_at')
-            ->limit(60)
+        $teamAccessAudit = CourierTeamSecurityAudit::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where(function (Builder $query) use ($workspaceId) {
+                $query->whereNull('service_workspace_id')
+                    ->orWhere('service_workspace_id', $workspaceId);
+            })
+            ->orderByDesc('id')
+            ->limit(100)
             ->get()
-            ->map(function (VendorActivityLog $log) {
+            ->map(function (CourierTeamSecurityAudit $log) {
                 return [
                     'id' => (int) $log->id,
-                    'action' => (string) $log->action,
-                    'description' => (string) ($log->description ?? ''),
+                    'action' => (string) $log->event_type,
+                    'eventFamily' => (string) ($log->event_family ?? 'other'),
+                    'isAlert' => (bool) ($log->is_alert ?? false),
+                    'alertCode' => (string) ($log->alert_code ?? ''),
+                    'description' => (string) ((is_array($log->metadata) ? ($log->metadata['summary'] ?? '') : '') ?: str_replace('_', ' ', (string) $log->event_type)),
                     'createdAt' => optional($log->created_at)->format('Y-m-d H:i:s'),
-                    'metadata' => is_array($log->metadata) ? $log->metadata : [],
+                    'metadata' => array_merge(
+                        is_array($log->metadata) ? $log->metadata : [],
+                        [
+                            'before_snapshot' => is_array($log->before_snapshot) ? $log->before_snapshot : [],
+                            'after_snapshot' => is_array($log->after_snapshot) ? $log->after_snapshot : [],
+                            'snapshot_diff' => is_array($log->snapshot_diff) ? $log->snapshot_diff : [],
+                        ]
+                    ),
                 ];
             })
             ->values();
@@ -3857,6 +3869,15 @@ class VendorCourierDashboardController extends Controller
                     'roles' => $this->actorCourierRoles($request),
                 ], $context),
             ]);
+
+            app(CourierTeamSecurityAuditService::class)->recordPermissionDenied(
+                $request,
+                'team_access_policy_denied',
+                array_merge([
+                    'resource' => $resource,
+                    'requested_action' => $action,
+                ], $context)
+            );
         } catch (\Throwable) {
             // Ignore audit write failures to avoid breaking business flow.
         }

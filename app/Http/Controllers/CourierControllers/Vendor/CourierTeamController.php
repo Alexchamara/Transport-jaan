@@ -16,6 +16,7 @@ use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierBreakGlassAlertService;
 use App\Services\Courier\CourierSessionSecurityService;
+use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
@@ -379,6 +380,19 @@ class CourierTeamController extends Controller
                     'role_default_permissions_count' => count($teamAccessControl['defaultDirectPermissionsByRole'][$validated['role']] ?? []),
                     'blocked_service_keys' => $resolvedBlockedServiceKeys,
                     'provisioning_bundle_key' => (string) ($selectedBundle['key'] ?? ''),
+                    'target_user_id' => (int) $user->id,
+                    'before_snapshot' => [
+                        'role' => null,
+                        'direct_permissions' => [],
+                        'status' => null,
+                        'blocked_service_keys' => [],
+                    ],
+                    'after_snapshot' => [
+                        'role' => (string) $validated['role'],
+                        'direct_permissions' => $resolvedDirectPermissions,
+                        'status' => 'active',
+                        'blocked_service_keys' => $resolvedBlockedServiceKeys,
+                    ],
                 ],
             );
         });
@@ -445,6 +459,20 @@ class CourierTeamController extends Controller
         $blockedKeysChanged = $currentBlockedKeys !== $requestedBlockedKeys;
 
         $statusChanged = !empty($validated['status']) && $validated['status'] !== $membership->status;
+
+        $beforeSnapshot = [
+            'role' => $currentRole,
+            'direct_permissions' => $currentDirectPermissions,
+            'status' => (string) $membership->status,
+            'blocked_service_keys' => $currentBlockedKeys,
+        ];
+
+        $afterSnapshot = [
+            'role' => $requestedRole,
+            'direct_permissions' => $permissionsChanged ? $requestedDirectPermissions : $currentDirectPermissions,
+            'status' => (string) ($validated['status'] ?? $membership->status),
+            'blocked_service_keys' => $blockedKeysChanged ? $requestedBlockedKeys : $currentBlockedKeys,
+        ];
 
         if ($roleChanged && !$canAssignRole) {
             abort(403, 'Missing required permission: courier.team.assign_role');
@@ -548,10 +576,13 @@ class CourierTeamController extends Controller
                 $user->id,
                 'Courier team access updated (role/status/direct permissions/service block).',
                 [
-                    'role' => $validated['role'] ?? null,
-                    'status' => $validated['status'] ?? null,
-                    'direct_permissions_count' => count($validated['directPermissions'] ?? []),
-                    'blocked_service_keys' => $validated['blockedServiceKeys'] ?? null,
+                    'role' => $afterSnapshot['role'] ?? null,
+                    'status' => $afterSnapshot['status'] ?? null,
+                    'direct_permissions_count' => count($afterSnapshot['direct_permissions'] ?? []),
+                    'blocked_service_keys' => $afterSnapshot['blocked_service_keys'] ?? null,
+                    'target_user_id' => (int) $user->id,
+                    'before_snapshot' => $beforeSnapshot,
+                    'after_snapshot' => $afterSnapshot,
                 ],
             );
         });
@@ -654,6 +685,8 @@ class CourierTeamController extends Controller
             ? $validated['onboardingBundles']
             : ($this->defaultTeamAccessControlSettings()['onboardingBundles'] ?? []);
 
+        $existingTeamAccessControl = $this->readTeamAccessControlSettings($vendorUserId, $workspaceId);
+
         $sanitizedBundles = collect($rawBundles)
             ->filter(fn ($bundle) => is_array($bundle))
             ->map(function (array $bundle) use ($validCourierRoles, $validCourierPermissions) {
@@ -738,6 +771,12 @@ class CourierTeamController extends Controller
                     fn ($scope) => is_array($scope)
                 )),
                 'bundles_count' => count($settings['team']['teamAccessControl']['onboardingBundles'] ?? []),
+                'before_snapshot' => [
+                    'team_access_control' => $existingTeamAccessControl,
+                ],
+                'after_snapshot' => [
+                    'team_access_control' => $settings['team']['teamAccessControl'],
+                ],
             ],
         );
 
@@ -785,6 +824,26 @@ class CourierTeamController extends Controller
             return back()->with('error', $exception->getMessage());
         }
 
+        $this->logTeamAction(
+            (int) $request->attributes->get('vendor_user_id'),
+            (int) $request->user()->id,
+            'courier_team_role_created',
+            'role',
+            0,
+            'Courier role created from custom definition.',
+            [
+                'role_name' => (string) ($result['role']['name'] ?? ''),
+                'before_snapshot' => [
+                    'role' => null,
+                    'permissions' => [],
+                ],
+                'after_snapshot' => [
+                    'role' => (string) ($result['role']['name'] ?? ''),
+                    'permissions' => is_array($result['role']['permissions'] ?? null) ? $result['role']['permissions'] : [],
+                ],
+            ],
+        );
+
         return response()->json($result, 201);
     }
 
@@ -814,6 +873,27 @@ class CourierTeamController extends Controller
         } catch (\InvalidArgumentException $exception) {
             return back()->with('error', $exception->getMessage());
         }
+
+        $this->logTeamAction(
+            (int) $request->attributes->get('vendor_user_id'),
+            (int) $request->user()->id,
+            'courier_team_role_created',
+            'role',
+            0,
+            'Courier role created from template.',
+            [
+                'template' => (string) ($validated['template'] ?? ''),
+                'role_name' => (string) ($result['role']['name'] ?? ''),
+                'before_snapshot' => [
+                    'role' => null,
+                    'permissions' => [],
+                ],
+                'after_snapshot' => [
+                    'role' => (string) ($result['role']['name'] ?? ''),
+                    'permissions' => is_array($result['role']['permissions'] ?? null) ? $result['role']['permissions'] : [],
+                ],
+            ],
+        );
 
         return response()->json($result, 201);
     }
@@ -853,6 +933,27 @@ class CourierTeamController extends Controller
             return back()->with('error', $exception->getMessage());
         }
 
+        $this->logTeamAction(
+            (int) $request->attributes->get('vendor_user_id'),
+            (int) $request->user()->id,
+            'courier_team_role_created',
+            'role',
+            0,
+            'Courier role cloned from existing role.',
+            [
+                'source_role' => $sourceRoleName,
+                'role_name' => (string) ($result['role']['name'] ?? ''),
+                'before_snapshot' => [
+                    'role' => null,
+                    'permissions' => [],
+                ],
+                'after_snapshot' => [
+                    'role' => (string) ($result['role']['name'] ?? ''),
+                    'permissions' => is_array($result['role']['permissions'] ?? null) ? $result['role']['permissions'] : [],
+                ],
+            ],
+        );
+
         return response()->json($result, 201);
     }
 
@@ -870,6 +971,17 @@ class CourierTeamController extends Controller
         if (!in_array($normalizedRoleName, $this->workspaceRoleNames($workspaceId), true)) {
             abort(404, 'Role not found in this workspace.');
         }
+
+        $existingRole = Role::query()
+            ->where('service_workspace_id', $workspaceId)
+            ->where('name', $normalizedRoleName)
+            ->where('guard_name', CourierRbac::GUARD)
+            ->with('permissions:id,name')
+            ->first();
+
+        $beforePermissions = $existingRole
+            ? $existingRole->permissions->pluck('name')->map(fn ($permission) => (string) $permission)->values()->all()
+            : [];
 
         $validated = $request->validate([
             'label' => ['required', 'string', 'max:140'],
@@ -890,6 +1002,26 @@ class CourierTeamController extends Controller
             $request->user(),
             $normalizedRoleName,
             'updated'
+        );
+
+        $this->logTeamAction(
+            (int) $request->attributes->get('vendor_user_id'),
+            (int) $request->user()->id,
+            'courier_team_role_updated',
+            'role',
+            0,
+            'Courier role permissions updated.',
+            [
+                'role_name' => $normalizedRoleName,
+                'before_snapshot' => [
+                    'role' => $normalizedRoleName,
+                    'permissions' => $beforePermissions,
+                ],
+                'after_snapshot' => [
+                    'role' => (string) ($result['role']['name'] ?? $normalizedRoleName),
+                    'permissions' => is_array($result['role']['permissions'] ?? null) ? $result['role']['permissions'] : [],
+                ],
+            ],
         );
 
         return response()->json($result);
@@ -1588,12 +1720,20 @@ class CourierTeamController extends Controller
 
         $challenge = $request->session()->get('courier_security.challenge', []);
         if (!is_array($challenge) || empty($challenge['code_hash']) || empty($challenge['expires_at'])) {
+            app(CourierTeamSecurityAuditService::class)->recordAuthChallengeFailure(
+                $request,
+                'challenge_not_found'
+            );
             return response()->json(['message' => 'Step-up challenge not found. Request a new verification code.'], 422);
         }
 
         $challengeExpiresAt = \Illuminate\Support\Carbon::parse((string) $challenge['expires_at']);
         if (now()->gt($challengeExpiresAt)) {
             $request->session()->forget('courier_security.challenge');
+            app(CourierTeamSecurityAuditService::class)->recordAuthChallengeFailure(
+                $request,
+                'challenge_expired'
+            );
             return response()->json(['message' => 'Step-up challenge expired. Request a new verification code.'], 422);
         }
 
@@ -1601,16 +1741,29 @@ class CourierTeamController extends Controller
         $maxAttempts = max(1, (int) ($challenge['max_attempts'] ?? 5));
         if ($attempts >= $maxAttempts) {
             $request->session()->forget('courier_security.challenge');
+            app(CourierTeamSecurityAuditService::class)->recordAuthChallengeFailure(
+                $request,
+                'challenge_attempts_exhausted'
+            );
             return response()->json(['message' => 'Maximum verification attempts exceeded. Request a new code.'], 422);
         }
 
         if (!Hash::check((string) $validated['currentPassword'], (string) ($actor->password ?? ''))) {
+            app(CourierTeamSecurityAuditService::class)->recordAuthChallengeFailure(
+                $request,
+                'invalid_current_password'
+            );
             return response()->json(['message' => 'Current password is invalid.'], 422);
         }
 
         if (!Hash::check((string) $validated['otpCode'], (string) $challenge['code_hash'])) {
             $challenge['attempts'] = $attempts + 1;
             $request->session()->put('courier_security.challenge', $challenge);
+            app(CourierTeamSecurityAuditService::class)->recordAuthChallengeFailure(
+                $request,
+                'invalid_otp_code',
+                ['attempts' => (int) $challenge['attempts'], 'max_attempts' => $maxAttempts]
+            );
             return response()->json(['message' => 'Verification code is invalid.'], 422);
         }
 
@@ -1807,6 +1960,18 @@ class CourierTeamController extends Controller
             'description' => $description,
             'metadata' => $metadata,
         ]);
+
+        try {
+            app(CourierTeamSecurityAuditService::class)->recordFromTeamAction(
+                request(),
+                $action,
+                $targetType,
+                $targetId,
+                is_array($metadata) ? $metadata : []
+            );
+        } catch (\Throwable) {
+            // Immutable audit logging should not break business flows.
+        }
     }
 
     private function defaultTeamAccessControlSettings(): array

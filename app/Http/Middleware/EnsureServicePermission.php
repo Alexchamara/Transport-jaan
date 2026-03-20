@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Courier\CourierTeamSecurityAuditService;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -30,6 +31,14 @@ class EnsureServicePermission
         app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
 
         if (!$this->hasWorkspacePermission($user, $permission, $workspaceId)) {
+            if (str_starts_with((string) $request->route()?->getName(), 'courierService.')) {
+                app(CourierTeamSecurityAuditService::class)->recordPermissionDenied(
+                    $request,
+                    'missing_required_permission',
+                    ['required_permission' => $permission]
+                );
+            }
+
             if ($request->expectsJson() || $request->isXmlHttpRequest()) {
                 abort(403, 'Missing required permission: ' . $permission);
             }

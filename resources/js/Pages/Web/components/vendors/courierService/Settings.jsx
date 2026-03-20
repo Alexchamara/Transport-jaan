@@ -861,10 +861,11 @@ const Settings = () => {
 
     const filteredTeamAccessAudit = useMemo(() => {
         return teamAccessAudit.filter((event) => {
-            const isDenied = event.action === "courier_permission_denied";
-            const type = isDenied ? "denied" : "updated";
+            const isDenied = ["courier_permission_denied", "access_denied"].includes(String(event.action || ""));
+            const isAlert = Boolean(event.isAlert) || String(event.eventFamily || "") === "alert";
+            const type = isAlert ? "alert" : (isDenied ? "denied" : "updated");
             const meta = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
-            const resource = String(meta.resource || "").trim();
+            const resource = String(meta.resource || meta.target_type || "").trim();
 
             if (auditTypeFilter !== "all" && auditTypeFilter !== type) {
                 return false;
@@ -881,12 +882,14 @@ const Settings = () => {
 
             const haystack = [
                 String(event.action || ""),
+                String(event.alertCode || ""),
                 String(event.description || ""),
                 String(meta.resource || ""),
                 String(meta.requested_action || ""),
                 String(meta.scope || ""),
                 String(meta.reason || ""),
                 String(meta.mode || ""),
+                JSON.stringify(meta.snapshot_diff || []),
                 String(event.createdAt || ""),
             ].join(" ").toLowerCase();
 
@@ -896,7 +899,13 @@ const Settings = () => {
 
     const auditResourceOptions = useMemo(() => {
         return [...new Set(teamAccessAudit
-            .map((event) => (event.metadata && typeof event.metadata === "object" ? String(event.metadata.resource || "").trim() : ""))
+            .map((event) => {
+                if (!(event.metadata && typeof event.metadata === "object")) {
+                    return "";
+                }
+
+                return String(event.metadata.resource || event.metadata.target_type || "").trim();
+            })
             .filter(Boolean))]
             .sort();
     }, [teamAccessAudit]);
@@ -933,24 +942,33 @@ const Settings = () => {
                 "Timestamp",
                 "Event Type",
                 "Description",
+                "Alert Code",
                 "Resource",
                 "Requested Action",
                 "Scope",
                 "Reason",
                 "Mode",
+                "Changed Fields",
             ].join(","),
             ...filteredTeamAccessAudit.map((event) => {
-                const isDenied = event.action === "courier_permission_denied";
+                const isDenied = ["courier_permission_denied", "access_denied"].includes(String(event.action || ""));
+                const isAlert = Boolean(event.isAlert) || String(event.eventFamily || "") === "alert";
                 const meta = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+                const changedFields = Array.isArray(meta.snapshot_diff)
+                    ? meta.snapshot_diff.map((change) => change?.field).filter(Boolean).join(" | ")
+                    : "";
+
                 return [
                     escapeCsv(event.createdAt || ""),
-                    escapeCsv(isDenied ? "Denied" : "Policy Updated"),
+                    escapeCsv(isAlert ? "Alert" : (isDenied ? "Denied" : "Policy Updated")),
                     escapeCsv(event.description || ""),
-                    escapeCsv(meta.resource || ""),
+                    escapeCsv(event.alertCode || ""),
+                    escapeCsv(meta.resource || meta.target_type || ""),
                     escapeCsv(meta.requested_action || ""),
                     escapeCsv(meta.scope || ""),
                     escapeCsv(meta.reason || ""),
                     escapeCsv(meta.mode || ""),
+                    escapeCsv(changedFields),
                 ].join(",");
             }),
         ];
@@ -3396,6 +3414,7 @@ const Settings = () => {
                                         >
                                             <option value="all">All Event Types</option>
                                             <option value="denied">Denied Only</option>
+                                            <option value="alert">Alerts Only</option>
                                             <option value="updated">Policy Updated Only</option>
                                         </select>
 
@@ -3424,27 +3443,46 @@ const Settings = () => {
                                         )}
 
                                         {auditPagination.rows.map((event) => {
-                                            const isDenied = event.action === "courier_permission_denied";
+                                            const isDenied = ["courier_permission_denied", "access_denied"].includes(String(event.action || ""));
+                                            const isAlert = Boolean(event.isAlert) || String(event.eventFamily || "") === "alert";
                                             const meta = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+                                            const diffRows = Array.isArray(meta.snapshot_diff) ? meta.snapshot_diff.slice(0, 3) : [];
 
                                             return (
                                                 <div key={event.id} className="px-3 py-2 border-b border-[#E5E7EB] last:border-b-0">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <p className="text-[12px] font-[700] text-[#111827]">{isDenied ? "Permission Denied" : "Policy Updated"}</p>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-[700] ${isDenied ? "bg-[#FEE2E2] text-[#B91C1C]" : "bg-[#DCFCE7] text-[#166534]"}`}>
-                                                            {isDenied ? "Denied" : "Updated"}
+                                                        <p className="text-[12px] font-[700] text-[#111827]">{isAlert ? "Security Alert" : (isDenied ? "Permission Denied" : "Policy Updated")}</p>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-[700] ${isAlert
+                                                            ? "bg-[#FEF3C7] text-[#92400E]"
+                                                            : (isDenied ? "bg-[#FEE2E2] text-[#B91C1C]" : "bg-[#DCFCE7] text-[#166534]")
+                                                        }`}>
+                                                            {isAlert ? "Alert" : (isDenied ? "Denied" : "Updated")}
                                                         </span>
                                                     </div>
 
                                                     <p className="text-[11px] text-[#374151] mt-1">{event.description || "-"}</p>
 
                                                     <div className="text-[11px] text-[#6B7280] mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                                                        {meta.resource && <span>Resource: {titleCase(meta.resource)}</span>}
+                                                        {(meta.resource || meta.target_type) && <span>Resource: {titleCase(meta.resource || meta.target_type)}</span>}
                                                         {meta.requested_action && <span>Action: {titleCase(meta.requested_action)}</span>}
                                                         {meta.scope && <span>Scope: {titleCase(meta.scope)}</span>}
                                                         {meta.reason && <span>Reason: {titleCase(meta.reason)}</span>}
                                                         {meta.mode && <span>Mode: {titleCase(meta.mode)}</span>}
+                                                        {event.alertCode && <span>Alert Code: {titleCase(event.alertCode)}</span>}
                                                     </div>
+
+                                                    {diffRows.length > 0 && (
+                                                        <div className="mt-2 rounded-[6px] border border-[#E5E7EB] bg-[#F8FAFC] p-2">
+                                                            <p className="text-[10px] font-[700] text-[#334155] mb-1">Before vs After Snapshot (Top Changes)</p>
+                                                            <div className="space-y-1">
+                                                                {diffRows.map((change, index) => (
+                                                                    <p key={`${event.id}_diff_${index}`} className="text-[10px] text-[#475569]">
+                                                                        {titleCase(String(change?.field || "field"))}: {String(change?.before ?? "-")} → {String(change?.after ?? "-")}
+                                                                    </p>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     <p className="text-[10px] text-[#9CA3AF] mt-1">{event.createdAt || "-"}</p>
                                                 </div>
