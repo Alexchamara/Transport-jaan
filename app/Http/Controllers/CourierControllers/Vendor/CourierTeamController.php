@@ -8,9 +8,12 @@ use App\Models\ServiceWorkspace;
 use App\Models\User;
 use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
+use App\Services\Rbac\CourierRoleModelService;
+use App\Support\CourierRbac;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Permission;
@@ -28,6 +31,8 @@ class CourierTeamController extends Controller
         $this->middleware('service.permission:courier.team.create_user')->only(['store']);
         $this->middleware('service.permission:courier.team.manage_status')->only(['bulkUpdate']);
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['updateTeamAccessControlSettings']);
+        $this->middleware('service.permission:courier.team.assign_role')->only(['listRoles', 'storeRole', 'storeRoleFromTemplate', 'cloneRole', 'updateRole']);
+        $this->middleware('service.permission:courier.team.assign_permissions')->only(['storeRole', 'storeRoleFromTemplate', 'cloneRole', 'updateRole', 'roleVersions']);
         $this->middleware('service.permission:courier.team.sessions.view')->only(['listSessions']);
         $this->middleware('service.permission:courier.team.sessions.revoke')->only(['revokeSession', 'revokeAllSessions']);
         $this->middleware('service.permission:courier.team.transfer_ownership')->only(['transferOwnership']);
@@ -119,22 +124,14 @@ class CourierTeamController extends Controller
             page: $filters['activityPage'],
         );
 
-        $roleNames = [
-            'courier_owner',
-            'courier_admin',
-            'courier_dispatcher',
-            'courier_tracking_officer',
-            'courier_support',
-            'courier_viewer',
-        ];
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+        $workspaceRoles = $roleModel->listWorkspaceRoles($workspaceId);
 
-        $rolePermissionMap = Role::query()
-            ->whereIn('name', $roleNames)
-            ->with('permissions:id,name')
-            ->get()
-            ->mapWithKeys(function (Role $role) {
+        $rolePermissionMap = $workspaceRoles
+            ->mapWithKeys(function (array $role) {
                 return [
-                    $role->name => $role->permissions->pluck('name')->values(),
+                    $role['name'] => collect($role['permissions'] ?? [])->values(),
                 ];
             });
 
@@ -147,7 +144,8 @@ class CourierTeamController extends Controller
                 'total' => $memberships->total(),
                 'totalPages' => $memberships->lastPage(),
             ],
-            'roleOptions' => collect($roleNames)->values(),
+            'roleOptions' => $workspaceRoles->pluck('name')->values(),
+            'roleCatalog' => $workspaceRoles,
             'rolePermissionMap' => $rolePermissionMap,
             'permissionOptions' => Permission::query()
                 ->where('name', 'like', 'courier.%')
@@ -155,7 +153,8 @@ class CourierTeamController extends Controller
                 ->pluck('name')
                 ->values(),
             'serviceKey' => 'courier_service',
-            'teamAccessControl' => $this->readTeamAccessControlSettings($vendorUserId),
+            'teamAccessControl' => $this->readTeamAccessControlSettings($vendorUserId, $workspaceId),
+            'roleTemplates' => $roleModel->roleTemplates(),
             'filters' => $filters,
             'capabilities' => [
                 'createUser' => $request->user()->can('courier.team.create_user'),
@@ -206,6 +205,9 @@ class CourierTeamController extends Controller
         $vendorUserId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
         $actor = $request->user();
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $actor->id);
+        $assignableRoleNames = $this->assignableRoleNames($workspaceId);
         $canAssignRole = $actor->can('courier.team.assign_role');
         $canAssignPermissions = $actor->can('courier.team.assign_permissions');
 
@@ -213,13 +215,7 @@ class CourierTeamController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180'],
             'password' => ['nullable', 'string', 'min:8', 'max:120'],
-            'role' => ['nullable', Rule::in([
-                'courier_admin',
-                'courier_dispatcher',
-                'courier_tracking_officer',
-                'courier_support',
-                'courier_viewer',
-            ])],
+            'role' => ['nullable', Rule::in($assignableRoleNames)],
             'directPermissions' => ['nullable', 'array'],
             'directPermissions.*' => ['string', 'max:120'],
             'blockedServiceKeys' => ['nullable', 'array'],
@@ -230,7 +226,9 @@ class CourierTeamController extends Controller
 
         if (!$canAssignRole) {
             // Create-only operators can create users with least-privilege default role.
-            $validated['role'] = 'courier_viewer';
+            $validated['role'] = in_array('courier_viewer', $assignableRoleNames, true)
+                ? 'courier_viewer'
+                : ((count($assignableRoleNames) > 0) ? $assignableRoleNames[0] : 'courier_dispatcher');
         }
 
         if ($canAssignRole && empty($validated['role'])) {
@@ -241,7 +239,7 @@ class CourierTeamController extends Controller
             $validated['directPermissions'] = [];
         }
 
-        $teamAccessControl = $this->readTeamAccessControlSettings($vendorUserId);
+        $teamAccessControl = $this->readTeamAccessControlSettings($vendorUserId, $workspaceId);
 
         $requestedDirectPermissions = collect($validated['directPermissions'] ?? [])
             ->map(fn ($perm) => (string) $perm);
@@ -336,6 +334,9 @@ class CourierTeamController extends Controller
         $vendorUserId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
         $actor = $request->user();
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $actor->id);
+        $assignableRoleNames = $this->assignableRoleNames($workspaceId);
 
         $canAssignRole = $actor->can('courier.team.assign_role');
         $canAssignPermissions = $actor->can('courier.team.assign_permissions');
@@ -357,13 +358,7 @@ class CourierTeamController extends Controller
         $this->assertCanManageMember($request, $membership, $user);
 
         $validated = $request->validate([
-            'role' => ['nullable', Rule::in([
-                'courier_admin',
-                'courier_dispatcher',
-                'courier_tracking_officer',
-                'courier_support',
-                'courier_viewer',
-            ])],
+            'role' => ['nullable', Rule::in($assignableRoleNames)],
             'directPermissions' => ['nullable', 'array'],
             'directPermissions.*' => ['string', 'max:120'],
             'blockedServiceKeys' => ['nullable', 'array'],
@@ -483,6 +478,9 @@ class CourierTeamController extends Controller
     public function updateTeamAccessControlSettings(Request $request)
     {
         $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
 
         $validCourierPermissions = Permission::query()
             ->where('name', 'like', 'courier.%')
@@ -498,12 +496,7 @@ class CourierTeamController extends Controller
             'defaultDirectPermissionsByRole.*.*' => ['string', Rule::in($validCourierPermissions)],
         ]);
 
-        $validCourierRoles = Role::query()
-            ->where('name', 'like', 'courier_%')
-            ->pluck('name')
-            ->map(fn ($role) => (string) $role)
-            ->values()
-            ->all();
+        $validCourierRoles = $this->workspaceRoleNames($workspaceId);
 
         $incomingByRole = is_array($validated['defaultDirectPermissionsByRole'] ?? null)
             ? $validated['defaultDirectPermissionsByRole']
@@ -551,6 +544,146 @@ class CourierTeamController extends Controller
         );
 
         return back()->with('success', 'Team access control defaults updated.');
+    }
+
+    public function listRoles(Request $request)
+    {
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+
+        return response()->json([
+            'roles' => $roleModel->listWorkspaceRoles($workspaceId),
+            'templates' => $roleModel->roleTemplates(),
+            'permissionOptions' => $roleModel->validCourierPermissions(),
+        ]);
+    }
+
+    public function storeRole(Request $request)
+    {
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120', 'regex:/^[a-zA-Z0-9_\-\s]+$/'],
+            'label' => ['required', 'string', 'max:140'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
+        ]);
+
+        try {
+            $result = $roleModel->createOrUpdateRole($workspaceId, [
+                'name' => $validated['name'],
+                'label' => $validated['label'],
+                'description' => $validated['description'] ?? null,
+                'permissions' => $validated['permissions'],
+                'sourceType' => 'custom',
+            ], $request->user(), null, 'updated');
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return response()->json($result, 201);
+    }
+
+    public function storeRoleFromTemplate(Request $request)
+    {
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+
+        $validated = $request->validate([
+            'template' => ['required', 'string', Rule::in(array_keys($roleModel->roleTemplates()))],
+            'name' => ['required', 'string', 'max:120', 'regex:/^[a-zA-Z0-9_\-\s]+$/'],
+            'label' => ['nullable', 'string', 'max:140'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
+        ]);
+
+        try {
+            $result = $roleModel->createRoleFromTemplate($workspaceId, $validated, $request->user());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return response()->json($result, 201);
+    }
+
+    public function cloneRole(Request $request, string $roleName)
+    {
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120', 'regex:/^[a-zA-Z0-9_\-\s]+$/'],
+            'label' => ['nullable', 'string', 'max:140'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
+        ]);
+
+        $sourceRoleName = Str::lower(trim($roleName));
+
+        try {
+            $result = $roleModel->cloneRole($workspaceId, $sourceRoleName, $validated, $request->user());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return response()->json($result, 201);
+    }
+
+    public function updateRole(Request $request, string $roleName)
+    {
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+        $normalizedRoleName = Str::lower(trim($roleName));
+
+        if ($normalizedRoleName === 'courier_owner') {
+            return back()->with('error', 'Owner role cannot be edited.');
+        }
+
+        if (!in_array($normalizedRoleName, $this->workspaceRoleNames($workspaceId), true)) {
+            abort(404, 'Role not found in this workspace.');
+        }
+
+        $validated = $request->validate([
+            'label' => ['required', 'string', 'max:140'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
+        ]);
+
+        $result = $roleModel->createOrUpdateRole(
+            $workspaceId,
+            [
+                'label' => $validated['label'],
+                'description' => $validated['description'] ?? null,
+                'permissions' => $validated['permissions'],
+            ],
+            $request->user(),
+            $normalizedRoleName,
+            'updated'
+        );
+
+        return response()->json($result);
+    }
+
+    public function roleVersions(Request $request, string $roleName)
+    {
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+
+        return response()->json([
+            'role' => Str::lower(trim($roleName)),
+            'versions' => $roleModel->roleVersions($workspaceId, Str::lower(trim($roleName))),
+        ]);
     }
 
     public function bulkUpdate(Request $request)
@@ -869,7 +1002,7 @@ class CourierTeamController extends Controller
         ];
     }
 
-    private function readTeamAccessControlSettings(int $vendorUserId): array
+    private function readTeamAccessControlSettings(int $vendorUserId, ?int $workspaceId = null): array
     {
         $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorUserId);
         $settings = is_array($record?->settings) ? $record->settings : [];
@@ -881,7 +1014,7 @@ class CourierTeamController extends Controller
             ? $teamSettings['teamAccessControl']
             : (is_array($settings['teamAccessControl'] ?? null) ? $settings['teamAccessControl'] : []);
 
-        $validCourierRoles = Role::query()
+        $validCourierRoles = $workspaceId ? $this->workspaceRoleNames($workspaceId) : Role::query()
             ->where('name', 'like', 'courier_%')
             ->pluck('name')
             ->map(fn ($role) => (string) $role)
@@ -905,5 +1038,25 @@ class CourierTeamController extends Controller
         return [
             'defaultDirectPermissionsByRole' => $normalizedByRole,
         ];
+    }
+
+    private function workspaceRoleNames(int $workspaceId): array
+    {
+        return Role::query()
+            ->where('service_workspace_id', $workspaceId)
+            ->where('guard_name', CourierRbac::GUARD)
+            ->where('name', 'like', 'courier_%')
+            ->pluck('name')
+            ->map(fn ($role) => (string) $role)
+            ->values()
+            ->all();
+    }
+
+    private function assignableRoleNames(int $workspaceId): array
+    {
+        return collect($this->workspaceRoleNames($workspaceId))
+            ->reject(fn ($role) => in_array($role, ['courier_owner'], true))
+            ->values()
+            ->all();
     }
 }

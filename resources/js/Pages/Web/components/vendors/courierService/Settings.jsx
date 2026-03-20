@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { BellRing, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
@@ -111,8 +111,11 @@ const Settings = () => {
     const incoming = props.courierSettings || {};
     const teamPermissionOptions = Array.isArray(props.teamPermissionOptions) ? props.teamPermissionOptions : [];
     const teamRoleOptions = Array.isArray(props.teamRoleOptions) ? props.teamRoleOptions : [];
+    const teamRoleCatalog = Array.isArray(props.teamRoleCatalog) ? props.teamRoleCatalog : [];
+    const teamRoleTemplates = props.teamRoleTemplates && typeof props.teamRoleTemplates === "object" ? props.teamRoleTemplates : {};
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
+    const canAssignRole = Boolean(teamCapabilities.assignRole);
 
     const [activeTab, setActiveTab] = useState("business");
     const [settings, setSettings] = useState(() => {
@@ -140,6 +143,40 @@ const Settings = () => {
     });
     const [teamDefaultPermissionSearch, setTeamDefaultPermissionSearch] = useState("");
     const [activeRoleForDefaults, setActiveRoleForDefaults] = useState(() => teamRoleOptions[0] || "courier_dispatcher");
+    const [roleStudioRoles, setRoleStudioRoles] = useState(teamRoleCatalog);
+    const [roleStudioTemplates] = useState(teamRoleTemplates);
+    const [selectedRoleName, setSelectedRoleName] = useState(() => teamRoleCatalog[0]?.name || teamRoleOptions[0] || "");
+    const [roleStudioPermissionSearch, setRoleStudioPermissionSearch] = useState("");
+    const [roleCatalogSearch, setRoleCatalogSearch] = useState("");
+    const [roleTypeFilter, setRoleTypeFilter] = useState("all");
+    const [roleVersionTimeline, setRoleVersionTimeline] = useState([]);
+    const [leftVersionNumber, setLeftVersionNumber] = useState("");
+    const [rightVersionNumber, setRightVersionNumber] = useState("");
+    const [loadingRoleVersions, setLoadingRoleVersions] = useState(false);
+    const [roleStudioBusy, setRoleStudioBusy] = useState(false);
+    const [roleFormErrors, setRoleFormErrors] = useState({});
+    const [roleTemplateFormErrors, setRoleTemplateFormErrors] = useState({});
+    const [roleCloneFormErrors, setRoleCloneFormErrors] = useState({});
+    const [roleForm, setRoleForm] = useState({
+        name: "",
+        label: "",
+        description: "",
+        permissions: [],
+    });
+    const [roleTemplateForm, setRoleTemplateForm] = useState({
+        template: Object.keys(teamRoleTemplates || {})[0] || "operations",
+        name: "",
+        label: "",
+        description: "",
+        permissions: [],
+    });
+    const [roleCloneForm, setRoleCloneForm] = useState({
+        sourceRole: teamRoleCatalog[0]?.name || teamRoleOptions[0] || "",
+        name: "",
+        label: "",
+        description: "",
+        permissions: [],
+    });
 
     const {
         feedback,
@@ -169,6 +206,61 @@ const Settings = () => {
         return [...list, value];
     };
 
+    const requestJson = async (method, url, body = null) => {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+        const response = await fetch(url, {
+            method,
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+            },
+            credentials: "same-origin",
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(payload?.message || "Request failed");
+        }
+
+        return payload;
+    };
+
+    const refreshRoleStudioRoles = async () => {
+        try {
+            const payload = await requestJson("GET", route("courierService.team.roles.index"));
+            const roles = Array.isArray(payload.roles) ? payload.roles : [];
+            setRoleStudioRoles(roles);
+
+            if (roles.length > 0 && !roles.some((role) => role.name === selectedRoleName)) {
+                setSelectedRoleName(roles[0].name);
+            }
+        } catch {
+            setFeedback({ type: "error", message: "Failed to refresh role catalog." });
+        }
+    };
+
+    const loadRoleVersions = async (roleName) => {
+        if (!roleName) {
+            setRoleVersionTimeline([]);
+            return;
+        }
+
+        setLoadingRoleVersions(true);
+
+        try {
+            const payload = await requestJson("GET", route("courierService.team.roles.versions", { roleName }));
+            setRoleVersionTimeline(Array.isArray(payload.versions) ? payload.versions : []);
+        } catch {
+            setRoleVersionTimeline([]);
+            setFeedback({ type: "error", message: "Failed to load role version timeline." });
+        } finally {
+            setLoadingRoleVersions(false);
+        }
+    };
+
     const groupedTeamPermissions = useMemo(() => {
         return teamPermissionOptions.reduce((acc, perm) => {
             const group = String(perm || "").split(".")[1] || "other";
@@ -193,6 +285,172 @@ const Settings = () => {
         return Array.isArray(selected) ? selected : [];
     }, [activeRoleForDefaults, settings.team]);
 
+    const selectedRole = useMemo(
+        () => roleStudioRoles.find((role) => role.name === selectedRoleName) || null,
+        [roleStudioRoles, selectedRoleName],
+    );
+
+    const filteredRoleStudioRoles = useMemo(() => {
+        return roleStudioRoles.filter((role) => {
+            const matchesSearch = `${role.name || ""} ${role.label || ""}`
+                .toLowerCase()
+                .includes(roleCatalogSearch.toLowerCase());
+            const matchesType = roleTypeFilter === "all" || String(role.sourceType || "custom") === roleTypeFilter;
+            return matchesSearch && matchesType;
+        });
+    }, [roleStudioRoles, roleCatalogSearch, roleTypeFilter]);
+
+    const selectedLeftVersion = useMemo(
+        () => roleVersionTimeline.find((version) => String(version.version) === String(leftVersionNumber)) || null,
+        [roleVersionTimeline, leftVersionNumber],
+    );
+
+    const selectedRightVersion = useMemo(
+        () => roleVersionTimeline.find((version) => String(version.version) === String(rightVersionNumber)) || null,
+        [roleVersionTimeline, rightVersionNumber],
+    );
+
+    const roleVersionDiff = useMemo(() => {
+        if (!selectedLeftVersion || !selectedRightVersion) {
+            return { added: [], removed: [] };
+        }
+
+        const left = new Set(Array.isArray(selectedLeftVersion.permissions) ? selectedLeftVersion.permissions : []);
+        const right = new Set(Array.isArray(selectedRightVersion.permissions) ? selectedRightVersion.permissions : []);
+
+        const added = [...right].filter((permission) => !left.has(permission)).sort();
+        const removed = [...left].filter((permission) => !right.has(permission)).sort();
+
+        return { added, removed };
+    }, [selectedLeftVersion, selectedRightVersion]);
+
+    const groupedRoleStudioPermissions = useMemo(() => {
+        return teamPermissionOptions.reduce((acc, perm) => {
+            const group = String(perm || "").split(".")[1] || "other";
+            if (!acc[group]) {
+                acc[group] = [];
+            }
+            acc[group].push(perm);
+            return acc;
+        }, {});
+    }, [teamPermissionOptions]);
+
+    useEffect(() => {
+        if (teamRoleOptions.length > 0 && !teamRoleOptions.includes(activeRoleForDefaults)) {
+            setActiveRoleForDefaults(teamRoleOptions[0]);
+        }
+    }, [teamRoleOptions, activeRoleForDefaults]);
+
+    useEffect(() => {
+        if (filteredRoleStudioRoles.length > 0 && !filteredRoleStudioRoles.some((role) => role.name === selectedRoleName)) {
+            setSelectedRoleName(filteredRoleStudioRoles[0].name);
+        }
+    }, [filteredRoleStudioRoles, selectedRoleName]);
+
+    useEffect(() => {
+        if (!selectedRole) {
+            return;
+        }
+
+        setRoleForm((prev) => ({
+            ...prev,
+            label: selectedRole.label || "",
+            description: selectedRole.description || "",
+            permissions: Array.isArray(selectedRole.permissions) ? selectedRole.permissions : [],
+        }));
+
+        setRoleCloneForm((prev) => ({
+            ...prev,
+            sourceRole: selectedRole.name,
+            permissions: Array.isArray(selectedRole.permissions) ? selectedRole.permissions : [],
+            label: prev.label || `${selectedRole.label || titleCase(selectedRole.name)} Clone`,
+        }));
+    }, [selectedRole]);
+
+    useEffect(() => {
+        const source = roleStudioRoles.find((role) => role.name === roleCloneForm.sourceRole);
+        if (!source) {
+            return;
+        }
+
+        setRoleCloneForm((prev) => ({
+            ...prev,
+            permissions: Array.isArray(source.permissions) ? source.permissions : [],
+            label: prev.label || `${source.label || titleCase(source.name)} Clone`,
+        }));
+    }, [roleCloneForm.sourceRole, roleStudioRoles]);
+
+    useEffect(() => {
+        loadRoleVersions(selectedRoleName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedRoleName]);
+
+    useEffect(() => {
+        if (roleVersionTimeline.length > 1) {
+            setRightVersionNumber(String(roleVersionTimeline[0].version));
+            setLeftVersionNumber(String(roleVersionTimeline[1].version));
+            return;
+        }
+
+        if (roleVersionTimeline.length === 1) {
+            setRightVersionNumber(String(roleVersionTimeline[0].version));
+            setLeftVersionNumber(String(roleVersionTimeline[0].version));
+            return;
+        }
+
+        setRightVersionNumber("");
+        setLeftVersionNumber("");
+    }, [roleVersionTimeline]);
+
+    const validateRoleForm = () => {
+        const nextErrors = {};
+
+        if (!String(roleForm.name || "").trim()) {
+            nextErrors.name = "Role name is required.";
+        }
+
+        if (!String(roleForm.label || "").trim()) {
+            nextErrors.label = "Role label is required.";
+        }
+
+        if (!Array.isArray(roleForm.permissions) || roleForm.permissions.length === 0) {
+            nextErrors.permissions = "Select at least one permission.";
+        }
+
+        setRoleFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const validateRoleTemplateForm = () => {
+        const nextErrors = {};
+
+        if (!String(roleTemplateForm.template || "").trim()) {
+            nextErrors.template = "Template is required.";
+        }
+
+        if (!String(roleTemplateForm.name || "").trim()) {
+            nextErrors.name = "New role name is required.";
+        }
+
+        setRoleTemplateFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const validateRoleCloneForm = () => {
+        const nextErrors = {};
+
+        if (!String(roleCloneForm.sourceRole || "").trim()) {
+            nextErrors.sourceRole = "Source role is required.";
+        }
+
+        if (!String(roleCloneForm.name || "").trim()) {
+            nextErrors.name = "Cloned role name is required.";
+        }
+
+        setRoleCloneFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
     const toggleRoleDefaultPermission = (permission) => {
         const nextRoleDefaults = toggleInArray(activeRoleDefaultPermissions, permission);
 
@@ -209,6 +467,143 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const createCustomRole = () => {
+        if (!canAssignRole || !canAssignPermissions) {
+            return;
+        }
+
+        if (!validateRoleForm()) {
+            return;
+        }
+
+        openConfirm({
+            title: "Create Custom Role",
+            message: "Create this custom role and apply selected permissions?",
+            onConfirm: async () => {
+                setRoleStudioBusy(true);
+                try {
+                    const payload = await requestJson("POST", route("courierService.team.roles.store"), roleForm);
+                    const createdName = payload?.role?.name;
+                    await refreshRoleStudioRoles();
+                    if (createdName) {
+                        setSelectedRoleName(createdName);
+                        await loadRoleVersions(createdName);
+                    }
+                    setFeedback({ type: "success", message: "Custom role created successfully." });
+                } catch (error) {
+                    setFeedback({ type: "error", message: error.message || "Failed to create custom role." });
+                } finally {
+                    setRoleStudioBusy(false);
+                }
+            },
+        });
+    };
+
+    const createRoleFromTemplate = () => {
+        if (!canAssignRole || !canAssignPermissions) {
+            return;
+        }
+
+        if (!validateRoleTemplateForm()) {
+            return;
+        }
+
+        openConfirm({
+            title: "Create Role From Template",
+            message: "Generate a new role from selected template settings?",
+            onConfirm: async () => {
+                setRoleStudioBusy(true);
+                try {
+                    const payload = await requestJson("POST", route("courierService.team.roles.store-template"), roleTemplateForm);
+                    const createdName = payload?.role?.name;
+                    await refreshRoleStudioRoles();
+                    if (createdName) {
+                        setSelectedRoleName(createdName);
+                        await loadRoleVersions(createdName);
+                    }
+                    setFeedback({ type: "success", message: "Template-based role created successfully." });
+                } catch (error) {
+                    setFeedback({ type: "error", message: error.message || "Failed to create role from template." });
+                } finally {
+                    setRoleStudioBusy(false);
+                }
+            },
+        });
+    };
+
+    const cloneExistingRole = () => {
+        if (!canAssignRole || !canAssignPermissions || !roleCloneForm.sourceRole) {
+            return;
+        }
+
+        if (!validateRoleCloneForm()) {
+            return;
+        }
+
+        openConfirm({
+            title: "Clone Role",
+            message: `Clone ${titleCase(roleCloneForm.sourceRole)} with selected adjustments?`,
+            onConfirm: async () => {
+                setRoleStudioBusy(true);
+                try {
+                    const payload = await requestJson("POST", route("courierService.team.roles.clone", { roleName: roleCloneForm.sourceRole }), roleCloneForm);
+                    const createdName = payload?.role?.name;
+                    await refreshRoleStudioRoles();
+                    if (createdName) {
+                        setSelectedRoleName(createdName);
+                        await loadRoleVersions(createdName);
+                    }
+                    setFeedback({ type: "success", message: "Role cloned successfully." });
+                } catch (error) {
+                    setFeedback({ type: "error", message: error.message || "Failed to clone role." });
+                } finally {
+                    setRoleStudioBusy(false);
+                }
+            },
+        });
+    };
+
+    const saveRoleEdits = () => {
+        if (!canAssignRole || !canAssignPermissions || !selectedRole?.name) {
+            return;
+        }
+
+        const nextErrors = {};
+        if (!String(roleForm.label || "").trim()) {
+            nextErrors.label = "Role label is required.";
+        }
+        if (!Array.isArray(roleForm.permissions) || roleForm.permissions.length === 0) {
+            nextErrors.permissions = "Select at least one permission.";
+        }
+        setRoleFormErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) {
+            return;
+        }
+
+        openConfirm({
+            title: "Update Role",
+            message: `Apply permission and profile updates to ${titleCase(selectedRole.name)}?`,
+            onConfirm: async () => {
+                setRoleStudioBusy(true);
+                try {
+                    await requestJson("PATCH", route("courierService.team.roles.update", { roleName: selectedRole.name }), {
+                        label: roleForm.label,
+                        description: roleForm.description,
+                        permissions: roleForm.permissions,
+                    });
+
+                    await refreshRoleStudioRoles();
+                    await loadRoleVersions(selectedRole.name);
+                    setFeedback({ type: "success", message: "Role updated successfully." });
+                } catch (error) {
+                    setFeedback({ type: "error", message: error.message || "Failed to update role." });
+                } finally {
+                    setRoleStudioBusy(false);
+                }
+            },
+        });
     };
 
     const saveSection = (sectionKey) => {
@@ -292,7 +687,7 @@ const Settings = () => {
         );
     }
 
-    const tabContent = useMemo(() => {
+    const tabContent = (() => {
         if (activeTab === "business") {
             return (
                 <SectionCard title="Business Profile" description="Main identity and service coverage used across booking and tracking experiences.">
@@ -477,18 +872,331 @@ const Settings = () => {
                         ))}
                     </div>
                 </div>
+
+                <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-white mt-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div>
+                            <p className="text-[16px] font-[700] text-[#111827]">Role Studio</p>
+                            <p className="text-[12px] text-[#6B7280] mt-1">Create custom roles, generate from templates, clone existing roles, and review role version history.</p>
+                        </div>
+                        <button
+                            type="button"
+                            disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                            onClick={refreshRoleStudioRoles}
+                            className="h-[34px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700] disabled:opacity-50"
+                        >
+                            Refresh Roles
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+                        <input
+                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                            placeholder="Search role by name or label"
+                            value={roleCatalogSearch}
+                            onChange={(e) => setRoleCatalogSearch(e.target.value)}
+                        />
+                        <select
+                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                            value={roleTypeFilter}
+                            onChange={(e) => setRoleTypeFilter(e.target.value)}
+                        >
+                            <option value="all">All Role Types</option>
+                            <option value="predefined">Predefined</option>
+                            <option value="template">Template</option>
+                            <option value="clone">Clone</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-[#FAFBFD]">
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Create Custom Role</p>
+                            <p className="text-[11px] text-[#6B7280] mb-2">Uses the permission matrix in "Edit Selected Role Permissions" below.</p>
+                            <div className="grid grid-cols-1 gap-2">
+                                <input
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    placeholder="Role name (e.g. last_mile_ops)"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleForm.name}
+                                    onChange={(e) => setRoleForm((prev) => ({ ...prev, name: e.target.value }))}
+                                />
+                                <input
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    placeholder="Role label"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleForm.label}
+                                    onChange={(e) => setRoleForm((prev) => ({ ...prev, label: e.target.value }))}
+                                />
+                                <textarea
+                                    rows={2}
+                                    className="rounded-[8px] border border-[#D1D5DB] px-2 py-1 text-[12px]"
+                                    placeholder="Role description"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleForm.description}
+                                    onChange={(e) => setRoleForm((prev) => ({ ...prev, description: e.target.value }))}
+                                />
+                                {(roleFormErrors.name || roleFormErrors.label || roleFormErrors.permissions) && (
+                                    <p className="text-[11px] text-[#B91C1C]">
+                                        {roleFormErrors.name || roleFormErrors.label || roleFormErrors.permissions}
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    onClick={createCustomRole}
+                                    className="h-[34px] rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[700] disabled:opacity-50"
+                                >
+                                    Create Custom Role
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-[#FAFBFD]">
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Create From Template</p>
+                            <div className="grid grid-cols-1 gap-2">
+                                <select
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleTemplateForm.template}
+                                    onChange={(e) => setRoleTemplateForm((prev) => ({ ...prev, template: e.target.value }))}
+                                >
+                                    {Object.keys(roleStudioTemplates).map((template) => (
+                                        <option key={template} value={template}>{titleCase(template)}</option>
+                                    ))}
+                                </select>
+                                <input
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    placeholder="New role name"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleTemplateForm.name}
+                                    onChange={(e) => setRoleTemplateForm((prev) => ({ ...prev, name: e.target.value }))}
+                                />
+                                <input
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    placeholder="Role label (optional)"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleTemplateForm.label}
+                                    onChange={(e) => setRoleTemplateForm((prev) => ({ ...prev, label: e.target.value }))}
+                                />
+                                {(roleTemplateFormErrors.template || roleTemplateFormErrors.name) && (
+                                    <p className="text-[11px] text-[#B91C1C]">
+                                        {roleTemplateFormErrors.template || roleTemplateFormErrors.name}
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    onClick={createRoleFromTemplate}
+                                    className="h-[34px] rounded-[8px] bg-[#0F766E] text-white text-[12px] font-[700] disabled:opacity-50"
+                                >
+                                    Create From Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-[#FAFBFD]">
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Clone Existing Role</p>
+                            <div className="grid grid-cols-1 gap-2">
+                                <select
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleCloneForm.sourceRole}
+                                    onChange={(e) => setRoleCloneForm((prev) => ({ ...prev, sourceRole: e.target.value }))}
+                                >
+                                    {roleStudioRoles.map((role) => (
+                                        <option key={role.name} value={role.name}>{role.label || titleCase(role.name)}</option>
+                                    ))}
+                                </select>
+                                <input
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    placeholder="Cloned role name"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleCloneForm.name}
+                                    onChange={(e) => setRoleCloneForm((prev) => ({ ...prev, name: e.target.value }))}
+                                />
+                                <input
+                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    placeholder="Cloned role label"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy}
+                                    value={roleCloneForm.label}
+                                    onChange={(e) => setRoleCloneForm((prev) => ({ ...prev, label: e.target.value }))}
+                                />
+                                {(roleCloneFormErrors.sourceRole || roleCloneFormErrors.name) && (
+                                    <p className="text-[11px] text-[#B91C1C]">
+                                        {roleCloneFormErrors.sourceRole || roleCloneFormErrors.name}
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy || !roleCloneForm.sourceRole}
+                                    onClick={cloneExistingRole}
+                                    className="h-[34px] rounded-[8px] bg-[#92400E] text-white text-[12px] font-[700] disabled:opacity-50"
+                                >
+                                    Clone Role
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-[#FAFBFD]">
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Role Catalog</p>
+                            <select
+                                className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] w-full"
+                                value={selectedRoleName}
+                                onChange={(e) => setSelectedRoleName(e.target.value)}
+                            >
+                                {filteredRoleStudioRoles.map((role) => (
+                                    <option key={role.name} value={role.name}>{role.label || titleCase(role.name)}</option>
+                                ))}
+                            </select>
+                            {filteredRoleStudioRoles.length === 0 && (
+                                <p className="text-[11px] text-[#6B7280] mt-1">No roles found for selected filter/search.</p>
+                            )}
+                            {selectedRole && (
+                                <div className="mt-2 text-[12px] text-[#374151] space-y-1">
+                                    <p><span className="font-[700]">Type:</span> {titleCase(selectedRole.sourceType || "custom")}</p>
+                                    <p><span className="font-[700]">Latest Version:</span> v{selectedRole.latestVersion || 1}</p>
+                                    <p><span className="font-[700]">Template:</span> {selectedRole.template || "-"}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[8px] p-3">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <p className="text-[13px] font-[700] text-[#111827]">Edit Selected Role Permissions</p>
+                            <input
+                                className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] md:w-[260px]"
+                                placeholder="Search permissions"
+                                value={roleStudioPermissionSearch}
+                                onChange={(e) => setRoleStudioPermissionSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                            <input
+                                className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                placeholder="Selected role label"
+                                disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy || !selectedRole}
+                                value={roleForm.label}
+                                onChange={(e) => setRoleForm((prev) => ({ ...prev, label: e.target.value }))}
+                            />
+                            <input
+                                className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                placeholder="Selected role description"
+                                disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy || !selectedRole}
+                                value={roleForm.description}
+                                onChange={(e) => setRoleForm((prev) => ({ ...prev, description: e.target.value }))}
+                            />
+                        </div>
+                        {(roleFormErrors.label || roleFormErrors.permissions) && (
+                            <p className="text-[11px] text-[#B91C1C] mt-2">
+                                {roleFormErrors.label || roleFormErrors.permissions}
+                            </p>
+                        )}
+
+                        <div className="max-h-[240px] overflow-y-auto border border-[#E5E7EB] rounded-[8px] p-2 mt-2 bg-[#FAFBFD]">
+                            {Object.keys(groupedRoleStudioPermissions).map((group) => (
+                                <div key={group} className="mb-2">
+                                    <p className="text-[11px] font-[700] uppercase text-[#6B7280] mb-1">{titleCase(group)}</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {groupedRoleStudioPermissions[group]
+                                            .filter((perm) => perm.toLowerCase().includes(roleStudioPermissionSearch.toLowerCase()))
+                                            .map((perm) => (
+                                                <label key={perm} className="inline-flex items-center gap-2 text-[12px]">
+                                                    <input
+                                                        type="checkbox"
+                                                        disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy || !selectedRole}
+                                                        checked={roleForm.permissions.includes(perm)}
+                                                        onChange={() => setRoleForm((prev) => ({ ...prev, permissions: toggleInArray(prev.permissions, perm) }))}
+                                                    />
+                                                    {perm}
+                                                </label>
+                                            ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-end mt-3">
+                            <button
+                                type="button"
+                                disabled={!canAssignRole || !canAssignPermissions || roleStudioBusy || !selectedRole}
+                                onClick={saveRoleEdits}
+                                className="h-[34px] px-3 rounded-[8px] bg-[#111827] text-white text-[12px] font-[700] disabled:opacity-50"
+                            >
+                                Save Role Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[8px] p-3 bg-[#FAFBFD]">
+                        <p className="text-[13px] font-[700] text-[#111827] mb-2">Version Timeline</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                            <select
+                                className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                value={leftVersionNumber}
+                                onChange={(e) => setLeftVersionNumber(e.target.value)}
+                            >
+                                {roleVersionTimeline.map((version) => (
+                                    <option key={`left-${version.version}`} value={String(version.version)}>
+                                        Left: v{version.version}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                value={rightVersionNumber}
+                                onChange={(e) => setRightVersionNumber(e.target.value)}
+                            >
+                                {roleVersionTimeline.map((version) => (
+                                    <option key={`right-${version.version}`} value={String(version.version)}>
+                                        Right: v{version.version}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {selectedLeftVersion && selectedRightVersion && (
+                            <div className="border border-[#D1D5DB] rounded-[8px] p-2 bg-white mb-2">
+                                <p className="text-[12px] font-[700] text-[#111827]">
+                                    Permission Diff: v{selectedLeftVersion.version} -> v{selectedRightVersion.version}
+                                </p>
+                                <p className="text-[11px] text-[#166534] mt-1">Added: {roleVersionDiff.added.length}</p>
+                                {roleVersionDiff.added.length > 0 && (
+                                    <p className="text-[11px] text-[#374151]">{roleVersionDiff.added.join(", ")}</p>
+                                )}
+                                <p className="text-[11px] text-[#B91C1C] mt-1">Removed: {roleVersionDiff.removed.length}</p>
+                                {roleVersionDiff.removed.length > 0 && (
+                                    <p className="text-[11px] text-[#374151]">{roleVersionDiff.removed.join(", ")}</p>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="max-h-[220px] overflow-y-auto pr-1 space-y-2">
+                            {loadingRoleVersions && (
+                                <p className="text-[12px] text-[#6B7280]">Loading role versions...</p>
+                            )}
+
+                            {!loadingRoleVersions && roleVersionTimeline.length === 0 && (
+                                <p className="text-[12px] text-[#6B7280]">No versions available for selected role.</p>
+                            )}
+
+                            {!loadingRoleVersions && roleVersionTimeline.map((version) => (
+                                <div key={`${selectedRoleName}-${version.version}`} className="border border-[#D1D5DB] rounded-[8px] p-2 bg-white">
+                                    <p className="text-[12px] font-[700] text-[#111827]">v{version.version} • {titleCase(version.changeType)}</p>
+                                    <p className="text-[11px] text-[#6B7280] mt-1">{version.createdAt || "-"}</p>
+                                    <p className="text-[11px] text-[#374151] mt-1">Permissions: {Array.isArray(version.permissions) ? version.permissions.length : 0}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </SectionCard>
         );
-    }, [
-        activeTab,
-        canAssignPermissions,
-        groupedTeamPermissions,
-        activeRoleDefaultPermissions,
-        activeRoleForDefaults,
-        settings,
-        teamRoleOptions,
-        teamDefaultPermissionSearch,
-    ]);
+    })();
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">

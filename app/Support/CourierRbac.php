@@ -79,6 +79,16 @@ class CourierRbac
                 'courier.profile.view',
                 'courier.profile.update',
             ],
+            'courier_finance' => [
+                'courier.dashboard.view',
+                'courier.bookings.view',
+                'courier.shipments.view',
+                'courier.clients.view',
+                'courier.finance.view',
+                'courier.reports.export',
+                'courier.profile.view',
+                'courier.profile.update',
+            ],
             'courier_viewer' => [
                 'courier.dashboard.view',
                 'courier.bookings.view',

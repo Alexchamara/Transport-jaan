@@ -11,6 +11,7 @@ use App\Models\VendorActivityLog;
 use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
+use App\Services\Rbac\CourierRoleModelService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -21,7 +22,6 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class VendorCourierDashboardController extends Controller
@@ -200,23 +200,33 @@ class VendorCourierDashboardController extends Controller
     public function bookings(Request $request)
     {
         [$filters, $shipments] = $this->buildFilteredShipments($request);
+        $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
+        $canViewRates = $this->canActorViewRates($request, $policy);
 
         return Inertia::render('Web/home/vendors/courierService/Booking', [
-            'courierBookings' => $this->buildBookingsPayload($shipments, $filters),
+            'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates),
         ]);
     }
 
     public function updateBookingLifecycle(Request $request, CourierShipment $shipment)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if ((int) $shipment->assigned_vendor_user_id !== $vendorId) {
             abort(403, 'You are not allowed to modify this booking.');
         }
 
+        $this->assertStaffSecurityPolicy($request, $policy);
+
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
         ]);
+
+        $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
+        if (!$cancelGuard['ok']) {
+            return back()->with('error', $cancelGuard['message']);
+        }
 
         $result = $this->applyBookingAction($shipment, $validated['action']);
 
@@ -230,10 +240,13 @@ class VendorCourierDashboardController extends Controller
     public function bulkUpdateBookingLifecycle(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to manage bookings.');
         }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
             'shipmentIds' => ['required', 'array', 'min:1', 'max:200'],
@@ -243,6 +256,11 @@ class VendorCourierDashboardController extends Controller
 
         $ids = collect($validated['shipmentIds'])->unique()->values();
         $action = $validated['action'];
+
+        $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $action);
+        if (!$cancelGuard['ok']) {
+            return back()->with('error', $cancelGuard['message']);
+        }
 
         $shipments = CourierShipment::query()
             ->where('assigned_vendor_user_id', $vendorId)
@@ -331,6 +349,9 @@ class VendorCourierDashboardController extends Controller
         );
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
+        $roleModel = app(CourierRoleModelService::class);
+        $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
+        $workspaceRoles = $roleModel->listWorkspaceRoles($workspaceId);
 
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
@@ -339,13 +360,12 @@ class VendorCourierDashboardController extends Controller
                 ->orderBy('name')
                 ->pluck('name')
                 ->values(),
-            'teamRoleOptions' => Role::query()
-                ->where('name', 'like', 'courier_%')
-                ->orderBy('name')
-                ->pluck('name')
-                ->values(),
+            'teamRoleOptions' => $workspaceRoles->pluck('name')->values(),
+            'teamRoleCatalog' => $workspaceRoles,
+            'teamRoleTemplates' => $roleModel->roleTemplates(),
             'teamCapabilities' => [
                 'assignPermissions' => $request->user()->can('courier.team.assign_permissions'),
+                'assignRole' => $request->user()->can('courier.team.assign_role'),
             ],
         ]);
     }
@@ -353,10 +373,13 @@ class VendorCourierDashboardController extends Controller
     public function updateSettings(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to update settings.');
         }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults'],
@@ -603,10 +626,13 @@ class VendorCourierDashboardController extends Controller
     public function updateClientProfile(Request $request, CourierContact $contact)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to manage clients.');
         }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
 
         $belongsToVendor = CourierShipment::query()
             ->where('assigned_vendor_user_id', $vendorId)
@@ -631,6 +657,10 @@ class VendorCourierDashboardController extends Controller
         ]);
 
         $action = $validated['action'];
+
+        if ($action === 'set_owner' && !$this->canActorReassignOwner($request, $policy)) {
+            return back()->with('error', 'Reassigning client ownership is disabled by Team Access Control policy.');
+        }
 
         if ($action === 'toggle_watchlist') {
             $profile->watchlist = !$profile->watchlist;
@@ -671,14 +701,22 @@ class VendorCourierDashboardController extends Controller
     public function updateShipmentStage(Request $request, CourierShipment $shipment)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if ((int) $shipment->assigned_vendor_user_id !== $vendorId) {
             abort(403, 'You are not allowed to modify this shipment.');
         }
 
+        $this->assertStaffSecurityPolicy($request, $policy);
+
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::ACTION_META))],
         ]);
+
+        $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
+        if (!$cancelGuard['ok']) {
+            return back()->with('error', $cancelGuard['message']);
+        }
 
         $action = $validated['action'];
         $result = $this->applyShipmentAction($shipment, $action);
@@ -693,16 +731,24 @@ class VendorCourierDashboardController extends Controller
     public function bulkUpdateShipmentStage(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to manage shipments.');
         }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
             'shipmentIds' => ['required', 'array', 'min:1', 'max:200'],
             'shipmentIds.*' => ['required', 'integer'],
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::ACTION_META))],
         ]);
+
+        $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
+        if (!$cancelGuard['ok']) {
+            return back()->with('error', $cancelGuard['message']);
+        }
 
         $action = $validated['action'];
         $ids = collect($validated['shipmentIds'])->unique()->values();
@@ -1079,7 +1125,7 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildBookingsPayload(Collection $shipments, array $filters): array
+    private function buildBookingsPayload(Collection $shipments, array $filters, bool $canViewRates): array
     {
         $rows = $shipments->map(function (CourierShipment $shipment) {
             $bookingStatus = $this->resolveBookingStatus($shipment);
@@ -1116,6 +1162,13 @@ class VendorCourierDashboardController extends Controller
                 'confirmHours' => $confirmHours,
             ];
         })->values();
+
+        if (!$canViewRates) {
+            $rows = $rows->map(function (array $row) {
+                $row['quoteAmount'] = null;
+                return $row;
+            })->values();
+        }
 
         $summary = [
             'newRequestsToday' => $rows->filter(fn ($row) => $row['bookingStatus'] === 'new_request' && str_starts_with((string) $row['createdAt'], now()->format('Y-m-d')))->count(),
@@ -2645,6 +2698,90 @@ class VendorCourierDashboardController extends Controller
     {
         $status = strtolower((string) $shipment->status);
         return in_array($status, [CourierShipment::STATUS_PENDING, CourierShipment::STATUS_CONFIRMED, CourierShipment::STATUS_IN_TRANSIT], true);
+    }
+
+    private function resolveTeamAccessPolicy(int $vendorId): array
+    {
+        $defaults = $this->defaultCourierSettings()['team'] ?? [];
+
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $team = is_array($settings['team'] ?? null) ? $settings['team'] : [];
+
+        return [
+            'dispatcherCanCancel' => (bool) ($team['dispatcherCanCancel'] ?? ($defaults['dispatcherCanCancel'] ?? false)),
+            'opsLeadCanReassign' => (bool) ($team['opsLeadCanReassign'] ?? ($defaults['opsLeadCanReassign'] ?? true)),
+            'financeCanViewRates' => (bool) ($team['financeCanViewRates'] ?? ($defaults['financeCanViewRates'] ?? true)),
+            'enforce2FA' => (bool) ($team['enforce2FA'] ?? ($defaults['enforce2FA'] ?? true)),
+        ];
+    }
+
+    private function isVendorOwnerActor(Request $request): bool
+    {
+        return (int) optional($request->user())->id === (int) $request->attributes->get('vendor_user_id');
+    }
+
+    private function guardCancelActionByPolicy(Request $request, array $policy, string $action): array
+    {
+        if (!in_array($action, ['cancel_booking', 'cancel_shipment'], true)) {
+            return ['ok' => true, 'message' => null];
+        }
+
+        if ((bool) ($policy['dispatcherCanCancel'] ?? false)) {
+            return ['ok' => true, 'message' => null];
+        }
+
+        if ($this->isVendorOwnerActor($request)) {
+            return ['ok' => true, 'message' => null];
+        }
+
+        $actor = $request->user();
+        $canManageLifecycle = (bool) $actor?->can('courier.bookings.manage_lifecycle');
+        $canAssignRole = (bool) $actor?->can('courier.team.assign_role');
+
+        if ($canManageLifecycle && !$canAssignRole) {
+            return ['ok' => false, 'message' => 'Cancellation by dispatchers is disabled by Team Access Control policy.'];
+        }
+
+        return ['ok' => true, 'message' => null];
+    }
+
+    private function canActorReassignOwner(Request $request, array $policy): bool
+    {
+        if ($this->isVendorOwnerActor($request)) {
+            return true;
+        }
+
+        return (bool) ($policy['opsLeadCanReassign'] ?? true);
+    }
+
+    private function canActorViewRates(Request $request, array $policy): bool
+    {
+        if ($this->isVendorOwnerActor($request)) {
+            return true;
+        }
+
+        if (!(bool) ($policy['financeCanViewRates'] ?? true)) {
+            return false;
+        }
+
+        return (bool) optional($request->user())->can('courier.finance.view');
+    }
+
+    private function assertStaffSecurityPolicy(Request $request, array $policy): void
+    {
+        if (!(bool) ($policy['enforce2FA'] ?? true)) {
+            return;
+        }
+
+        if ($this->isVendorOwnerActor($request)) {
+            return;
+        }
+
+        $user = $request->user();
+        if ($user && (bool) $user->must_change_password) {
+            abort(403, 'Security policy requires staff account hardening before this action. Please change your password and sign in again.');
+        }
     }
 
     private function hasApprovedCourierRegistration(int $vendorId): bool

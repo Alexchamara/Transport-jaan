@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use App\Support\CourierRbac;
+use App\Services\Rbac\CourierRoleModelService;
 use Spatie\Permission\PermissionRegistrar;
 
 class ServiceWorkspaceManager
@@ -51,6 +52,7 @@ class ServiceWorkspaceManager
         );
 
         $this->ensureOwnerMembership($vendorUser);
+        app(CourierRoleModelService::class)->ensureWorkspaceRoleProfiles($workspace->id, $vendorUser->id);
         $this->ensureOwnerRole($workspace, $vendorUser);
 
         return $workspace;

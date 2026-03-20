@@ -1203,6 +1203,30 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
         ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:20,1'])
         ->name('courierService.team.access-control-settings.update');
 
+    Route::get('/courierService/team/roles', [CourierTeamController::class, 'listRoles'])
+        ->middleware('service.permission:courier.team.assign_role')
+        ->name('courierService.team.roles.index');
+
+    Route::post('/courierService/team/roles', [CourierTeamController::class, 'storeRole'])
+        ->middleware(['service.permission:courier.team.assign_role', 'service.permission:courier.team.assign_permissions', 'throttle:20,1'])
+        ->name('courierService.team.roles.store');
+
+    Route::post('/courierService/team/roles/template', [CourierTeamController::class, 'storeRoleFromTemplate'])
+        ->middleware(['service.permission:courier.team.assign_role', 'service.permission:courier.team.assign_permissions', 'throttle:20,1'])
+        ->name('courierService.team.roles.store-template');
+
+    Route::post('/courierService/team/roles/{roleName}/clone', [CourierTeamController::class, 'cloneRole'])
+        ->middleware(['service.permission:courier.team.assign_role', 'service.permission:courier.team.assign_permissions', 'throttle:20,1'])
+        ->name('courierService.team.roles.clone');
+
+    Route::patch('/courierService/team/roles/{roleName}', [CourierTeamController::class, 'updateRole'])
+        ->middleware(['service.permission:courier.team.assign_role', 'service.permission:courier.team.assign_permissions', 'throttle:20,1'])
+        ->name('courierService.team.roles.update');
+
+    Route::get('/courierService/team/roles/{roleName}/versions', [CourierTeamController::class, 'roleVersions'])
+        ->middleware('service.permission:courier.team.assign_permissions')
+        ->name('courierService.team.roles.versions');
+
     Route::patch('/courierService/team/{user}/access', [CourierTeamController::class, 'updateAccess'])
         ->middleware(['service.permission:courier.team.view', 'throttle:30,1'])
         ->name('courierService.team.access.update');

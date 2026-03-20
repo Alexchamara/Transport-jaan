@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Courier;
 
+use App\Models\Courier\CourierAddress;
+use App\Models\Courier\CourierContact;
+use App\Models\Courier\CourierShipment;
+use App\Models\Courier\VendorCourierSetting;
 use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\ServiceWorkspace;
@@ -10,6 +14,7 @@ use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use Database\Seeders\CourierRbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -170,6 +175,88 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_dispatcher_cannot_cancel_when_team_policy_disables_dispatcher_cancellation(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.manage_lifecycle',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles(['courier_dispatcher']);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => ['team' => ['dispatcherCanCancel' => false]]],
+        );
+
+        $shipment = $this->createAssignedShipment($vendor);
+
+        $response = $this->actingAs($actor)->post(
+            route('courierService.bookings.lifecycle', ['shipment' => $shipment->id]),
+            ['action' => 'cancel_booking']
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertNotEquals(CourierShipment::STATUS_CANCELLED, $shipment->fresh()->status);
+    }
+
+    public function test_bookings_hide_quote_amount_when_finance_rate_visibility_is_disabled(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.view',
+        ]);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => ['team' => ['financeCanViewRates' => false]]],
+        );
+
+        $this->createAssignedShipment($vendor, [
+            'estimated_cost' => 12500,
+            'status' => CourierShipment::STATUS_CONFIRMED,
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.bookings'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('courierBookings.rows.0.quoteAmount', null)
+        );
+    }
+
+    public function test_staff_mutating_actions_are_blocked_when_security_policy_is_enabled_and_password_change_is_required(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.shipments.update_stage',
+        ]);
+
+        $actor->update(['must_change_password' => true]);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => ['team' => ['enforce2FA' => true]]],
+        );
+
+        $shipment = $this->createAssignedShipment($vendor, [
+            'status' => CourierShipment::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($actor)->post(
+            route('courierService.shipments.stage', ['shipment' => $shipment->id]),
+            ['action' => 'ready_for_pickup']
+        );
+
+        $response->assertForbidden();
+    }
+
     private function createCourierVendorWorkspace(): array
     {
         $vendor = User::factory()->create([
@@ -274,5 +361,48 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $target->syncPermissions([]);
 
         return $target;
+    }
+
+    private function createAssignedShipment(User $vendor, array $overrides = []): CourierShipment
+    {
+        $sender = CourierContact::query()->create([
+            'name' => 'Sender Test',
+            'email' => 'sender@example.com',
+        ]);
+
+        $recipient = CourierContact::query()->create([
+            'name' => 'Recipient Test',
+            'email' => 'recipient@example.com',
+        ]);
+
+        $senderAddress = CourierAddress::query()->create([
+            'contact_id' => $sender->id,
+            'line1' => 'Sender Line 1',
+            'city' => 'Colombo',
+            'country' => 'LK',
+        ]);
+
+        $recipientAddress = CourierAddress::query()->create([
+            'contact_id' => $recipient->id,
+            'line1' => 'Recipient Line 1',
+            'city' => 'Kandy',
+            'country' => 'LK',
+        ]);
+
+        return CourierShipment::query()->create(array_merge([
+            'reference' => 'CR-TST-' . strtoupper(substr(sha1((string) microtime(true)), 0, 8)),
+            'assigned_vendor_user_id' => $vendor->id,
+            'sender_contact_id' => $sender->id,
+            'recipient_contact_id' => $recipient->id,
+            'sender_address_id' => $senderAddress->id,
+            'recipient_address_id' => $recipientAddress->id,
+            'service_level' => 'express',
+            'status' => CourierShipment::STATUS_CONFIRMED,
+            'assignment_status' => CourierShipment::ASSIGNMENT_STATUS_ASSIGNED,
+            'assignment_category' => 'domestic',
+            'assigned_at' => now(),
+            'estimated_cost' => 5000,
+            'currency_code' => 'LKR',
+        ], $overrides));
     }
 }
