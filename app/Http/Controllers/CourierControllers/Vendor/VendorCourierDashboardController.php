@@ -218,6 +218,11 @@ class VendorCourierDashboardController extends Controller
         'payment_refs',
     ];
 
+    private const ADVANCED_ENVIRONMENTS = [
+        'production',
+        'sandbox',
+    ];
+
     public function dashboard(Request $request)
     {
         [$filters, $shipments] = $this->buildFilteredShipments($request, 'reports', 'view');
@@ -325,6 +330,11 @@ class VendorCourierDashboardController extends Controller
             $shipments,
             $this->resolveScopeForPermission($request, $policy, 'bookings', $this->mapBookingLifecycleActionToPermissionAction((string) $action)),
             $request,
+            $vendorId
+        );
+        $this->applyShipmentDataScopeFilter(
+            $shipments,
+            $this->resolveEffectiveDataScopeConstraints($request, $policy, 'bookings', $this->mapBookingLifecycleActionToPermissionAction((string) $action)),
             $vendorId
         );
 
@@ -440,6 +450,26 @@ class VendorCourierDashboardController extends Controller
         $roleModel = app(CourierRoleModelService::class);
         $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
         $workspaceRoles = $roleModel->listWorkspaceRoles($workspaceId);
+        $serviceZones = collect(explode(',', (string) ($mergedSettings['business']['serviceZones'] ?? '')))
+            ->map(fn ($zone) => trim((string) $zone))
+            ->filter()
+            ->values();
+        $primaryHub = trim((string) ($mergedSettings['business']['primaryHub'] ?? ''));
+        $customerScopeOptions = CourierContact::query()
+            ->select(['id', 'name', 'company_name'])
+            ->whereHas('sentShipments', function (Builder $query) use ($vendorId) {
+                $query->where('assigned_vendor_user_id', $vendorId);
+            })
+            ->orderBy('name')
+            ->limit(300)
+            ->get()
+            ->map(function (CourierContact $contact) {
+                return [
+                    'id' => (int) $contact->id,
+                    'label' => trim((string) (($contact->name ?? '') . (($contact->company_name ?? '') !== '' ? ' (' . $contact->company_name . ')' : ''))),
+                ];
+            })
+            ->values();
         $teamAccessAudit = VendorActivityLog::query()
             ->where('vendor_id', $vendorId)
             ->whereIn('action', [
@@ -481,6 +511,12 @@ class VendorCourierDashboardController extends Controller
                 'actions' => self::ADVANCED_PERMISSION_ACTIONS,
                 'scopes' => self::ADVANCED_SCOPE_LEVELS,
                 'sensitiveFields' => self::SENSITIVE_FIELD_KEYS,
+                'environments' => self::ADVANCED_ENVIRONMENTS,
+            ],
+            'teamScopeControlOptions' => [
+                'availableZones' => $serviceZones,
+                'availableHubs' => $primaryHub !== '' ? [$primaryHub] : [],
+                'customerAccounts' => $customerScopeOptions,
             ],
             'teamAccessAudit' => $teamAccessAudit,
         ]);
@@ -787,6 +823,11 @@ class VendorCourierDashboardController extends Controller
             $request,
             $vendorId
         );
+        $this->applyShipmentDataScopeFilter(
+            $belongsToVendor,
+            $this->resolveEffectiveDataScopeConstraints($request, $policy, 'clients', 'update'),
+            $vendorId
+        );
 
         $belongsToVendor = $belongsToVendor->exists();
 
@@ -937,6 +978,11 @@ class VendorCourierDashboardController extends Controller
             $request,
             $vendorId
         );
+        $this->applyShipmentDataScopeFilter(
+            $shipments,
+            $this->resolveEffectiveDataScopeConstraints($request, $policy, 'shipments', $this->mapShipmentActionToPermissionAction((string) $action)),
+            $vendorId
+        );
 
         $shipments = $shipments->get();
 
@@ -1013,6 +1059,11 @@ class VendorCourierDashboardController extends Controller
 
         $scope = $this->resolveScopeForPermission($request, $policy, $resource, $action);
         $this->applyShipmentScopeFilter($query, $scope, $request, $vendorId);
+        $this->applyShipmentDataScopeFilter(
+            $query,
+            $this->resolveEffectiveDataScopeConstraints($request, $policy, $resource, $action),
+            $vendorId
+        );
 
         $this->applyFilters($query, $filters);
 
@@ -1781,6 +1832,11 @@ class VendorCourierDashboardController extends Controller
             ->orderByDesc('created_at');
 
         $this->applyShipmentScopeFilter($shipmentQuery, $scope, $request, $vendorId);
+        $this->applyShipmentDataScopeFilter(
+            $shipmentQuery,
+            $this->resolveEffectiveDataScopeConstraints($request, $policy, 'clients', 'view'),
+            $vendorId
+        );
         $shipments = $shipmentQuery->get();
 
         $clientGroups = $shipments
@@ -2661,10 +2717,12 @@ class VendorCourierDashboardController extends Controller
                 'courier_owner' => [
                     'scope' => 'all_workspace',
                     'resources' => $resourcesAll,
+                    'constraints' => $this->defaultRoleDataScopeConstraints(),
                 ],
                 'courier_admin' => [
                     'scope' => 'all_workspace',
                     'resources' => $resourcesAll,
+                    'constraints' => $this->defaultRoleDataScopeConstraints(),
                 ],
                 'courier_dispatcher' => [
                     'scope' => 'assigned_hub',
@@ -2673,6 +2731,11 @@ class VendorCourierDashboardController extends Controller
                         'shipments' => ['view' => true, 'create' => false, 'update' => true, 'cancel' => false, 'reassign' => true, 'approve' => true],
                         'clients' => ['view' => true, 'update' => true, 'reassign' => false],
                         'reports' => ['view' => true, 'export' => true],
+                    ]),
+                    'constraints' => array_replace($this->defaultRoleDataScopeConstraints(), [
+                        'enforceShiftWindow' => true,
+                        'shiftStart' => '08:00',
+                        'shiftEnd' => '20:00',
                     ]),
                 ],
                 'courier_tracking_officer' => [
@@ -2683,6 +2746,11 @@ class VendorCourierDashboardController extends Controller
                         'clients' => ['view' => true],
                         'reports' => ['view' => true, 'export' => true],
                     ]),
+                    'constraints' => array_replace($this->defaultRoleDataScopeConstraints(), [
+                        'enforceShiftWindow' => true,
+                        'shiftStart' => '06:00',
+                        'shiftEnd' => '22:00',
+                    ]),
                 ],
                 'courier_support' => [
                     'scope' => 'own_records',
@@ -2692,14 +2760,27 @@ class VendorCourierDashboardController extends Controller
                         'shipments' => ['view' => true],
                         'reports' => ['view' => true],
                     ]),
+                    'constraints' => array_replace($this->defaultRoleDataScopeConstraints(), [
+                        'keyAccountsOnly' => true,
+                        'enforceShiftWindow' => true,
+                        'shiftStart' => '08:00',
+                        'shiftEnd' => '18:00',
+                    ]),
                 ],
                 'courier_finance' => [
                     'scope' => 'all_workspace',
                     'resources' => $resourcesFinance,
+                    'constraints' => array_replace($this->defaultRoleDataScopeConstraints(), [
+                        'blockedActionsByEnvironment' => [
+                            'production' => [],
+                            'sandbox' => ['approve', 'refund'],
+                        ],
+                    ]),
                 ],
                 'courier_viewer' => [
                     'scope' => 'assigned_region',
                     'resources' => $resourcesReadMostly,
+                    'constraints' => $this->defaultRoleDataScopeConstraints(),
                 ],
             ],
             'fieldVisibility' => [
@@ -2737,6 +2818,24 @@ class VendorCourierDashboardController extends Controller
         return $resourceTemplate;
     }
 
+    private function defaultRoleDataScopeConstraints(): array
+    {
+        return [
+            'regionZones' => [],
+            'hubBranches' => [],
+            'allowedCustomerIds' => [],
+            'keyAccountsOnly' => false,
+            'enforceShiftWindow' => false,
+            'shiftStart' => '00:00',
+            'shiftEnd' => '23:59',
+            'allowedEnvironments' => self::ADVANCED_ENVIRONMENTS,
+            'blockedActionsByEnvironment' => [
+                'production' => [],
+                'sandbox' => [],
+            ],
+        ];
+    }
+
     private function normalizeAdvancedPermissionModel(array $input): array
     {
         $defaults = $this->defaultAdvancedPermissionModel();
@@ -2770,6 +2869,12 @@ class VendorCourierDashboardController extends Controller
             $normalized['rolePolicies'][$roleName] = [
                 'scope' => $scope,
                 'resources' => $resources,
+                'constraints' => $this->normalizeRoleDataScopeConstraints(
+                    is_array($incoming['constraints'] ?? null) ? $incoming['constraints'] : [],
+                    is_array($defaultPolicy['constraints'] ?? null)
+                        ? $defaultPolicy['constraints']
+                        : $this->defaultRoleDataScopeConstraints()
+                ),
             ];
         }
 
@@ -2787,6 +2892,68 @@ class VendorCourierDashboardController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function normalizeRoleDataScopeConstraints(array $incoming, array $defaults): array
+    {
+        $normalized = array_replace($this->defaultRoleDataScopeConstraints(), $defaults);
+
+        $normalized['regionZones'] = collect(is_array($incoming['regionZones'] ?? null) ? $incoming['regionZones'] : $normalized['regionZones'])
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values()
+            ->all();
+
+        $normalized['hubBranches'] = collect(is_array($incoming['hubBranches'] ?? null) ? $incoming['hubBranches'] : $normalized['hubBranches'])
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values()
+            ->all();
+
+        $normalized['allowedCustomerIds'] = collect(is_array($incoming['allowedCustomerIds'] ?? null) ? $incoming['allowedCustomerIds'] : $normalized['allowedCustomerIds'])
+            ->map(fn ($item) => (int) $item)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $normalized['keyAccountsOnly'] = (bool) ($incoming['keyAccountsOnly'] ?? $normalized['keyAccountsOnly']);
+        $normalized['enforceShiftWindow'] = (bool) ($incoming['enforceShiftWindow'] ?? $normalized['enforceShiftWindow']);
+        $normalized['shiftStart'] = $this->normalizeTimeValue((string) ($incoming['shiftStart'] ?? $normalized['shiftStart']));
+        $normalized['shiftEnd'] = $this->normalizeTimeValue((string) ($incoming['shiftEnd'] ?? $normalized['shiftEnd']));
+
+        $allowedEnvironments = collect(is_array($incoming['allowedEnvironments'] ?? null) ? $incoming['allowedEnvironments'] : $normalized['allowedEnvironments'])
+            ->map(fn ($item) => trim((string) $item))
+            ->filter(fn ($env) => in_array($env, self::ADVANCED_ENVIRONMENTS, true))
+            ->unique()
+            ->values()
+            ->all();
+        $normalized['allowedEnvironments'] = !empty($allowedEnvironments) ? $allowedEnvironments : self::ADVANCED_ENVIRONMENTS;
+
+        $incomingBlocked = is_array($incoming['blockedActionsByEnvironment'] ?? null)
+            ? $incoming['blockedActionsByEnvironment']
+            : (is_array($normalized['blockedActionsByEnvironment'] ?? null) ? $normalized['blockedActionsByEnvironment'] : []);
+
+        $normalized['blockedActionsByEnvironment'] = [];
+        foreach (self::ADVANCED_ENVIRONMENTS as $environment) {
+            $normalized['blockedActionsByEnvironment'][$environment] = collect(is_array($incomingBlocked[$environment] ?? null) ? $incomingBlocked[$environment] : [])
+                ->map(fn ($item) => trim((string) $item))
+                ->filter(fn ($action) => in_array($action, self::ADVANCED_PERMISSION_ACTIONS, true))
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeTimeValue(string $value): string
+    {
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $value)) {
+            return $value;
+        }
+
+        return '00:00';
     }
 
     private function buildCourierProfilePayload(Request $request, int $profileUserId): array
@@ -3126,6 +3293,10 @@ class VendorCourierDashboardController extends Controller
             return false;
         }
 
+        if (!$this->passesContextualRestrictionChecks($request, $policy, 'pricing', 'view', null, null, null)) {
+            return false;
+        }
+
         return $this->canRolePerformAction($request, $policy, 'pricing', 'view')
             && $this->canActorViewSensitiveField($request, $policy, 'rate_cards');
     }
@@ -3237,20 +3408,30 @@ class VendorCourierDashboardController extends Controller
             abort(403, 'Team Access Control policy blocks this action for your role.');
         }
 
+        $deniedReason = null;
+        $contextMeta = [];
+        if (!$this->passesContextualRestrictionChecks($request, $policy, $resource, $action, $shipment, $deniedReason, $contextMeta)) {
+            $this->logPermissionDenied($request, $resource, $action, array_merge([
+                'reason' => $deniedReason ?: 'context_restriction_blocked',
+            ], $contextMeta));
+            abort(403, 'Team Access Control context restriction blocked this action.');
+        }
+
         if (!$shipment) {
             return;
         }
 
         $scope = $this->resolveScopeForPermission($request, $policy, $resource, $action);
-        if ($scope === 'all_workspace') {
-            return;
-        }
-
         $query = CourierShipment::query()->whereKey($shipment->id);
         $this->applyShipmentScopeFilter(
             $query,
             $scope,
             $request,
+            (int) $request->attributes->get('vendor_user_id')
+        );
+        $this->applyShipmentDataScopeFilter(
+            $query,
+            $this->resolveEffectiveDataScopeConstraints($request, $policy, $resource, $action),
             (int) $request->attributes->get('vendor_user_id')
         );
 
@@ -3373,6 +3554,255 @@ class VendorCourierDashboardController extends Controller
                 });
             });
         }
+    }
+
+    private function resolveEffectiveDataScopeConstraints(Request $request, array $policy, string $resource, string $action): array
+    {
+        $defaults = $this->defaultRoleDataScopeConstraints();
+
+        if ($this->isVendorOwnerActor($request)) {
+            return $defaults;
+        }
+
+        $permissionModel = $this->normalizeAdvancedPermissionModel(is_array($policy['permissionModel'] ?? null) ? $policy['permissionModel'] : []);
+        if (!(bool) ($permissionModel['enabled'] ?? true)) {
+            return $defaults;
+        }
+
+        $applicablePolicies = $this->resolveApplicableRolePolicies($request, $permissionModel, $resource, $action);
+
+        if (empty($applicablePolicies)) {
+            return $defaults;
+        }
+
+        $restrictiveListMerge = function (array $policies, string $key): array {
+            $result = null;
+            foreach ($policies as $rolePolicy) {
+                $items = collect($rolePolicy['constraints'][$key] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+                if (empty($items)) {
+                    continue;
+                }
+
+                if ($result === null) {
+                    $result = $items;
+                    continue;
+                }
+
+                $result = array_values(array_intersect($result, $items));
+            }
+
+            return $result === null ? [] : $result;
+        };
+
+        $restrictiveIntListMerge = function (array $policies, string $key): array {
+            $result = null;
+            foreach ($policies as $rolePolicy) {
+                $items = collect($rolePolicy['constraints'][$key] ?? [])->map(fn ($item) => (int) $item)->filter(fn ($id) => $id > 0)->values()->all();
+                if (empty($items)) {
+                    continue;
+                }
+
+                if ($result === null) {
+                    $result = $items;
+                    continue;
+                }
+
+                $result = array_values(array_intersect($result, $items));
+            }
+
+            return $result === null ? [] : $result;
+        };
+
+        $allowedEnvironments = $restrictiveListMerge($applicablePolicies, 'allowedEnvironments');
+        if (empty($allowedEnvironments)) {
+            $allowedEnvironments = self::ADVANCED_ENVIRONMENTS;
+        }
+
+        $blockedActionsByEnvironment = [];
+        foreach (self::ADVANCED_ENVIRONMENTS as $environment) {
+            $blockedActionsByEnvironment[$environment] = collect($applicablePolicies)
+                ->flatMap(fn ($rolePolicy) => $rolePolicy['constraints']['blockedActionsByEnvironment'][$environment] ?? [])
+                ->map(fn ($item) => trim((string) $item))
+                ->filter(fn ($actionName) => in_array($actionName, self::ADVANCED_PERMISSION_ACTIONS, true))
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        $enforceShiftWindow = collect($applicablePolicies)->contains(fn ($rolePolicy) => (bool) ($rolePolicy['constraints']['enforceShiftWindow'] ?? false));
+
+        $shiftStarts = collect($applicablePolicies)
+            ->filter(fn ($rolePolicy) => (bool) ($rolePolicy['constraints']['enforceShiftWindow'] ?? false))
+            ->map(fn ($rolePolicy) => $this->normalizeTimeValue((string) ($rolePolicy['constraints']['shiftStart'] ?? '00:00')))
+            ->values();
+
+        $shiftEnds = collect($applicablePolicies)
+            ->filter(fn ($rolePolicy) => (bool) ($rolePolicy['constraints']['enforceShiftWindow'] ?? false))
+            ->map(fn ($rolePolicy) => $this->normalizeTimeValue((string) ($rolePolicy['constraints']['shiftEnd'] ?? '23:59')))
+            ->values();
+
+        return array_replace($defaults, [
+            'regionZones' => $restrictiveListMerge($applicablePolicies, 'regionZones'),
+            'hubBranches' => $restrictiveListMerge($applicablePolicies, 'hubBranches'),
+            'allowedCustomerIds' => $restrictiveIntListMerge($applicablePolicies, 'allowedCustomerIds'),
+            'keyAccountsOnly' => collect($applicablePolicies)->contains(fn ($rolePolicy) => (bool) ($rolePolicy['constraints']['keyAccountsOnly'] ?? false)),
+            'enforceShiftWindow' => $enforceShiftWindow,
+            'shiftStart' => $enforceShiftWindow ? (string) $shiftStarts->max() : '00:00',
+            'shiftEnd' => $enforceShiftWindow ? (string) $shiftEnds->min() : '23:59',
+            'allowedEnvironments' => $allowedEnvironments,
+            'blockedActionsByEnvironment' => $blockedActionsByEnvironment,
+        ]);
+    }
+
+    private function resolveApplicableRolePolicies(Request $request, array $permissionModel, string $resource, string $action): array
+    {
+        $roles = $this->actorCourierRoles($request);
+
+        return collect($roles)
+            ->map(fn ($roleName) => $permissionModel['rolePolicies'][$roleName] ?? null)
+            ->filter(function ($rolePolicy) use ($resource, $action) {
+                return is_array($rolePolicy)
+                    && (bool) ($rolePolicy['resources'][$resource][$action] ?? false);
+            })
+            ->values()
+            ->all();
+    }
+
+    private function applyShipmentDataScopeFilter(Builder $query, array $constraints, int $vendorId): void
+    {
+        $regionZones = collect($constraints['regionZones'] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (!empty($regionZones)) {
+            $query->where(function (Builder $builder) use ($regionZones) {
+                $builder->whereHas('senderAddress', function (Builder $address) use ($regionZones) {
+                    $address->where(function (Builder $nested) use ($regionZones) {
+                        foreach ($regionZones as $zone) {
+                            $nested->orWhere('city', 'like', '%' . $zone . '%')
+                                ->orWhere('state', 'like', '%' . $zone . '%')
+                                ->orWhere('country', 'like', '%' . $zone . '%');
+                        }
+                    });
+                })->orWhereHas('recipientAddress', function (Builder $address) use ($regionZones) {
+                    $address->where(function (Builder $nested) use ($regionZones) {
+                        foreach ($regionZones as $zone) {
+                            $nested->orWhere('city', 'like', '%' . $zone . '%')
+                                ->orWhere('state', 'like', '%' . $zone . '%')
+                                ->orWhere('country', 'like', '%' . $zone . '%');
+                        }
+                    });
+                });
+            });
+        }
+
+        $hubBranches = collect($constraints['hubBranches'] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (!empty($hubBranches)) {
+            $query->where(function (Builder $builder) use ($hubBranches) {
+                $builder->whereHas('senderAddress', function (Builder $address) use ($hubBranches) {
+                    $address->where(function (Builder $nested) use ($hubBranches) {
+                        foreach ($hubBranches as $hub) {
+                            $nested->orWhere('city', 'like', '%' . $hub . '%')
+                                ->orWhere('state', 'like', '%' . $hub . '%');
+                        }
+                    });
+                })->orWhereHas('recipientAddress', function (Builder $address) use ($hubBranches) {
+                    $address->where(function (Builder $nested) use ($hubBranches) {
+                        foreach ($hubBranches as $hub) {
+                            $nested->orWhere('city', 'like', '%' . $hub . '%')
+                                ->orWhere('state', 'like', '%' . $hub . '%');
+                        }
+                    });
+                });
+            });
+        }
+
+        $allowedCustomerIds = collect($constraints['allowedCustomerIds'] ?? [])->map(fn ($item) => (int) $item)->filter(fn ($id) => $id > 0)->values()->all();
+        if (!empty($allowedCustomerIds)) {
+            $query->whereIn('sender_contact_id', $allowedCustomerIds);
+        }
+
+        if ((bool) ($constraints['keyAccountsOnly'] ?? false)) {
+            $keyAccountIds = $this->resolveKeyAccountContactIds($vendorId);
+            if (empty($keyAccountIds)) {
+                $query->whereRaw('1 = 0');
+                return;
+            }
+
+            $query->whereIn('sender_contact_id', $keyAccountIds);
+        }
+    }
+
+    private function resolveKeyAccountContactIds(int $vendorId): array
+    {
+        return VendorCourierClientProfile::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where(function (Builder $query) {
+                $query->where('priority_tag', 'vip')
+                    ->orWhere('client_tier', 'enterprise');
+            })
+            ->pluck('contact_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function passesContextualRestrictionChecks(
+        Request $request,
+        array $policy,
+        string $resource,
+        string $action,
+        ?CourierShipment $shipment,
+        ?string &$reason = null,
+        ?array &$contextMeta = null
+    ): bool {
+        $constraints = $this->resolveEffectiveDataScopeConstraints($request, $policy, $resource, $action);
+        $environment = $this->resolvePolicyEnvironmentKey();
+
+        $allowedEnvironments = collect($constraints['allowedEnvironments'] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (!in_array($environment, $allowedEnvironments, true)) {
+            $reason = 'environment_blocked';
+            $contextMeta = ['environment' => $environment];
+            return false;
+        }
+
+        $blockedActions = collect($constraints['blockedActionsByEnvironment'][$environment] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (in_array($action, $blockedActions, true)) {
+            $reason = 'environment_action_blocked';
+            $contextMeta = ['environment' => $environment];
+            return false;
+        }
+
+        if ((bool) ($constraints['enforceShiftWindow'] ?? false) && $action !== 'view') {
+            $start = $this->normalizeTimeValue((string) ($constraints['shiftStart'] ?? '00:00'));
+            $end = $this->normalizeTimeValue((string) ($constraints['shiftEnd'] ?? '23:59'));
+            if (!$this->isCurrentTimeWithinWindow($start, $end)) {
+                $reason = 'outside_shift_window';
+                $contextMeta = [
+                    'shift_start' => $start,
+                    'shift_end' => $end,
+                ];
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function resolvePolicyEnvironmentKey(): string
+    {
+        $env = strtolower((string) app()->environment());
+        return in_array($env, ['production', 'prod'], true) ? 'production' : 'sandbox';
+    }
+
+    private function isCurrentTimeWithinWindow(string $start, string $end): bool
+    {
+        $now = now()->format('H:i');
+
+        if ($start <= $end) {
+            return $now >= $start && $now <= $end;
+        }
+
+        return $now >= $start || $now <= $end;
     }
 
     private function resolveScopeKeywords(int $vendorId, string $scope): array

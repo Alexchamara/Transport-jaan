@@ -121,6 +121,20 @@ const Toggle = ({ label, checked, onChange, description }) => (
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 const humanizeFieldKey = (value) => titleCase(String(value || "").replaceAll("_", " "));
+const DEFAULT_ROLE_SCOPE_CONSTRAINTS = {
+    regionZones: [],
+    hubBranches: [],
+    allowedCustomerIds: [],
+    keyAccountsOnly: false,
+    enforceShiftWindow: false,
+    shiftStart: "00:00",
+    shiftEnd: "23:59",
+    allowedEnvironments: ["production", "sandbox"],
+    blockedActionsByEnvironment: {
+        production: [],
+        sandbox: [],
+    },
+};
 
 const Settings = () => {
     const props = usePage().props;
@@ -136,6 +150,11 @@ const Settings = () => {
     const permissionActions = Array.isArray(permissionModelMeta.actions) ? permissionModelMeta.actions : ["view", "create", "update", "cancel", "reassign", "export", "approve", "refund"];
     const permissionScopes = Array.isArray(permissionModelMeta.scopes) ? permissionModelMeta.scopes : ["own_records", "assigned_region", "assigned_hub", "all_workspace"];
     const sensitiveFieldKeys = Array.isArray(permissionModelMeta.sensitiveFields) ? permissionModelMeta.sensitiveFields : ["rate_cards", "margin", "customer_phone", "payment_refs"];
+    const permissionEnvironments = Array.isArray(permissionModelMeta.environments) ? permissionModelMeta.environments : ["production", "sandbox"];
+    const teamScopeControlOptions = props.teamScopeControlOptions && typeof props.teamScopeControlOptions === "object" ? props.teamScopeControlOptions : {};
+    const scopeZoneOptions = Array.isArray(teamScopeControlOptions.availableZones) ? teamScopeControlOptions.availableZones : [];
+    const scopeHubOptions = Array.isArray(teamScopeControlOptions.availableHubs) ? teamScopeControlOptions.availableHubs : [];
+    const scopeCustomerOptions = Array.isArray(teamScopeControlOptions.customerAccounts) ? teamScopeControlOptions.customerAccounts : [];
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const teamCapabilities = props.teamCapabilities || {};
@@ -377,8 +396,28 @@ const Settings = () => {
                 }, {});
                 return acc;
             }, {}),
+            constraints: {
+                ...DEFAULT_ROLE_SCOPE_CONSTRAINTS,
+                ...(selected.constraints && typeof selected.constraints === "object" ? selected.constraints : {}),
+                regionZones: Array.isArray(selected.constraints?.regionZones) ? selected.constraints.regionZones : [],
+                hubBranches: Array.isArray(selected.constraints?.hubBranches) ? selected.constraints.hubBranches : [],
+                allowedCustomerIds: Array.isArray(selected.constraints?.allowedCustomerIds)
+                    ? selected.constraints.allowedCustomerIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0)
+                    : [],
+                allowedEnvironments: Array.isArray(selected.constraints?.allowedEnvironments)
+                    ? selected.constraints.allowedEnvironments
+                    : permissionEnvironments,
+                blockedActionsByEnvironment: {
+                    production: Array.isArray(selected.constraints?.blockedActionsByEnvironment?.production)
+                        ? selected.constraints.blockedActionsByEnvironment.production
+                        : [],
+                    sandbox: Array.isArray(selected.constraints?.blockedActionsByEnvironment?.sandbox)
+                        ? selected.constraints.blockedActionsByEnvironment.sandbox
+                        : [],
+                },
+            },
         };
-    }, [settings.team, activeRoleForPermissionModel, permissionResources, permissionActions, permissionScopes]);
+    }, [settings.team, activeRoleForPermissionModel, permissionResources, permissionActions, permissionScopes, permissionEnvironments]);
 
     const selectedRole = useMemo(
         () => roleStudioRoles.find((role) => role.name === selectedRoleName) || null,
@@ -736,11 +775,60 @@ const Settings = () => {
                                     [action]: !currentValue,
                                 },
                             },
+                            constraints: {
+                                ...DEFAULT_ROLE_SCOPE_CONSTRAINTS,
+                                ...(prev.team.permissionModel.rolePolicies?.[roleName]?.constraints || activePermissionRolePolicy.constraints),
+                            },
                         },
                     },
                 },
             },
         }));
+    };
+
+    const updatePermissionRoleConstraint = (roleName, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                permissionModel: {
+                    ...prev.team.permissionModel,
+                    rolePolicies: {
+                        ...(prev.team.permissionModel.rolePolicies || {}),
+                        [roleName]: {
+                            ...(prev.team.permissionModel.rolePolicies?.[roleName] || {}),
+                            scope: prev.team.permissionModel.rolePolicies?.[roleName]?.scope || activePermissionRolePolicy.scope,
+                            resources: {
+                                ...(prev.team.permissionModel.rolePolicies?.[roleName]?.resources || activePermissionRolePolicy.resources),
+                            },
+                            constraints: {
+                                ...DEFAULT_ROLE_SCOPE_CONSTRAINTS,
+                                ...(prev.team.permissionModel.rolePolicies?.[roleName]?.constraints || activePermissionRolePolicy.constraints),
+                                [key]: value,
+                            },
+                        },
+                    },
+                },
+            },
+        }));
+    };
+
+    const togglePermissionRoleConstraintArrayValue = (roleName, key, itemValue) => {
+        const current = Array.isArray(activePermissionRolePolicy.constraints?.[key])
+            ? activePermissionRolePolicy.constraints[key]
+            : [];
+        updatePermissionRoleConstraint(roleName, key, toggleInArray(current, itemValue));
+    };
+
+    const togglePermissionRoleBlockedActionForEnvironment = (roleName, environment, action) => {
+        const current = Array.isArray(activePermissionRolePolicy.constraints?.blockedActionsByEnvironment?.[environment])
+            ? activePermissionRolePolicy.constraints.blockedActionsByEnvironment[environment]
+            : [];
+
+        updatePermissionRoleConstraint(roleName, "blockedActionsByEnvironment", {
+            ...(activePermissionRolePolicy.constraints?.blockedActionsByEnvironment || {}),
+            [environment]: toggleInArray(current, action),
+        });
     };
 
     const toggleFieldVisibilityRole = (fieldKey, roleName) => {
@@ -1221,6 +1309,134 @@ const Settings = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+
+                                <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Data Scope Controls</p>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                        <div>
+                                            <p className="text-[12px] font-[700] text-[#374151] mb-1">Region Restrictions (zones)</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {scopeZoneOptions.length === 0 && <p className="text-[11px] text-[#6B7280]">No zone options configured.</p>}
+                                                {scopeZoneOptions.map((zone) => (
+                                                    <label key={zone} className="inline-flex items-center gap-1 text-[12px] text-[#374151]">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={activePermissionRolePolicy.constraints.regionZones.includes(zone)}
+                                                            onChange={() => togglePermissionRoleConstraintArrayValue(activeRoleForPermissionModel, "regionZones", zone)}
+                                                        />
+                                                        {zone}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-[12px] font-[700] text-[#374151] mb-1">Hub/Branch Restrictions</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {scopeHubOptions.length === 0 && <p className="text-[11px] text-[#6B7280]">No hub options configured.</p>}
+                                                {scopeHubOptions.map((hub) => (
+                                                    <label key={hub} className="inline-flex items-center gap-1 text-[12px] text-[#374151]">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={activePermissionRolePolicy.constraints.hubBranches.includes(hub)}
+                                                            onChange={() => togglePermissionRoleConstraintArrayValue(activeRoleForPermissionModel, "hubBranches", hub)}
+                                                        />
+                                                        {hub}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3">
+                                        <p className="text-[12px] font-[700] text-[#374151] mb-1">Customer/Account Restrictions</p>
+                                        <label className="inline-flex items-center gap-2 text-[12px] text-[#374151] mb-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(activePermissionRolePolicy.constraints.keyAccountsOnly)}
+                                                onChange={(e) => updatePermissionRoleConstraint(activeRoleForPermissionModel, "keyAccountsOnly", e.target.checked)}
+                                            />
+                                            Key accounts only
+                                        </label>
+
+                                        <div className="max-h-[160px] overflow-y-auto border border-[#E5E7EB] rounded-[8px] p-2">
+                                            {scopeCustomerOptions.length === 0 && <p className="text-[11px] text-[#6B7280]">No customer accounts found.</p>}
+                                            {scopeCustomerOptions.map((account) => (
+                                                <label key={account.id} className="block text-[12px] text-[#374151]">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mr-2"
+                                                        checked={activePermissionRolePolicy.constraints.allowedCustomerIds.includes(Number(account.id))}
+                                                        onChange={() => togglePermissionRoleConstraintArrayValue(activeRoleForPermissionModel, "allowedCustomerIds", Number(account.id))}
+                                                    />
+                                                    {account.label}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                        <div>
+                                            <p className="text-[12px] font-[700] text-[#374151] mb-1">Time Window Restrictions</p>
+                                            <label className="inline-flex items-center gap-2 text-[12px] text-[#374151] mb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(activePermissionRolePolicy.constraints.enforceShiftWindow)}
+                                                    onChange={(e) => updatePermissionRoleConstraint(activeRoleForPermissionModel, "enforceShiftWindow", e.target.checked)}
+                                                />
+                                                Enforce shift window for non-view actions
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input
+                                                    type="time"
+                                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={activePermissionRolePolicy.constraints.shiftStart || "00:00"}
+                                                    onChange={(e) => updatePermissionRoleConstraint(activeRoleForPermissionModel, "shiftStart", e.target.value)}
+                                                />
+                                                <input
+                                                    type="time"
+                                                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={activePermissionRolePolicy.constraints.shiftEnd || "23:59"}
+                                                    onChange={(e) => updatePermissionRoleConstraint(activeRoleForPermissionModel, "shiftEnd", e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-[12px] font-[700] text-[#374151] mb-1">Environment Restrictions</p>
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                {permissionEnvironments.map((environment) => (
+                                                    <label key={environment} className="inline-flex items-center gap-1 text-[12px] text-[#374151]">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={activePermissionRolePolicy.constraints.allowedEnvironments.includes(environment)}
+                                                            onChange={() => togglePermissionRoleConstraintArrayValue(activeRoleForPermissionModel, "allowedEnvironments", environment)}
+                                                        />
+                                                        {titleCase(environment)}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {permissionEnvironments.map((environment) => (
+                                                <div key={`blocked-${environment}`} className="mb-1">
+                                                    <p className="text-[11px] font-[700] text-[#6B7280]">Blocked actions in {titleCase(environment)}</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {permissionActions.map((action) => (
+                                                            <label key={`${environment}-${action}`} className="inline-flex items-center gap-1 text-[11px] text-[#374151]">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={Boolean(activePermissionRolePolicy.constraints.blockedActionsByEnvironment?.[environment]?.includes(action))}
+                                                                    onChange={() => togglePermissionRoleBlockedActionForEnvironment(activeRoleForPermissionModel, environment, action)}
+                                                                />
+                                                                {titleCase(action)}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
