@@ -30,11 +30,14 @@ class CourierRbac
             'courier.profile.view',
             'courier.profile.update',
             'courier.finance.view',
+            'courier.refunds.create',
+            'courier.refunds.approve',
             'courier.calendar.view',
             'courier.team.view',
             'courier.team.create_user',
             'courier.team.assign_role',
             'courier.team.assign_permissions',
+            'courier.team.access_requests.approve',
             'courier.team.manage_status',
             'courier.team.sessions.view',
             'courier.team.sessions.revoke',
@@ -45,10 +48,14 @@ class CourierRbac
     public static function roleMap(): array
     {
         $permissions = self::permissions();
+        $sodRestrictedPermissions = [
+            'courier.refunds.approve',
+            'courier.team.access_requests.approve',
+        ];
 
         return [
-            'courier_owner' => $permissions,
-            'courier_admin' => array_values(array_diff($permissions, ['courier.team.transfer_ownership'])),
+            'courier_owner' => array_values(array_diff($permissions, $sodRestrictedPermissions)),
+            'courier_admin' => array_values(array_diff($permissions, array_merge(['courier.team.transfer_ownership'], $sodRestrictedPermissions))),
             'courier_dispatcher' => [
                 'courier.dashboard.view',
                 'courier.bookings.view',
@@ -85,6 +92,7 @@ class CourierRbac
                 'courier.shipments.view',
                 'courier.clients.view',
                 'courier.finance.view',
+                'courier.refunds.create',
                 'courier.reports.export',
                 'courier.profile.view',
                 'courier.profile.update',

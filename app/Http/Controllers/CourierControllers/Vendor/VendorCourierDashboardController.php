@@ -2809,6 +2809,7 @@ class VendorCourierDashboardController extends Controller
                 'financeCanViewRates' => true,
                 'enforce2FA' => true,
                 'approvalControl' => app(CourierSensitiveActionApprovalService::class)->defaultPolicy(),
+                'sodControl' => $this->defaultSodControlPolicy(),
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
                     'defaultDataScopeByRole' => [],
@@ -2843,6 +2844,11 @@ class VendorCourierDashboardController extends Controller
 
         $approvalControl = is_array($merged['approvalControl'] ?? null) ? $merged['approvalControl'] : [];
         $merged['approvalControl'] = app(CourierSensitiveActionApprovalService::class)->normalizePolicy($approvalControl);
+        $merged['sodControl'] = $this->normalizeSodControlPolicy(
+            is_array($merged['sodControl'] ?? null)
+                ? $merged['sodControl']
+                : []
+        );
 
         $merged['permissionModel'] = $this->normalizeAdvancedPermissionModel(
             is_array($merged['permissionModel'] ?? null)
@@ -2856,6 +2862,64 @@ class VendorCourierDashboardController extends Controller
         );
 
         return $merged;
+    }
+
+    private function defaultSodControlPolicy(): array
+    {
+        return [
+            'enabled' => true,
+            'toxicCombinations' => [
+                [
+                    'key' => 'refund_create_and_approve',
+                    'label' => 'Cannot both create refunds and approve refunds',
+                    'permissions' => ['courier.refunds.create', 'courier.refunds.approve'],
+                    'enforceRoleEdit' => true,
+                    'enforceUserAssignment' => true,
+                    'enabled' => true,
+                ],
+                [
+                    'key' => 'assign_permissions_and_approve_access_request',
+                    'label' => 'Cannot both assign permissions and approve access requests',
+                    'permissions' => ['courier.team.assign_permissions', 'courier.team.access_requests.approve'],
+                    'enforceRoleEdit' => true,
+                    'enforceUserAssignment' => true,
+                    'enabled' => true,
+                ],
+            ],
+        ];
+    }
+
+    private function normalizeSodControlPolicy(array $policy): array
+    {
+        $defaults = $this->defaultSodControlPolicy();
+        $incomingToxicCombinations = is_array($policy['toxicCombinations'] ?? null) ? $policy['toxicCombinations'] : [];
+
+        $normalizedCombinations = collect($defaults['toxicCombinations'])
+            ->map(function (array $defaultRule) use ($incomingToxicCombinations) {
+                $incoming = collect($incomingToxicCombinations)
+                    ->first(fn ($row) => is_array($row) && (string) ($row['key'] ?? '') === (string) $defaultRule['key']);
+
+                return [
+                    'key' => (string) $defaultRule['key'],
+                    'label' => trim((string) ($incoming['label'] ?? $defaultRule['label'])),
+                    'permissions' => collect($incoming['permissions'] ?? $defaultRule['permissions'])
+                        ->map(fn ($permission) => trim((string) $permission))
+                        ->filter()
+                        ->take(2)
+                        ->values()
+                        ->all(),
+                    'enforceRoleEdit' => (bool) ($incoming['enforceRoleEdit'] ?? $defaultRule['enforceRoleEdit']),
+                    'enforceUserAssignment' => (bool) ($incoming['enforceUserAssignment'] ?? $defaultRule['enforceUserAssignment']),
+                    'enabled' => (bool) ($incoming['enabled'] ?? $defaultRule['enabled']),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'enabled' => (bool) ($policy['enabled'] ?? $defaults['enabled']),
+            'toxicCombinations' => $normalizedCombinations,
+        ];
     }
 
     private function applyProvisioningDataScopeDefaultsToPermissionModel(array $permissionModel, array $teamAccessControl): array

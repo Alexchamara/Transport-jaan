@@ -283,6 +283,15 @@ class CourierTeamController extends Controller
                 ->all()
             : [];
 
+        $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, (string) ($validated['role'] ?? '')))
+            ->merge($resolvedDirectPermissions)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+
         $resolvedBlockedServiceKeys = collect($validated['blockedServiceKeys'] ?? [])
             ->merge($selectedBundle['blockedServiceKeys'] ?? [])
             ->map(fn ($serviceKey) => (string) $serviceKey)
@@ -427,6 +436,22 @@ class CourierTeamController extends Controller
             abort(403, 'Missing required permission: courier.team.assign_permissions');
         }
 
+        if ($roleChanged || $permissionsChanged) {
+            $effectiveDirectPermissions = $permissionsChanged
+                ? collect($validated['directPermissions'] ?? [])->map(fn ($permission) => (string) $permission)->values()->all()
+                : $currentDirectPermissions;
+
+            $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, $requestedRole))
+                ->merge($effectiveDirectPermissions)
+                ->merge(collect($teamAccessControl['defaultDirectPermissionsByRole'][$requestedRole] ?? [])->map(fn ($permission) => (string) $permission))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+        }
+
         if (($statusChanged || $blockedKeysChanged) && !$canManageStatus) {
             abort(403, 'Missing required permission: courier.team.manage_status');
         }
@@ -568,6 +593,17 @@ class CourierTeamController extends Controller
                 ->all();
         }
 
+        foreach ($validCourierRoles as $role) {
+            $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, $role))
+                ->merge($sanitizedByRole[$role] ?? [])
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+        }
+
         $scopeOptions = $this->resolveScopeOptionsForVendor($vendorUserId);
         $incomingScopeByRole = is_array($validated['defaultDataScopeByRole'] ?? null)
             ? $validated['defaultDataScopeByRole']
@@ -632,6 +668,22 @@ class CourierTeamController extends Controller
             ->unique('key')
             ->values()
             ->all();
+
+        foreach ($sanitizedBundles as $bundle) {
+            $bundleRole = (string) ($bundle['role'] ?? '');
+            $bundlePermissions = is_array($bundle['defaultDirectPermissions'] ?? null)
+                ? $bundle['defaultDirectPermissions']
+                : [];
+
+            $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, $bundleRole))
+                ->merge($bundlePermissions)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+        }
 
         $setting = VendorCourierSetting::query()->firstOrCreate(
             ['vendor_user_id' => $vendorUserId],
@@ -701,6 +753,8 @@ class CourierTeamController extends Controller
             'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
         ]);
 
+        $this->validateSodPolicyOrFail($validated['permissions'], (int) $request->attributes->get('vendor_user_id'), 'role_edit');
+
         try {
             $result = $roleModel->createOrUpdateRole($workspaceId, [
                 'name' => $validated['name'],
@@ -731,6 +785,12 @@ class CourierTeamController extends Controller
             'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
         ]);
 
+        $templatePermissions = is_array($validated['permissions'] ?? null)
+            ? $validated['permissions']
+            : (array) ($roleModel->roleTemplates()[(string) $validated['template']]['permissions'] ?? []);
+
+        $this->validateSodPolicyOrFail($templatePermissions, (int) $request->attributes->get('vendor_user_id'), 'role_edit');
+
         try {
             $result = $roleModel->createRoleFromTemplate($workspaceId, $validated, $request->user());
         } catch (\InvalidArgumentException $exception) {
@@ -755,6 +815,19 @@ class CourierTeamController extends Controller
         ]);
 
         $sourceRoleName = Str::lower(trim($roleName));
+
+        $sourceRole = Role::query()
+            ->where('service_workspace_id', $workspaceId)
+            ->where('name', $sourceRoleName)
+            ->where('guard_name', CourierRbac::GUARD)
+            ->with('permissions:id,name')
+            ->firstOrFail();
+
+        $clonePermissions = is_array($validated['permissions'] ?? null)
+            ? $validated['permissions']
+            : $sourceRole->permissions->pluck('name')->map(fn ($permission) => (string) $permission)->values()->all();
+
+        $this->validateSodPolicyOrFail($clonePermissions, (int) $request->attributes->get('vendor_user_id'), 'role_edit');
 
         try {
             $result = $roleModel->cloneRole($workspaceId, $sourceRoleName, $validated, $request->user());
@@ -786,6 +859,8 @@ class CourierTeamController extends Controller
             'permissions' => ['required', 'array', 'min:1'],
             'permissions.*' => ['string', Rule::in($roleModel->validCourierPermissions())],
         ]);
+
+        $this->validateSodPolicyOrFail($validated['permissions'], (int) $request->attributes->get('vendor_user_id'), 'role_edit');
 
         $result = $roleModel->createOrUpdateRole(
             $workspaceId,
@@ -1435,6 +1510,145 @@ class CourierTeamController extends Controller
         $approvalControl = is_array($team['approvalControl'] ?? null) ? $team['approvalControl'] : [];
 
         return app(CourierSensitiveActionApprovalService::class)->normalizePolicy($approvalControl);
+    }
+
+    private function defaultSodControlPolicy(): array
+    {
+        return [
+            'enabled' => true,
+            'toxicCombinations' => [
+                [
+                    'key' => 'refund_create_and_approve',
+                    'label' => 'Cannot both create refunds and approve refunds',
+                    'permissions' => ['courier.refunds.create', 'courier.refunds.approve'],
+                    'enforceRoleEdit' => true,
+                    'enforceUserAssignment' => true,
+                    'enabled' => true,
+                ],
+                [
+                    'key' => 'assign_permissions_and_approve_access_request',
+                    'label' => 'Cannot both assign permissions and approve access requests',
+                    'permissions' => ['courier.team.assign_permissions', 'courier.team.access_requests.approve'],
+                    'enforceRoleEdit' => true,
+                    'enforceUserAssignment' => true,
+                    'enabled' => true,
+                ],
+            ],
+        ];
+    }
+
+    private function normalizeSodControlPolicy(array $policy): array
+    {
+        $defaults = $this->defaultSodControlPolicy();
+        $incomingToxicCombinations = is_array($policy['toxicCombinations'] ?? null) ? $policy['toxicCombinations'] : [];
+
+        $normalizedCombinations = collect($defaults['toxicCombinations'])
+            ->map(function (array $defaultRule) use ($incomingToxicCombinations) {
+                $incoming = collect($incomingToxicCombinations)
+                    ->first(fn ($rule) => is_array($rule) && (string) ($rule['key'] ?? '') === (string) $defaultRule['key']);
+
+                return [
+                    'key' => (string) $defaultRule['key'],
+                    'label' => trim((string) ($incoming['label'] ?? $defaultRule['label'])),
+                    'permissions' => collect($incoming['permissions'] ?? $defaultRule['permissions'])
+                        ->map(fn ($permission) => trim((string) $permission))
+                        ->filter()
+                        ->take(2)
+                        ->values()
+                        ->all(),
+                    'enforceRoleEdit' => (bool) ($incoming['enforceRoleEdit'] ?? $defaultRule['enforceRoleEdit']),
+                    'enforceUserAssignment' => (bool) ($incoming['enforceUserAssignment'] ?? $defaultRule['enforceUserAssignment']),
+                    'enabled' => (bool) ($incoming['enabled'] ?? $defaultRule['enabled']),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'enabled' => (bool) ($policy['enabled'] ?? $defaults['enabled']),
+            'toxicCombinations' => $normalizedCombinations,
+        ];
+    }
+
+    private function resolveSodControlPolicy(int $vendorUserId): array
+    {
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorUserId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $team = is_array($settings['team'] ?? null) ? $settings['team'] : [];
+        $sodControl = is_array($team['sodControl'] ?? null) ? $team['sodControl'] : [];
+
+        return $this->normalizeSodControlPolicy($sodControl);
+    }
+
+    private function findSodViolations(array $effectivePermissions, array $sodPolicy, string $context): array
+    {
+        if (!(bool) ($sodPolicy['enabled'] ?? false)) {
+            return [];
+        }
+
+        $permissionSet = collect($effectivePermissions)
+            ->map(fn ($permission) => (string) $permission)
+            ->filter()
+            ->unique()
+            ->values();
+
+        return collect($sodPolicy['toxicCombinations'] ?? [])
+            ->filter(fn ($rule) => is_array($rule) && (bool) ($rule['enabled'] ?? true))
+            ->filter(function (array $rule) use ($context) {
+                if ($context === 'role_edit') {
+                    return (bool) ($rule['enforceRoleEdit'] ?? true);
+                }
+
+                if ($context === 'user_assignment') {
+                    return (bool) ($rule['enforceUserAssignment'] ?? true);
+                }
+
+                return true;
+            })
+            ->filter(function (array $rule) use ($permissionSet) {
+                $pair = collect($rule['permissions'] ?? [])->map(fn ($permission) => (string) $permission)->filter()->values();
+                return $pair->count() === 2
+                    && $permissionSet->contains((string) $pair[0])
+                    && $permissionSet->contains((string) $pair[1]);
+            })
+            ->map(fn ($rule) => (string) ($rule['label'] ?? 'Toxic permission combination detected.'))
+            ->values()
+            ->all();
+    }
+
+    private function validateSodPolicyOrFail(array $effectivePermissions, int $vendorUserId, string $context): void
+    {
+        $violations = $this->findSodViolations($effectivePermissions, $this->resolveSodControlPolicy($vendorUserId), $context);
+
+        if (count($violations) === 0) {
+            return;
+        }
+
+        abort(422, 'Separation of Duties violation: ' . implode(' | ', $violations));
+    }
+
+    private function resolveRolePermissionSet(int $workspaceId, string $roleName): array
+    {
+        if (trim($roleName) === '') {
+            return [];
+        }
+
+        $role = Role::query()
+            ->where('service_workspace_id', $workspaceId)
+            ->where('guard_name', CourierRbac::GUARD)
+            ->where('name', $roleName)
+            ->with('permissions:id,name')
+            ->first();
+
+        if (!$role) {
+            return [];
+        }
+
+        return $role->permissions
+            ->pluck('name')
+            ->map(fn ($permission) => (string) $permission)
+            ->values()
+            ->all();
     }
 
     private function assignableRoleNames(int $workspaceId): array

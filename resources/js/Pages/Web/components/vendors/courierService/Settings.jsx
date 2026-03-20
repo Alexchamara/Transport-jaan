@@ -79,6 +79,27 @@ const DEFAULT_SETTINGS = {
                 },
             },
         },
+        sodControl: {
+            enabled: true,
+            toxicCombinations: [
+                {
+                    key: "refund_create_and_approve",
+                    label: "Cannot both create refunds and approve refunds",
+                    permissions: ["courier.refunds.create", "courier.refunds.approve"],
+                    enforceRoleEdit: true,
+                    enforceUserAssignment: true,
+                    enabled: true,
+                },
+                {
+                    key: "assign_permissions_and_approve_access_request",
+                    label: "Cannot both assign permissions and approve access requests",
+                    permissions: ["courier.team.assign_permissions", "courier.team.access_requests.approve"],
+                    enforceRoleEdit: true,
+                    enforceUserAssignment: true,
+                    enabled: true,
+                },
+            ],
+        },
         teamAccessControl: {
             defaultDirectPermissionsByRole: {},
             defaultDataScopeByRole: {},
@@ -219,6 +240,9 @@ const Settings = () => {
         const incomingTeamAccessControl = incomingTeam.teamAccessControl && typeof incomingTeam.teamAccessControl === "object"
             ? incomingTeam.teamAccessControl
             : {};
+        const incomingSodControl = incomingTeam.sodControl && typeof incomingTeam.sodControl === "object"
+            ? incomingTeam.sodControl
+            : {};
         const incomingPermissionModel = incomingTeam.permissionModel && typeof incomingTeam.permissionModel === "object"
             ? incomingTeam.permissionModel
             : {};
@@ -241,6 +265,13 @@ const Settings = () => {
                             ? incomingTeam.approvalControl.sensitiveActions
                             : {}),
                     },
+                },
+                sodControl: {
+                    ...DEFAULT_SETTINGS.team.sodControl,
+                    ...incomingSodControl,
+                    toxicCombinations: Array.isArray(incomingSodControl.toxicCombinations)
+                        ? incomingSodControl.toxicCombinations
+                        : DEFAULT_SETTINGS.team.sodControl.toxicCombinations,
                 },
                 teamAccessControl: {
                     ...DEFAULT_SETTINGS.team.teamAccessControl,
@@ -804,6 +835,11 @@ const Settings = () => {
             nextErrors.permissions = "Select at least one permission.";
         }
 
+        const sodViolations = findSodViolationsForPermissions(roleForm.permissions || [], "role_edit");
+        if (sodViolations.length > 0) {
+            nextErrors.permissions = `SoD violation: ${sodViolations.join(" | ")}`;
+        }
+
         setRoleFormErrors(nextErrors);
         return Object.keys(nextErrors).length === 0;
     };
@@ -817,6 +853,15 @@ const Settings = () => {
 
         if (!String(roleTemplateForm.name || "").trim()) {
             nextErrors.name = "New role name is required.";
+        }
+
+        const templateDefinition = roleStudioTemplates[String(roleTemplateForm.template || "")] || {};
+        const effectiveTemplatePermissions = Array.isArray(roleTemplateForm.permissions) && roleTemplateForm.permissions.length > 0
+            ? roleTemplateForm.permissions
+            : (Array.isArray(templateDefinition.permissions) ? templateDefinition.permissions : []);
+        const sodViolations = findSodViolationsForPermissions(effectiveTemplatePermissions, "role_edit");
+        if (sodViolations.length > 0) {
+            nextErrors.permissions = `SoD violation: ${sodViolations.join(" | ")}`;
         }
 
         setRoleTemplateFormErrors(nextErrors);
@@ -834,9 +879,75 @@ const Settings = () => {
             nextErrors.name = "Cloned role name is required.";
         }
 
+        const cloneSource = roleStudioRoles.find((role) => role.name === roleCloneForm.sourceRole);
+        const effectiveClonePermissions = Array.isArray(roleCloneForm.permissions) && roleCloneForm.permissions.length > 0
+            ? roleCloneForm.permissions
+            : (Array.isArray(cloneSource?.permissions) ? cloneSource.permissions : []);
+        const sodViolations = findSodViolationsForPermissions(effectiveClonePermissions, "role_edit");
+        if (sodViolations.length > 0) {
+            nextErrors.permissions = `SoD violation: ${sodViolations.join(" | ")}`;
+        }
+
         setRoleCloneFormErrors(nextErrors);
         return Object.keys(nextErrors).length === 0;
     };
+
+    const findSodViolationsForPermissions = (permissions, context = "role_edit") => {
+        const sodControl = settings.team?.sodControl || {};
+        if (!Boolean(sodControl.enabled)) {
+            return [];
+        }
+
+        const permissionSet = new Set((Array.isArray(permissions) ? permissions : []).map((perm) => String(perm || "")).filter(Boolean));
+        const toxicCombinations = Array.isArray(sodControl.toxicCombinations) ? sodControl.toxicCombinations : [];
+
+        return toxicCombinations
+            .filter((rule) => {
+                if (!Boolean(rule?.enabled)) {
+                    return false;
+                }
+
+                if (context === "role_edit" && !Boolean(rule?.enforceRoleEdit)) {
+                    return false;
+                }
+
+                if (context === "user_assignment" && !Boolean(rule?.enforceUserAssignment)) {
+                    return false;
+                }
+
+                return true;
+            })
+            .filter((rule) => {
+                const pair = Array.isArray(rule?.permissions) ? rule.permissions : [];
+                if (pair.length !== 2) {
+                    return false;
+                }
+
+                return permissionSet.has(String(pair[0])) && permissionSet.has(String(pair[1]));
+            })
+            .map((rule) => String(rule?.label || "Toxic permission combination detected."));
+    };
+
+    const roleFormSodViolations = useMemo(
+        () => findSodViolationsForPermissions(roleForm.permissions || [], "role_edit"),
+        [roleForm.permissions, settings.team?.sodControl],
+    );
+
+    const roleTemplateSodViolations = useMemo(() => {
+        const templateDefinition = roleStudioTemplates[String(roleTemplateForm.template || "")] || {};
+        const effectiveTemplatePermissions = Array.isArray(roleTemplateForm.permissions) && roleTemplateForm.permissions.length > 0
+            ? roleTemplateForm.permissions
+            : (Array.isArray(templateDefinition.permissions) ? templateDefinition.permissions : []);
+        return findSodViolationsForPermissions(effectiveTemplatePermissions, "role_edit");
+    }, [roleTemplateForm.template, roleTemplateForm.permissions, roleStudioTemplates, settings.team?.sodControl]);
+
+    const roleCloneSodViolations = useMemo(() => {
+        const cloneSource = roleStudioRoles.find((role) => role.name === roleCloneForm.sourceRole);
+        const effectiveClonePermissions = Array.isArray(roleCloneForm.permissions) && roleCloneForm.permissions.length > 0
+            ? roleCloneForm.permissions
+            : (Array.isArray(cloneSource?.permissions) ? cloneSource.permissions : []);
+        return findSodViolationsForPermissions(effectiveClonePermissions, "role_edit");
+    }, [roleCloneForm.sourceRole, roleCloneForm.permissions, roleStudioRoles, settings.team?.sodControl]);
 
     const toggleRoleDefaultPermission = (permission) => {
         const nextRoleDefaults = toggleInArray(activeRoleDefaultPermissions, permission);
@@ -888,6 +999,38 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const updateSodControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                sodControl: {
+                    ...(prev.team.sodControl || DEFAULT_SETTINGS.team.sodControl),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updateSodCombination = (combinationKey, key, value) => {
+        const base = Array.isArray(settings.team?.sodControl?.toxicCombinations)
+            ? settings.team.sodControl.toxicCombinations
+            : DEFAULT_SETTINGS.team.sodControl.toxicCombinations;
+
+        const nextCombinations = base.map((rule) => {
+            if (String(rule?.key || "") !== combinationKey) {
+                return rule;
+            }
+
+            return {
+                ...rule,
+                [key]: value,
+            };
+        });
+
+        updateSodControl("toxicCombinations", nextCombinations);
     };
 
     const approveSensitiveAction = async (approvalId) => {
@@ -1511,11 +1654,69 @@ const Settings = () => {
                                 </button>
 
                                 {teamPolicyPanels.basic && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                                        <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
-                                        <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
-                                        <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
-                                        <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                                    <div className="space-y-3 mt-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
+                                            <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
+                                            <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
+                                            <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                                        </div>
+
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <Toggle
+                                                    label="Enable Separation of Duties (SoD)"
+                                                    checked={Boolean(settings.team?.sodControl?.enabled)}
+                                                    onChange={(next) => updateSodControl("enabled", next)}
+                                                    description="Blocks toxic permission combinations during role edits and user assignment."
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2 mt-2">
+                                                {(settings.team?.sodControl?.toxicCombinations || []).map((rule, index) => {
+                                                    const permissions = Array.isArray(rule?.permissions) ? rule.permissions : [];
+                                                    const allPermissionsAvailable = permissions.every((permission) => teamPermissionOptions.includes(permission));
+
+                                                    return (
+                                                        <div key={rule?.key || `sod_rule_${index}`} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <p className="text-[12px] font-[700] text-[#111827]">{rule?.label || "Toxic Combination"}</p>
+                                                                <label className="inline-flex items-center gap-1 text-[11px] font-[700] text-[#374151]">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Boolean(rule?.enabled)}
+                                                                        onChange={(e) => updateSodCombination(String(rule?.key || ""), "enabled", e.target.checked)}
+                                                                    />
+                                                                    Enforce
+                                                                </label>
+                                                            </div>
+                                                            <p className="text-[11px] text-[#6B7280] mt-1">{permissions.join(" + ")}</p>
+                                                            {!allPermissionsAvailable && (
+                                                                <p className="text-[11px] text-[#B91C1C] mt-1">Some permissions in this SoD pair are not yet available in current role options.</p>
+                                                            )}
+                                                            <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-[#374151]">
+                                                                <label className="inline-flex items-center gap-1">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Boolean(rule?.enforceRoleEdit)}
+                                                                        onChange={(e) => updateSodCombination(String(rule?.key || ""), "enforceRoleEdit", e.target.checked)}
+                                                                    />
+                                                                    Validate on role edit
+                                                                </label>
+                                                                <label className="inline-flex items-center gap-1">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Boolean(rule?.enforceUserAssignment)}
+                                                                        onChange={(e) => updateSodCombination(String(rule?.key || ""), "enforceUserAssignment", e.target.checked)}
+                                                                    />
+                                                                    Validate on user assignment
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -2508,9 +2709,14 @@ const Settings = () => {
                                     value={roleTemplateForm.label}
                                     onChange={(e) => setRoleTemplateForm((prev) => ({ ...prev, label: e.target.value }))}
                                 />
-                                {(roleTemplateFormErrors.template || roleTemplateFormErrors.name) && (
+                                {(roleTemplateFormErrors.template || roleTemplateFormErrors.name || roleTemplateFormErrors.permissions) && (
                                     <p className="text-[11px] text-[#B91C1C]">
-                                        {roleTemplateFormErrors.template || roleTemplateFormErrors.name}
+                                        {roleTemplateFormErrors.template || roleTemplateFormErrors.name || roleTemplateFormErrors.permissions}
+                                    </p>
+                                )}
+                                {roleTemplateSodViolations.length > 0 && (
+                                    <p className="text-[11px] text-[#92400E]">
+                                        SoD check: {roleTemplateSodViolations.join(" | ")}
                                     </p>
                                 )}
                                 <button
@@ -2553,9 +2759,14 @@ const Settings = () => {
                                     value={roleCloneForm.label}
                                     onChange={(e) => setRoleCloneForm((prev) => ({ ...prev, label: e.target.value }))}
                                 />
-                                {(roleCloneFormErrors.sourceRole || roleCloneFormErrors.name) && (
+                                {(roleCloneFormErrors.sourceRole || roleCloneFormErrors.name || roleCloneFormErrors.permissions) && (
                                     <p className="text-[11px] text-[#B91C1C]">
-                                        {roleCloneFormErrors.sourceRole || roleCloneFormErrors.name}
+                                        {roleCloneFormErrors.sourceRole || roleCloneFormErrors.name || roleCloneFormErrors.permissions}
+                                    </p>
+                                )}
+                                {roleCloneSodViolations.length > 0 && (
+                                    <p className="text-[11px] text-[#92400E]">
+                                        SoD check: {roleCloneSodViolations.join(" | ")}
                                     </p>
                                 )}
                                 <button
@@ -2623,6 +2834,11 @@ const Settings = () => {
                         {(roleFormErrors.label || roleFormErrors.permissions) && (
                             <p className="text-[11px] text-[#B91C1C] mt-2">
                                 {roleFormErrors.label || roleFormErrors.permissions}
+                            </p>
+                        )}
+                        {roleFormSodViolations.length > 0 && (
+                            <p className="text-[11px] text-[#92400E] mt-2">
+                                SoD check: {roleFormSodViolations.join(" | ")}
                             </p>
                         )}
 
