@@ -1268,6 +1268,29 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
     Route::post('/courierService/team/sensitive-approvals/{approval}/reject', [CourierTeamController::class, 'rejectSensitiveApproval'])
         ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
         ->name('courierService.team.sensitive-approvals.reject');
+
+    Route::post('/courierService/team/temporary-access/request', [CourierTeamController::class, 'requestTemporaryAccessElevation'])
+        ->middleware(['service.permission:courier.team.view', 'throttle:20,1'])
+        ->name('courierService.team.temporary-access.request');
+
+    Route::post('/courierService/team/temporary-access/{grant}/approve', [CourierTeamController::class, 'approveTemporaryAccessElevation'])
+        ->whereNumber('grant')
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
+        ->name('courierService.team.temporary-access.approve');
+
+    Route::post('/courierService/team/temporary-access/{grant}/reject', [CourierTeamController::class, 'rejectTemporaryAccessElevation'])
+        ->whereNumber('grant')
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
+        ->name('courierService.team.temporary-access.reject');
+
+    Route::post('/courierService/team/temporary-access/{grant}/revoke', [CourierTeamController::class, 'revokeTemporaryAccessElevation'])
+        ->whereNumber('grant')
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
+        ->name('courierService.team.temporary-access.revoke');
+
+    Route::post('/courierService/team/temporary-access/break-glass', [CourierTeamController::class, 'activateBreakGlassAccess'])
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:10,1'])
+        ->name('courierService.team.temporary-access.break-glass');
 });
 
 

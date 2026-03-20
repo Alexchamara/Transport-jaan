@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\CourierControllers\Vendor;
 
+use App\Http\Middleware\CourierTemporaryAccessLifecycle;
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierSensitiveActionApproval;
+use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierClientProfile;
@@ -13,6 +15,7 @@ use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
+use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
 use Carbon\Carbon;
@@ -33,6 +36,7 @@ class VendorCourierDashboardController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('service.workspace:courier_service');
+        $this->middleware(CourierTemporaryAccessLifecycle::class);
 
         $this->middleware('service.permission:courier.dashboard.view')->only(['dashboard']);
 
@@ -614,6 +618,7 @@ class VendorCourierDashboardController extends Controller
             ],
             'teamAccessAudit' => $teamAccessAudit,
             'teamSensitiveApprovals' => $this->listTeamSensitiveApprovals($vendorId, $workspaceId),
+            'teamTemporaryAccessGrants' => $this->listTeamTemporaryAccessGrants($vendorId, $workspaceId),
         ]);
     }
 
@@ -2810,6 +2815,7 @@ class VendorCourierDashboardController extends Controller
                 'enforce2FA' => true,
                 'approvalControl' => app(CourierSensitiveActionApprovalService::class)->defaultPolicy(),
                 'sodControl' => $this->defaultSodControlPolicy(),
+                'temporaryAccessControl' => app(CourierTemporaryAccessService::class)->defaultPolicy(),
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
                     'defaultDataScopeByRole' => [],
@@ -2849,6 +2855,11 @@ class VendorCourierDashboardController extends Controller
                 ? $merged['sodControl']
                 : []
         );
+            $merged['temporaryAccessControl'] = app(CourierTemporaryAccessService::class)->normalizePolicy(
+                is_array($merged['temporaryAccessControl'] ?? null)
+                ? $merged['temporaryAccessControl']
+                : []
+            );
 
         $merged['permissionModel'] = $this->normalizeAdvancedPermissionModel(
             is_array($merged['permissionModel'] ?? null)
@@ -3886,6 +3897,56 @@ class VendorCourierDashboardController extends Controller
                     ],
                     'expiresAt' => optional($item->expires_at)->format('Y-m-d H:i:s'),
                     'createdAt' => optional($item->created_at)->format('Y-m-d H:i:s'),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function listTeamTemporaryAccessGrants(int $vendorId, int $workspaceId): array
+    {
+        return CourierTemporaryAccessGrant::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where(function (Builder $query) use ($workspaceId) {
+                $query->whereNull('service_workspace_id')
+                    ->orWhere('service_workspace_id', $workspaceId);
+            })
+            ->whereIn('status', [
+                CourierTemporaryAccessService::STATUS_PENDING,
+                CourierTemporaryAccessService::STATUS_ACTIVE,
+            ])
+            ->with(['requester:id,name,email', 'approver:id,name,email', 'targetUser:id,name,email'])
+            ->orderByDesc('id')
+            ->limit(120)
+            ->get()
+            ->map(function (CourierTemporaryAccessGrant $item) {
+                return [
+                    'id' => (int) $item->id,
+                    'grantType' => (string) $item->grant_type,
+                    'status' => (string) $item->status,
+                    'elevatedRoleName' => (string) $item->elevated_role_name,
+                    'ticketRef' => (string) $item->ticket_ref,
+                    'reason' => (string) $item->reason,
+                    'durationMinutes' => (int) $item->duration_minutes,
+                    'startsAt' => optional($item->starts_at)->format('Y-m-d H:i:s'),
+                    'expiresAt' => optional($item->expires_at)->format('Y-m-d H:i:s'),
+                    'createdAt' => optional($item->created_at)->format('Y-m-d H:i:s'),
+                    'targetUser' => [
+                        'id' => (int) ($item->targetUser?->id ?? 0),
+                        'name' => (string) ($item->targetUser?->name ?? ''),
+                        'email' => (string) ($item->targetUser?->email ?? ''),
+                    ],
+                    'requester' => [
+                        'id' => (int) ($item->requester?->id ?? 0),
+                        'name' => (string) ($item->requester?->name ?? ''),
+                        'email' => (string) ($item->requester?->email ?? ''),
+                    ],
+                    'approver' => [
+                        'id' => (int) ($item->approver?->id ?? 0),
+                        'name' => (string) ($item->approver?->name ?? ''),
+                        'email' => (string) ($item->approver?->email ?? ''),
+                    ],
+                    'context' => is_array($item->grant_context) ? $item->grant_context : [],
                 ];
             })
             ->values()

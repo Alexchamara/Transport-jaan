@@ -100,6 +100,27 @@ const DEFAULT_SETTINGS = {
                 },
             ],
         },
+        temporaryAccessControl: {
+            enabled: true,
+            defaultDurationMinutes: 120,
+            maxDurationMinutes: 240,
+            requireTicket: true,
+            requireReason: true,
+            makerChecker: true,
+            allowedElevationRoles: ["courier_admin"],
+            breakGlass: {
+                enabled: true,
+                defaultDurationMinutes: 30,
+                maxDurationMinutes: 60,
+                requireTicket: true,
+                requireReason: true,
+                notifyOwners: true,
+                notifyRequester: true,
+                notifyTarget: true,
+                alertEmails: [],
+                alertWebhookUrl: "",
+            },
+        },
         teamAccessControl: {
             defaultDirectPermissionsByRole: {},
             defaultDataScopeByRole: {},
@@ -198,6 +219,7 @@ const Settings = () => {
     const teamRoleTemplates = props.teamRoleTemplates && typeof props.teamRoleTemplates === "object" ? props.teamRoleTemplates : {};
     const teamAccessAudit = Array.isArray(props.teamAccessAudit) ? props.teamAccessAudit : [];
     const teamSensitiveApprovals = Array.isArray(props.teamSensitiveApprovals) ? props.teamSensitiveApprovals : [];
+    const teamTemporaryAccessGrants = Array.isArray(props.teamTemporaryAccessGrants) ? props.teamTemporaryAccessGrants : [];
     const permissionModelMeta = props.permissionModelMeta && typeof props.permissionModelMeta === "object" ? props.permissionModelMeta : {};
     const permissionResources = Array.isArray(permissionModelMeta.resources) ? permissionModelMeta.resources : ["shipments", "bookings", "clients", "reports", "pricing", "payouts"];
     const permissionActions = Array.isArray(permissionModelMeta.actions) ? permissionModelMeta.actions : ["view", "create", "update", "cancel", "reassign", "export", "approve", "refund"];
@@ -243,6 +265,9 @@ const Settings = () => {
         const incomingSodControl = incomingTeam.sodControl && typeof incomingTeam.sodControl === "object"
             ? incomingTeam.sodControl
             : {};
+        const incomingTemporaryAccessControl = incomingTeam.temporaryAccessControl && typeof incomingTeam.temporaryAccessControl === "object"
+            ? incomingTeam.temporaryAccessControl
+            : {};
         const incomingPermissionModel = incomingTeam.permissionModel && typeof incomingTeam.permissionModel === "object"
             ? incomingTeam.permissionModel
             : {};
@@ -272,6 +297,19 @@ const Settings = () => {
                     toxicCombinations: Array.isArray(incomingSodControl.toxicCombinations)
                         ? incomingSodControl.toxicCombinations
                         : DEFAULT_SETTINGS.team.sodControl.toxicCombinations,
+                },
+                temporaryAccessControl: {
+                    ...DEFAULT_SETTINGS.team.temporaryAccessControl,
+                    ...incomingTemporaryAccessControl,
+                    allowedElevationRoles: Array.isArray(incomingTemporaryAccessControl.allowedElevationRoles)
+                        ? incomingTemporaryAccessControl.allowedElevationRoles
+                        : DEFAULT_SETTINGS.team.temporaryAccessControl.allowedElevationRoles,
+                    breakGlass: {
+                        ...DEFAULT_SETTINGS.team.temporaryAccessControl.breakGlass,
+                        ...(incomingTemporaryAccessControl.breakGlass && typeof incomingTemporaryAccessControl.breakGlass === "object"
+                            ? incomingTemporaryAccessControl.breakGlass
+                            : {}),
+                    },
                 },
                 teamAccessControl: {
                     ...DEFAULT_SETTINGS.team.teamAccessControl,
@@ -357,6 +395,21 @@ const Settings = () => {
     });
     const [approvalQueue, setApprovalQueue] = useState(teamSensitiveApprovals);
     const [approvalActionBusyId, setApprovalActionBusyId] = useState(null);
+    const [temporaryAccessQueue, setTemporaryAccessQueue] = useState(teamTemporaryAccessGrants);
+    const [temporaryAccessActionBusyId, setTemporaryAccessActionBusyId] = useState(null);
+    const [temporaryAccessForm, setTemporaryAccessForm] = useState({
+        targetUserId: "",
+        elevatedRoleName: "courier_admin",
+        durationMinutes: 120,
+        ticketRef: "",
+        reason: "",
+    });
+    const [breakGlassForm, setBreakGlassForm] = useState({
+        targetUserId: "",
+        durationMinutes: 30,
+        ticketRef: "",
+        reason: "",
+    });
 
     const {
         feedback,
@@ -748,6 +801,10 @@ const Settings = () => {
     }, [teamSensitiveApprovals]);
 
     useEffect(() => {
+        setTemporaryAccessQueue(teamTemporaryAccessGrants);
+    }, [teamTemporaryAccessGrants]);
+
+    useEffect(() => {
         if (teamRoleOptions.length > 0 && !teamRoleOptions.includes(activeRoleForDefaults)) {
             setActiveRoleForDefaults(teamRoleOptions[0]);
         }
@@ -1033,6 +1090,35 @@ const Settings = () => {
         updateSodControl("toxicCombinations", nextCombinations);
     };
 
+    const updateTemporaryAccessControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                temporaryAccessControl: {
+                    ...(prev.team.temporaryAccessControl || DEFAULT_SETTINGS.team.temporaryAccessControl),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updateBreakGlassControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                temporaryAccessControl: {
+                    ...(prev.team.temporaryAccessControl || DEFAULT_SETTINGS.team.temporaryAccessControl),
+                    breakGlass: {
+                        ...((prev.team.temporaryAccessControl && prev.team.temporaryAccessControl.breakGlass) || DEFAULT_SETTINGS.team.temporaryAccessControl.breakGlass),
+                        [key]: value,
+                    },
+                },
+            },
+        }));
+    };
+
     const approveSensitiveAction = async (approvalId) => {
         setApprovalActionBusyId(approvalId);
 
@@ -1060,6 +1146,96 @@ const Settings = () => {
             setFeedback({ type: "error", message: error.message || "Failed to reject request." });
         } finally {
             setApprovalActionBusyId(null);
+        }
+    };
+
+    const requestTemporaryElevation = async () => {
+        if (!String(temporaryAccessForm.ticketRef || "").trim() || !String(temporaryAccessForm.reason || "").trim()) {
+            setFeedback({ type: "error", message: "Ticket reference and reason are required for temporary elevation." });
+            return;
+        }
+
+        setTemporaryAccessActionBusyId("request");
+        try {
+            const payload = await requestJson("POST", route("courierService.team.temporary-access.request"), {
+                targetUserId: temporaryAccessForm.targetUserId ? Number(temporaryAccessForm.targetUserId) : null,
+                elevatedRoleName: temporaryAccessForm.elevatedRoleName,
+                durationMinutes: Number(temporaryAccessForm.durationMinutes || 120),
+                ticketRef: temporaryAccessForm.ticketRef,
+                reason: temporaryAccessForm.reason,
+            });
+            setFeedback({ type: "success", message: payload?.message || "Temporary access request submitted." });
+            router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to request temporary access." });
+        } finally {
+            setTemporaryAccessActionBusyId(null);
+        }
+    };
+
+    const approveTemporaryElevation = async (grantId) => {
+        setTemporaryAccessActionBusyId(`approve_${grantId}`);
+        try {
+            const payload = await requestJson("POST", route("courierService.team.temporary-access.approve", { grant: grantId }));
+            setFeedback({ type: "success", message: payload?.message || "Temporary access approved." });
+            router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to approve temporary access." });
+        } finally {
+            setTemporaryAccessActionBusyId(null);
+        }
+    };
+
+    const rejectTemporaryElevation = async (grantId) => {
+        setTemporaryAccessActionBusyId(`reject_${grantId}`);
+        try {
+            const payload = await requestJson("POST", route("courierService.team.temporary-access.reject", { grant: grantId }), {
+                reason: "Rejected by approver from temporary access queue.",
+            });
+            setFeedback({ type: "success", message: payload?.message || "Temporary access request rejected." });
+            router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to reject temporary access request." });
+        } finally {
+            setTemporaryAccessActionBusyId(null);
+        }
+    };
+
+    const revokeTemporaryElevation = async (grantId) => {
+        setTemporaryAccessActionBusyId(`revoke_${grantId}`);
+        try {
+            const payload = await requestJson("POST", route("courierService.team.temporary-access.revoke", { grant: grantId }), {
+                reason: "Revoked by authorized manager.",
+            });
+            setFeedback({ type: "success", message: payload?.message || "Temporary access revoked." });
+            router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to revoke temporary access." });
+        } finally {
+            setTemporaryAccessActionBusyId(null);
+        }
+    };
+
+    const activateBreakGlassAccess = async () => {
+        if (!String(breakGlassForm.ticketRef || "").trim() || !String(breakGlassForm.reason || "").trim()) {
+            setFeedback({ type: "error", message: "Break-glass requires ticket reference and reason." });
+            return;
+        }
+
+        setTemporaryAccessActionBusyId("break_glass");
+        try {
+            const payload = await requestJson("POST", route("courierService.team.temporary-access.break-glass"), {
+                targetUserId: breakGlassForm.targetUserId ? Number(breakGlassForm.targetUserId) : null,
+                durationMinutes: Number(breakGlassForm.durationMinutes || 30),
+                ticketRef: breakGlassForm.ticketRef,
+                reason: breakGlassForm.reason,
+            });
+            setFeedback({ type: "success", message: payload?.message || "Break-glass access activated." });
+            router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to activate break-glass access." });
+        } finally {
+            setTemporaryAccessActionBusyId(null);
         }
     };
 
@@ -1715,6 +1891,241 @@ const Settings = () => {
                                                         </div>
                                                     );
                                                 })}
+                                            </div>
+                                        </div>
+
+                                        <div className="border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Temporary Access and JIT Elevation</p>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <Toggle
+                                                    label="Enable Temporary Access"
+                                                    checked={Boolean(settings.team?.temporaryAccessControl?.enabled)}
+                                                    onChange={(next) => updateTemporaryAccessControl("enabled", next)}
+                                                    description="Allows temporary time-bound elevated access with ticket and reason."
+                                                />
+                                                <Toggle
+                                                    label="Require Maker-Checker for JIT"
+                                                    checked={Boolean(settings.team?.temporaryAccessControl?.makerChecker)}
+                                                    onChange={(next) => updateTemporaryAccessControl("makerChecker", next)}
+                                                    description="Requester and approver must be different users for normal JIT elevation."
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                                                <Field label="Default Duration (minutes)">
+                                                    <input
+                                                        type="number"
+                                                        min={15}
+                                                        max={480}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.temporaryAccessControl?.defaultDurationMinutes ?? 120}
+                                                        onChange={(e) => updateTemporaryAccessControl("defaultDurationMinutes", Number(e.target.value || 120))}
+                                                    />
+                                                </Field>
+                                                <Field label="Max Duration (minutes)">
+                                                    <input
+                                                        type="number"
+                                                        min={15}
+                                                        max={720}
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={settings.team?.temporaryAccessControl?.maxDurationMinutes ?? 240}
+                                                        onChange={(e) => updateTemporaryAccessControl("maxDurationMinutes", Number(e.target.value || 240))}
+                                                    />
+                                                </Field>
+                                                <Field label="Elevated Role">
+                                                    <select
+                                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={temporaryAccessForm.elevatedRoleName}
+                                                        onChange={(e) => setTemporaryAccessForm((prev) => ({ ...prev, elevatedRoleName: e.target.value }))}
+                                                    >
+                                                        {(settings.team?.temporaryAccessControl?.allowedElevationRoles || ["courier_admin"]).map((roleName) => (
+                                                            <option key={roleName} value={roleName}>{titleCase(roleName)}</option>
+                                                        ))}
+                                                    </select>
+                                                </Field>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+                                                <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                    <p className="text-[12px] font-[700] text-[#111827] mb-1">Request Temporary Admin</p>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        <input
+                                                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            placeholder="Ticket reference (required)"
+                                                            value={temporaryAccessForm.ticketRef}
+                                                            onChange={(e) => setTemporaryAccessForm((prev) => ({ ...prev, ticketRef: e.target.value }))}
+                                                        />
+                                                        <textarea
+                                                            rows={2}
+                                                            className="rounded-[8px] border border-[#D1D5DB] px-2 py-1 text-[12px]"
+                                                            placeholder="Reason for elevation (required)"
+                                                            value={temporaryAccessForm.reason}
+                                                            onChange={(e) => setTemporaryAccessForm((prev) => ({ ...prev, reason: e.target.value }))}
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            min={15}
+                                                            max={Number(settings.team?.temporaryAccessControl?.maxDurationMinutes || 240)}
+                                                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            value={temporaryAccessForm.durationMinutes}
+                                                            onChange={(e) => setTemporaryAccessForm((prev) => ({ ...prev, durationMinutes: Number(e.target.value || 120) }))}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled={temporaryAccessActionBusyId === "request"}
+                                                            className="h-[32px] rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
+                                                            onClick={requestTemporaryElevation}
+                                                        >
+                                                            Submit JIT Request
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border border-[#E5E7EB] rounded-[8px] p-2 bg-[#FFF7ED]">
+                                                    <p className="text-[12px] font-[700] text-[#9A3412] mb-1">Break-Glass Emergency Access</p>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        <label className="inline-flex items-center gap-2 text-[11px] text-[#7C2D12]">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(settings.team?.temporaryAccessControl?.breakGlass?.enabled)}
+                                                                onChange={(e) => updateBreakGlassControl("enabled", e.target.checked)}
+                                                            />
+                                                            Enable break-glass mode
+                                                        </label>
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                            <label className="inline-flex items-center gap-2 text-[11px] text-[#7C2D12]">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={Boolean(settings.team?.temporaryAccessControl?.breakGlass?.notifyOwners)}
+                                                                    onChange={(e) => updateBreakGlassControl("notifyOwners", e.target.checked)}
+                                                                />
+                                                                Notify owners
+                                                            </label>
+                                                            <label className="inline-flex items-center gap-2 text-[11px] text-[#7C2D12]">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={Boolean(settings.team?.temporaryAccessControl?.breakGlass?.notifyRequester)}
+                                                                    onChange={(e) => updateBreakGlassControl("notifyRequester", e.target.checked)}
+                                                                />
+                                                                Notify requester
+                                                            </label>
+                                                            <label className="inline-flex items-center gap-2 text-[11px] text-[#7C2D12]">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={Boolean(settings.team?.temporaryAccessControl?.breakGlass?.notifyTarget)}
+                                                                    onChange={(e) => updateBreakGlassControl("notifyTarget", e.target.checked)}
+                                                                />
+                                                                Notify target
+                                                            </label>
+                                                        </div>
+                                                        <input
+                                                            className="h-[34px] rounded-[8px] border border-[#FDBA74] px-2 text-[12px]"
+                                                            placeholder="Alert emails (comma separated)"
+                                                            value={(settings.team?.temporaryAccessControl?.breakGlass?.alertEmails || []).join(", ")}
+                                                            onChange={(e) => updateBreakGlassControl(
+                                                                "alertEmails",
+                                                                String(e.target.value || "")
+                                                                    .split(",")
+                                                                    .map((email) => String(email || "").trim())
+                                                                    .filter(Boolean),
+                                                            )}
+                                                        />
+                                                        <input
+                                                            className="h-[34px] rounded-[8px] border border-[#FDBA74] px-2 text-[12px]"
+                                                            placeholder="Alert webhook URL (optional)"
+                                                            value={String(settings.team?.temporaryAccessControl?.breakGlass?.alertWebhookUrl || "")}
+                                                            onChange={(e) => updateBreakGlassControl("alertWebhookUrl", e.target.value)}
+                                                        />
+                                                        <input
+                                                            className="h-[34px] rounded-[8px] border border-[#FDBA74] px-2 text-[12px]"
+                                                            placeholder="Emergency ticket reference (required)"
+                                                            value={breakGlassForm.ticketRef}
+                                                            onChange={(e) => setBreakGlassForm((prev) => ({ ...prev, ticketRef: e.target.value }))}
+                                                        />
+                                                        <textarea
+                                                            rows={2}
+                                                            className="rounded-[8px] border border-[#FDBA74] px-2 py-1 text-[12px]"
+                                                            placeholder="Emergency justification (required)"
+                                                            value={breakGlassForm.reason}
+                                                            onChange={(e) => setBreakGlassForm((prev) => ({ ...prev, reason: e.target.value }))}
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            min={10}
+                                                            max={Number(settings.team?.temporaryAccessControl?.breakGlass?.maxDurationMinutes || 60)}
+                                                            className="h-[34px] rounded-[8px] border border-[#FDBA74] px-2 text-[12px]"
+                                                            value={breakGlassForm.durationMinutes}
+                                                            onChange={(e) => setBreakGlassForm((prev) => ({ ...prev, durationMinutes: Number(e.target.value || 30) }))}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled={temporaryAccessActionBusyId === "break_glass"}
+                                                            className="h-[32px] rounded-[8px] bg-[#C2410C] text-white text-[11px] font-[700] disabled:opacity-50"
+                                                            onClick={activateBreakGlassAccess}
+                                                        >
+                                                            Activate Break-Glass
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                                <p className="text-[12px] font-[700] text-[#111827] mb-2">Temporary Access Queue</p>
+                                                {(temporaryAccessQueue || []).length === 0 && (
+                                                    <p className="text-[11px] text-[#6B7280]">No pending or active temporary grants.</p>
+                                                )}
+
+                                                <div className="space-y-2">
+                                                    {(temporaryAccessQueue || []).map((grant) => (
+                                                        <div key={`jit-${grant.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <p className="text-[12px] font-[700] text-[#111827]">{titleCase(grant.grantType)} • {titleCase(grant.elevatedRoleName)}</p>
+                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-[700] ${grant.status === "active" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEF3C7] text-[#92400E]"}`}>
+                                                                    {titleCase(grant.status || "pending")}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[11px] text-[#6B7280] mt-1">
+                                                                Target: {grant.targetUser?.name || "-"} • Ticket: {grant.ticketRef || "-"} • Duration: {grant.durationMinutes || 0} min
+                                                            </p>
+                                                            <p className="text-[11px] text-[#6B7280] mt-1">Reason: {grant.reason || "-"}</p>
+                                                            <p className="text-[11px] text-[#6B7280] mt-1">Start: {grant.startsAt || "-"} • Expires: {grant.expiresAt || "-"}</p>
+
+                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                {grant.status === "pending" && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={temporaryAccessActionBusyId === `approve_${grant.id}`}
+                                                                            className="h-[28px] px-2 rounded-[6px] bg-[#0955AC] text-white text-[10px] font-[700] disabled:opacity-50"
+                                                                            onClick={() => approveTemporaryElevation(grant.id)}
+                                                                        >
+                                                                            Approve
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={temporaryAccessActionBusyId === `reject_${grant.id}`}
+                                                                            className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700] disabled:opacity-50"
+                                                                            onClick={() => rejectTemporaryElevation(grant.id)}
+                                                                        >
+                                                                            Reject
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                {grant.status === "active" && (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={temporaryAccessActionBusyId === `revoke_${grant.id}`}
+                                                                        className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700] disabled:opacity-50"
+                                                                        onClick={() => revokeTemporaryElevation(grant.id)}
+                                                                    >
+                                                                        Revoke
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

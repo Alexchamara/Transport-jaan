@@ -3,18 +3,23 @@
 namespace App\Http\Controllers\CourierControllers\Vendor;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\CourierTemporaryAccessLifecycle;
 use App\Models\Courier\CourierSensitiveActionApproval;
+use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\ServiceWorkspace;
 use App\Models\User;
 use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
+use App\Services\Courier\CourierBreakGlassAlertService;
+use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -35,6 +40,7 @@ class CourierTeamController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('service.workspace:courier_service');
+        $this->middleware(CourierTemporaryAccessLifecycle::class);
 
         $this->middleware('service.permission:courier.team.view')->only(['index', 'updateAccess']);
         $this->middleware('service.permission:courier.team.create_user')->only(['store']);
@@ -46,6 +52,8 @@ class CourierTeamController extends Controller
         $this->middleware('service.permission:courier.team.sessions.revoke')->only(['revokeSession', 'revokeAllSessions']);
         $this->middleware('service.permission:courier.team.transfer_ownership')->only(['transferOwnership']);
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['approveSensitiveApproval', 'rejectSensitiveApproval']);
+        $this->middleware('service.permission:courier.team.view')->only(['requestTemporaryAccessElevation']);
+        $this->middleware('service.permission:courier.team.assign_permissions')->only(['approveTemporaryAccessElevation', 'rejectTemporaryAccessElevation', 'revokeTemporaryAccessElevation', 'activateBreakGlassAccess']);
     }
 
     public function index(Request $request)
@@ -164,6 +172,8 @@ class CourierTeamController extends Controller
                 ->values(),
             'serviceKey' => 'courier_service',
             'teamAccessControl' => $this->readTeamAccessControlSettings($vendorUserId, $workspaceId),
+            'temporaryAccessPolicy' => $this->resolveTemporaryAccessControlPolicy($vendorUserId),
+            'temporaryAccessGrants' => $this->listTemporaryAccessGrants($vendorUserId, $workspaceId),
             'roleTemplates' => $roleModel->roleTemplates(),
             'filters' => $filters,
             'capabilities' => [
@@ -1241,6 +1251,254 @@ class CourierTeamController extends Controller
         ]);
     }
 
+    public function requestTemporaryAccessElevation(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $policy = $this->resolveTemporaryAccessControlPolicy($vendorUserId);
+
+        if (!(bool) ($policy['enabled'] ?? true)) {
+            abort(403, 'Temporary access elevation is disabled by policy.');
+        }
+
+        $allowedRoles = collect($policy['allowedElevationRoles'] ?? [])->map(fn ($role) => (string) $role)->filter()->values()->all();
+        $validated = $request->validate([
+            'targetUserId' => ['nullable', 'integer'],
+            'ticketRef' => ['required', 'string', 'max:120'],
+            'reason' => ['required', 'string', 'max:1000'],
+            'elevatedRoleName' => ['nullable', 'string', Rule::in($allowedRoles)],
+            'durationMinutes' => ['nullable', 'integer', 'min:15', 'max:' . max(15, (int) ($policy['maxDurationMinutes'] ?? 240))],
+        ]);
+
+        $targetUser = $this->resolveTemporaryAccessTargetUser($request, $vendorUserId, (int) ($validated['targetUserId'] ?? 0));
+        $ticketRef = trim((string) ($validated['ticketRef'] ?? ''));
+        $reason = trim((string) ($validated['reason'] ?? ''));
+        $elevatedRoleName = (string) ($validated['elevatedRoleName'] ?? ($allowedRoles[0] ?? 'courier_admin'));
+        $durationMinutes = (int) ($validated['durationMinutes'] ?? (int) ($policy['defaultDurationMinutes'] ?? 120));
+
+        $service = app(CourierTemporaryAccessService::class);
+        $grant = $service->requestElevation(
+            $request,
+            $vendorUserId,
+            $workspaceId,
+            $policy,
+            $targetUser,
+            $ticketRef,
+            $reason,
+            $elevatedRoleName,
+            $durationMinutes
+        );
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_temp_access_requested',
+            'temporary_access',
+            (int) $grant->id,
+            'Temporary access elevation requested.',
+            [
+                'target_user_id' => (int) $targetUser->id,
+                'ticket_ref' => $ticketRef,
+                'duration_minutes' => (int) $grant->duration_minutes,
+                'elevated_role_name' => $elevatedRoleName,
+            ],
+        );
+
+        return response()->json([
+            'message' => 'Temporary access request submitted for approval.',
+            'grantId' => (int) $grant->id,
+            'status' => (string) $grant->status,
+        ], 201);
+    }
+
+    public function approveTemporaryAccessElevation(Request $request, CourierTemporaryAccessGrant $grant)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $grant->vendor_user_id !== $vendorUserId || ($grant->service_workspace_id !== null && (int) $grant->service_workspace_id !== $workspaceId)) {
+            abort(404, 'Temporary access request not found.');
+        }
+
+        $service = app(CourierTemporaryAccessService::class);
+        $result = $service->approveElevation($request, $grant, $workspaceId, $this->resolveTemporaryAccessControlPolicy($vendorUserId));
+        if (!(bool) ($result['ok'] ?? false)) {
+            return response()->json(['message' => (string) ($result['message'] ?? 'Unable to approve temporary access request.')], 422);
+        }
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_temp_access_approved',
+            'temporary_access',
+            (int) $grant->id,
+            'Temporary access elevation approved and activated.',
+            [
+                'target_user_id' => (int) ($grant->target_user_id ?? 0),
+                'duration_minutes' => (int) ($grant->duration_minutes ?? 0),
+                'expires_at' => optional($result['grant']->expires_at ?? null)->toDateTimeString(),
+            ],
+        );
+
+        return response()->json([
+            'message' => (string) ($result['message'] ?? 'Temporary access elevation approved.'),
+            'status' => (string) (($result['grant']->status ?? CourierTemporaryAccessService::STATUS_ACTIVE)),
+        ]);
+    }
+
+    public function rejectTemporaryAccessElevation(Request $request, CourierTemporaryAccessGrant $grant)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $grant->vendor_user_id !== $vendorUserId || ($grant->service_workspace_id !== null && (int) $grant->service_workspace_id !== $workspaceId)) {
+            abort(404, 'Temporary access request not found.');
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $service = app(CourierTemporaryAccessService::class);
+        $result = $service->rejectElevation($request, $grant, (string) ($validated['reason'] ?? ''));
+        if (!(bool) ($result['ok'] ?? false)) {
+            return response()->json(['message' => (string) ($result['message'] ?? 'Unable to reject temporary access request.')], 422);
+        }
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_temp_access_rejected',
+            'temporary_access',
+            (int) $grant->id,
+            'Temporary access elevation request rejected.',
+            [
+                'target_user_id' => (int) ($grant->target_user_id ?? 0),
+                'reason' => (string) ($validated['reason'] ?? ''),
+            ],
+        );
+
+        return response()->json([
+            'message' => (string) ($result['message'] ?? 'Temporary access request rejected.'),
+            'status' => CourierTemporaryAccessService::STATUS_REJECTED,
+        ]);
+    }
+
+    public function revokeTemporaryAccessElevation(Request $request, CourierTemporaryAccessGrant $grant)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $grant->vendor_user_id !== $vendorUserId || ($grant->service_workspace_id !== null && (int) $grant->service_workspace_id !== $workspaceId)) {
+            abort(404, 'Temporary access grant not found.');
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        app(CourierTemporaryAccessService::class)->revokeGrant(
+            $grant,
+            $workspaceId,
+            (int) optional($request->user())->id,
+            (string) ($validated['reason'] ?? 'Manual revoke by authorized approver.')
+        );
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_temp_access_revoked',
+            'temporary_access',
+            (int) $grant->id,
+            'Temporary access grant revoked.',
+            [
+                'target_user_id' => (int) ($grant->target_user_id ?? 0),
+                'reason' => (string) ($validated['reason'] ?? ''),
+            ],
+        );
+
+        return response()->json([
+            'message' => 'Temporary access grant revoked successfully.',
+            'status' => CourierTemporaryAccessService::STATUS_REVOKED,
+        ]);
+    }
+
+    public function activateBreakGlassAccess(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $policy = $this->resolveTemporaryAccessControlPolicy($vendorUserId);
+        $bgPolicy = is_array($policy['breakGlass'] ?? null) ? $policy['breakGlass'] : [];
+
+        if (!(bool) ($bgPolicy['enabled'] ?? false)) {
+            abort(403, 'Break-glass emergency access is disabled by policy.');
+        }
+
+        $validated = $request->validate([
+            'targetUserId' => ['nullable', 'integer'],
+            'ticketRef' => ['required', 'string', 'max:120'],
+            'reason' => ['required', 'string', 'max:1000'],
+            'durationMinutes' => ['nullable', 'integer', 'min:10', 'max:' . max(10, (int) ($bgPolicy['maxDurationMinutes'] ?? 60))],
+        ]);
+
+        $targetUser = $this->resolveTemporaryAccessTargetUser($request, $vendorUserId, (int) ($validated['targetUserId'] ?? 0));
+
+        $result = app(CourierTemporaryAccessService::class)->activateBreakGlass(
+            $request,
+            $vendorUserId,
+            $workspaceId,
+            $policy,
+            $targetUser,
+            (string) ($validated['ticketRef'] ?? ''),
+            (string) ($validated['reason'] ?? ''),
+            (int) ($validated['durationMinutes'] ?? (int) ($bgPolicy['defaultDurationMinutes'] ?? 30))
+        );
+
+        if (!(bool) ($result['ok'] ?? false)) {
+            return response()->json(['message' => (string) ($result['message'] ?? 'Unable to activate break-glass access.')], 422);
+        }
+
+        $grant = $result['grant'] ?? null;
+        $alertContext = [
+            'vendor_user_id' => $vendorUserId,
+            'workspace_id' => $workspaceId,
+            'target_user_id' => (int) $targetUser->id,
+            'grant_id' => (int) ($grant?->id ?? 0),
+            'ticket_ref' => (string) ($validated['ticketRef'] ?? ''),
+            'duration_minutes' => (int) ($grant?->duration_minutes ?? 0),
+            'expires_at' => optional($grant?->expires_at)->toDateTimeString(),
+        ];
+
+        Log::warning('COURIER BREAK GLASS ACTIVATED', $alertContext);
+
+        $delivery = app(CourierBreakGlassAlertService::class)->dispatchActivatedAlerts(
+            $vendorUserId,
+            $workspaceId,
+            $policy,
+            $grant,
+            $request->user(),
+            $targetUser,
+        );
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $request->user()->id,
+            'courier_team_break_glass_activated',
+            'temporary_access',
+            (int) ($grant?->id ?? 0),
+            'Break-glass emergency access activated.',
+            array_merge($alertContext, [
+                'reason' => (string) ($validated['reason'] ?? ''),
+                'alert_delivery' => $delivery,
+            ]),
+        );
+
+        return response()->json([
+            'message' => (string) ($result['message'] ?? 'Break-glass access activated.'),
+            'status' => (string) ($grant?->status ?? CourierTemporaryAccessService::STATUS_ACTIVE),
+        ], 201);
+    }
+
     private function assertCanManageMember(
         Request $request,
         VendorUserMembership $targetMembership,
@@ -1510,6 +1768,83 @@ class CourierTeamController extends Controller
         $approvalControl = is_array($team['approvalControl'] ?? null) ? $team['approvalControl'] : [];
 
         return app(CourierSensitiveActionApprovalService::class)->normalizePolicy($approvalControl);
+    }
+
+    private function resolveTemporaryAccessControlPolicy(int $vendorUserId): array
+    {
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorUserId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $team = is_array($settings['team'] ?? null) ? $settings['team'] : [];
+        $temporaryAccessControl = is_array($team['temporaryAccessControl'] ?? null) ? $team['temporaryAccessControl'] : [];
+
+        return app(CourierTemporaryAccessService::class)->normalizePolicy($temporaryAccessControl);
+    }
+
+    private function listTemporaryAccessGrants(int $vendorUserId, int $workspaceId): array
+    {
+        return CourierTemporaryAccessGrant::query()
+            ->where('vendor_user_id', $vendorUserId)
+            ->where(function ($query) use ($workspaceId) {
+                $query->whereNull('service_workspace_id')
+                    ->orWhere('service_workspace_id', $workspaceId);
+            })
+            ->whereIn('status', [
+                CourierTemporaryAccessService::STATUS_PENDING,
+                CourierTemporaryAccessService::STATUS_ACTIVE,
+            ])
+            ->with(['requester:id,name,email', 'approver:id,name,email', 'targetUser:id,name,email'])
+            ->orderByDesc('id')
+            ->limit(120)
+            ->get()
+            ->map(function (CourierTemporaryAccessGrant $grant) {
+                return [
+                    'id' => (int) $grant->id,
+                    'grantType' => (string) $grant->grant_type,
+                    'status' => (string) $grant->status,
+                    'elevatedRoleName' => (string) $grant->elevated_role_name,
+                    'ticketRef' => (string) $grant->ticket_ref,
+                    'reason' => (string) $grant->reason,
+                    'durationMinutes' => (int) $grant->duration_minutes,
+                    'startsAt' => optional($grant->starts_at)->format('Y-m-d H:i:s'),
+                    'expiresAt' => optional($grant->expires_at)->format('Y-m-d H:i:s'),
+                    'createdAt' => optional($grant->created_at)->format('Y-m-d H:i:s'),
+                    'targetUser' => [
+                        'id' => (int) ($grant->targetUser?->id ?? 0),
+                        'name' => (string) ($grant->targetUser?->name ?? ''),
+                        'email' => (string) ($grant->targetUser?->email ?? ''),
+                    ],
+                    'requester' => [
+                        'id' => (int) ($grant->requester?->id ?? 0),
+                        'name' => (string) ($grant->requester?->name ?? ''),
+                        'email' => (string) ($grant->requester?->email ?? ''),
+                    ],
+                    'approver' => [
+                        'id' => (int) ($grant->approver?->id ?? 0),
+                        'name' => (string) ($grant->approver?->name ?? ''),
+                        'email' => (string) ($grant->approver?->email ?? ''),
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function resolveTemporaryAccessTargetUser(Request $request, int $vendorUserId, int $targetUserId = 0): User
+    {
+        $resolvedTargetUserId = $targetUserId > 0 ? $targetUserId : (int) optional($request->user())->id;
+        $targetUser = User::query()->findOrFail($resolvedTargetUserId);
+
+        $membership = VendorUserMembership::query()
+            ->where('vendor_user_id', $vendorUserId)
+            ->where('user_id', $resolvedTargetUserId)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$membership) {
+            abort(422, 'Target user must be an active team member.');
+        }
+
+        return $targetUser;
     }
 
     private function defaultSodControlPolicy(): array

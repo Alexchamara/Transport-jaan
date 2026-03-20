@@ -38,6 +38,8 @@ class CourierRbac
             'courier.team.assign_role',
             'courier.team.assign_permissions',
             'courier.team.access_requests.approve',
+            'courier.team.temporary_access.manage',
+            'courier.team.break_glass',
             'courier.team.manage_status',
             'courier.team.sessions.view',
             'courier.team.sessions.revoke',
