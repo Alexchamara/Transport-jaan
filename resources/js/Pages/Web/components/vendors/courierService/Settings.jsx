@@ -272,6 +272,19 @@ const Toggle = ({ label, checked, onChange, description }) => (
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 const humanizeFieldKey = (value) => titleCase(String(value || "").replaceAll("_", " "));
+const toDayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const tryParseDate = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+
+    return parsed;
+};
 const DEFAULT_ROLE_SCOPE_CONSTRAINTS = {
     regionZones: [],
     hubBranches: [],
@@ -534,6 +547,7 @@ const Settings = () => {
     const [apiCredentialServiceFilter, setApiCredentialServiceFilter] = useState("all");
     const [apiCredentialSearch, setApiCredentialSearch] = useState("");
     const [apiCredentialPage, setApiCredentialPage] = useState(1);
+    const [apiTrendWindowDays, setApiTrendWindowDays] = useState(30);
     const [apiCredentialForm, setApiCredentialForm] = useState({
         credentialName: "",
         serviceAccountCode: "",
@@ -1090,6 +1104,83 @@ const Settings = () => {
 
         return rows.sort((left, right) => right.usageScore - left.usageScore);
     }, [apiCredentialQueue]);
+
+    const apiAccessTrendRows = useMemo(() => {
+        const today = new Date();
+        const start = new Date(today);
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - (Math.max(1, apiTrendWindowDays) - 1));
+
+        const rows = [];
+        const indexByDay = new Map();
+        const cursor = new Date(start);
+        while (cursor <= today) {
+            const dayKey = toDayKey(cursor);
+            const row = {
+                dayKey,
+                label: cursor.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+                created: 0,
+                rotated: 0,
+                revoked: 0,
+                used: 0,
+            };
+            indexByDay.set(dayKey, row);
+            rows.push(row);
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        (teamAccessAudit || []).forEach((event) => {
+            const eventType = String(event?.action || "").trim();
+            if (!["api_key_created", "api_key_rotated", "api_key_revoked"].includes(eventType)) {
+                return;
+            }
+
+            const at = tryParseDate(event?.createdAt);
+            if (!at) {
+                return;
+            }
+
+            const day = toDayKey(at);
+            const row = indexByDay.get(day);
+            if (!row) {
+                return;
+            }
+
+            if (eventType === "api_key_created") {
+                row.created += 1;
+            }
+            if (eventType === "api_key_rotated") {
+                row.rotated += 1;
+            }
+            if (eventType === "api_key_revoked") {
+                row.revoked += 1;
+            }
+        });
+
+        (apiCredentialQueue || []).forEach((credential) => {
+            const lastUsed = tryParseDate(credential?.lastUsedAt);
+            if (!lastUsed) {
+                return;
+            }
+
+            const day = toDayKey(lastUsed);
+            const row = indexByDay.get(day);
+            if (!row) {
+                return;
+            }
+
+            row.used += 1;
+        });
+
+        return rows;
+    }, [apiTrendWindowDays, teamAccessAudit, apiCredentialQueue]);
+
+    const apiAccessTrendScale = useMemo(() => {
+        return Math.max(
+            1,
+            ...apiAccessTrendRows.map((row) => Math.max(row.created + row.rotated + row.revoked, row.used)),
+        );
+    }, [apiAccessTrendRows]);
 
     const exportAuditCsv = () => {
         if (filteredTeamAccessAudit.length === 0) {
@@ -4591,6 +4682,67 @@ const Settings = () => {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                    <div>
+                                        <p className="text-[12px] font-[700] text-[#111827]">API Key Trend Charts</p>
+                                        <p className="text-[11px] text-[#6B7280]">Lifecycle events come from immutable audit logs; usage touches come from key last-used timestamps.</p>
+                                    </div>
+                                    <select
+                                        className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                        value={String(apiTrendWindowDays)}
+                                        onChange={(e) => setApiTrendWindowDays(Number(e.target.value || 30))}
+                                    >
+                                        <option value="14">Last 14 Days</option>
+                                        <option value="30">Last 30 Days</option>
+                                        <option value="60">Last 60 Days</option>
+                                        <option value="90">Last 90 Days</option>
+                                    </select>
+                                </div>
+
+                                {apiAccessTrendRows.every((row) => row.created === 0 && row.rotated === 0 && row.revoked === 0 && row.used === 0) && (
+                                    <p className="text-[11px] text-[#6B7280]">No trend points available for this window yet.</p>
+                                )}
+
+                                {!apiAccessTrendRows.every((row) => row.created === 0 && row.rotated === 0 && row.revoked === 0 && row.used === 0) && (
+                                    <>
+                                        <div className="mb-2 flex flex-wrap items-center gap-3 text-[10px] text-[#475569]">
+                                            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#0955AC]" />Created</span>
+                                            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#0E7490]" />Rotated</span>
+                                            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#B91C1C]" />Revoked</span>
+                                            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#166534]" />Used (last-seen)</span>
+                                        </div>
+
+                                        <div className="h-[180px] border border-[#E5E7EB] rounded-[8px] p-2 overflow-x-auto">
+                                            <div className="h-full min-w-[680px] flex items-end gap-1">
+                                                {apiAccessTrendRows.map((row) => {
+                                                    const lifecycleTotal = row.created + row.rotated + row.revoked;
+                                                    const lifecycleHeight = Math.max(2, Math.round((lifecycleTotal / apiAccessTrendScale) * 120));
+                                                    const usedHeight = Math.max(2, Math.round((row.used / apiAccessTrendScale) * 120));
+                                                    const createdPct = lifecycleTotal > 0 ? (row.created / lifecycleTotal) * 100 : 0;
+                                                    const rotatedPct = lifecycleTotal > 0 ? (row.rotated / lifecycleTotal) * 100 : 0;
+                                                    const revokedPct = lifecycleTotal > 0 ? (row.revoked / lifecycleTotal) * 100 : 0;
+
+                                                    return (
+                                                        <div key={`api-trend-${row.dayKey}`} className="flex-1 min-w-[8px] max-w-[22px] flex flex-col items-center justify-end gap-1">
+                                                            <div className="w-full flex items-end justify-center gap-[2px] h-[130px]">
+                                                                <div className="w-[7px] rounded-[2px] overflow-hidden bg-[#E2E8F0]" style={{ height: `${lifecycleHeight}px` }} title={`${row.label}: Created ${row.created}, Rotated ${row.rotated}, Revoked ${row.revoked}`}>
+                                                                    <div className="bg-[#0955AC]" style={{ height: `${createdPct}%` }} />
+                                                                    <div className="bg-[#0E7490]" style={{ height: `${rotatedPct}%` }} />
+                                                                    <div className="bg-[#B91C1C]" style={{ height: `${revokedPct}%` }} />
+                                                                </div>
+                                                                <div className="w-[5px] rounded-[2px] bg-[#166534]" style={{ height: `${usedHeight}px` }} title={`${row.label}: Used ${row.used}`} />
+                                                            </div>
+                                                            <span className="text-[9px] text-[#94A3B8] [writing-mode:vertical-rl] rotate-180 h-[32px]">{row.label}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
