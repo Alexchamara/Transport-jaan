@@ -46,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'service.permission' => \App\Http\Middleware\EnsureServicePermission::class,
             'courier.session.security' => \App\Http\Middleware\CourierSessionSecurityMiddleware::class,
             'courier.access.review.lifecycle' => \App\Http\Middleware\CourierAccessReviewLifecycle::class,
+            'courier.api.key' => \App\Http\Middleware\CourierServiceApiKeyAuth::class,
         ]);
 
         //

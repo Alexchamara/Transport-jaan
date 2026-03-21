@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CourierControllers\Vendor;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\CourierTemporaryAccessLifecycle;
 use App\Models\Courier\CourierAccessReviewCertification;
+use App\Models\Courier\CourierServiceApiCredential;
 use App\Models\Courier\CourierSensitiveActionApproval;
 use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\VendorCourierSetting;
@@ -14,6 +15,7 @@ use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
+use App\Services\Courier\CourierApiServiceAccessService;
 use App\Services\Courier\CourierBreakGlassAlertService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTeamSecurityAuditService;
@@ -61,6 +63,8 @@ class CourierTeamController extends Controller
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['approveTemporaryAccessElevation', 'rejectTemporaryAccessElevation', 'revokeTemporaryAccessElevation', 'activateBreakGlassAccess']);
         $this->middleware('service.permission:courier.team.access_review.view')->only(['listAccessReviews']);
         $this->middleware('service.permission:courier.team.access_review.certify')->only(['certifyAccessReview']);
+        $this->middleware('service.permission:courier.team.api_access.view')->only(['listApiCredentials']);
+        $this->middleware('service.permission:courier.team.api_access.manage')->only(['createApiCredential', 'rotateApiCredential', 'revokeApiCredential']);
     }
 
     public function index(Request $request)
@@ -1894,6 +1898,102 @@ class CourierTeamController extends Controller
         return response()->json([
             'message' => (string) ($result['message'] ?? 'Access review processed successfully.'),
             'status' => (string) ($result['status'] ?? ''),
+        ]);
+    }
+
+    public function listApiCredentials(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $service = app(CourierApiServiceAccessService::class);
+
+        return response()->json([
+            'policy' => $service->resolvePolicyForVendor($vendorUserId),
+            'scopeOptions' => $service->apiScopeCatalog(),
+            'credentials' => $service->listCredentials($vendorUserId, $workspaceId),
+        ]);
+    }
+
+    public function createApiCredential(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $service = app(CourierApiServiceAccessService::class);
+
+        $validated = $request->validate([
+            'credentialName' => ['required', 'string', 'max:160'],
+            'serviceAccountCode' => ['nullable', 'string', 'max:80'],
+            'roleName' => ['required', 'string', Rule::in($this->workspaceRoleNames($workspaceId))],
+            'permissionScopes' => ['required', 'array', 'min:1'],
+            'permissionScopes.*' => ['string', Rule::in($service->apiScopeCatalog())],
+            'webhookScopes' => ['nullable', 'array'],
+            'webhookScopes.*' => ['string', 'max:120'],
+            'ttlDays' => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        try {
+            $result = $service->createCredential(
+                $request,
+                $vendorUserId,
+                $workspaceId,
+                (int) $request->user()->id,
+                $validated
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Service API credential created successfully.',
+            'credential' => $result['credential'],
+            'plainApiKey' => (string) ($result['plainApiKey'] ?? ''),
+        ], 201);
+    }
+
+    public function rotateApiCredential(Request $request, CourierServiceApiCredential $credential)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $credential->vendor_user_id !== $vendorUserId || (int) $credential->service_workspace_id !== $workspaceId) {
+            abort(404, 'API credential not found.');
+        }
+
+        $validated = $request->validate([
+            'ttlDays' => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        try {
+            $result = app(CourierApiServiceAccessService::class)->rotateCredential(
+                $request,
+                $credential,
+                (int) $request->user()->id,
+                array_key_exists('ttlDays', $validated) ? (int) $validated['ttlDays'] : null
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'API credential rotated successfully.',
+            'credential' => $result['credential'],
+            'plainApiKey' => (string) ($result['plainApiKey'] ?? ''),
+        ]);
+    }
+
+    public function revokeApiCredential(Request $request, CourierServiceApiCredential $credential)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        if ((int) $credential->vendor_user_id !== $vendorUserId || (int) $credential->service_workspace_id !== $workspaceId) {
+            abort(404, 'API credential not found.');
+        }
+
+        app(CourierApiServiceAccessService::class)->revokeCredential($credential, (int) $request->user()->id);
+
+        return response()->json([
+            'message' => 'API credential revoked successfully.',
         ]);
     }
 

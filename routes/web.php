@@ -38,6 +38,7 @@ use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
+use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
 use App\Http\Controllers\CourierControllers\Vendor\CourierTeamController;
 
@@ -1181,7 +1182,7 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->name('courierService.settings.module');
 
     Route::get('/courierService/settingsPage/team/{topic}', [VendorCourierDashboardController::class, 'settingsTeamTopic'])
-        ->where('topic', 'policy-controls|user-defaults|role-studio')
+        ->where('topic', 'policy-controls|user-defaults|api-access|role-studio')
         ->middleware('service.permission:courier.settings.view')
         ->name('courierService.settings.team.topic');
 
@@ -1316,6 +1317,34 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->whereNumber('review')
         ->middleware(['service.permission:courier.team.access_review.certify', 'throttle:20,1'])
         ->name('courierService.team.access-reviews.certify');
+
+    Route::get('/courierService/team/api-access/credentials', [CourierTeamController::class, 'listApiCredentials'])
+        ->middleware('service.permission:courier.team.api_access.view')
+        ->name('courierService.team.api-access.index');
+
+    Route::post('/courierService/team/api-access/credentials', [CourierTeamController::class, 'createApiCredential'])
+        ->middleware(['service.permission:courier.team.api_access.manage', 'throttle:20,1'])
+        ->name('courierService.team.api-access.store');
+
+    Route::post('/courierService/team/api-access/credentials/{credential}/rotate', [CourierTeamController::class, 'rotateApiCredential'])
+        ->whereNumber('credential')
+        ->middleware(['service.permission:courier.team.api_access.manage', 'throttle:20,1'])
+        ->name('courierService.team.api-access.rotate');
+
+    Route::post('/courierService/team/api-access/credentials/{credential}/revoke', [CourierTeamController::class, 'revokeApiCredential'])
+        ->whereNumber('credential')
+        ->middleware(['service.permission:courier.team.api_access.manage', 'throttle:20,1'])
+        ->name('courierService.team.api-access.revoke');
+});
+
+Route::prefix('/api/courier/service')->middleware(['throttle:120,1'])->group(function () {
+    Route::get('/status', [CourierServiceApiGatewayController::class, 'status'])
+        ->middleware('courier.api.key:service.status.read')
+        ->name('courier.api.service.status');
+
+    Route::post('/webhooks/shipments/status', [CourierServiceApiGatewayController::class, 'ingestShipmentWebhook'])
+        ->middleware('courier.api.key:webhook.events.write,webhook.events.write')
+        ->name('courier.api.webhooks.shipments.status');
 });
 
 

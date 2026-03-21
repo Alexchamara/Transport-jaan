@@ -17,6 +17,7 @@ use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
+use App\Services\Courier\CourierApiServiceAccessService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
@@ -634,6 +635,9 @@ class VendorCourierDashboardController extends Controller
             'teamSensitiveApprovals' => $this->listTeamSensitiveApprovals($vendorId, $workspaceId),
             'teamTemporaryAccessGrants' => $this->listTeamTemporaryAccessGrants($vendorId, $workspaceId),
             'teamAccessReviewQueue' => app(CourierAccessReviewService::class)->listPendingForWorkspace($vendorId, $workspaceId),
+            'teamApiCredentials' => app(CourierApiServiceAccessService::class)->listCredentials($vendorId, $workspaceId),
+            'teamApiScopeOptions' => app(CourierApiServiceAccessService::class)->apiScopeCatalog(),
+            'teamWebhookScopeOptions' => app(CourierApiServiceAccessService::class)->resolvePolicyForVendor($vendorId)['webhookScopesCatalog'] ?? [],
             'teamSessionSecurityStatus' => [
                 'trustedDevices' => app(CourierSessionSecurityService::class)->trustedDevicesForActor($vendorId, $workspaceId, (int) optional($request->user())->id),
                 'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
@@ -2838,6 +2842,7 @@ class VendorCourierDashboardController extends Controller
                 'sodControl' => $this->defaultSodControlPolicy(),
                 'temporaryAccessControl' => app(CourierTemporaryAccessService::class)->defaultPolicy(),
                 'accessReviewControl' => app(CourierAccessReviewService::class)->defaultPolicy(),
+                'apiServiceAccessControl' => app(CourierApiServiceAccessService::class)->defaultPolicy(),
                 'sessionSecurity' => app(CourierSessionSecurityService::class)->defaultPolicy(),
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
@@ -2886,6 +2891,11 @@ class VendorCourierDashboardController extends Controller
         $merged['accessReviewControl'] = app(CourierAccessReviewService::class)->normalizePolicy(
             is_array($merged['accessReviewControl'] ?? null)
                 ? $merged['accessReviewControl']
+                : []
+        );
+        $merged['apiServiceAccessControl'] = app(CourierApiServiceAccessService::class)->normalizePolicy(
+            is_array($merged['apiServiceAccessControl'] ?? null)
+                ? $merged['apiServiceAccessControl']
                 : []
         );
         $merged['sessionSecurity'] = app(CourierSessionSecurityService::class)->normalizePolicy(

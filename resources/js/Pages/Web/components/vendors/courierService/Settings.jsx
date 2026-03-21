@@ -132,6 +132,15 @@ const DEFAULT_SETTINGS = {
             dormantPrivilegedDays: 21,
             privilegedRoles: ["courier_owner", "courier_admin", "courier_finance"],
         },
+        apiServiceAccessControl: {
+            enabled: true,
+            requireExpiry: true,
+            defaultTtlDays: 30,
+            maxTtlDays: 90,
+            allowWebhookScopes: true,
+            maxActiveKeysPerServiceAccount: 2,
+            webhookScopesCatalog: ["webhook.events.write"],
+        },
         sessionSecurity: {
             enabled: true,
             deviceTrust: {
@@ -179,6 +188,9 @@ const DEFAULT_SETTINGS = {
                     "courierService.team.temporary-access.revoke",
                     "courierService.team.temporary-access.break-glass",
                     "courierService.team.access-reviews.certify",
+                    "courierService.team.api-access.store",
+                    "courierService.team.api-access.rotate",
+                    "courierService.team.api-access.revoke",
                 ],
             },
             mandatory2FA: {
@@ -218,6 +230,7 @@ const TAB_CONFIG = [
 const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "policy-controls", label: "Team Policy Controls" },
     { key: "user-defaults", label: "Team User Creation Defaults" },
+    { key: "api-access", label: "API and Service Access" },
     { key: "role-studio", label: "Role Studio" },
 ];
 
@@ -287,6 +300,9 @@ const Settings = () => {
     const teamSensitiveApprovals = Array.isArray(props.teamSensitiveApprovals) ? props.teamSensitiveApprovals : [];
     const teamTemporaryAccessGrants = Array.isArray(props.teamTemporaryAccessGrants) ? props.teamTemporaryAccessGrants : [];
     const teamAccessReviewQueue = Array.isArray(props.teamAccessReviewQueue) ? props.teamAccessReviewQueue : [];
+    const teamApiCredentials = Array.isArray(props.teamApiCredentials) ? props.teamApiCredentials : [];
+    const teamApiScopeOptions = Array.isArray(props.teamApiScopeOptions) ? props.teamApiScopeOptions : [];
+    const teamWebhookScopeOptions = Array.isArray(props.teamWebhookScopeOptions) ? props.teamWebhookScopeOptions : [];
     const teamSessionSecurityStatus = props.teamSessionSecurityStatus && typeof props.teamSessionSecurityStatus === "object"
         ? props.teamSessionSecurityStatus
         : {};
@@ -510,7 +526,22 @@ const Settings = () => {
     const [approvalActionBusyId, setApprovalActionBusyId] = useState(null);
     const [temporaryAccessQueue, setTemporaryAccessQueue] = useState(teamTemporaryAccessGrants);
     const [accessReviewQueue, setAccessReviewQueue] = useState(teamAccessReviewQueue);
+    const [apiCredentialQueue, setApiCredentialQueue] = useState(teamApiCredentials);
     const [temporaryAccessActionBusyId, setTemporaryAccessActionBusyId] = useState(null);
+    const [apiAccessActionBusyId, setApiAccessActionBusyId] = useState(null);
+    const [latestApiKeySecret, setLatestApiKeySecret] = useState("");
+    const [apiCredentialStatusFilter, setApiCredentialStatusFilter] = useState("all");
+    const [apiCredentialServiceFilter, setApiCredentialServiceFilter] = useState("all");
+    const [apiCredentialSearch, setApiCredentialSearch] = useState("");
+    const [apiCredentialPage, setApiCredentialPage] = useState(1);
+    const [apiCredentialForm, setApiCredentialForm] = useState({
+        credentialName: "",
+        serviceAccountCode: "",
+        roleName: teamRoleOptions[0] || "courier_dispatcher",
+        ttlDays: Number(settings?.team?.apiServiceAccessControl?.defaultTtlDays || 30),
+        permissionScopes: [],
+        webhookScopes: [],
+    });
     const [temporaryAccessForm, setTemporaryAccessForm] = useState({
         targetUserId: "",
         elevatedRoleName: "courier_admin",
@@ -927,6 +958,139 @@ const Settings = () => {
         };
     }, [filteredTeamAccessAudit, auditPage]);
 
+    const apiServiceAccountOptions = useMemo(() => {
+        return [...new Set((apiCredentialQueue || [])
+            .map((credential) => String(credential?.serviceAccountCode || "").trim())
+            .filter(Boolean))]
+            .sort((left, right) => left.localeCompare(right));
+    }, [apiCredentialQueue]);
+
+    const filteredApiCredentials = useMemo(() => {
+        const needle = String(apiCredentialSearch || "").trim().toLowerCase();
+
+        return (apiCredentialQueue || []).filter((credential) => {
+            const status = String(credential?.status || "").trim().toLowerCase();
+            const serviceAccountCode = String(credential?.serviceAccountCode || "").trim();
+
+            if (apiCredentialStatusFilter !== "all" && status !== apiCredentialStatusFilter) {
+                return false;
+            }
+
+            if (apiCredentialServiceFilter !== "all" && serviceAccountCode !== apiCredentialServiceFilter) {
+                return false;
+            }
+
+            if (!needle) {
+                return true;
+            }
+
+            const haystack = [
+                String(credential?.credentialName || ""),
+                serviceAccountCode,
+                String(credential?.roleName || ""),
+                String(credential?.keyPrefix || ""),
+                String(credential?.status || ""),
+                Array.isArray(credential?.permissionScopes) ? credential.permissionScopes.join(" ") : "",
+                Array.isArray(credential?.webhookScopes) ? credential.webhookScopes.join(" ") : "",
+            ].join(" ").toLowerCase();
+
+            return haystack.includes(needle);
+        });
+    }, [apiCredentialQueue, apiCredentialStatusFilter, apiCredentialServiceFilter, apiCredentialSearch]);
+
+    const apiCredentialPagination = useMemo(() => {
+        const perPage = 8;
+        const total = filteredApiCredentials.length;
+        const totalPages = Math.max(1, Math.ceil(total / perPage));
+        const currentPage = Math.min(Math.max(apiCredentialPage, 1), totalPages);
+        const start = (currentPage - 1) * perPage;
+
+        return {
+            total,
+            totalPages,
+            currentPage,
+            rows: filteredApiCredentials.slice(start, start + perPage),
+        };
+    }, [filteredApiCredentials, apiCredentialPage]);
+
+    const apiServiceAccountAnalytics = useMemo(() => {
+        const now = Date.now();
+        const groups = new Map();
+
+        (apiCredentialQueue || []).forEach((credential) => {
+            const serviceAccountCode = String(credential?.serviceAccountCode || "").trim() || "unassigned";
+            const status = String(credential?.status || "").trim().toLowerCase();
+            const expiresAt = credential?.expiresAt ? new Date(credential.expiresAt) : null;
+            const lastUsedAt = credential?.lastUsedAt ? new Date(credential.lastUsedAt) : null;
+            const isExpiringSoon = Boolean(
+                expiresAt
+                && !Number.isNaN(expiresAt.getTime())
+                && expiresAt.getTime() >= now
+                && expiresAt.getTime() <= now + (7 * 24 * 60 * 60 * 1000)
+                && status === "active",
+            );
+
+            if (!groups.has(serviceAccountCode)) {
+                groups.set(serviceAccountCode, {
+                    serviceAccountCode,
+                    total: 0,
+                    active: 0,
+                    revoked: 0,
+                    expiringSoon: 0,
+                    permissionScopeCount: 0,
+                    webhookScopeCount: 0,
+                    lastUsedAt: null,
+                    usageScore: 0,
+                });
+            }
+
+            const current = groups.get(serviceAccountCode);
+            current.total += 1;
+            if (status === "active") {
+                current.active += 1;
+            }
+            if (status === "revoked") {
+                current.revoked += 1;
+            }
+            if (isExpiringSoon) {
+                current.expiringSoon += 1;
+            }
+
+            current.permissionScopeCount += Array.isArray(credential?.permissionScopes) ? credential.permissionScopes.length : 0;
+            current.webhookScopeCount += Array.isArray(credential?.webhookScopes) ? credential.webhookScopes.length : 0;
+
+            if (lastUsedAt && !Number.isNaN(lastUsedAt.getTime())) {
+                if (!current.lastUsedAt || lastUsedAt.getTime() > current.lastUsedAt.getTime()) {
+                    current.lastUsedAt = lastUsedAt;
+                }
+            }
+        });
+
+        const rows = [...groups.values()].map((group) => {
+            let recencyBoost = 0;
+            if (group.lastUsedAt) {
+                const days = Math.floor((now - group.lastUsedAt.getTime()) / (24 * 60 * 60 * 1000));
+                if (days <= 7) {
+                    recencyBoost = 40;
+                } else if (days <= 30) {
+                    recencyBoost = 20;
+                }
+            }
+
+            const scopeDensityBoost = Math.min(20, group.permissionScopeCount + group.webhookScopeCount);
+            const activeBoost = Math.min(40, group.active * 20);
+            const totalScore = Math.max(5, Math.min(100, recencyBoost + scopeDensityBoost + activeBoost));
+
+            return {
+                ...group,
+                usageScore: totalScore,
+                lastUsedLabel: group.lastUsedAt ? group.lastUsedAt.toLocaleString() : "Never",
+            };
+        });
+
+        return rows.sort((left, right) => right.usageScore - left.usageScore);
+    }, [apiCredentialQueue]);
+
     const exportAuditCsv = () => {
         if (filteredTeamAccessAudit.length === 0) {
             return;
@@ -995,6 +1159,21 @@ const Settings = () => {
     useEffect(() => {
         setTemporaryAccessQueue(teamTemporaryAccessGrants);
     }, [teamTemporaryAccessGrants]);
+
+    useEffect(() => {
+        setApiCredentialQueue(teamApiCredentials);
+    }, [teamApiCredentials]);
+
+    useEffect(() => {
+        setApiCredentialPage(1);
+    }, [apiCredentialStatusFilter, apiCredentialServiceFilter, apiCredentialSearch]);
+
+    useEffect(() => {
+        setApiCredentialForm((prev) => ({
+            ...prev,
+            roleName: prev.roleName || teamRoleOptions[0] || "courier_dispatcher",
+        }));
+    }, [teamRoleOptions]);
 
     useEffect(() => {
         setAccessReviewQueue(teamAccessReviewQueue);
@@ -1345,6 +1524,19 @@ const Settings = () => {
         }));
     };
 
+    const updateApiServiceAccessControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                apiServiceAccessControl: {
+                    ...(prev.team.apiServiceAccessControl || DEFAULT_SETTINGS.team.apiServiceAccessControl),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
     const updateSessionSecurityNested = (groupKey, key, value) => {
         setSettings((prev) => ({
             ...prev,
@@ -1437,6 +1629,106 @@ const Settings = () => {
         } finally {
             setTemporaryAccessActionBusyId(null);
         }
+    };
+
+    const createApiCredential = async () => {
+        if (!String(apiCredentialForm.credentialName || "").trim()) {
+            setFeedback({ type: "error", message: "Credential name is required." });
+            return;
+        }
+
+        if (!Array.isArray(apiCredentialForm.permissionScopes) || apiCredentialForm.permissionScopes.length === 0) {
+            setFeedback({ type: "error", message: "Select at least one API permission scope." });
+            return;
+        }
+
+        setApiAccessActionBusyId("create");
+        try {
+            const payload = await requestJson("POST", route("courierService.team.api-access.store"), {
+                credentialName: apiCredentialForm.credentialName,
+                serviceAccountCode: apiCredentialForm.serviceAccountCode,
+                roleName: apiCredentialForm.roleName,
+                ttlDays: Number(apiCredentialForm.ttlDays || 30),
+                permissionScopes: apiCredentialForm.permissionScopes,
+                webhookScopes: apiCredentialForm.webhookScopes,
+            });
+
+            setLatestApiKeySecret(String(payload?.plainApiKey || ""));
+            setFeedback({ type: "success", message: payload?.message || "API credential created." });
+            router.reload({ only: ["teamApiCredentials"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            handleActionError(error, "Failed to create API credential.");
+        } finally {
+            setApiAccessActionBusyId(null);
+        }
+    };
+
+    const rotateApiCredential = async (credentialId) => {
+        setApiAccessActionBusyId(`rotate_${credentialId}`);
+        try {
+            const payload = await requestJson("POST", route("courierService.team.api-access.rotate", { credential: credentialId }), {
+                ttlDays: Number(apiCredentialForm.ttlDays || 30),
+            });
+
+            setLatestApiKeySecret(String(payload?.plainApiKey || ""));
+            setFeedback({ type: "success", message: payload?.message || "API credential rotated." });
+            router.reload({ only: ["teamApiCredentials"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            handleActionError(error, "Failed to rotate API credential.");
+        } finally {
+            setApiAccessActionBusyId(null);
+        }
+    };
+
+    const revokeApiCredential = async (credentialId) => {
+        setApiAccessActionBusyId(`revoke_${credentialId}`);
+        try {
+            const payload = await requestJson("POST", route("courierService.team.api-access.revoke", { credential: credentialId }));
+            setFeedback({ type: "success", message: payload?.message || "API credential revoked." });
+            router.reload({ only: ["teamApiCredentials"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            handleActionError(error, "Failed to revoke API credential.");
+        } finally {
+            setApiAccessActionBusyId(null);
+        }
+    };
+
+    const copyLatestApiKeySecret = async () => {
+        if (!latestApiKeySecret) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(latestApiKeySecret);
+            setFeedback({ type: "success", message: "Latest API key copied to clipboard." });
+        } catch (error) {
+            setFeedback({ type: "error", message: "Clipboard write failed. Copy the key manually." });
+        }
+    };
+
+    const downloadLatestApiKeySecret = () => {
+        if (!latestApiKeySecret) {
+            return;
+        }
+
+        const generatedAt = new Date().toISOString();
+        const content = [
+            "Courier Service API Key",
+            `Generated At: ${generatedAt}`,
+            `Key: ${latestApiKeySecret}`,
+            "",
+            "Store this key in your secret manager. This value is only shown once.",
+        ].join("\n");
+
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+        const href = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.setAttribute("download", `courier-api-key-${generatedAt.slice(0, 19).replaceAll(":", "-")}.txt`);
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(href);
     };
 
     const approveSensitiveAction = async (approvalId) => {
@@ -2741,6 +3033,23 @@ const Settings = () => {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                                <p className="text-[12px] font-[700] text-[#111827]">API and Service Access</p>
+                                                <p className="text-[11px] text-[#6B7280] mt-1">Move credential issuance, scope governance, and service-account analytics to a dedicated workspace.</p>
+                                                <div className="mt-2 flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] text-[#374151]">
+                                                        Active Keys: {(apiCredentialQueue || []).filter((credential) => String(credential?.status || "active") === "active").length} / {(apiCredentialQueue || []).length}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="h-[30px] px-3 rounded-[6px] bg-[#0955AC] text-white text-[11px] font-[700]"
+                                                        onClick={() => navigateTeamAccessTopic("api-access")}
+                                                    >
+                                                        Open API Access Topic
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -3983,6 +4292,306 @@ const Settings = () => {
                             ))}
                         </div>
                     </div>
+                        </div>
+                    )}
+
+                    {activeTeamAccessTopic === "api-access" && (
+                        <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                            <p className="text-[15px] font-[700] text-[#111827]">API and Service Access</p>
+                            <p className="text-[12px] text-[#6B7280] mt-1">Manage service accounts, scoped keys, rotation, and webhook permissions in one place.</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                <Toggle
+                                    label="Enable Service API Access"
+                                    checked={Boolean(settings.team?.apiServiceAccessControl?.enabled)}
+                                    onChange={(next) => updateApiServiceAccessControl("enabled", next)}
+                                    description="Allow service accounts to authenticate with scoped API keys."
+                                />
+                                <Toggle
+                                    label="Require Key Expiry"
+                                    checked={Boolean(settings.team?.apiServiceAccessControl?.requireExpiry)}
+                                    onChange={(next) => updateApiServiceAccessControl("requireExpiry", next)}
+                                />
+                                <Toggle
+                                    label="Enable Webhook Scopes"
+                                    checked={Boolean(settings.team?.apiServiceAccessControl?.allowWebhookScopes)}
+                                    onChange={(next) => updateApiServiceAccessControl("allowWebhookScopes", next)}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                                <Field label="Default Key TTL (days)">
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={Number(settings.team?.apiServiceAccessControl?.defaultTtlDays || 30)}
+                                        onChange={(e) => updateApiServiceAccessControl("defaultTtlDays", Number(e.target.value || 30))}
+                                    />
+                                </Field>
+                                <Field label="Maximum Key TTL (days)">
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={Number(settings.team?.apiServiceAccessControl?.maxTtlDays || 90)}
+                                        onChange={(e) => updateApiServiceAccessControl("maxTtlDays", Number(e.target.value || 90))}
+                                    />
+                                </Field>
+                                <Field label="Max Active Keys / Service Account">
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={Number(settings.team?.apiServiceAccessControl?.maxActiveKeysPerServiceAccount || 2)}
+                                        onChange={(e) => updateApiServiceAccessControl("maxActiveKeysPerServiceAccount", Number(e.target.value || 2))}
+                                    />
+                                </Field>
+                            </div>
+
+                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                <p className="text-[12px] font-[700] text-[#111827] mb-2">Create Service Account Credential</p>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                    <input
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        placeholder="Credential name"
+                                        value={apiCredentialForm.credentialName}
+                                        onChange={(e) => setApiCredentialForm((prev) => ({ ...prev, credentialName: e.target.value }))}
+                                    />
+                                    <input
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        placeholder="Service account code (optional)"
+                                        value={apiCredentialForm.serviceAccountCode}
+                                        onChange={(e) => setApiCredentialForm((prev) => ({ ...prev, serviceAccountCode: e.target.value }))}
+                                    />
+                                    <select
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={apiCredentialForm.roleName}
+                                        onChange={(e) => setApiCredentialForm((prev) => ({ ...prev, roleName: e.target.value }))}
+                                    >
+                                        {(teamRoleOptions || []).map((roleName) => (
+                                            <option key={`api-role-${roleName}`} value={roleName}>{titleCase(roleName)}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={Number(apiCredentialForm.ttlDays || 30)}
+                                        onChange={(e) => setApiCredentialForm((prev) => ({ ...prev, ttlDays: Number(e.target.value || 30) }))}
+                                    />
+                                </div>
+
+                                <div className="mt-2">
+                                    <p className="text-[11px] font-[700] text-[#374151] mb-1">API Scopes</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {(teamApiScopeOptions || []).map((scope) => (
+                                            <label key={`api-scope-${scope}`} className="inline-flex items-center gap-2 text-[11px] text-[#374151]">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={apiCredentialForm.permissionScopes.includes(scope)}
+                                                    onChange={() => setApiCredentialForm((prev) => ({
+                                                        ...prev,
+                                                        permissionScopes: prev.permissionScopes.includes(scope)
+                                                            ? prev.permissionScopes.filter((item) => item !== scope)
+                                                            : [...prev.permissionScopes, scope],
+                                                    }))}
+                                                />
+                                                {scope}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="mt-2">
+                                    <p className="text-[11px] font-[700] text-[#374151] mb-1">Webhook Scopes</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {(teamWebhookScopeOptions || []).map((scope) => (
+                                            <label key={`webhook-scope-${scope}`} className="inline-flex items-center gap-2 text-[11px] text-[#374151]">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={apiCredentialForm.webhookScopes.includes(scope)}
+                                                    onChange={() => setApiCredentialForm((prev) => ({
+                                                        ...prev,
+                                                        webhookScopes: prev.webhookScopes.includes(scope)
+                                                            ? prev.webhookScopes.filter((item) => item !== scope)
+                                                            : [...prev.webhookScopes, scope],
+                                                    }))}
+                                                />
+                                                {scope}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={apiAccessActionBusyId === "create"}
+                                        className="h-[30px] px-3 rounded-[6px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
+                                        onClick={createApiCredential}
+                                    >
+                                        Create API Key
+                                    </button>
+                                    {latestApiKeySecret && (
+                                        <>
+                                            <p className="text-[11px] text-[#0F172A]">New key: <span className="font-[700]">{latestApiKeySecret}</span></p>
+                                            <button
+                                                type="button"
+                                                className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151]"
+                                                onClick={copyLatestApiKeySecret}
+                                            >
+                                                Copy Key
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151]"
+                                                onClick={downloadLatestApiKeySecret}
+                                            >
+                                                Download .txt
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                    <p className="text-[12px] font-[700] text-[#111827]">Service Account Credentials</p>
+                                    <span className="text-[11px] text-[#6B7280]">Showing {apiCredentialPagination.rows.length} / {apiCredentialPagination.total}</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                                    <select
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={apiCredentialStatusFilter}
+                                        onChange={(e) => setApiCredentialStatusFilter(e.target.value)}
+                                    >
+                                        <option value="all">All Statuses</option>
+                                        <option value="active">Active</option>
+                                        <option value="revoked">Revoked</option>
+                                        <option value="expired">Expired</option>
+                                        <option value="rotated">Rotated</option>
+                                    </select>
+                                    <select
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={apiCredentialServiceFilter}
+                                        onChange={(e) => setApiCredentialServiceFilter(e.target.value)}
+                                    >
+                                        <option value="all">All Service Accounts</option>
+                                        {apiServiceAccountOptions.map((serviceAccountCode) => (
+                                            <option key={`api-filter-${serviceAccountCode}`} value={serviceAccountCode}>{serviceAccountCode}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        placeholder="Search credential, role, scope"
+                                        value={apiCredentialSearch}
+                                        onChange={(e) => setApiCredentialSearch(e.target.value)}
+                                    />
+                                </div>
+
+                                {apiCredentialPagination.total === 0 && (
+                                    <p className="text-[11px] text-[#6B7280]">No API credentials match current filters.</p>
+                                )}
+
+                                <div className="space-y-2">
+                                    {apiCredentialPagination.rows.map((credential) => (
+                                        <div key={`api-credential-${credential.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-[12px] font-[700] text-[#111827]">{credential.credentialName} • {credential.serviceAccountCode}</p>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-[700] ${String(credential.status || "active") === "active" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEE2E2] text-[#B91C1C]"}`}>
+                                                    {titleCase(credential.status || "active")}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-[#6B7280] mt-1">
+                                                Role: {titleCase(credential.roleName || "-")} • Prefix: {credential.keyPrefix || "-"} • Expires: {credential.expiresAt || "Never"}
+                                            </p>
+                                            <p className="text-[11px] text-[#6B7280] mt-1">Last Used: {credential.lastUsedAt || "Never"}</p>
+                                            <p className="text-[11px] text-[#6B7280] mt-1">Scopes: {(credential.permissionScopes || []).join(", ") || "-"}</p>
+                                            <p className="text-[11px] text-[#6B7280] mt-1">Webhook Scopes: {(credential.webhookScopes || []).join(", ") || "-"}</p>
+
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={apiAccessActionBusyId === `rotate_${credential.id}` || String(credential.status || "") !== "active"}
+                                                    className="h-[28px] px-2 rounded-[6px] bg-[#0955AC] text-white text-[10px] font-[700] disabled:opacity-50"
+                                                    onClick={() => rotateApiCredential(credential.id)}
+                                                >
+                                                    Rotate Key
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={apiAccessActionBusyId === `revoke_${credential.id}` || String(credential.status || "") !== "active"}
+                                                    className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700] disabled:opacity-50"
+                                                    onClick={() => revokeApiCredential(credential.id)}
+                                                >
+                                                    Revoke Key
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-2 flex items-center justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151] disabled:opacity-50"
+                                        disabled={apiCredentialPagination.currentPage <= 1}
+                                        onClick={() => setApiCredentialPage((prev) => Math.max(1, prev - 1))}
+                                    >
+                                        Prev
+                                    </button>
+                                    <span className="text-[11px] text-[#6B7280]">
+                                        Page {apiCredentialPagination.currentPage} of {apiCredentialPagination.totalPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151] disabled:opacity-50"
+                                        disabled={apiCredentialPagination.currentPage >= apiCredentialPagination.totalPages}
+                                        onClick={() => setApiCredentialPage((prev) => Math.min(apiCredentialPagination.totalPages, prev + 1))}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                <p className="text-[12px] font-[700] text-[#111827] mb-1">Usage Analytics by Service Account</p>
+                                <p className="text-[11px] text-[#6B7280] mb-2">Scores combine key recency, active credential count, and scope footprint.</p>
+
+                                {apiServiceAccountAnalytics.length === 0 && (
+                                    <p className="text-[11px] text-[#6B7280]">No service account analytics available yet.</p>
+                                )}
+
+                                <div className="space-y-2">
+                                    {apiServiceAccountAnalytics.map((row) => (
+                                        <div key={`api-analytics-${row.serviceAccountCode}`} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-[12px] font-[700] text-[#111827]">{row.serviceAccountCode}</p>
+                                                <p className="text-[11px] text-[#6B7280]">Score: {row.usageScore}/100</p>
+                                            </div>
+                                            <div className="mt-1 h-[8px] w-full rounded-full bg-[#E5E7EB] overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-[#0955AC]"
+                                                    style={{ width: `${row.usageScore}%` }}
+                                                />
+                                            </div>
+                                            <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-[#475569]">
+                                                <span>Total Keys: {row.total}</span>
+                                                <span>Active: {row.active}</span>
+                                                <span>Revoked: {row.revoked}</span>
+                                                <span>Expiring ≤ 7d: {row.expiringSoon}</span>
+                                            </div>
+                                            <p className="text-[11px] text-[#6B7280] mt-1">Last Used: {row.lastUsedLabel}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </SectionCard>
