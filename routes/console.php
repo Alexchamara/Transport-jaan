@@ -19,3 +19,9 @@ Schedule::command('drivers:check-license-expiry')
     ->dailyAt('00:05')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Refresh courier pricing exchange rates daily for vendors who enable live-rate strategy.
+Schedule::command('courier:refresh-exchange-rates')
+    ->dailyAt('00:20')
+    ->withoutOverlapping()
+    ->runInBackground();

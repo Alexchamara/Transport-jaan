@@ -293,6 +293,22 @@ const TAB_CONFIG = [
     { key: "team", label: "Team Access", icon: Users },
 ];
 
+const CURRENCY_OPTIONS = [
+    "LKR",
+    "USD",
+    "EUR",
+    "GBP",
+    "AED",
+    "AUD",
+    "CAD",
+    "CHF",
+    "CNY",
+    "HKD",
+    "INR",
+    "JPY",
+    "SGD",
+];
+
 const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "policy-controls", label: "Team Policy Controls" },
     { key: "step-up-runtime", label: "Step-up Verification (Runtime)" },
@@ -2916,18 +2932,26 @@ const Settings = () => {
                             <p className="text-[13px] font-[700] text-[#111827] mb-2">Currency Localization</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <Field label="Base Currency">
-                                    <input
+                                    <select
                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        value={String(pricingLocalization.baseCurrency || "LKR")}
-                                        onChange={(e) => updatePricingLocalization("baseCurrency", String(e.target.value || "").toUpperCase().slice(0, 3))}
-                                    />
+                                        value={String(pricingLocalization.baseCurrency || "LKR").toUpperCase()}
+                                        onChange={(e) => updatePricingLocalization("baseCurrency", String(e.target.value || "LKR").toUpperCase())}
+                                    >
+                                        {CURRENCY_OPTIONS.map((currencyCode) => (
+                                            <option key={`base_currency_${currencyCode}`} value={currencyCode}>{currencyCode}</option>
+                                        ))}
+                                    </select>
                                 </Field>
                                 <Field label="Display Currency">
-                                    <input
+                                    <select
                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        value={String(pricingLocalization.displayCurrency || "LKR")}
-                                        onChange={(e) => updatePricingLocalization("displayCurrency", String(e.target.value || "").toUpperCase().slice(0, 3))}
-                                    />
+                                        value={String(pricingLocalization.displayCurrency || "LKR").toUpperCase()}
+                                        onChange={(e) => updatePricingLocalization("displayCurrency", String(e.target.value || "LKR").toUpperCase())}
+                                    >
+                                        {CURRENCY_OPTIONS.map((currencyCode) => (
+                                            <option key={`display_currency_${currencyCode}`} value={currencyCode}>{currencyCode}</option>
+                                        ))}
+                                    </select>
                                 </Field>
                                 <Field label="Locale">
                                     <input
