@@ -18,6 +18,7 @@ use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierApiServiceAccessService;
+use App\Services\Courier\CourierExchangeRateService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
@@ -512,6 +513,7 @@ class VendorCourierDashboardController extends Controller
             'tracking',
             'notifications',
             'integrations',
+            'pricing',
             'team',
         ];
 
@@ -521,7 +523,9 @@ class VendorCourierDashboardController extends Controller
 
         $allowedTeamTopics = [
             'policy-controls',
+            'step-up-runtime',
             'user-defaults',
+            'api-access',
             'role-studio',
         ];
 
@@ -665,7 +669,7 @@ class VendorCourierDashboardController extends Controller
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults'],
-            'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,team'],
+            'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,pricing,team'],
             'settings' => ['nullable', 'array'],
         ]);
 
@@ -704,6 +708,10 @@ class VendorCourierDashboardController extends Controller
                 $incomingSection = $this->normalizeTeamSettings(array_replace_recursive($current['team'] ?? [], $incomingSection));
             }
 
+            if ($section === 'pricing') {
+                $incomingSection = $this->normalizePricingSettings(array_replace_recursive($current['pricing'] ?? [], $incomingSection));
+            }
+
             $current[$section] = array_replace($current[$section], $incomingSection);
             $record->update(['settings' => $current]);
 
@@ -728,6 +736,10 @@ class VendorCourierDashboardController extends Controller
             $next['team'] = $this->normalizeTeamSettings($next['team']);
         }
 
+        if (is_array($next['pricing'] ?? null)) {
+            $next['pricing'] = $this->normalizePricingSettings($next['pricing']);
+        }
+
         $record->update(['settings' => $next]);
 
         if (array_key_exists('team', $incomingAll)) {
@@ -737,6 +749,29 @@ class VendorCourierDashboardController extends Controller
         }
 
         return back()->with('success', 'All courier settings saved successfully.');
+    }
+
+    public function pricingExchangeRates(Request $request)
+    {
+        $validated = $request->validate([
+            'base' => ['nullable', 'string', 'size:3'],
+            'targets' => ['nullable', 'array'],
+            'targets.*' => ['string', 'size:3'],
+        ]);
+
+        $base = strtoupper((string) ($validated['base'] ?? 'LKR'));
+        $targets = collect($validated['targets'] ?? [])->map(fn ($item) => strtoupper((string) $item))->values()->all();
+
+        $payload = app(CourierExchangeRateService::class)->latest($base, $targets);
+
+        if (!($payload['ok'] ?? false)) {
+            return response()->json([
+                'message' => (string) ($payload['message'] ?? 'Unable to fetch live exchange rates right now.'),
+                'code' => 'exchange_rate_unavailable',
+            ], 422);
+        }
+
+        return response()->json($payload);
     }
 
     public function profile(Request $request)
@@ -2833,6 +2868,7 @@ class VendorCourierDashboardController extends Controller
                 'retryWindowMinutes' => 15,
                 'rotateKeysEveryDays' => 90,
             ],
+            'pricing' => $this->defaultPricingSettings(),
             'team' => [
                 'dispatcherCanCancel' => false,
                 'opsLeadCanReassign' => true,
@@ -2852,6 +2888,129 @@ class VendorCourierDashboardController extends Controller
                 'permissionModel' => $this->defaultAdvancedPermissionModel(),
             ],
         ];
+    }
+
+    private function defaultPricingSettings(): array
+    {
+        return [
+            'localization' => [
+                'baseCurrency' => 'LKR',
+                'displayCurrency' => 'LKR',
+                'locale' => 'en-LK',
+                'exchangeRateProvider' => 'frankfurter.app',
+                'autoLiveRates' => true,
+                'manualRates' => [
+                    'LKR' => 1,
+                    'USD' => 0.00308,
+                    'EUR' => 0.00284,
+                ],
+                'lastSyncedAt' => null,
+            ],
+            'formula' => [
+                'volumetricDivisor' => 5000,
+                'useChargeableWeight' => true,
+                'fuelSurchargePercent' => 0,
+                'handlingFee' => 0,
+                'taxPercent' => 0,
+                'roundTo' => 2,
+            ],
+            'categories' => [
+                'domestic' => [
+                    [
+                        'id' => 'domestic_within_3_days',
+                        'label' => 'Within 3 Days',
+                        'slaDays' => 3,
+                        'basePrice' => 250,
+                        'perKgPrice' => 35,
+                        'minPrice' => 250,
+                        'priorityMultiplier' => 1,
+                    ],
+                    [
+                        'id' => 'domestic_one_day',
+                        'label' => 'One Day',
+                        'slaDays' => 1,
+                        'basePrice' => 1000,
+                        'perKgPrice' => 70,
+                        'minPrice' => 1000,
+                        'priorityMultiplier' => 1,
+                    ],
+                ],
+                'logistic' => [
+                    [
+                        'id' => 'logistic_standard',
+                        'label' => 'Logistic Standard',
+                        'slaDays' => 4,
+                        'basePrice' => 1400,
+                        'perKgPrice' => 90,
+                        'minPrice' => 1400,
+                        'priorityMultiplier' => 1,
+                    ],
+                    [
+                        'id' => 'logistic_express',
+                        'label' => 'Logistic Express',
+                        'slaDays' => 2,
+                        'basePrice' => 2200,
+                        'perKgPrice' => 130,
+                        'minPrice' => 2200,
+                        'priorityMultiplier' => 1.12,
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private function normalizePricingSettings(array $pricing): array
+    {
+        $defaults = $this->defaultPricingSettings();
+        $pricing = array_replace_recursive($defaults, $pricing);
+
+        $pricing['localization']['baseCurrency'] = strtoupper((string) ($pricing['localization']['baseCurrency'] ?? 'LKR'));
+        $pricing['localization']['displayCurrency'] = strtoupper((string) ($pricing['localization']['displayCurrency'] ?? $pricing['localization']['baseCurrency']));
+        $pricing['localization']['locale'] = trim((string) ($pricing['localization']['locale'] ?? 'en-LK')) ?: 'en-LK';
+        $pricing['localization']['exchangeRateProvider'] = trim((string) ($pricing['localization']['exchangeRateProvider'] ?? 'frankfurter.app')) ?: 'frankfurter.app';
+        $pricing['localization']['autoLiveRates'] = (bool) ($pricing['localization']['autoLiveRates'] ?? true);
+        $pricing['localization']['lastSyncedAt'] = $pricing['localization']['lastSyncedAt'] ?? null;
+
+        $manualRates = is_array($pricing['localization']['manualRates'] ?? null) ? $pricing['localization']['manualRates'] : [];
+        $normalizedRates = [];
+        foreach ($manualRates as $currency => $rate) {
+            $currency = strtoupper(trim((string) $currency));
+            if ($currency === '' || strlen($currency) !== 3) {
+                continue;
+            }
+            $normalizedRates[$currency] = max(0.000001, (float) $rate);
+        }
+        $normalizedRates[$pricing['localization']['baseCurrency']] = 1.0;
+        $pricing['localization']['manualRates'] = $normalizedRates;
+
+        $pricing['formula']['volumetricDivisor'] = max(1, (int) ($pricing['formula']['volumetricDivisor'] ?? 5000));
+        $pricing['formula']['useChargeableWeight'] = (bool) ($pricing['formula']['useChargeableWeight'] ?? true);
+        $pricing['formula']['fuelSurchargePercent'] = max(0, (float) ($pricing['formula']['fuelSurchargePercent'] ?? 0));
+        $pricing['formula']['handlingFee'] = max(0, (float) ($pricing['formula']['handlingFee'] ?? 0));
+        $pricing['formula']['taxPercent'] = max(0, (float) ($pricing['formula']['taxPercent'] ?? 0));
+        $pricing['formula']['roundTo'] = max(0, min(4, (int) ($pricing['formula']['roundTo'] ?? 2)));
+
+        foreach (['domestic', 'logistic'] as $category) {
+            $items = is_array($pricing['categories'][$category] ?? null) ? $pricing['categories'][$category] : [];
+            $pricing['categories'][$category] = collect($items)
+                ->map(function ($item, $index) use ($category) {
+                    $row = is_array($item) ? $item : [];
+
+                    return [
+                        'id' => trim((string) ($row['id'] ?? "{$category}_tier_{$index}")) ?: "{$category}_tier_{$index}",
+                        'label' => trim((string) ($row['label'] ?? 'Tier')) ?: 'Tier',
+                        'slaDays' => max(1, (int) ($row['slaDays'] ?? 1)),
+                        'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
+                        'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
+                        'minPrice' => max(0, (float) ($row['minPrice'] ?? 0)),
+                        'priorityMultiplier' => max(0.1, (float) ($row['priorityMultiplier'] ?? 1)),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        return $pricing;
     }
 
     private function normalizeTeamSettings(array $team): array

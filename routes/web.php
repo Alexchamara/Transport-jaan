@@ -1177,18 +1177,22 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->name('courierService.settingsPage');
 
     Route::get('/courierService/settingsPage/{module}', [VendorCourierDashboardController::class, 'settings'])
-        ->where('module', 'business|operations|sla|tracking|notifications|integrations|team')
+        ->where('module', 'business|operations|sla|tracking|notifications|integrations|pricing|team')
         ->middleware('service.permission:courier.settings.view')
         ->name('courierService.settings.module');
 
     Route::get('/courierService/settingsPage/team/{topic}', [VendorCourierDashboardController::class, 'settingsTeamTopic'])
-        ->where('topic', 'policy-controls|user-defaults|api-access|role-studio')
+        ->where('topic', 'policy-controls|step-up-runtime|user-defaults|api-access|role-studio')
         ->middleware('service.permission:courier.settings.view')
         ->name('courierService.settings.team.topic');
 
     Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
         ->middleware('service.permission:courier.settings.update')
         ->name('courierService.settings.update');
+
+    Route::get('/courierService/settingsPage/pricing/exchange-rates', [VendorCourierDashboardController::class, 'pricingExchangeRates'])
+        ->middleware(['service.permission:courier.settings.view', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.exchange-rates');
 
     Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
         ->middleware('service.permission:courier.profile.view')

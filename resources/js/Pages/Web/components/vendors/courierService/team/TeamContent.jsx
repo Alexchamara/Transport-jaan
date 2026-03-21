@@ -79,6 +79,12 @@ const formatDateTime = (value) => {
     }).format(date);
 };
 
+const isStepUpRequiredPayload = (payload) => {
+    const code = String(payload?.code || payload?.error || "").toLowerCase();
+    const message = String(payload?.message || "").toLowerCase();
+    return code === "step_up_required" || message.includes("step-up authentication is required");
+};
+
 const TeamContent = () => {
     const props = usePage().props;
     const flash = props.flash || {};
@@ -94,6 +100,27 @@ const TeamContent = () => {
         closeConfirm,
         runConfirm,
     } = useCourierActionModal(flash, 3000);
+
+    const navigateToStepUpRuntime = () => {
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem("courier.stepUpGuidancePending", "1");
+        }
+
+        router.get(route("courierService.settings.team.topic", { topic: "step-up-runtime" }), {}, {
+            preserveScroll: false,
+            preserveState: false,
+        });
+    };
+
+    const handleStepUpOrFeedback = (payload, fallbackMessage) => {
+        if (isStepUpRequiredPayload(payload)) {
+            navigateToStepUpRuntime();
+            return true;
+        }
+
+        setFeedback({ type: "error", message: payload?.message || fallbackMessage });
+        return false;
+    };
 
     const [showCreate, setShowCreate] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
@@ -346,8 +373,8 @@ const TeamContent = () => {
                             blockedServiceKeys: [],
                         });
                     },
-                    onError: () => {
-                        setFeedback({ type: "error", message: "Failed to create team user." });
+                    onError: (payload) => {
+                        handleStepUpOrFeedback(payload, "Failed to create team user.");
                     },
                 });
             },
@@ -372,8 +399,8 @@ const TeamContent = () => {
                     preserveScroll: true,
                     preserveState: true,
                     onSuccess: () => setShowEdit(false),
-                    onError: () => {
-                        setFeedback({ type: "error", message: "Failed to update team access." });
+                    onError: (payload) => {
+                        handleStepUpOrFeedback(payload, "Failed to update team access.");
                     },
                 });
             },
@@ -393,14 +420,20 @@ const TeamContent = () => {
                 credentials: "same-origin",
             });
 
+            const data = await response.json().catch(() => ({}));
+
             if (!response.ok) {
-                throw new Error("Failed to load sessions");
+                if (handleStepUpOrFeedback(data, "Failed to load active sessions.")) {
+                    setShowSessions(false);
+                    return;
+                }
+
+                throw new Error(data?.message || "Failed to load sessions");
             }
 
-            const data = await response.json();
             setSessions(Array.isArray(data.sessions) ? data.sessions : []);
-        } catch {
-            setFeedback({ type: "error", message: "Failed to load active sessions." });
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to load active sessions." });
             setSessions([]);
         } finally {
             setLoadingSessions(false);
@@ -422,7 +455,9 @@ const TeamContent = () => {
                     onSuccess: () => {
                         setSessions((prev) => prev.filter((item) => item.id !== sessionId));
                     },
-                    onError: () => setFeedback({ type: "error", message: "Failed to revoke session." }),
+                    onError: (payload) => {
+                        handleStepUpOrFeedback(payload, "Failed to revoke session.");
+                    },
                 });
             },
         });
@@ -441,7 +476,9 @@ const TeamContent = () => {
                     preserveScroll: true,
                     preserveState: true,
                     onSuccess: () => setSessions([]),
-                    onError: () => setFeedback({ type: "error", message: "Failed to revoke all sessions." }),
+                    onError: (payload) => {
+                        handleStepUpOrFeedback(payload, "Failed to revoke all sessions.");
+                    },
                 });
             },
         });
@@ -455,7 +492,9 @@ const TeamContent = () => {
                 router.post(route("courierService.team.transfer-ownership", { newOwner: member.userId }), {}, {
                     preserveScroll: true,
                     preserveState: true,
-                    onError: () => setFeedback({ type: "error", message: "Ownership transfer failed." }),
+                    onError: (payload) => {
+                        handleStepUpOrFeedback(payload, "Ownership transfer failed.");
+                    },
                 });
             },
         });
@@ -499,7 +538,9 @@ const TeamContent = () => {
                     preserveScroll: true,
                     preserveState: true,
                     onSuccess: () => setBulkSelection([]),
-                    onError: () => setFeedback({ type: "error", message: "Bulk action failed." }),
+                    onError: (payload) => {
+                        handleStepUpOrFeedback(payload, "Bulk action failed.");
+                    },
                 });
             },
         });
@@ -523,13 +564,18 @@ const TeamContent = () => {
 
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {
+                if (handleStepUpOrFeedback(result, "Failed to load effective access preview.")) {
+                    setter(null);
+                    return;
+                }
+
                 throw new Error(result?.message || "Failed to load effective access preview.");
             }
 
             setter(result);
         } catch (error) {
             setter(null);
-            setFeedback({ type: "error", message: error?.message || "Failed to load effective access preview." });
+            handleStepUpOrFeedback({ message: error?.message }, "Failed to load effective access preview.");
         } finally {
             setPreviewBusy(false);
         }

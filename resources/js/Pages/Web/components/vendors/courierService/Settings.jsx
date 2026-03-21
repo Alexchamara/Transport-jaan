@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { BellRing, ChevronDown, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
+import { BadgeDollarSign, BellRing, ChevronDown, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
 import useCourierActionModal from "./common/useCourierActionModal";
 
@@ -45,6 +45,71 @@ const DEFAULT_SETTINGS = {
         apiKeyAlias: "CourierProdKey",
         retryWindowMinutes: 15,
         rotateKeysEveryDays: 90,
+    },
+    pricing: {
+        localization: {
+            baseCurrency: "LKR",
+            displayCurrency: "LKR",
+            locale: "en-LK",
+            exchangeRateProvider: "frankfurter.app",
+            autoLiveRates: true,
+            manualRates: {
+                LKR: 1,
+                USD: 0.00308,
+                EUR: 0.00284,
+            },
+            lastSyncedAt: null,
+        },
+        formula: {
+            volumetricDivisor: 5000,
+            useChargeableWeight: true,
+            fuelSurchargePercent: 0,
+            handlingFee: 0,
+            taxPercent: 0,
+            roundTo: 2,
+        },
+        categories: {
+            domestic: [
+                {
+                    id: "domestic_within_3_days",
+                    label: "Within 3 Days",
+                    slaDays: 3,
+                    basePrice: 250,
+                    perKgPrice: 35,
+                    minPrice: 250,
+                    priorityMultiplier: 1,
+                },
+                {
+                    id: "domestic_one_day",
+                    label: "One Day",
+                    slaDays: 1,
+                    basePrice: 1000,
+                    perKgPrice: 70,
+                    minPrice: 1000,
+                    priorityMultiplier: 1,
+                },
+            ],
+            logistic: [
+                {
+                    id: "logistic_standard",
+                    label: "Logistic Standard",
+                    slaDays: 4,
+                    basePrice: 1400,
+                    perKgPrice: 90,
+                    minPrice: 1400,
+                    priorityMultiplier: 1,
+                },
+                {
+                    id: "logistic_express",
+                    label: "Logistic Express",
+                    slaDays: 2,
+                    basePrice: 2200,
+                    perKgPrice: 130,
+                    minPrice: 2200,
+                    priorityMultiplier: 1.12,
+                },
+            ],
+        },
     },
     team: {
         dispatcherCanCancel: false,
@@ -224,11 +289,13 @@ const TAB_CONFIG = [
     { key: "tracking", label: "Tracking", icon: MapPinned },
     { key: "notifications", label: "Notifications", icon: BellRing },
     { key: "integrations", label: "Integrations", icon: KeyRound },
+    { key: "pricing", label: "Pricing", icon: BadgeDollarSign },
     { key: "team", label: "Team Access", icon: Users },
 ];
 
 const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "policy-controls", label: "Team Policy Controls" },
+    { key: "step-up-runtime", label: "Step-up Verification (Runtime)" },
     { key: "user-defaults", label: "Team User Creation Defaults" },
     { key: "api-access", label: "API and Service Access" },
     { key: "role-studio", label: "Role Studio" },
@@ -358,6 +425,7 @@ const Settings = () => {
     );
     const [settings, setSettings] = useState(() => {
         const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
+        const incomingPricing = incoming.pricing && typeof incoming.pricing === "object" ? incoming.pricing : {};
         const incomingTeamAccessControl = incomingTeam.teamAccessControl && typeof incomingTeam.teamAccessControl === "object"
             ? incomingTeam.teamAccessControl
             : {};
@@ -383,6 +451,32 @@ const Settings = () => {
         return {
             ...DEFAULT_SETTINGS,
             ...incoming,
+            pricing: {
+                ...DEFAULT_SETTINGS.pricing,
+                ...incomingPricing,
+                localization: {
+                    ...DEFAULT_SETTINGS.pricing.localization,
+                    ...(incomingPricing.localization && typeof incomingPricing.localization === "object" ? incomingPricing.localization : {}),
+                    manualRates: {
+                        ...DEFAULT_SETTINGS.pricing.localization.manualRates,
+                        ...(incomingPricing.localization?.manualRates && typeof incomingPricing.localization.manualRates === "object"
+                            ? incomingPricing.localization.manualRates
+                            : {}),
+                    },
+                },
+                formula: {
+                    ...DEFAULT_SETTINGS.pricing.formula,
+                    ...(incomingPricing.formula && typeof incomingPricing.formula === "object" ? incomingPricing.formula : {}),
+                },
+                categories: {
+                    domestic: Array.isArray(incomingPricing.categories?.domestic)
+                        ? incomingPricing.categories.domestic
+                        : DEFAULT_SETTINGS.pricing.categories.domestic,
+                    logistic: Array.isArray(incomingPricing.categories?.logistic)
+                        ? incomingPricing.categories.logistic
+                        : DEFAULT_SETTINGS.pricing.categories.logistic,
+                },
+            },
             team: {
                 ...DEFAULT_SETTINGS.team,
                 ...incomingTeam,
@@ -574,6 +668,14 @@ const Settings = () => {
         currentPassword: "",
         otpCode: "",
     });
+    const [activePricingCategory, setActivePricingCategory] = useState("domestic");
+    const [pricingPreviewInput, setPricingPreviewInput] = useState({
+        weightKg: 3,
+        lengthCm: 30,
+        widthCm: 20,
+        heightCm: 20,
+    });
+    const [liveRateBusy, setLiveRateBusy] = useState(false);
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
     const stepUpGuidanceRef = useRef(null);
     const stepUpGuidanceTimerRef = useRef(null);
@@ -596,6 +698,113 @@ const Settings = () => {
                 [key]: value,
             },
         }));
+    };
+
+    const updatePricingLocalization = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            pricing: {
+                ...(prev.pricing || DEFAULT_SETTINGS.pricing),
+                localization: {
+                    ...((prev.pricing && prev.pricing.localization) || DEFAULT_SETTINGS.pricing.localization),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updatePricingFormula = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            pricing: {
+                ...(prev.pricing || DEFAULT_SETTINGS.pricing),
+                formula: {
+                    ...((prev.pricing && prev.pricing.formula) || DEFAULT_SETTINGS.pricing.formula),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updatePricingTier = (categoryKey, index, key, value) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const categories = pricing.categories || DEFAULT_SETTINGS.pricing.categories;
+            const currentRows = Array.isArray(categories[categoryKey]) ? categories[categoryKey] : [];
+
+            const nextRows = currentRows.map((row, rowIndex) => {
+                if (rowIndex !== index) {
+                    return row;
+                }
+
+                return {
+                    ...row,
+                    [key]: value,
+                };
+            });
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    categories: {
+                        ...categories,
+                        [categoryKey]: nextRows,
+                    },
+                },
+            };
+        });
+    };
+
+    const addPricingTier = (categoryKey) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const categories = pricing.categories || DEFAULT_SETTINGS.pricing.categories;
+            const rows = Array.isArray(categories[categoryKey]) ? categories[categoryKey] : [];
+
+            const nextRow = {
+                id: `${categoryKey}_tier_${rows.length + 1}`,
+                label: "New Tier",
+                slaDays: 2,
+                basePrice: 0,
+                perKgPrice: 0,
+                minPrice: 0,
+                priorityMultiplier: 1,
+            };
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    categories: {
+                        ...categories,
+                        [categoryKey]: [...rows, nextRow],
+                    },
+                },
+            };
+        });
+    };
+
+    const removePricingTier = (categoryKey, index) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const categories = pricing.categories || DEFAULT_SETTINGS.pricing.categories;
+            const rows = Array.isArray(categories[categoryKey]) ? categories[categoryKey] : [];
+            if (rows.length <= 1) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    categories: {
+                        ...categories,
+                        [categoryKey]: rows.filter((_, rowIndex) => rowIndex !== index),
+                    },
+                },
+            };
+        });
     };
 
     const toggleTeamPolicyPanel = (panelKey) => {
@@ -638,6 +847,70 @@ const Settings = () => {
         return payload;
     };
 
+    const resolveExchangeRate = (baseCurrency, displayCurrency) => {
+        if (baseCurrency === displayCurrency) {
+            return 1;
+        }
+
+        const rates = settings?.pricing?.localization?.manualRates || {};
+        const value = Number(rates[displayCurrency] || 0);
+        if (!Number.isFinite(value) || value <= 0) {
+            return 1;
+        }
+
+        return value;
+    };
+
+    const formatMoney = (value, currencyCode, locale) => {
+        try {
+            return new Intl.NumberFormat(locale || "en-LK", {
+                style: "currency",
+                currency: currencyCode || "LKR",
+                maximumFractionDigits: 2,
+            }).format(Number(value || 0));
+        } catch {
+            return `${currencyCode || "LKR"} ${Number(value || 0).toFixed(2)}`;
+        }
+    };
+
+    const fetchLiveExchangeRates = async () => {
+        const baseCurrency = String(settings?.pricing?.localization?.baseCurrency || "LKR").toUpperCase();
+        const manualRates = settings?.pricing?.localization?.manualRates || {};
+        const targets = Object.keys(manualRates)
+            .map((code) => String(code || "").toUpperCase())
+            .filter((code) => code && code !== baseCurrency);
+
+        setLiveRateBusy(true);
+
+        try {
+            const payload = await requestJson("GET", `${route("courierService.settings.pricing.exchange-rates")}?base=${encodeURIComponent(baseCurrency)}${targets.length > 0 ? `&${targets.map((target) => `targets[]=${encodeURIComponent(target)}`).join("&")}` : ""}`);
+            const rates = payload?.rates && typeof payload.rates === "object" ? payload.rates : {};
+
+            setSettings((prev) => ({
+                ...prev,
+                pricing: {
+                    ...(prev.pricing || DEFAULT_SETTINGS.pricing),
+                    localization: {
+                        ...((prev.pricing && prev.pricing.localization) || DEFAULT_SETTINGS.pricing.localization),
+                        manualRates: {
+                            ...((prev.pricing && prev.pricing.localization && prev.pricing.localization.manualRates) || {}),
+                            ...rates,
+                            [baseCurrency]: 1,
+                        },
+                        lastSyncedAt: payload?.date || new Date().toISOString(),
+                        exchangeRateProvider: payload?.provider || "frankfurter.app",
+                    },
+                },
+            }));
+
+            setFeedback({ type: "success", message: "Live exchange rates synced successfully." });
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Unable to fetch live exchange rates right now." });
+        } finally {
+            setLiveRateBusy(false);
+        }
+    };
+
     const isStepUpRequiredError = (error) => {
         const code = String(error?.code || "").toLowerCase();
         const message = String(error?.message || "").toLowerCase();
@@ -645,14 +918,7 @@ const Settings = () => {
         return code === "step_up_required" || message.includes("step-up authentication is required");
     };
 
-    const openStepUpGuidance = (message) => {
-        setActiveTeamAccessTopic("policy-controls");
-        setTeamPolicyPanels((prev) => ({ ...prev, basic: true }));
-        setFeedback({
-            type: "error",
-            message: message || "Step-up authentication is required before this action. Complete Step-up Verification (Runtime), then try again.",
-        });
-
+    const highlightStepUpGuidance = () => {
         if (stepUpGuidanceTimerRef.current) {
             window.clearTimeout(stepUpGuidanceTimerRef.current);
         }
@@ -672,6 +938,16 @@ const Settings = () => {
         });
     };
 
+    const openStepUpGuidance = (message) => {
+        navigateTeamAccessTopic("step-up-runtime", { syncUrl: activeTeamAccessTopic !== "step-up-runtime" });
+        setFeedback({
+            type: "error",
+            message: message || "Step-up authentication is required before this action. Complete Step-up Verification (Runtime), then try again.",
+        });
+
+        highlightStepUpGuidance();
+    };
+
     const handleActionError = (error, fallbackMessage) => {
         if (isStepUpRequiredError(error)) {
             openStepUpGuidance(error?.message);
@@ -685,6 +961,19 @@ const Settings = () => {
         if (stepUpGuidanceTimerRef.current) {
             window.clearTimeout(stepUpGuidanceTimerRef.current);
         }
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (window.sessionStorage.getItem("courier.stepUpGuidancePending") !== "1") {
+            return;
+        }
+
+        window.sessionStorage.removeItem("courier.stepUpGuidancePending");
+        openStepUpGuidance("Step-up authentication is required before this action. Complete verification in this section, then retry.");
     }, []);
 
     const refreshRoleStudioRoles = async () => {
@@ -1672,6 +1961,16 @@ const Settings = () => {
         }
     };
 
+    const confirmRequestStepUpCode = () => {
+        openConfirm({
+            type: "info",
+            title: "Request OTP Code",
+            message: "Send a new OTP code to your registered email now?",
+            confirmText: "Send OTP",
+            onConfirm: requestStepUpCode,
+        });
+    };
+
     const verifyStepUp = async () => {
         if (!String(stepUpForm.currentPassword || "").trim() || !String(stepUpForm.otpCode || "").trim()) {
             setFeedback({ type: "error", message: "Current password and OTP code are required." });
@@ -1699,9 +1998,76 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Current device trusted." });
             router.reload({ only: ["teamSessionSecurityStatus"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to trust current device." });
+            handleActionError(error, "Failed to trust current device.");
         }
     };
+
+    const renderStepUpRuntimeSection = () => (
+        <div
+            ref={stepUpGuidanceRef}
+            className={`border rounded-[8px] p-3 transition-all duration-300 ${stepUpGuidanceHighlight
+                ? "border-[#0955AC] ring-2 ring-[#93C5FD] bg-[#EFF6FF]"
+                : "border-[#E5E7EB] bg-[#F8FAFC]"
+            }`}
+        >
+            <p className="text-[13px] font-[700] text-[#111827] mb-1">Step-up Verification (Runtime)</p>
+            <p className="text-[11px] text-[#6B7280] mb-2">Risky actions are blocked until step-up is verified with password + one-time code.</p>
+            {stepUpGuidanceHighlight && (
+                <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <input
+                    type="password"
+                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                    placeholder="Current password"
+                    value={stepUpForm.currentPassword}
+                    onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                />
+                <input
+                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                    placeholder="OTP code"
+                    value={stepUpForm.otpCode}
+                    onChange={(e) => setStepUpForm((prev) => ({ ...prev, otpCode: e.target.value }))}
+                />
+                <button
+                    type="button"
+                    className="h-[34px] rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                    onClick={confirmRequestStepUpCode}
+                >
+                    Request OTP
+                </button>
+                <button
+                    type="button"
+                    className="h-[34px] rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700]"
+                    onClick={verifyStepUp}
+                >
+                    Verify Step-up
+                </button>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[#475569]">
+                <span>Step-up: {sessionSecurityStatus?.stepUpVerifiedAt || "Not verified"}</span>
+                <span>2FA: {sessionSecurityStatus?.twoFactorVerifiedAt || "Not verified"}</span>
+                <span>Anomaly Flag: {sessionSecurityStatus?.anomalyDetectedAt || "None"}</span>
+                <button
+                    type="button"
+                    className="h-[28px] px-2 rounded-[6px] border border-[#D1D5DB] text-[10px] font-[700]"
+                    onClick={trustThisDevice}
+                >
+                    Trust This Device
+                </button>
+            </div>
+            <div className="mt-2 space-y-1">
+                {(sessionSecurityStatus?.trustedDevices || []).map((device) => (
+                    <p key={`td-${device.id}`} className="text-[11px] text-[#6B7280]">
+                        {(device.label || "Trusted Device")} • Last IP: {(device.lastIpAddress || "-")} • Expires: {(device.expiresAt || "-")}
+                    </p>
+                ))}
+                {(!Array.isArray(sessionSecurityStatus?.trustedDevices) || sessionSecurityStatus.trustedDevices.length === 0) && (
+                    <p className="text-[11px] text-[#6B7280]">No trusted devices recorded for current actor.</p>
+                )}
+            </div>
+        </div>
+    );
 
     const certifyAccessReview = async (reviewId, keepAccess) => {
         setTemporaryAccessActionBusyId(`access_review_${reviewId}_${keepAccess ? "keep" : "revoke"}`);
@@ -2141,12 +2507,19 @@ const Settings = () => {
         }));
     };
 
-    const navigateTeamAccessTopic = (topicKey) => {
+    const navigateTeamAccessTopic = (topicKey, options = {}) => {
+        const { syncUrl = true } = options;
+
         if (!TEAM_ACCESS_TOPIC_CONFIG.some((topic) => topic.key === topicKey)) {
             return;
         }
 
         setActiveTeamAccessTopic(topicKey);
+
+        if (!syncUrl) {
+            return;
+        }
+
         router.get(route("courierService.settings.team.topic", { topic: topicKey }), {}, {
             preserveScroll: true,
             preserveState: true,
@@ -2361,6 +2734,47 @@ const Settings = () => {
     };
 
     const saveButtonLabel = TAB_CONFIG.find((tab) => tab.key === activeTab)?.label;
+    const pricingLocalization = settings?.pricing?.localization || DEFAULT_SETTINGS.pricing.localization;
+    const pricingFormula = settings?.pricing?.formula || DEFAULT_SETTINGS.pricing.formula;
+    const activePricingRows = Array.isArray(settings?.pricing?.categories?.[activePricingCategory])
+        ? settings.pricing.categories[activePricingCategory]
+        : [];
+    const pricingPreviewRows = activePricingRows.map((row) => {
+        const actualWeight = Math.max(0.1, Number(pricingPreviewInput.weightKg || 0));
+        const length = Math.max(1, Number(pricingPreviewInput.lengthCm || 0));
+        const width = Math.max(1, Number(pricingPreviewInput.widthCm || 0));
+        const height = Math.max(1, Number(pricingPreviewInput.heightCm || 0));
+        const divisor = Math.max(1, Number(pricingFormula.volumetricDivisor || 5000));
+        const volumetricWeight = (length * width * height) / divisor;
+        const chargeableWeight = pricingFormula.useChargeableWeight
+            ? Math.max(actualWeight, volumetricWeight)
+            : actualWeight;
+
+        const roundedChargeable = Number(chargeableWeight.toFixed(3));
+        const basePrice = Math.max(0, Number(row?.basePrice || 0));
+        const perKgPrice = Math.max(0, Number(row?.perKgPrice || 0));
+        const minPrice = Math.max(0, Number(row?.minPrice || 0));
+        const priorityMultiplier = Math.max(0.1, Number(row?.priorityMultiplier || 1));
+        const computedBase = basePrice + (Math.max(roundedChargeable - 1, 0) * perKgPrice);
+        const tierPrice = Math.max(minPrice, computedBase) * priorityMultiplier;
+        const fuelFee = tierPrice * (Math.max(0, Number(pricingFormula.fuelSurchargePercent || 0)) / 100);
+        const handlingFee = Math.max(0, Number(pricingFormula.handlingFee || 0));
+        const subtotal = tierPrice + fuelFee + handlingFee;
+        const taxFee = subtotal * (Math.max(0, Number(pricingFormula.taxPercent || 0)) / 100);
+        const totalBaseCurrency = subtotal + taxFee;
+        const conversionRate = resolveExchangeRate(pricingLocalization.baseCurrency, pricingLocalization.displayCurrency);
+        const totalDisplayCurrency = totalBaseCurrency * conversionRate;
+        const roundTo = Math.max(0, Math.min(4, Number(pricingFormula.roundTo || 2)));
+
+        return {
+            id: String(row?.id || ""),
+            label: String(row?.label || "Tier"),
+            slaDays: Number(row?.slaDays || 1),
+            chargeableWeight: roundedChargeable,
+            totalBaseCurrency: Number(totalBaseCurrency.toFixed(roundTo)),
+            totalDisplayCurrency: Number(totalDisplayCurrency.toFixed(roundTo)),
+        };
+    });
 
     if (!settings || typeof settings !== "object") {
         return (
@@ -2494,6 +2908,198 @@ const Settings = () => {
             );
         }
 
+        if (activeTab === "pricing") {
+            return (
+                <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards, localized currency display, and formula controls for correct quote calculations.">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Currency Localization</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <Field label="Base Currency">
+                                    <input
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={String(pricingLocalization.baseCurrency || "LKR")}
+                                        onChange={(e) => updatePricingLocalization("baseCurrency", String(e.target.value || "").toUpperCase().slice(0, 3))}
+                                    />
+                                </Field>
+                                <Field label="Display Currency">
+                                    <input
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={String(pricingLocalization.displayCurrency || "LKR")}
+                                        onChange={(e) => updatePricingLocalization("displayCurrency", String(e.target.value || "").toUpperCase().slice(0, 3))}
+                                    />
+                                </Field>
+                                <Field label="Locale">
+                                    <input
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={String(pricingLocalization.locale || "en-LK")}
+                                        onChange={(e) => updatePricingLocalization("locale", e.target.value)}
+                                        placeholder="en-LK"
+                                    />
+                                </Field>
+                                <Field label="Display Exchange Rate">
+                                    <input
+                                        type="number"
+                                        min={0.000001}
+                                        step="0.000001"
+                                        className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={Number((pricingLocalization.manualRates || {})[String(pricingLocalization.displayCurrency || "LKR").toUpperCase()] || 1)}
+                                        onChange={(e) => {
+                                            const displayCurrency = String(pricingLocalization.displayCurrency || "LKR").toUpperCase();
+                                            const nextRate = Math.max(0.000001, Number(e.target.value || 1));
+                                            const currentManual = pricingLocalization.manualRates || {};
+                                            updatePricingLocalization("manualRates", {
+                                                ...currentManual,
+                                                [String(pricingLocalization.baseCurrency || "LKR").toUpperCase()]: 1,
+                                                [displayCurrency]: nextRate,
+                                            });
+                                        }}
+                                    />
+                                </Field>
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    disabled={liveRateBusy}
+                                    className="h-[32px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700] disabled:opacity-50"
+                                    onClick={fetchLiveExchangeRates}
+                                >
+                                    {liveRateBusy ? "Syncing..." : "Sync Live Rates"}
+                                </button>
+                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(pricingLocalization.autoLiveRates)}
+                                        onChange={(e) => updatePricingLocalization("autoLiveRates", e.target.checked)}
+                                    />
+                                    Enable live-rate strategy
+                                </label>
+                                <span className="text-[11px] text-[#64748B]">
+                                    Provider: {pricingLocalization.exchangeRateProvider || "frankfurter.app"}
+                                </span>
+                                <span className="text-[11px] text-[#64748B]">
+                                    Last Sync: {pricingLocalization.lastSyncedAt || "Not synced"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Controls</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Field label="Volumetric Divisor">
+                                    <input type="number" min={1} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.volumetricDivisor || 5000)} onChange={(e) => updatePricingFormula("volumetricDivisor", Number(e.target.value || 5000))} />
+                                </Field>
+                                <Field label="Fuel Surcharge %">
+                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.fuelSurchargePercent || 0)} onChange={(e) => updatePricingFormula("fuelSurchargePercent", Number(e.target.value || 0))} />
+                                </Field>
+                                <Field label="Handling Fee">
+                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.handlingFee || 0)} onChange={(e) => updatePricingFormula("handlingFee", Number(e.target.value || 0))} />
+                                </Field>
+                                <Field label="Tax %">
+                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.taxPercent || 0)} onChange={(e) => updatePricingFormula("taxPercent", Number(e.target.value || 0))} />
+                                </Field>
+                            </div>
+                            <div className="mt-2 grid grid-cols-2 gap-2">
+                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(pricingFormula.useChargeableWeight)}
+                                        onChange={(e) => updatePricingFormula("useChargeableWeight", e.target.checked)}
+                                    />
+                                    Use chargeable weight
+                                </label>
+                                <Field label="Round Decimals">
+                                    <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula("roundTo", Number(e.target.value || 2))} />
+                                </Field>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[13px] font-[700] text-[#111827]">Rate Cards</p>
+                            <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
+                                {[
+                                    { key: "domestic", label: "Domestic" },
+                                    { key: "logistic", label: "Logistic" },
+                                ].map((item) => (
+                                    <button
+                                        key={item.key}
+                                        type="button"
+                                        className={`h-[28px] px-3 rounded-[6px] text-[11px] font-[700] ${activePricingCategory === item.key ? "bg-[#0955AC] text-white" : "text-[#475569]"}`}
+                                        onClick={() => setActivePricingCategory(item.key)}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="mt-2 overflow-x-auto">
+                            <table className="w-full min-w-[900px] text-[12px]">
+                                <thead>
+                                    <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
+                                        <th className="px-2 py-2">Label</th>
+                                        <th className="px-2 py-2">SLA Days</th>
+                                        <th className="px-2 py-2">Base Price</th>
+                                        <th className="px-2 py-2">Per Kg</th>
+                                        <th className="px-2 py-2">Min Price</th>
+                                        <th className="px-2 py-2">Priority Mult.</th>
+                                        <th className="px-2 py-2">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activePricingRows.map((row, index) => (
+                                        <tr key={`${activePricingCategory}-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
+                                            <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-2">
+                                                <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="mt-2">
+                            <button type="button" className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]" onClick={() => addPricingTier(activePricingCategory)}>
+                                Add Tier
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                        <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Validation Preview</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <Field label="Weight (kg)"><input type="number" min={0.1} step="0.1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.weightKg || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, weightKg: Number(e.target.value || 0) }))} /></Field>
+                            <Field label="Length (cm)"><input type="number" min={1} className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.lengthCm || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, lengthCm: Number(e.target.value || 0) }))} /></Field>
+                            <Field label="Width (cm)"><input type="number" min={1} className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.widthCm || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, widthCm: Number(e.target.value || 0) }))} /></Field>
+                            <Field label="Height (cm)"><input type="number" min={1} className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.heightCm || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, heightCm: Number(e.target.value || 0) }))} /></Field>
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                            {pricingPreviewRows.map((row) => (
+                                <div key={`preview-${row.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                    <p className="text-[12px] font-[700] text-[#111827]">{row.label} ({row.slaDays} day{row.slaDays > 1 ? "s" : ""})</p>
+                                    <p className="text-[11px] text-[#475569] mt-1">Chargeable Weight: {row.chargeableWeight} kg</p>
+                                    <p className="text-[11px] text-[#475569] mt-1">Base Currency Total: {formatMoney(row.totalBaseCurrency, pricingLocalization.baseCurrency, pricingLocalization.locale)}</p>
+                                    <p className="text-[12px] font-[700] text-[#0F172A] mt-1">Display Total: {formatMoney(row.totalDisplayCurrency, pricingLocalization.displayCurrency, pricingLocalization.locale)}</p>
+                                </div>
+                            ))}
+                            {pricingPreviewRows.length === 0 && (
+                                <p className="text-[11px] text-[#6B7280]">No pricing tiers configured for this category.</p>
+                            )}
+                        </div>
+                    </div>
+                </SectionCard>
+            );
+        }
+
         return (
             <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
                 <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
@@ -2508,7 +3114,7 @@ const Settings = () => {
                                     activeTeamAccessTopic === topic.key
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F4F6] text-[#374151]"
-                                }`}
+                                } ${topic.key === "step-up-runtime" && stepUpGuidanceHighlight ? "ring-2 ring-[#93C5FD]" : ""}`}
                             >
                                 <span>{topic.label}</span>
                             </button>
@@ -2947,69 +3553,16 @@ const Settings = () => {
                                                 </div>
                                             </div>
 
-                                            <div
-                                                ref={stepUpGuidanceRef}
-                                                className={`mt-3 border rounded-[8px] p-2 transition-all duration-300 ${stepUpGuidanceHighlight
-                                                    ? "border-[#0955AC] ring-2 ring-[#93C5FD] bg-[#EFF6FF]"
-                                                    : "border-[#E5E7EB] bg-[#F8FAFC]"
-                                                }`}
-                                            >
-                                                <p className="text-[12px] font-[700] text-[#111827] mb-1">Step-up Verification (Runtime)</p>
-                                                <p className="text-[11px] text-[#6B7280] mb-2">Risky actions are blocked until step-up is verified with password + one-time code.</p>
-                                                {stepUpGuidanceHighlight && (
-                                                    <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
-                                                )}
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                                    <input
-                                                        type="password"
-                                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        placeholder="Current password"
-                                                        value={stepUpForm.currentPassword}
-                                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                                                    />
-                                                    <input
-                                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        placeholder="OTP code"
-                                                        value={stepUpForm.otpCode}
-                                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, otpCode: e.target.value }))}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        className="h-[34px] rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                                                        onClick={requestStepUpCode}
-                                                    >
-                                                        Request OTP
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="h-[34px] rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700]"
-                                                        onClick={verifyStepUp}
-                                                    >
-                                                        Verify Step-up
-                                                    </button>
-                                                </div>
-                                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[#475569]">
-                                                    <span>Step-up: {sessionSecurityStatus?.stepUpVerifiedAt || "Not verified"}</span>
-                                                    <span>2FA: {sessionSecurityStatus?.twoFactorVerifiedAt || "Not verified"}</span>
-                                                    <span>Anomaly Flag: {sessionSecurityStatus?.anomalyDetectedAt || "None"}</span>
-                                                    <button
-                                                        type="button"
-                                                        className="h-[28px] px-2 rounded-[6px] border border-[#D1D5DB] text-[10px] font-[700]"
-                                                        onClick={trustThisDevice}
-                                                    >
-                                                        Trust This Device
-                                                    </button>
-                                                </div>
-                                                <div className="mt-2 space-y-1">
-                                                    {(sessionSecurityStatus?.trustedDevices || []).map((device) => (
-                                                        <p key={`td-${device.id}`} className="text-[11px] text-[#6B7280]">
-                                                            {(device.label || "Trusted Device")} • Last IP: {(device.lastIpAddress || "-")} • Expires: {(device.expiresAt || "-")}
-                                                        </p>
-                                                    ))}
-                                                    {(!Array.isArray(sessionSecurityStatus?.trustedDevices) || sessionSecurityStatus.trustedDevices.length === 0) && (
-                                                        <p className="text-[11px] text-[#6B7280]">No trusted devices recorded for current actor.</p>
-                                                    )}
-                                                </div>
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                                <p className="text-[12px] font-[700] text-[#111827]">Step-up Verification (Runtime)</p>
+                                                <p className="text-[11px] text-[#6B7280] mt-1">Runtime step-up challenge has moved to a dedicated Team Access Topic for clearer operator guidance.</p>
+                                                <button
+                                                    type="button"
+                                                    className="mt-2 h-[30px] px-3 rounded-[6px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                                    onClick={() => navigateTeamAccessTopic("step-up-runtime")}
+                                                >
+                                                    Open Step-up Verification Topic
+                                                </button>
                                             </div>
 
                                             <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
@@ -3914,6 +4467,16 @@ const Settings = () => {
                                 </div>
                                 </>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTeamAccessTopic === "step-up-runtime" && (
+                        <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                            <p className="text-[15px] font-[700] text-[#111827]">Step-up Verification (Runtime)</p>
+                            <p className="text-[12px] text-[#6B7280] mt-1">When you get a popup saying step-up is required, complete verification here and retry your previous action.</p>
+                            <div className="mt-3">
+                                {renderStepUpRuntimeSection()}
                             </div>
                         </div>
                     )}
