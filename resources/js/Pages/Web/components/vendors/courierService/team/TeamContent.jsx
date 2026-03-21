@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { KeyRound, Search, Shield, UserPlus, Users } from "lucide-react";
 import CourierFeedbackModal from "../common/CourierFeedbackModal";
@@ -107,8 +107,12 @@ const TeamContent = () => {
     const [memberStatus, setMemberStatus] = useState(team.filters?.memberStatus || "");
     const [activityAction, setActivityAction] = useState(team.filters?.activityAction || "");
     const [bulkSelection, setBulkSelection] = useState([]);
+    const [bulkRoleName, setBulkRoleName] = useState(team.roleOptions?.[0] || "courier_dispatcher");
     const [showActivityDetail, setShowActivityDetail] = useState(false);
     const [activeActivity, setActiveActivity] = useState(null);
+    const [createPreview, setCreatePreview] = useState(null);
+    const [editPreview, setEditPreview] = useState(null);
+    const [previewBusy, setPreviewBusy] = useState(false);
 
     const [createForm, setCreateForm] = useState({
         name: "",
@@ -145,6 +149,14 @@ const TeamContent = () => {
         status: "active",
         directPermissions: [],
         blockedServiceKeys: [],
+    });
+    const [createPreviewContext, setCreatePreviewContext] = useState({
+        regionZone: "",
+        hubBranch: "",
+    });
+    const [editPreviewContext, setEditPreviewContext] = useState({
+        regionZone: "",
+        hubBranch: "",
     });
 
     const stats = useMemo(() => ({
@@ -223,6 +235,40 @@ const TeamContent = () => {
         [selectedEditRolePermissions, editForm.directPermissions],
     );
 
+    useEffect(() => {
+        if (!showCreate || !createForm.role) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            fetchEffectivePreview({
+                roleName: createForm.role,
+                explicitGrants: effectiveCreatePermissions,
+                regionZone: createPreviewContext.regionZone,
+                hubBranch: createPreviewContext.hubBranch,
+            }, setCreatePreview);
+        }, 180);
+
+        return () => window.clearTimeout(timer);
+    }, [showCreate, createForm.role, effectiveCreatePermissions, createPreviewContext.regionZone, createPreviewContext.hubBranch]);
+
+    useEffect(() => {
+        if (!showEdit || !editForm.role) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            fetchEffectivePreview({
+                roleName: editForm.role,
+                explicitGrants: effectiveEditPermissions,
+                regionZone: editPreviewContext.regionZone,
+                hubBranch: editPreviewContext.hubBranch,
+            }, setEditPreview);
+        }, 180);
+
+        return () => window.clearTimeout(timer);
+    }, [showEdit, editForm.role, effectiveEditPermissions, editPreviewContext.regionZone, editPreviewContext.hubBranch]);
+
     const openActivityDetail = (activity) => {
         setActiveActivity(activity);
         setShowActivityDetail(true);
@@ -266,10 +312,17 @@ const TeamContent = () => {
             directPermissions: Array.isArray(member.directPermissions) ? member.directPermissions : [],
             blockedServiceKeys: Array.isArray(member.blockedServiceKeys) ? member.blockedServiceKeys : [],
         });
+        setEditPreviewContext({ regionZone: "", hubBranch: "" });
+        setEditPreview(null);
         setShowEdit(true);
     };
 
     const createUser = () => {
+        if ((createPreview?.summary?.deniedCount || 0) > 0) {
+            setFeedback({ type: "error", message: createPreview?.denied?.[0]?.explanation || "Some permissions are denied by active policy. Resolve before creating user." });
+            return;
+        }
+
         openConfirm({
             title: "Create Team User",
             message: "Create this team user with selected role and permissions?",
@@ -303,6 +356,11 @@ const TeamContent = () => {
 
     const saveAccess = () => {
         if (!activeMember?.userId) {
+            return;
+        }
+
+        if ((editPreview?.summary?.deniedCount || 0) > 0) {
+            setFeedback({ type: "error", message: editPreview?.denied?.[0]?.explanation || "Some permissions are denied by active policy. Resolve before saving." });
             return;
         }
 
@@ -416,10 +474,17 @@ const TeamContent = () => {
             return;
         }
 
+        if (action === "assign_role" && !bulkRoleName) {
+            setFeedback({ type: "warning", message: "Select a role before running bulk role assignment." });
+            return;
+        }
+
         const labels = {
             suspend: "Suspend Users",
             activate: "Activate Users",
             revoke_all_sessions: "Revoke All Sessions",
+            assign_role: "Assign Role",
+            deprovision: "Deprovision Users",
         };
 
         openConfirm({
@@ -429,6 +494,7 @@ const TeamContent = () => {
                 router.post(route("courierService.team.bulk"), {
                     userIds: bulkSelection,
                     action,
+                    roleName: action === "assign_role" ? bulkRoleName : null,
                 }, {
                     preserveScroll: true,
                     preserveState: true,
@@ -437,6 +503,36 @@ const TeamContent = () => {
                 });
             },
         });
+    };
+
+    const fetchEffectivePreview = async (payload, setter) => {
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+            setPreviewBusy(true);
+
+            const response = await fetch(route("courierService.team.effective-access-preview"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result?.message || "Failed to load effective access preview.");
+            }
+
+            setter(result);
+        } catch (error) {
+            setter(null);
+            setFeedback({ type: "error", message: error?.message || "Failed to load effective access preview." });
+        } finally {
+            setPreviewBusy(false);
+        }
     };
 
     return (
@@ -468,7 +564,16 @@ const TeamContent = () => {
                         Manage courier team users, ownership, direct permissions, service blocking, and active sessions.
                     </p>
                 </div>
-                <button type="button" disabled={!canCreateUser} onClick={() => setShowCreate(true)} className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] inline-flex items-center gap-2 disabled:opacity-50">
+                <button
+                    type="button"
+                    disabled={!canCreateUser}
+                    onClick={() => {
+                        setCreatePreview(null);
+                        setCreatePreviewContext({ regionZone: "", hubBranch: "" });
+                        setShowCreate(true);
+                    }}
+                    className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] inline-flex items-center gap-2 disabled:opacity-50"
+                >
                     <UserPlus size={16} />
                     Add Team User
                 </button>
@@ -528,6 +633,21 @@ const TeamContent = () => {
                         <button type="button" onClick={() => runBulkAction("suspend")} className="h-[32px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700]">Suspend Selected</button>
                         <button type="button" onClick={() => runBulkAction("activate")} className="h-[32px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700]">Activate Selected</button>
                         <button type="button" onClick={() => runBulkAction("revoke_all_sessions")} className="h-[32px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700]">Revoke Sessions (Selected)</button>
+                        {canAssignRole && canAssignPermissions && (
+                            <>
+                                <select
+                                    value={bulkRoleName}
+                                    onChange={(e) => setBulkRoleName(e.target.value)}
+                                    className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                >
+                                    {(team.roleOptions || []).map((roleName) => (
+                                        <option key={`bulk-role-${roleName}`} value={roleName}>{titleCase(roleName)}</option>
+                                    ))}
+                                </select>
+                                <button type="button" onClick={() => runBulkAction("assign_role")} className="h-[32px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[12px] font-[700]">Assign Role (Selected)</button>
+                            </>
+                        )}
+                        <button type="button" onClick={() => runBulkAction("deprovision")} className="h-[32px] px-3 rounded-[8px] border border-[#DC2626] text-[#DC2626] text-[12px] font-[700]">Deprovision Selected</button>
                         <p className="text-[12px] text-[#6B7280]">Selected: {bulkSelection.length}</p>
                     </div>
                 )}
@@ -699,12 +819,45 @@ const TeamContent = () => {
                             <div className="mb-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-[#F9FAFB]">
                                 <p className="text-[12px] font-[700] text-[#374151]">New-User Wizard Preview</p>
                                 <p className="text-[11px] text-[#6B7280] mt-1">Role: {titleCase(createForm.role || "-")}</p>
-                                <p className="text-[11px] text-[#6B7280] mt-1">Effective permissions after role defaults, bundle, and direct grants: {effectiveCreatePermissions.length}</p>
+                                <p className="text-[11px] text-[#6B7280] mt-1">Effective permissions after role + defaults + explicit grants + deny rules: {createPreview?.summary?.allowedCount ?? effectiveCreatePermissions.length}</p>
                                 <p className="text-[11px] text-[#6B7280] mt-1">Data scope: {titleCase(effectiveCreateScope.scope)}</p>
                                 <p className="text-[11px] text-[#6B7280] mt-1">Region zones: {effectiveCreateScope.regionZones.length > 0 ? effectiveCreateScope.regionZones.join(", ") : "Any"}</p>
                                 <p className="text-[11px] text-[#6B7280] mt-1">Hub branches: {effectiveCreateScope.hubBranches.length > 0 ? effectiveCreateScope.hubBranches.join(", ") : "Any"}</p>
                                 {selectedProvisioningBundle && (
                                     <p className="text-[11px] text-[#0F3D8A] mt-1">Bundle: {selectedProvisioningBundle.label}</p>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                                    <select
+                                        className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                        value={createPreviewContext.regionZone}
+                                        onChange={(e) => setCreatePreviewContext((prev) => ({ ...prev, regionZone: e.target.value }))}
+                                    >
+                                        <option value="">Preview Region: Any</option>
+                                        {(teamAccessControlForm.scopeOptions?.availableZones || []).map((zone) => (
+                                            <option key={`preview-region-${zone}`} value={zone}>{zone}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                        value={createPreviewContext.hubBranch}
+                                        onChange={(e) => setCreatePreviewContext((prev) => ({ ...prev, hubBranch: e.target.value }))}
+                                    >
+                                        <option value="">Preview Hub: Any</option>
+                                        {(teamAccessControlForm.scopeOptions?.availableHubs || []).map((hub) => (
+                                            <option key={`preview-hub-${hub}`} value={hub}>{hub}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {previewBusy && <p className="text-[11px] text-[#6B7280] mt-1">Calculating effective access preview...</p>}
+                                {(createPreview?.denied || []).length > 0 && (
+                                    <div className="mt-2 border border-[#FECACA] bg-[#FEF2F2] rounded-[8px] p-2">
+                                        <p className="text-[11px] font-[700] text-[#991B1B]">Why denied</p>
+                                        {(createPreview.denied || []).slice(0, 3).map((entry, idx) => (
+                                            <p key={`create-denied-${idx}`} className="text-[11px] text-[#7F1D1D] mt-1">{entry.explanation}</p>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
 
@@ -781,7 +934,40 @@ const TeamContent = () => {
                         <div className="mb-3 border border-[#E5E7EB] rounded-[8px] p-3">
                             <p className="text-[12px] font-[700] text-[#374151]">Role Preset Preview</p>
                             <p className="text-[11px] text-[#6B7280] mt-1">{editForm.role || "-"} gives {selectedEditRolePermissions.length} permissions by default.</p>
-                            <p className="text-[11px] text-[#6B7280] mt-1">Effective permissions after direct grants: {effectiveEditPermissions.length}</p>
+                            <p className="text-[11px] text-[#6B7280] mt-1">Effective permissions after role + defaults + explicit grants + deny rules: {editPreview?.summary?.allowedCount ?? effectiveEditPermissions.length}</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                                <select
+                                    className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                    value={editPreviewContext.regionZone}
+                                    onChange={(e) => setEditPreviewContext((prev) => ({ ...prev, regionZone: e.target.value }))}
+                                >
+                                    <option value="">Preview Region: Any</option>
+                                    {(teamAccessControlForm.scopeOptions?.availableZones || []).map((zone) => (
+                                        <option key={`edit-preview-region-${zone}`} value={zone}>{zone}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                    value={editPreviewContext.hubBranch}
+                                    onChange={(e) => setEditPreviewContext((prev) => ({ ...prev, hubBranch: e.target.value }))}
+                                >
+                                    <option value="">Preview Hub: Any</option>
+                                    {(teamAccessControlForm.scopeOptions?.availableHubs || []).map((hub) => (
+                                        <option key={`edit-preview-hub-${hub}`} value={hub}>{hub}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {previewBusy && <p className="text-[11px] text-[#6B7280] mt-1">Calculating effective access preview...</p>}
+                            {(editPreview?.denied || []).length > 0 && (
+                                <div className="mt-2 border border-[#FECACA] bg-[#FEF2F2] rounded-[8px] p-2">
+                                    <p className="text-[11px] font-[700] text-[#991B1B]">Why denied</p>
+                                    {(editPreview.denied || []).slice(0, 3).map((entry, idx) => (
+                                        <p key={`edit-denied-${idx}`} className="text-[11px] text-[#7F1D1D] mt-1">{entry.explanation}</p>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="mb-3">

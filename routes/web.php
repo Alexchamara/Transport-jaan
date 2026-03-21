@@ -1214,6 +1214,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:20,1'])
         ->name('courierService.team.access-control-settings.update');
 
+    Route::post('/courierService/team/effective-access-preview', [CourierTeamController::class, 'previewEffectiveAccess'])
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:30,1'])
+        ->name('courierService.team.effective-access-preview');
+
     Route::get('/courierService/team/roles', [CourierTeamController::class, 'listRoles'])
         ->middleware('service.permission:courier.team.assign_role')
         ->name('courierService.team.roles.index');

@@ -19,6 +19,7 @@ use App\Services\Courier\CourierApiServiceAccessService;
 use App\Services\Courier\CourierBreakGlassAlertService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTeamSecurityAuditService;
+use App\Services\Courier\CourierTeamEffectiveAccessService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
@@ -55,6 +56,7 @@ class CourierTeamController extends Controller
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['updateTeamAccessControlSettings']);
         $this->middleware('service.permission:courier.team.assign_role')->only(['listRoles', 'storeRole', 'storeRoleFromTemplate', 'cloneRole', 'updateRole']);
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['storeRole', 'storeRoleFromTemplate', 'cloneRole', 'updateRole', 'roleVersions']);
+        $this->middleware('service.permission:courier.team.assign_permissions')->only(['previewEffectiveAccess']);
         $this->middleware('service.permission:courier.team.sessions.view')->only(['listSessions']);
         $this->middleware('service.permission:courier.team.sessions.revoke')->only(['revokeSession', 'revokeAllSessions']);
         $this->middleware('service.permission:courier.team.transfer_ownership')->only(['transferOwnership']);
@@ -296,7 +298,7 @@ class CourierTeamController extends Controller
             ->map(fn ($perm) => (string) $perm)
             ->values();
 
-        $resolvedDirectPermissions = $canAssignPermissions
+        $rawRequestedDirectPermissions = $canAssignPermissions
             ? $requestedDirectPermissions
                 ->merge($bundleDefaultPermissions)
                 ->merge($roleDefaultPermissions)
@@ -306,8 +308,24 @@ class CourierTeamController extends Controller
                 ->all()
             : [];
 
-        $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, (string) ($validated['role'] ?? '')))
-            ->merge($resolvedDirectPermissions)
+        $effectivePreview = app(CourierTeamEffectiveAccessService::class)->preview(
+            $vendorUserId,
+            $workspaceId,
+            (string) ($validated['role'] ?? ''),
+            $rawRequestedDirectPermissions,
+        );
+
+        if (($effectivePreview['summary']['deniedCount'] ?? 0) > 0) {
+            $firstDenied = $effectivePreview['denied'][0]['explanation'] ?? 'One or more grants are denied by active policy.';
+            return back()->with('error', (string) $firstDenied);
+        }
+
+        $resolvedDirectPermissions = collect($rawRequestedDirectPermissions)
+            ->intersect(collect($effectivePreview['effectivePermissions'] ?? []))
+            ->values()
+            ->all();
+
+        $effectivePermissions = collect($effectivePreview['effectivePermissions'] ?? [])
             ->filter()
             ->unique()
             ->values()
@@ -486,20 +504,35 @@ class CourierTeamController extends Controller
             abort(403, 'Missing required permission: courier.team.assign_permissions');
         }
 
-        if ($roleChanged || $permissionsChanged) {
-            $effectiveDirectPermissions = $permissionsChanged
-                ? collect($validated['directPermissions'] ?? [])->map(fn ($permission) => (string) $permission)->values()->all()
-                : $currentDirectPermissions;
+        $resolvedDirectPermissions = $permissionsChanged
+            ? collect($validated['directPermissions'] ?? [])->map(fn ($permission) => (string) $permission)->values()->all()
+            : $currentDirectPermissions;
 
-            $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, $requestedRole))
-                ->merge($effectiveDirectPermissions)
-                ->merge(collect($teamAccessControl['defaultDirectPermissionsByRole'][$requestedRole] ?? [])->map(fn ($permission) => (string) $permission))
-                ->filter()
-                ->unique()
+        if ($roleChanged || $permissionsChanged) {
+            $effectivePreview = app(CourierTeamEffectiveAccessService::class)->preview(
+                $vendorUserId,
+                $workspaceId,
+                $requestedRole,
+                $resolvedDirectPermissions,
+            );
+
+            if (($effectivePreview['summary']['deniedCount'] ?? 0) > 0) {
+                $firstDenied = $effectivePreview['denied'][0]['explanation'] ?? 'One or more grants are denied by active policy.';
+                return back()->with('error', (string) $firstDenied);
+            }
+
+            $resolvedDirectPermissions = collect($resolvedDirectPermissions)
+                ->intersect(collect($effectivePreview['effectivePermissions'] ?? []))
                 ->values()
                 ->all();
 
-            $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+            $afterSnapshot['direct_permissions'] = $resolvedDirectPermissions;
+
+            $this->validateSodPolicyOrFail(
+                collect($effectivePreview['effectivePermissions'] ?? [])->values()->all(),
+                $vendorUserId,
+                'user_assignment'
+            );
         }
 
         if (($statusChanged || $blockedKeysChanged) && !$canManageStatus) {
@@ -553,12 +586,8 @@ class CourierTeamController extends Controller
             }
 
             if ($permissionsChanged) {
-                $requestedDirectPermissions = collect($validated['directPermissions'] ?? [])->map(fn ($perm) => (string) $perm);
-                $roleDefaultPermissions = collect($teamAccessControl['defaultDirectPermissionsByRole'][$requestedRole] ?? [])->map(fn ($perm) => (string) $perm);
-
                 $user->syncPermissions(
-                    $requestedDirectPermissions
-                        ->merge($roleDefaultPermissions)
+                    collect($resolvedDirectPermissions)
                         ->filter()
                         ->unique()
                         ->values()
@@ -647,14 +676,23 @@ class CourierTeamController extends Controller
         }
 
         foreach ($validCourierRoles as $role) {
-            $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, $role))
-                ->merge($sanitizedByRole[$role] ?? [])
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
+            $preview = app(CourierTeamEffectiveAccessService::class)->preview(
+                $vendorUserId,
+                $workspaceId,
+                $role,
+                $sanitizedByRole[$role] ?? [],
+            );
 
-            $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+            if (($preview['summary']['deniedCount'] ?? 0) > 0) {
+                $firstDenied = $preview['denied'][0]['explanation'] ?? 'One or more default permissions are denied by active policy.';
+                return back()->with('error', "Role {$role}: {$firstDenied}");
+            }
+
+            $this->validateSodPolicyOrFail(
+                collect($preview['effectivePermissions'] ?? [])->values()->all(),
+                $vendorUserId,
+                'user_assignment'
+            );
         }
 
         $scopeOptions = $this->resolveScopeOptionsForVendor($vendorUserId);
@@ -730,14 +768,23 @@ class CourierTeamController extends Controller
                 ? $bundle['defaultDirectPermissions']
                 : [];
 
-            $effectivePermissions = collect($this->resolveRolePermissionSet($workspaceId, $bundleRole))
-                ->merge($bundlePermissions)
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
+            $preview = app(CourierTeamEffectiveAccessService::class)->preview(
+                $vendorUserId,
+                $workspaceId,
+                $bundleRole,
+                $bundlePermissions,
+            );
 
-            $this->validateSodPolicyOrFail($effectivePermissions, $vendorUserId, 'user_assignment');
+            if (($preview['summary']['deniedCount'] ?? 0) > 0) {
+                $firstDenied = $preview['denied'][0]['explanation'] ?? 'One or more bundle permissions are denied by active policy.';
+                return back()->with('error', "Bundle {$bundle['label']}: {$firstDenied}");
+            }
+
+            $this->validateSodPolicyOrFail(
+                collect($preview['effectivePermissions'] ?? [])->values()->all(),
+                $vendorUserId,
+                'user_assignment'
+            );
         }
 
         $setting = VendorCourierSetting::query()->firstOrCreate(
@@ -798,6 +845,41 @@ class CourierTeamController extends Controller
             'templates' => $roleModel->roleTemplates(),
             'permissionOptions' => $roleModel->validCourierPermissions(),
         ]);
+    }
+
+    public function previewEffectiveAccess(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        $validated = $request->validate([
+            'roleName' => ['required', 'string', Rule::in($this->workspaceRoleNames($workspaceId))],
+            'explicitGrants' => ['nullable', 'array'],
+            'explicitGrants.*' => ['string', 'max:160'],
+            'regionZone' => ['nullable', 'string', 'max:120'],
+            'hubBranch' => ['nullable', 'string', 'max:120'],
+            'shipmentStage' => ['nullable', 'string', 'max:120'],
+            'amount' => ['nullable', 'numeric'],
+            'clientTier' => ['nullable', 'string', 'max:120'],
+            'slaClass' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $preview = app(CourierTeamEffectiveAccessService::class)->preview(
+            $vendorUserId,
+            $workspaceId,
+            (string) $validated['roleName'],
+            is_array($validated['explicitGrants'] ?? null) ? $validated['explicitGrants'] : [],
+            [
+                'regionZone' => (string) ($validated['regionZone'] ?? ''),
+                'hubBranch' => (string) ($validated['hubBranch'] ?? ''),
+                'shipmentStage' => (string) ($validated['shipmentStage'] ?? ''),
+                'amount' => $validated['amount'] ?? null,
+                'clientTier' => (string) ($validated['clientTier'] ?? ''),
+                'slaClass' => (string) ($validated['slaClass'] ?? ''),
+            ],
+        );
+
+        return response()->json($preview);
     }
 
     public function storeRole(Request $request)
@@ -1046,13 +1128,32 @@ class CourierTeamController extends Controller
     public function bulkUpdate(Request $request)
     {
         $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
         $actor = $request->user();
+        $assignableRoleNames = $this->assignableRoleNames($workspaceId);
 
         $validated = $request->validate([
             'userIds' => ['required', 'array', 'min:1', 'max:200'],
             'userIds.*' => ['required', 'integer'],
-            'action' => ['required', Rule::in(['suspend', 'activate', 'revoke_all_sessions'])],
+            'action' => ['required', Rule::in(['suspend', 'activate', 'revoke_all_sessions', 'assign_role', 'deprovision'])],
+            'roleName' => ['nullable', 'string', 'max:120'],
         ]);
+
+        if ($validated['action'] === 'assign_role') {
+            if (!$actor->can('courier.team.assign_role') || !$actor->can('courier.team.assign_permissions')) {
+                abort(403, 'Missing required team role assignment permissions.');
+            }
+
+            if (!in_array((string) ($validated['roleName'] ?? ''), $assignableRoleNames, true)) {
+                return back()->with('error', 'A valid role is required for bulk role assignment.');
+            }
+        }
+
+        if ($validated['action'] === 'deprovision' && !$actor->can('courier.team.manage_status')) {
+            abort(403, 'Missing required permission: courier.team.manage_status');
+        }
+
+        $teamAccessControl = $this->readTeamAccessControlSettings($vendorUserId, $workspaceId);
 
         $memberships = VendorUserMembership::query()
             ->where('vendor_user_id', $vendorUserId)
@@ -1103,6 +1204,65 @@ class CourierTeamController extends Controller
             if ($validated['action'] === 'revoke_all_sessions') {
                 DB::table('sessions')->where('user_id', $membership->user_id)->delete();
                 $updated++;
+                continue;
+            }
+
+            if ($validated['action'] === 'assign_role') {
+                $targetUser = User::query()->find((int) $membership->user_id);
+                if (!$targetUser) {
+                    $skipped++;
+                    continue;
+                }
+
+                $roleName = (string) ($validated['roleName'] ?? '');
+                $roleDefaults = collect($teamAccessControl['defaultDirectPermissionsByRole'][$roleName] ?? [])
+                    ->map(fn ($permission) => (string) $permission)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                $preview = app(CourierTeamEffectiveAccessService::class)->preview(
+                    $vendorUserId,
+                    $workspaceId,
+                    $roleName,
+                    $roleDefaults,
+                );
+
+                if (($preview['summary']['deniedCount'] ?? 0) > 0) {
+                    $skipped++;
+                    continue;
+                }
+
+                $registrar = app(PermissionRegistrar::class);
+                $registrar->setPermissionsTeamId($workspaceId);
+
+                $targetUser->syncRoles([$roleName]);
+                $targetUser->syncPermissions($roleDefaults);
+                $updated++;
+                continue;
+            }
+
+            if ($validated['action'] === 'deprovision') {
+                $membership->status = 'revoked';
+                $membership->blocked_service_keys = array_values(array_unique(array_merge(
+                    (array) ($membership->blocked_service_keys ?? []),
+                    ['courier_service']
+                )));
+                $membership->suspended_at = now();
+                $membership->suspended_by_user_id = (int) $actor->id;
+                $membership->save();
+
+                DB::table('sessions')->where('user_id', $membership->user_id)->delete();
+
+                $targetUser = User::query()->find((int) $membership->user_id);
+                if ($targetUser) {
+                    $registrar = app(PermissionRegistrar::class);
+                    $registrar->setPermissionsTeamId($workspaceId);
+                    $targetUser->syncRoles([]);
+                    $targetUser->syncPermissions([]);
+                }
+
+                $updated++;
             }
         }
 
@@ -1115,6 +1275,7 @@ class CourierTeamController extends Controller
             'Bulk courier team operation applied.',
             [
                 'action' => $validated['action'],
+                'role_name' => (string) ($validated['roleName'] ?? ''),
                 'requested' => count($validated['userIds']),
                 'updated' => $updated,
                 'skipped' => $skipped,
