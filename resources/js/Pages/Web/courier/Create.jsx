@@ -315,6 +315,15 @@ const Create = () => {
                                             <p>Estimate (USD): {Number(recentPricingExplanation.totalEstimatedUsd || 0).toFixed(2)}</p>
                                         </div>
                                     )}
+                                    {Array.isArray(recentPricingExplanation.policyAdjustments) && recentPricingExplanation.policyAdjustments.length > 0 && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            {recentPricingExplanation.policyAdjustments.map((item, idx) => (
+                                                <p key={`recent-pricing-adjustment-${idx}`}>
+                                                    {String(item?.key || "adjustment").replaceAll("_", " ")}: +{Number(item?.amount || 0).toFixed(2)}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

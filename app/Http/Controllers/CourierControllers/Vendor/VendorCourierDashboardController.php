@@ -3118,6 +3118,7 @@ class VendorCourierDashboardController extends Controller
                 'domestic' => [],
                 'logistic' => [],
             ],
+            'policyModules' => $this->defaultPricingPolicyModules(),
             'categories' => [
                 'domestic' => [
                     [
@@ -3165,6 +3166,56 @@ class VendorCourierDashboardController extends Controller
                 ],
             ],
             'governance' => $this->defaultPricingGovernance(),
+        ];
+    }
+
+    private function defaultPricingPolicyModules(): array
+    {
+        $categoryDefaults = [
+            'remoteAreaSurcharge' => [
+                'enabled' => false,
+                'flatFee' => 0,
+                'applyOnOrigin' => false,
+                'applyOnDestination' => true,
+                'postalCodePrefixes' => [],
+                'cityKeywords' => [],
+            ],
+            'oversizeOverweightRules' => [
+                'enabled' => false,
+                'maxWeightKg' => 25,
+                'overweightPerKgFee' => 0,
+                'maxLengthCm' => 120,
+                'maxWidthCm' => 80,
+                'maxHeightCm' => 80,
+                'oversizeFlatFee' => 0,
+            ],
+            'peakHolidaySurcharge' => [
+                'enabled' => false,
+                'peakStartTime' => '17:00',
+                'peakEndTime' => '21:00',
+                'daysOfWeek' => [1, 2, 3, 4, 5],
+                'peakPercent' => 0,
+                'peakFlatFee' => 0,
+                'holidayDates' => [],
+                'holidayPercent' => 0,
+                'holidayFlatFee' => 0,
+            ],
+            'codFee' => [
+                'enabled' => false,
+                'flatFee' => 0,
+                'percentOfDeclaredValue' => 0,
+                'minFee' => 0,
+                'maxFee' => null,
+            ],
+            'minimumShipmentCharge' => [
+                'enabled' => true,
+                'minimumTotal' => 0,
+            ],
+        ];
+
+        return [
+            'domestic' => $categoryDefaults,
+            'logistic' => $categoryDefaults,
         ];
     }
 
@@ -3363,6 +3414,9 @@ class VendorCourierDashboardController extends Controller
             $pricing['serviceCatalog'],
             $pricing['zoneMaster']
         );
+        $pricing['policyModules'] = $this->normalizePricingPolicyModules(
+            is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : []
+        );
 
         foreach (['domestic', 'logistic'] as $category) {
             $items = is_array($pricing['categories'][$category] ?? null) ? $pricing['categories'][$category] : [];
@@ -3433,6 +3487,93 @@ class VendorCourierDashboardController extends Controller
         return $pricing;
     }
 
+    private function normalizePricingPolicyModules(array $input): array
+    {
+        $defaults = $this->defaultPricingPolicyModules();
+        $source = is_array($input) ? $input : [];
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        if (!$hasCategoryShape) {
+            $source = [
+                'domestic' => $source,
+                'logistic' => $source,
+            ];
+        }
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $row = array_replace_recursive(
+                is_array($defaults[$category] ?? null) ? $defaults[$category] : [],
+                is_array($source[$category] ?? null) ? $source[$category] : []
+            );
+
+            $normalized[$category] = [
+                'remoteAreaSurcharge' => [
+                    'enabled' => (bool) ($row['remoteAreaSurcharge']['enabled'] ?? false),
+                    'flatFee' => max(0, (float) ($row['remoteAreaSurcharge']['flatFee'] ?? 0)),
+                    'applyOnOrigin' => (bool) ($row['remoteAreaSurcharge']['applyOnOrigin'] ?? false),
+                    'applyOnDestination' => (bool) ($row['remoteAreaSurcharge']['applyOnDestination'] ?? true),
+                    'postalCodePrefixes' => collect($row['remoteAreaSurcharge']['postalCodePrefixes'] ?? [])
+                        ->map(fn ($item) => strtoupper(trim((string) $item)))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'cityKeywords' => collect($row['remoteAreaSurcharge']['cityKeywords'] ?? [])
+                        ->map(fn ($item) => strtolower(trim((string) $item)))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ],
+                'oversizeOverweightRules' => [
+                    'enabled' => (bool) ($row['oversizeOverweightRules']['enabled'] ?? false),
+                    'maxWeightKg' => max(0.1, (float) ($row['oversizeOverweightRules']['maxWeightKg'] ?? 25)),
+                    'overweightPerKgFee' => max(0, (float) ($row['oversizeOverweightRules']['overweightPerKgFee'] ?? 0)),
+                    'maxLengthCm' => max(1, (float) ($row['oversizeOverweightRules']['maxLengthCm'] ?? 120)),
+                    'maxWidthCm' => max(1, (float) ($row['oversizeOverweightRules']['maxWidthCm'] ?? 80)),
+                    'maxHeightCm' => max(1, (float) ($row['oversizeOverweightRules']['maxHeightCm'] ?? 80)),
+                    'oversizeFlatFee' => max(0, (float) ($row['oversizeOverweightRules']['oversizeFlatFee'] ?? 0)),
+                ],
+                'peakHolidaySurcharge' => [
+                    'enabled' => (bool) ($row['peakHolidaySurcharge']['enabled'] ?? false),
+                    'peakStartTime' => $this->normalizeTimeValue((string) ($row['peakHolidaySurcharge']['peakStartTime'] ?? '17:00')),
+                    'peakEndTime' => $this->normalizeTimeValue((string) ($row['peakHolidaySurcharge']['peakEndTime'] ?? '21:00')),
+                    'daysOfWeek' => collect($row['peakHolidaySurcharge']['daysOfWeek'] ?? [1, 2, 3, 4, 5])
+                        ->map(fn ($item) => (int) $item)
+                        ->filter(fn ($item) => $item >= 1 && $item <= 7)
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'peakPercent' => max(0, (float) ($row['peakHolidaySurcharge']['peakPercent'] ?? 0)),
+                    'peakFlatFee' => max(0, (float) ($row['peakHolidaySurcharge']['peakFlatFee'] ?? 0)),
+                    'holidayDates' => collect($row['peakHolidaySurcharge']['holidayDates'] ?? [])
+                        ->map(fn ($item) => trim((string) $item))
+                        ->filter(fn ($item) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $item) === 1)
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'holidayPercent' => max(0, (float) ($row['peakHolidaySurcharge']['holidayPercent'] ?? 0)),
+                    'holidayFlatFee' => max(0, (float) ($row['peakHolidaySurcharge']['holidayFlatFee'] ?? 0)),
+                ],
+                'codFee' => [
+                    'enabled' => (bool) ($row['codFee']['enabled'] ?? false),
+                    'flatFee' => max(0, (float) ($row['codFee']['flatFee'] ?? 0)),
+                    'percentOfDeclaredValue' => max(0, (float) ($row['codFee']['percentOfDeclaredValue'] ?? 0)),
+                    'minFee' => max(0, (float) ($row['codFee']['minFee'] ?? 0)),
+                    'maxFee' => isset($row['codFee']['maxFee']) && $row['codFee']['maxFee'] !== ''
+                        ? max(0, (float) $row['codFee']['maxFee'])
+                        : null,
+                ],
+                'minimumShipmentCharge' => [
+                    'enabled' => (bool) ($row['minimumShipmentCharge']['enabled'] ?? true),
+                    'minimumTotal' => max(0, (float) ($row['minimumShipmentCharge']['minimumTotal'] ?? 0)),
+                ],
+            ];
+        }
+
+        return $normalized;
+    }
+
     private function extractPricingSnapshot(array $pricing, ?string $category = null): array
     {
         $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : null;
@@ -3450,6 +3591,7 @@ class VendorCourierDashboardController extends Controller
                         : ($pricing['laneMatrix']['enabled'] ?? false))),
                     'rows' => is_array($pricing['laneMatrix'][$category] ?? null) ? $pricing['laneMatrix'][$category] : [],
                 ],
+                'policyModules' => is_array($pricing['policyModules'][$category] ?? null) ? $pricing['policyModules'][$category] : [],
                 'categories' => is_array($pricing['categories'][$category] ?? null) ? $pricing['categories'][$category] : [],
             ];
         }
@@ -3460,6 +3602,7 @@ class VendorCourierDashboardController extends Controller
             'serviceCatalog' => is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : [],
             'zoneMaster' => is_array($pricing['zoneMaster'] ?? null) ? $pricing['zoneMaster'] : [],
             'laneMatrix' => is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : [],
+            'policyModules' => is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : [],
             'categories' => is_array($pricing['categories'] ?? null) ? $pricing['categories'] : [],
         ];
     }
@@ -3484,6 +3627,9 @@ class VendorCourierDashboardController extends Controller
             $pricing['laneMatrix'][$category] = is_array($snapshot['laneMatrix']['rows'] ?? null)
                 ? $snapshot['laneMatrix']['rows']
                 : ($pricing['laneMatrix'][$category] ?? []);
+            $pricing['policyModules'][$category] = is_array($snapshot['policyModules'] ?? null)
+                ? $snapshot['policyModules']
+                : ($pricing['policyModules'][$category] ?? []);
             $pricing['categories'][$category] = is_array($snapshot['categories'] ?? null) ? $snapshot['categories'] : ($pricing['categories'][$category] ?? []);
 
             return $this->normalizePricingSettings($pricing);
@@ -3494,6 +3640,7 @@ class VendorCourierDashboardController extends Controller
         $pricing['serviceCatalog'] = is_array($snapshot['serviceCatalog'] ?? null) ? $snapshot['serviceCatalog'] : ($pricing['serviceCatalog'] ?? []);
         $pricing['zoneMaster'] = is_array($snapshot['zoneMaster'] ?? null) ? $snapshot['zoneMaster'] : ($pricing['zoneMaster'] ?? []);
         $pricing['laneMatrix'] = is_array($snapshot['laneMatrix'] ?? null) ? $snapshot['laneMatrix'] : ($pricing['laneMatrix'] ?? []);
+        $pricing['policyModules'] = is_array($snapshot['policyModules'] ?? null) ? $snapshot['policyModules'] : ($pricing['policyModules'] ?? []);
         $pricing['categories'] = is_array($snapshot['categories'] ?? null) ? $snapshot['categories'] : ($pricing['categories'] ?? []);
 
         return $this->normalizePricingSettings($pricing);
@@ -5629,7 +5776,7 @@ class VendorCourierDashboardController extends Controller
                 continue;
             }
 
-            foreach (['localization', 'formula', 'serviceCatalog', 'zoneMaster', 'categories'] as $sectionKey) {
+            foreach (['localization', 'formula', 'serviceCatalog', 'zoneMaster', 'policyModules', 'categories'] as $sectionKey) {
                 if (!is_array($next[$sectionKey] ?? null)) {
                     $next[$sectionKey] = [];
                 }

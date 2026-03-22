@@ -319,6 +319,18 @@ const Summary = () => {
                             {pricingPreview.reason && (
                                 <p className="mt-3 text-sm text-[#1E40AF]"><span className="font-semibold">Reason:</span> {pricingPreview.reason}</p>
                             )}
+                            {Array.isArray(pricingPreview.policyAdjustments) && pricingPreview.policyAdjustments.length > 0 && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">Applied Policy Adjustments</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        {pricingPreview.policyAdjustments.map((item, idx) => (
+                                            <p key={`pricing-adjustment-${idx}`}>
+                                                {String(item?.key || "adjustment").replaceAll("_", " ")}: +{Number(item?.amount || 0).toFixed(2)}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {pricingPreview.matchedRule && (
                                 <div className="mt-4 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
                                     <p><span className="font-semibold">Lane:</span> {pricingPreview.matchedRule.originZone} → {pricingPreview.matchedRule.destinationZone}</p>

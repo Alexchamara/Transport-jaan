@@ -73,8 +73,137 @@ class NormalizeCourierPricingCategoryConfig extends Command
         $pricing['zoneMaster'] = $this->normalizeZoneMaster($pricing['zoneMaster'] ?? []);
         $pricing['governance'] = $this->normalizeGovernance($pricing['governance'] ?? []);
         $pricing['laneMatrix'] = $this->normalizeLaneMatrix($pricing['laneMatrix'] ?? []);
+        $pricing['policyModules'] = $this->normalizePolicyModules($pricing['policyModules'] ?? []);
 
         return $pricing;
+    }
+
+    private function normalizePolicyModules($input): array
+    {
+        $defaults = [
+            'remoteAreaSurcharge' => [
+                'enabled' => false,
+                'flatFee' => 0,
+                'applyOnOrigin' => false,
+                'applyOnDestination' => true,
+                'postalCodePrefixes' => [],
+                'cityKeywords' => [],
+            ],
+            'oversizeOverweightRules' => [
+                'enabled' => false,
+                'maxWeightKg' => 25,
+                'overweightPerKgFee' => 0,
+                'maxLengthCm' => 120,
+                'maxWidthCm' => 80,
+                'maxHeightCm' => 80,
+                'oversizeFlatFee' => 0,
+            ],
+            'peakHolidaySurcharge' => [
+                'enabled' => false,
+                'peakStartTime' => '17:00',
+                'peakEndTime' => '21:00',
+                'daysOfWeek' => [1, 2, 3, 4, 5],
+                'peakPercent' => 0,
+                'peakFlatFee' => 0,
+                'holidayDates' => [],
+                'holidayPercent' => 0,
+                'holidayFlatFee' => 0,
+            ],
+            'codFee' => [
+                'enabled' => false,
+                'flatFee' => 0,
+                'percentOfDeclaredValue' => 0,
+                'minFee' => 0,
+                'maxFee' => null,
+            ],
+            'minimumShipmentCharge' => [
+                'enabled' => true,
+                'minimumTotal' => 0,
+            ],
+        ];
+
+        $source = is_array($input) ? $input : [];
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        if (!$hasCategoryShape) {
+            $source = [
+                'domestic' => $source,
+                'logistic' => $source,
+            ];
+        }
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $row = array_replace_recursive(
+                $defaults,
+                is_array($source[$category] ?? null) ? $source[$category] : []
+            );
+
+            $normalized[$category] = [
+                'remoteAreaSurcharge' => [
+                    'enabled' => (bool) ($row['remoteAreaSurcharge']['enabled'] ?? false),
+                    'flatFee' => max(0, (float) ($row['remoteAreaSurcharge']['flatFee'] ?? 0)),
+                    'applyOnOrigin' => (bool) ($row['remoteAreaSurcharge']['applyOnOrigin'] ?? false),
+                    'applyOnDestination' => (bool) ($row['remoteAreaSurcharge']['applyOnDestination'] ?? true),
+                    'postalCodePrefixes' => collect($row['remoteAreaSurcharge']['postalCodePrefixes'] ?? [])
+                        ->map(fn ($item) => strtoupper(trim((string) $item)))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'cityKeywords' => collect($row['remoteAreaSurcharge']['cityKeywords'] ?? [])
+                        ->map(fn ($item) => strtolower(trim((string) $item)))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ],
+                'oversizeOverweightRules' => [
+                    'enabled' => (bool) ($row['oversizeOverweightRules']['enabled'] ?? false),
+                    'maxWeightKg' => max(0.1, (float) ($row['oversizeOverweightRules']['maxWeightKg'] ?? 25)),
+                    'overweightPerKgFee' => max(0, (float) ($row['oversizeOverweightRules']['overweightPerKgFee'] ?? 0)),
+                    'maxLengthCm' => max(1, (float) ($row['oversizeOverweightRules']['maxLengthCm'] ?? 120)),
+                    'maxWidthCm' => max(1, (float) ($row['oversizeOverweightRules']['maxWidthCm'] ?? 80)),
+                    'maxHeightCm' => max(1, (float) ($row['oversizeOverweightRules']['maxHeightCm'] ?? 80)),
+                    'oversizeFlatFee' => max(0, (float) ($row['oversizeOverweightRules']['oversizeFlatFee'] ?? 0)),
+                ],
+                'peakHolidaySurcharge' => [
+                    'enabled' => (bool) ($row['peakHolidaySurcharge']['enabled'] ?? false),
+                    'peakStartTime' => $this->normalizeTimeValue((string) ($row['peakHolidaySurcharge']['peakStartTime'] ?? '17:00')),
+                    'peakEndTime' => $this->normalizeTimeValue((string) ($row['peakHolidaySurcharge']['peakEndTime'] ?? '21:00')),
+                    'daysOfWeek' => collect($row['peakHolidaySurcharge']['daysOfWeek'] ?? [1, 2, 3, 4, 5])
+                        ->map(fn ($item) => (int) $item)
+                        ->filter(fn ($item) => $item >= 1 && $item <= 7)
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'peakPercent' => max(0, (float) ($row['peakHolidaySurcharge']['peakPercent'] ?? 0)),
+                    'peakFlatFee' => max(0, (float) ($row['peakHolidaySurcharge']['peakFlatFee'] ?? 0)),
+                    'holidayDates' => collect($row['peakHolidaySurcharge']['holidayDates'] ?? [])
+                        ->map(fn ($item) => trim((string) $item))
+                        ->filter(fn ($item) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $item) === 1)
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'holidayPercent' => max(0, (float) ($row['peakHolidaySurcharge']['holidayPercent'] ?? 0)),
+                    'holidayFlatFee' => max(0, (float) ($row['peakHolidaySurcharge']['holidayFlatFee'] ?? 0)),
+                ],
+                'codFee' => [
+                    'enabled' => (bool) ($row['codFee']['enabled'] ?? false),
+                    'flatFee' => max(0, (float) ($row['codFee']['flatFee'] ?? 0)),
+                    'percentOfDeclaredValue' => max(0, (float) ($row['codFee']['percentOfDeclaredValue'] ?? 0)),
+                    'minFee' => max(0, (float) ($row['codFee']['minFee'] ?? 0)),
+                    'maxFee' => isset($row['codFee']['maxFee']) && $row['codFee']['maxFee'] !== ''
+                        ? max(0, (float) $row['codFee']['maxFee'])
+                        : null,
+                ],
+                'minimumShipmentCharge' => [
+                    'enabled' => (bool) ($row['minimumShipmentCharge']['enabled'] ?? true),
+                    'minimumTotal' => max(0, (float) ($row['minimumShipmentCharge']['minimumTotal'] ?? 0)),
+                ],
+            ];
+        }
+
+        return $normalized;
     }
 
     private function normalizeLocalization($input): array
@@ -340,6 +469,15 @@ class NormalizeCourierPricingCategoryConfig extends Command
         $normalized = trim($normalized, '_');
 
         return $normalized !== '' ? $normalized : '*';
+    }
+
+    private function normalizeTimeValue(string $value): string
+    {
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $value)) {
+            return $value;
+        }
+
+        return '00:00';
     }
 
     private function sameJson(array $left, array $right): bool

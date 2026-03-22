@@ -1079,6 +1079,7 @@ class ClientCourierController extends Controller
             'reason' => null,
             'distanceKm' => null,
             'matchedRule' => null,
+            'policyAdjustments' => [],
             'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
         ];
 
@@ -1090,11 +1091,34 @@ class ClientCourierController extends Controller
 
         $category = (string) ($shipment->assignment_category ?: $this->resolvePayloadCategory($payload));
         $selectedLevelKey = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
+        $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
+        $formula = $pricingConfig['formula'];
+        $localization = $pricingConfig['localization'];
+        $policyModules = $pricingConfig['policyModules'];
+        $baseCurrency = strtoupper((string) ($localization['baseCurrency'] ?? 'USD'));
+        $manualRates = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
+        $usdRate = 1.0;
+        if ($baseCurrency !== 'USD') {
+            $usdRate = max(0.000001, (float) ($manualRates['USD'] ?? 1));
+        }
 
         $laneMatrix = $this->resolveLaneMatrixForVendor($vendorId, $category);
         if (!(bool) ($laneMatrix['enabled'] ?? false)) {
             $pricingExplanation['reason'] = 'Lane matrix pricing is disabled for this category.';
-            return $fallbackEstimatedUsd;
+
+            $policyBreakdown = [];
+            $totalWithPolicy = $this->applyAdvancedPricingPolicies(
+                max(0, $fallbackEstimatedUsd),
+                $payload,
+                $policyModules,
+                $policyBreakdown,
+                1,
+                $usdRate
+            );
+            $pricingExplanation['policyAdjustments'] = $policyBreakdown;
+            $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalWithPolicy), 2);
+
+            return $totalWithPolicy;
         }
 
         $originZone = $this->resolveZoneFromPayloadAddress((array) ($payload['sender']['address'] ?? []));
@@ -1171,15 +1195,6 @@ class ClientCourierController extends Controller
             'priorityMultiplier' => isset($matchedRule['priorityMultiplier']) ? (float) $matchedRule['priorityMultiplier'] : 1.0,
         ];
 
-        $settings = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->value('settings');
-        $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : [];
-        $formulaConfig = is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [];
-        $formula = is_array($formulaConfig[$category] ?? null) ? $formulaConfig[$category] : $formulaConfig;
-        $localizationConfig = is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [];
-        $localization = is_array($localizationConfig[$category] ?? null) ? $localizationConfig[$category] : $localizationConfig;
-        $baseCurrency = strtoupper((string) ($localization['baseCurrency'] ?? 'USD'));
-        $manualRates = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
-
         $divisor = max(1, (float) ($formula['volumetricDivisor'] ?? 5000));
         $useChargeableWeight = (bool) ($formula['useChargeableWeight'] ?? true);
         $fuelPercent = max(0, (float) ($formula['fuelSurchargePercent'] ?? 0));
@@ -1220,15 +1235,340 @@ class ClientCourierController extends Controller
         $taxFee = $subtotalWithFees * ($taxPercent / 100);
         $totalBase = $subtotalWithFees + $taxFee;
 
-        $usdRate = 1.0;
-        if ($baseCurrency !== 'USD') {
-            $usdRate = max(0.000001, (float) ($manualRates['USD'] ?? 1));
-        }
+        $policyBreakdown = [];
+        $totalBase = $this->applyAdvancedPricingPolicies(
+            $totalBase,
+            $payload,
+            $policyModules,
+            $policyBreakdown,
+            1,
+            1
+        );
 
         $totalEstimatedUsd = $totalBase * $usdRate;
+        $pricingExplanation['policyAdjustments'] = $policyBreakdown;
         $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalEstimatedUsd), 2);
 
         return $totalEstimatedUsd;
+    }
+
+    private function resolveCategoryPricingConfigForVendor(int $vendorId, string $category): array
+    {
+        $settings = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->value('settings');
+        $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : [];
+
+        $formulaConfig = is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [];
+        $formulaDefaults = [
+            'volumetricDivisor' => 5000,
+            'useChargeableWeight' => true,
+            'fuelSurchargePercent' => 0,
+            'handlingFee' => 0,
+            'taxPercent' => 0,
+            'roundTo' => 2,
+        ];
+        $formula = array_replace(
+            $formulaDefaults,
+            is_array($formulaConfig[$category] ?? null)
+                ? $formulaConfig[$category]
+                : (is_array($formulaConfig) ? $formulaConfig : [])
+        );
+
+        $localizationConfig = is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [];
+        $localizationDefaults = [
+            'baseCurrency' => 'LKR',
+            'displayCurrency' => 'LKR',
+            'locale' => 'en-LK',
+            'exchangeRateProvider' => 'frankfurter.app',
+            'autoLiveRates' => true,
+            'manualRates' => [
+                'LKR' => 1,
+                'USD' => 0.00308,
+                'EUR' => 0.00284,
+            ],
+            'lastSyncedAt' => null,
+        ];
+        $localization = array_replace(
+            $localizationDefaults,
+            is_array($localizationConfig[$category] ?? null)
+                ? $localizationConfig[$category]
+                : (is_array($localizationConfig) ? $localizationConfig : [])
+        );
+
+        $policyModules = $this->resolvePolicyModulesForCategory($pricing, $category);
+
+        return [
+            'formula' => $formula,
+            'localization' => $localization,
+            'policyModules' => $policyModules,
+        ];
+    }
+
+    private function resolvePolicyModulesForCategory(array $pricing, string $category): array
+    {
+        $defaults = [
+            'remoteAreaSurcharge' => [
+                'enabled' => false,
+                'flatFee' => 0,
+                'applyOnOrigin' => false,
+                'applyOnDestination' => true,
+                'postalCodePrefixes' => [],
+                'cityKeywords' => [],
+            ],
+            'oversizeOverweightRules' => [
+                'enabled' => false,
+                'maxWeightKg' => 25,
+                'overweightPerKgFee' => 0,
+                'maxLengthCm' => 120,
+                'maxWidthCm' => 80,
+                'maxHeightCm' => 80,
+                'oversizeFlatFee' => 0,
+            ],
+            'peakHolidaySurcharge' => [
+                'enabled' => false,
+                'peakStartTime' => '17:00',
+                'peakEndTime' => '21:00',
+                'daysOfWeek' => [1, 2, 3, 4, 5],
+                'peakPercent' => 0,
+                'peakFlatFee' => 0,
+                'holidayDates' => [],
+                'holidayPercent' => 0,
+                'holidayFlatFee' => 0,
+            ],
+            'codFee' => [
+                'enabled' => false,
+                'flatFee' => 0,
+                'percentOfDeclaredValue' => 0,
+                'minFee' => 0,
+                'maxFee' => null,
+            ],
+            'minimumShipmentCharge' => [
+                'enabled' => true,
+                'minimumTotal' => 0,
+            ],
+        ];
+
+        $policyInput = is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : [];
+        $categoryInput = is_array($policyInput[$category] ?? null)
+            ? $policyInput[$category]
+            : (is_array($policyInput) ? $policyInput : []);
+
+        return array_replace_recursive($defaults, $categoryInput);
+    }
+
+    private function applyAdvancedPricingPolicies(
+        float $currentTotal,
+        array $payload,
+        array $policyModules,
+        array &$policyBreakdown,
+        float $flatFeeFactor,
+        float $percentBaseFactor
+    ): float {
+        $total = max(0, $currentTotal);
+        $policyBreakdown = [];
+
+        $senderAddress = (array) ($payload['sender']['address'] ?? []);
+        $recipientAddress = (array) ($payload['recipient']['address'] ?? []);
+        $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $declaredValue = max(
+            0,
+            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
+        );
+
+        $remotePolicy = is_array($policyModules['remoteAreaSurcharge'] ?? null) ? $policyModules['remoteAreaSurcharge'] : [];
+        if ((bool) ($remotePolicy['enabled'] ?? false)) {
+            $originRemote = (bool) ($remotePolicy['applyOnOrigin'] ?? false)
+                && $this->addressMatchesRemotePolicy($senderAddress, $remotePolicy);
+            $destinationRemote = (bool) ($remotePolicy['applyOnDestination'] ?? true)
+                && $this->addressMatchesRemotePolicy($recipientAddress, $remotePolicy);
+
+            if ($originRemote || $destinationRemote) {
+                $fee = max(0, (float) ($remotePolicy['flatFee'] ?? 0)) * $flatFeeFactor;
+                if ($fee > 0) {
+                    $total += $fee;
+                    $policyBreakdown[] = [
+                        'key' => 'remote_area_surcharge',
+                        'amount' => round($fee, 2),
+                    ];
+                }
+            }
+        }
+
+        $oversizePolicy = is_array($policyModules['oversizeOverweightRules'] ?? null) ? $policyModules['oversizeOverweightRules'] : [];
+        if ((bool) ($oversizePolicy['enabled'] ?? false)) {
+            $maxWeight = max(0.1, (float) ($oversizePolicy['maxWeightKg'] ?? 25));
+            $overweightPerKg = max(0, (float) ($oversizePolicy['overweightPerKgFee'] ?? 0)) * $flatFeeFactor;
+            $maxLength = max(1, (float) ($oversizePolicy['maxLengthCm'] ?? 120));
+            $maxWidth = max(1, (float) ($oversizePolicy['maxWidthCm'] ?? 80));
+            $maxHeight = max(1, (float) ($oversizePolicy['maxHeightCm'] ?? 80));
+            $oversizeFlatFee = max(0, (float) ($oversizePolicy['oversizeFlatFee'] ?? 0)) * $flatFeeFactor;
+
+            $overweightTotal = 0.0;
+            $oversizeTotal = 0.0;
+            foreach ($packages as $package) {
+                $qty = max(1, (int) ($package['quantity'] ?? 1));
+                $weight = max(0, (float) ($package['weightKg'] ?? 0));
+                $length = max(0, (float) ($package['lengthCm'] ?? 0));
+                $width = max(0, (float) ($package['widthCm'] ?? 0));
+                $height = max(0, (float) ($package['heightCm'] ?? 0));
+
+                $overweightKg = max(0, $weight - $maxWeight);
+                if ($overweightKg > 0 && $overweightPerKg > 0) {
+                    $overweightTotal += $overweightKg * $overweightPerKg * $qty;
+                }
+
+                $isOversize = $length > $maxLength || $width > $maxWidth || $height > $maxHeight;
+                if ($isOversize && $oversizeFlatFee > 0) {
+                    $oversizeTotal += $oversizeFlatFee * $qty;
+                }
+            }
+
+            if ($overweightTotal > 0) {
+                $total += $overweightTotal;
+                $policyBreakdown[] = [
+                    'key' => 'overweight_surcharge',
+                    'amount' => round($overweightTotal, 2),
+                ];
+            }
+
+            if ($oversizeTotal > 0) {
+                $total += $oversizeTotal;
+                $policyBreakdown[] = [
+                    'key' => 'oversize_surcharge',
+                    'amount' => round($oversizeTotal, 2),
+                ];
+            }
+        }
+
+        $timePolicy = is_array($policyModules['peakHolidaySurcharge'] ?? null) ? $policyModules['peakHolidaySurcharge'] : [];
+        if ((bool) ($timePolicy['enabled'] ?? false)) {
+            $pickupDate = isset($payload['shipment']['pickupDate']) && $payload['shipment']['pickupDate']
+                ? Carbon::parse((string) $payload['shipment']['pickupDate'])
+                : null;
+            $pickupTime = isset($payload['shipment']['pickupWindowStart']) && $payload['shipment']['pickupWindowStart']
+                ? trim((string) $payload['shipment']['pickupWindowStart'])
+                : '';
+
+            if ($pickupDate) {
+                $holidayDates = collect($timePolicy['holidayDates'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if (in_array($pickupDate->format('Y-m-d'), $holidayDates, true)) {
+                    $percentFee = $total * (max(0, (float) ($timePolicy['holidayPercent'] ?? 0)) / 100) * $percentBaseFactor;
+                    $flatFee = max(0, (float) ($timePolicy['holidayFlatFee'] ?? 0)) * $flatFeeFactor;
+                    $holidayFee = $percentFee + $flatFee;
+                    if ($holidayFee > 0) {
+                        $total += $holidayFee;
+                        $policyBreakdown[] = [
+                            'key' => 'holiday_surcharge',
+                            'amount' => round($holidayFee, 2),
+                        ];
+                    }
+                }
+
+                $daysOfWeek = collect($timePolicy['daysOfWeek'] ?? [1, 2, 3, 4, 5])
+                    ->map(fn ($item) => (int) $item)
+                    ->filter(fn ($item) => $item >= 1 && $item <= 7)
+                    ->values()
+                    ->all();
+                $start = trim((string) ($timePolicy['peakStartTime'] ?? '17:00'));
+                $end = trim((string) ($timePolicy['peakEndTime'] ?? '21:00'));
+                if ($pickupTime !== '' && in_array($pickupDate->dayOfWeekIso, $daysOfWeek, true) && $this->isWithinPeakWindow($pickupTime, $start, $end)) {
+                    $percentFee = $total * (max(0, (float) ($timePolicy['peakPercent'] ?? 0)) / 100) * $percentBaseFactor;
+                    $flatFee = max(0, (float) ($timePolicy['peakFlatFee'] ?? 0)) * $flatFeeFactor;
+                    $peakFee = $percentFee + $flatFee;
+                    if ($peakFee > 0) {
+                        $total += $peakFee;
+                        $policyBreakdown[] = [
+                            'key' => 'peak_hour_surcharge',
+                            'amount' => round($peakFee, 2),
+                        ];
+                    }
+                }
+            }
+        }
+
+        $codPolicy = is_array($policyModules['codFee'] ?? null) ? $policyModules['codFee'] : [];
+        if ((bool) ($codPolicy['enabled'] ?? false) && $declaredValue > 0) {
+            $flatFee = max(0, (float) ($codPolicy['flatFee'] ?? 0)) * $flatFeeFactor;
+            $percentFee = $declaredValue * (max(0, (float) ($codPolicy['percentOfDeclaredValue'] ?? 0)) / 100) * $percentBaseFactor;
+            $codFee = $flatFee + $percentFee;
+
+            $minFee = max(0, (float) ($codPolicy['minFee'] ?? 0)) * $flatFeeFactor;
+            if ($codFee < $minFee) {
+                $codFee = $minFee;
+            }
+
+            if (isset($codPolicy['maxFee']) && $codPolicy['maxFee'] !== null && $codPolicy['maxFee'] !== '') {
+                $maxFee = max(0, (float) $codPolicy['maxFee']) * $flatFeeFactor;
+                if ($maxFee > 0) {
+                    $codFee = min($codFee, $maxFee);
+                }
+            }
+
+            if ($codFee > 0) {
+                $total += $codFee;
+                $policyBreakdown[] = [
+                    'key' => 'cod_fee',
+                    'amount' => round($codFee, 2),
+                ];
+            }
+        }
+
+        $minimumPolicy = is_array($policyModules['minimumShipmentCharge'] ?? null) ? $policyModules['minimumShipmentCharge'] : [];
+        if ((bool) ($minimumPolicy['enabled'] ?? true)) {
+            $minimumTotal = max(0, (float) ($minimumPolicy['minimumTotal'] ?? 0)) * $flatFeeFactor;
+            if ($minimumTotal > 0 && $total < $minimumTotal) {
+                $minimumAdjustment = $minimumTotal - $total;
+                $total = $minimumTotal;
+                $policyBreakdown[] = [
+                    'key' => 'minimum_shipment_guardrail',
+                    'amount' => round($minimumAdjustment, 2),
+                ];
+            }
+        }
+
+        return $total;
+    }
+
+    private function addressMatchesRemotePolicy(array $address, array $remotePolicy): bool
+    {
+        $postalPrefixes = collect($remotePolicy['postalCodePrefixes'] ?? [])
+            ->map(fn ($item) => strtoupper(trim((string) $item)))
+            ->filter()
+            ->values();
+        $cityKeywords = collect($remotePolicy['cityKeywords'] ?? [])
+            ->map(fn ($item) => strtolower(trim((string) $item)))
+            ->filter()
+            ->values();
+
+        $postal = strtoupper(trim((string) ($address['postalCode'] ?? '')));
+        $cityState = strtolower(trim((string) (($address['city'] ?? '') . ' ' . ($address['state'] ?? ''))));
+
+        if ($postalPrefixes->contains(fn ($prefix) => $prefix !== '' && str_starts_with($postal, $prefix))) {
+            return true;
+        }
+
+        return $cityKeywords->contains(fn ($keyword) => $keyword !== '' && str_contains($cityState, $keyword));
+    }
+
+    private function isWithinPeakWindow(string $pickupTime, string $start, string $end): bool
+    {
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $pickupTime) !== 1) {
+            return false;
+        }
+
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $start) !== 1 || preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $end) !== 1) {
+            return false;
+        }
+
+        if ($start <= $end) {
+            return $pickupTime >= $start && $pickupTime <= $end;
+        }
+
+        return $pickupTime >= $start || $pickupTime <= $end;
     }
 
     private function assertShipmentServiceCatalogPolicy(CourierShipment $shipment, array $payload): void

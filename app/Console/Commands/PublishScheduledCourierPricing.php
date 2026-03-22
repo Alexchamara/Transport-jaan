@@ -66,6 +66,7 @@ class PublishScheduledCourierPricing extends Command
                         $pricing['serviceCatalog'] = is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : [];
                         $pricing['zoneMaster'] = is_array($pricing['zoneMaster'] ?? null) ? $pricing['zoneMaster'] : [];
                         $pricing['laneMatrix'] = is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : [];
+                        $pricing['policyModules'] = is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : [];
                         $pricing['categories'] = is_array($pricing['categories'] ?? null) ? $pricing['categories'] : [];
 
                         $pricing['localization'][$snapshotCategory] = is_array($snapshot['localization'] ?? null)
@@ -93,6 +94,9 @@ class PublishScheduledCourierPricing extends Command
                         $pricing['laneMatrix'][$snapshotCategory] = is_array($snapshot['laneMatrix']['rows'] ?? null)
                             ? $snapshot['laneMatrix']['rows']
                             : ($pricing['laneMatrix'][$snapshotCategory] ?? []);
+                        $pricing['policyModules'][$snapshotCategory] = is_array($snapshot['policyModules'] ?? null)
+                            ? $snapshot['policyModules']
+                            : ($pricing['policyModules'][$snapshotCategory] ?? []);
 
                         $pricing['categories'][$snapshotCategory] = is_array($snapshot['categories'] ?? null)
                             ? $snapshot['categories']
@@ -113,6 +117,9 @@ class PublishScheduledCourierPricing extends Command
                         $pricing['laneMatrix'] = is_array($snapshot['laneMatrix'] ?? null)
                             ? $snapshot['laneMatrix']
                             : (is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : []);
+                        $pricing['policyModules'] = is_array($snapshot['policyModules'] ?? null)
+                            ? $snapshot['policyModules']
+                            : (is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : []);
                         $pricing['categories'] = is_array($snapshot['categories'] ?? null)
                             ? $snapshot['categories']
                             : (is_array($pricing['categories'] ?? null) ? $pricing['categories'] : []);

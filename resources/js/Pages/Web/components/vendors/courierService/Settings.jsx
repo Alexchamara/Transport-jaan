@@ -130,6 +130,90 @@ const DEFAULT_SETTINGS = {
             domestic: [],
             logistic: [],
         },
+        policyModules: {
+            domestic: {
+                remoteAreaSurcharge: {
+                    enabled: false,
+                    flatFee: 0,
+                    applyOnOrigin: false,
+                    applyOnDestination: true,
+                    postalCodePrefixes: [],
+                    cityKeywords: [],
+                },
+                oversizeOverweightRules: {
+                    enabled: false,
+                    maxWeightKg: 25,
+                    overweightPerKgFee: 0,
+                    maxLengthCm: 120,
+                    maxWidthCm: 80,
+                    maxHeightCm: 80,
+                    oversizeFlatFee: 0,
+                },
+                peakHolidaySurcharge: {
+                    enabled: false,
+                    peakStartTime: "17:00",
+                    peakEndTime: "21:00",
+                    daysOfWeek: [1, 2, 3, 4, 5],
+                    peakPercent: 0,
+                    peakFlatFee: 0,
+                    holidayDates: [],
+                    holidayPercent: 0,
+                    holidayFlatFee: 0,
+                },
+                codFee: {
+                    enabled: false,
+                    flatFee: 0,
+                    percentOfDeclaredValue: 0,
+                    minFee: 0,
+                    maxFee: null,
+                },
+                minimumShipmentCharge: {
+                    enabled: true,
+                    minimumTotal: 0,
+                },
+            },
+            logistic: {
+                remoteAreaSurcharge: {
+                    enabled: false,
+                    flatFee: 0,
+                    applyOnOrigin: false,
+                    applyOnDestination: true,
+                    postalCodePrefixes: [],
+                    cityKeywords: [],
+                },
+                oversizeOverweightRules: {
+                    enabled: false,
+                    maxWeightKg: 25,
+                    overweightPerKgFee: 0,
+                    maxLengthCm: 120,
+                    maxWidthCm: 80,
+                    maxHeightCm: 80,
+                    oversizeFlatFee: 0,
+                },
+                peakHolidaySurcharge: {
+                    enabled: false,
+                    peakStartTime: "17:00",
+                    peakEndTime: "21:00",
+                    daysOfWeek: [1, 2, 3, 4, 5],
+                    peakPercent: 0,
+                    peakFlatFee: 0,
+                    holidayDates: [],
+                    holidayPercent: 0,
+                    holidayFlatFee: 0,
+                },
+                codFee: {
+                    enabled: false,
+                    flatFee: 0,
+                    percentOfDeclaredValue: 0,
+                    minFee: 0,
+                    maxFee: null,
+                },
+                minimumShipmentCharge: {
+                    enabled: true,
+                    minimumTotal: 0,
+                },
+            },
+        },
         categories: {
             domestic: [
                 {
@@ -667,6 +751,20 @@ const Settings = () => {
                         ? incomingPricing.laneMatrix.logistic
                         : DEFAULT_SETTINGS.pricing.laneMatrix.logistic,
                 },
+                policyModules: {
+                    domestic: {
+                        ...DEFAULT_SETTINGS.pricing.policyModules.domestic,
+                        ...(incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" && incomingPricing.policyModules.domestic && typeof incomingPricing.policyModules.domestic === "object"
+                            ? incomingPricing.policyModules.domestic
+                            : (incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" ? incomingPricing.policyModules : {})),
+                    },
+                    logistic: {
+                        ...DEFAULT_SETTINGS.pricing.policyModules.logistic,
+                        ...(incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" && incomingPricing.policyModules.logistic && typeof incomingPricing.policyModules.logistic === "object"
+                            ? incomingPricing.policyModules.logistic
+                            : (incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" ? incomingPricing.policyModules : {})),
+                    },
+                },
                 categories: {
                     domestic: Array.isArray(incomingPricing.categories?.domestic)
                         ? incomingPricing.categories.domestic
@@ -990,6 +1088,33 @@ const Settings = () => {
             },
         }));
     };
+
+    const updatePricingPolicyModule = (categoryKey, moduleKey, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            pricing: {
+                ...(prev.pricing || DEFAULT_SETTINGS.pricing),
+                policyModules: {
+                    ...((prev.pricing && prev.pricing.policyModules) || DEFAULT_SETTINGS.pricing.policyModules),
+                    [categoryKey]: {
+                        ...((prev.pricing && prev.pricing.policyModules && prev.pricing.policyModules[categoryKey]) || DEFAULT_SETTINGS.pricing.policyModules[categoryKey]),
+                        [moduleKey]: {
+                            ...((prev.pricing
+                                && prev.pricing.policyModules
+                                && prev.pricing.policyModules[categoryKey]
+                                && prev.pricing.policyModules[categoryKey][moduleKey]) || DEFAULT_SETTINGS.pricing.policyModules[categoryKey][moduleKey]),
+                            [key]: value,
+                        },
+                    },
+                },
+            },
+        }));
+    };
+
+    const parseCommaList = (value, transform = (item) => item) => String(value || "")
+        .split(",")
+        .map((item) => transform(String(item || "").trim()))
+        .filter((item) => Boolean(item));
 
     const runPricingGovernanceAction = (action, options = {}) => {
         setPricingGovernanceActionBusy(true);
@@ -3369,6 +3494,7 @@ const Settings = () => {
     const pricingServiceCatalog = settings?.pricing?.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
     const pricingZoneMasterByCategory = settings?.pricing?.zoneMaster || DEFAULT_SETTINGS.pricing.zoneMaster;
     const pricingLaneMatrix = settings?.pricing?.laneMatrix || DEFAULT_SETTINGS.pricing.laneMatrix;
+    const pricingPolicyModulesByCategory = settings?.pricing?.policyModules || DEFAULT_SETTINGS.pricing.policyModules;
     const pricingGovernanceByCategory = settings?.pricing?.governance || DEFAULT_SETTINGS.pricing.governance;
     const normalizedCurrentUserRoles = currentUserRoleNames.map((role) => role.toLowerCase());
     const activePricingLocalization = (pricingLocalizationByCategory && typeof pricingLocalizationByCategory[activePricingCategory] === "object")
@@ -3398,6 +3524,9 @@ const Settings = () => {
     const activePricingFormula = (pricingFormulaByCategory && typeof pricingFormulaByCategory[activePricingCategory] === "object")
         ? pricingFormulaByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.formula[activePricingCategory];
+    const activePricingPolicyModules = (pricingPolicyModulesByCategory && typeof pricingPolicyModulesByCategory[activePricingCategory] === "object")
+        ? pricingPolicyModulesByCategory[activePricingCategory]
+        : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory];
     const activePricingZones = Array.isArray(pricingZoneMasterByCategory?.[activePricingCategory])
         ? pricingZoneMasterByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.zoneMaster[activePricingCategory];
@@ -3732,6 +3861,131 @@ const Settings = () => {
                                 </label>
                                 <Field label="Round Decimals">
                                     <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula(activePricingCategory, "roundTo", Number(e.target.value || 2))} />
+                                </Field>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                        <p className="text-[13px] font-[700] text-[#111827] mb-2">Rule-Based Policy Modules ({titleCase(activePricingCategory)})</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
+                                <p className="text-[12px] font-[700] text-[#111827]">Remote Area Surcharge</p>
+                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(activePricingPolicyModules.remoteAreaSurcharge?.enabled)}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "enabled", e.target.checked)}
+                                    />
+                                    Enable
+                                </label>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <Field label="Flat Fee">
+                                        <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.remoteAreaSurcharge?.flatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "flatFee", Number(e.target.value || 0))} />
+                                    </Field>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                            <input type="checkbox" checked={Boolean(activePricingPolicyModules.remoteAreaSurcharge?.applyOnOrigin)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "applyOnOrigin", e.target.checked)} />
+                                            Apply on origin
+                                        </label>
+                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                            <input type="checkbox" checked={Boolean(activePricingPolicyModules.remoteAreaSurcharge?.applyOnDestination)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "applyOnDestination", e.target.checked)} />
+                                            Apply on destination
+                                        </label>
+                                    </div>
+                                </div>
+                                <Field label="Postal Prefixes (comma-separated)">
+                                    <input
+                                        className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={(activePricingPolicyModules.remoteAreaSurcharge?.postalCodePrefixes || []).join(", ")}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "postalCodePrefixes", parseCommaList(e.target.value, (item) => item.toUpperCase()))}
+                                        placeholder="81, 82"
+                                    />
+                                </Field>
+                                <Field label="City Keywords (comma-separated)">
+                                    <input
+                                        className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={(activePricingPolicyModules.remoteAreaSurcharge?.cityKeywords || []).join(", ")}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "cityKeywords", parseCommaList(e.target.value, (item) => item.toLowerCase()))}
+                                        placeholder="rural, mountain"
+                                    />
+                                </Field>
+                            </div>
+
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
+                                <p className="text-[12px] font-[700] text-[#111827]">Oversize / Overweight Rules</p>
+                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(activePricingPolicyModules.oversizeOverweightRules?.enabled)}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "enabled", e.target.checked)}
+                                    />
+                                    Enable
+                                </label>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <Field label="Max Weight (kg)"><input type="number" min={0.1} step="0.1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxWeightKg || 25)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxWeightKg", Number(e.target.value || 25))} /></Field>
+                                    <Field label="Overweight Fee / kg"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.overweightPerKgFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "overweightPerKgFee", Number(e.target.value || 0))} /></Field>
+                                    <Field label="Max Length (cm)"><input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxLengthCm || 120)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxLengthCm", Number(e.target.value || 120))} /></Field>
+                                    <Field label="Max Width (cm)"><input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxWidthCm || 80)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxWidthCm", Number(e.target.value || 80))} /></Field>
+                                    <Field label="Max Height (cm)"><input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxHeightCm || 80)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxHeightCm", Number(e.target.value || 80))} /></Field>
+                                    <Field label="Oversize Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.oversizeFlatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "oversizeFlatFee", Number(e.target.value || 0))} /></Field>
+                                </div>
+                            </div>
+
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
+                                <p className="text-[12px] font-[700] text-[#111827]">Peak Hour / Holiday Surcharges</p>
+                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(activePricingPolicyModules.peakHolidaySurcharge?.enabled)}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "enabled", e.target.checked)}
+                                    />
+                                    Enable
+                                </label>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <Field label="Peak Start"><input type="time" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(activePricingPolicyModules.peakHolidaySurcharge?.peakStartTime || "17:00")} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakStartTime", e.target.value)} /></Field>
+                                    <Field label="Peak End"><input type="time" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(activePricingPolicyModules.peakHolidaySurcharge?.peakEndTime || "21:00")} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakEndTime", e.target.value)} /></Field>
+                                    <Field label="Peak %"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.peakPercent || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakPercent", Number(e.target.value || 0))} /></Field>
+                                    <Field label="Peak Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.peakFlatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakFlatFee", Number(e.target.value || 0))} /></Field>
+                                    <Field label="Holiday %"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.holidayPercent || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "holidayPercent", Number(e.target.value || 0))} /></Field>
+                                    <Field label="Holiday Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.holidayFlatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "holidayFlatFee", Number(e.target.value || 0))} /></Field>
+                                </div>
+                                <Field label="Holiday Dates (YYYY-MM-DD, comma-separated)">
+                                    <input
+                                        className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        value={(activePricingPolicyModules.peakHolidaySurcharge?.holidayDates || []).join(", ")}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "holidayDates", parseCommaList(e.target.value))}
+                                        placeholder="2026-12-25, 2027-01-01"
+                                    />
+                                </Field>
+                            </div>
+
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
+                                <p className="text-[12px] font-[700] text-[#111827]">COD and Minimum Charge Guardrail</p>
+                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(activePricingPolicyModules.codFee?.enabled)}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "enabled", e.target.checked)}
+                                    />
+                                    Enable COD Fee
+                                </label>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <Field label="COD Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.flatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "flatFee", Number(e.target.value || 0))} /></Field>
+                                    <Field label="COD % Declared"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.percentOfDeclaredValue || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "percentOfDeclaredValue", Number(e.target.value || 0))} /></Field>
+                                    <Field label="COD Min Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.minFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "minFee", Number(e.target.value || 0))} /></Field>
+                                    <Field label="COD Max Fee (optional)"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={activePricingPolicyModules.codFee?.maxFee === null || activePricingPolicyModules.codFee?.maxFee === undefined ? "" : Number(activePricingPolicyModules.codFee?.maxFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "maxFee", e.target.value === "" ? null : Number(e.target.value || 0))} /></Field>
+                                </div>
+                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(activePricingPolicyModules.minimumShipmentCharge?.enabled)}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "enabled", e.target.checked)}
+                                    />
+                                    Enforce Minimum Shipment Charge
+                                </label>
+                                <Field label="Minimum Total">
+                                    <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
                                 </Field>
                             </div>
                         </div>
