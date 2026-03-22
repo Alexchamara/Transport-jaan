@@ -668,9 +668,11 @@ class VendorCourierDashboardController extends Controller
         $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
-            'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults'],
+            'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults,pricing_publish_now,pricing_schedule_publish,pricing_approve_publish,pricing_reject_publish'],
             'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,pricing,team'],
             'settings' => ['nullable', 'array'],
+            'effectiveAt' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:400'],
         ]);
 
         $record = VendorCourierSetting::query()->firstOrCreate(
@@ -684,6 +686,101 @@ class VendorCourierDashboardController extends Controller
         );
 
         $action = $validated['action'];
+        $actorId = (int) optional($request->user())->id ?: null;
+
+        if (in_array($action, ['pricing_publish_now', 'pricing_schedule_publish', 'pricing_approve_publish', 'pricing_reject_publish'], true)) {
+            $pricing = $this->normalizePricingSettings(is_array($current['pricing'] ?? null) ? $current['pricing'] : []);
+            $governance = is_array($pricing['governance'] ?? null)
+                ? $pricing['governance']
+                : $this->defaultPricingGovernance();
+
+            if ($action === 'pricing_publish_now') {
+                $snapshot = $this->extractPricingSnapshot($pricing);
+                if ((bool) ($governance['requireApproval'] ?? false)) {
+                    $governance['pendingApproval'] = [
+                        'snapshot' => $snapshot,
+                        'requestedAt' => now()->toDateTimeString(),
+                        'requestedBy' => $actorId,
+                        'note' => (string) ($validated['note'] ?? ''),
+                    ];
+                    $pricing['governance'] = $governance;
+                    $pricing = $this->appendPricingGovernanceLog($pricing, 'publish_requested', $actorId, [
+                        'note' => (string) ($validated['note'] ?? ''),
+                    ]);
+                    $current['pricing'] = $pricing;
+                    $record->update(['settings' => $current]);
+
+                    return back()->with('success', 'Pricing publish request submitted for approval.');
+                }
+
+                $pricing = $this->publishPricingSnapshot($pricing, $snapshot, $actorId, 'published_now');
+                $current['pricing'] = $pricing;
+                $record->update(['settings' => $current]);
+
+                return back()->with('success', 'Pricing published successfully.');
+            }
+
+            if ($action === 'pricing_schedule_publish') {
+                $effectiveAt = $validated['effectiveAt'] ?? null;
+                if (!$effectiveAt) {
+                    return back()->with('error', 'Effective date/time is required to schedule pricing publish.');
+                }
+
+                $governance['scheduledPublish'] = [
+                    'snapshot' => $this->extractPricingSnapshot($pricing),
+                    'effectiveAt' => Carbon::parse((string) $effectiveAt)->toDateTimeString(),
+                    'scheduledBy' => $actorId,
+                    'note' => (string) ($validated['note'] ?? ''),
+                ];
+                $pricing['governance'] = $governance;
+                $pricing = $this->appendPricingGovernanceLog($pricing, 'publish_scheduled', $actorId, [
+                    'effectiveAt' => Carbon::parse((string) $effectiveAt)->toDateTimeString(),
+                ]);
+                $current['pricing'] = $pricing;
+                $record->update(['settings' => $current]);
+
+                return back()->with('success', 'Pricing publish scheduled successfully.');
+            }
+
+            if ($action === 'pricing_approve_publish') {
+                if (!$this->canActorApprovePricingGovernance($request, $governance)) {
+                    abort(403, 'You are not allowed to approve pricing governance actions.');
+                }
+
+                $pending = is_array($governance['pendingApproval'] ?? null) ? $governance['pendingApproval'] : null;
+                if (!$pending || !is_array($pending['snapshot'] ?? null)) {
+                    return back()->with('error', 'No pending pricing publish request found.');
+                }
+
+                $pricing = $this->publishPricingSnapshot($pricing, $pending['snapshot'], $actorId, 'publish_approved');
+                $pricing['governance']['pendingApproval'] = null;
+                $current['pricing'] = $pricing;
+                $record->update(['settings' => $current]);
+
+                return back()->with('success', 'Pending pricing publish approved and published.');
+            }
+
+            if ($action === 'pricing_reject_publish') {
+                if (!$this->canActorApprovePricingGovernance($request, $governance)) {
+                    abort(403, 'You are not allowed to reject pricing governance actions.');
+                }
+
+                $pending = is_array($governance['pendingApproval'] ?? null) ? $governance['pendingApproval'] : null;
+                if (!$pending) {
+                    return back()->with('error', 'No pending pricing publish request found.');
+                }
+
+                $governance['pendingApproval'] = null;
+                $pricing['governance'] = $governance;
+                $pricing = $this->appendPricingGovernanceLog($pricing, 'publish_rejected', $actorId, [
+                    'note' => (string) ($validated['note'] ?? ''),
+                ]);
+                $current['pricing'] = $pricing;
+                $record->update(['settings' => $current]);
+
+                return back()->with('success', 'Pending pricing publish request rejected.');
+            }
+        }
 
         if ($action === 'reset_defaults') {
             $record->update(['settings' => $this->defaultCourierSettings()]);
@@ -710,6 +807,9 @@ class VendorCourierDashboardController extends Controller
 
             if ($section === 'pricing') {
                 $incomingSection = $this->normalizePricingSettings(array_replace_recursive($current['pricing'] ?? [], $incomingSection));
+                $incomingSection = $this->appendPricingGovernanceLog($incomingSection, 'draft_saved', $actorId, [
+                    'mode' => 'save_section',
+                ]);
             }
 
             $current[$section] = array_replace($current[$section], $incomingSection);
@@ -738,6 +838,9 @@ class VendorCourierDashboardController extends Controller
 
         if (is_array($next['pricing'] ?? null)) {
             $next['pricing'] = $this->normalizePricingSettings($next['pricing']);
+            $next['pricing'] = $this->appendPricingGovernanceLog($next['pricing'], 'draft_saved', $actorId, [
+                'mode' => 'save_all',
+            ]);
         }
 
         $record->update(['settings' => $next]);
@@ -2914,11 +3017,13 @@ class VendorCourierDashboardController extends Controller
                 'taxPercent' => 0,
                 'roundTo' => 2,
             ],
+            'serviceCatalog' => $this->defaultPricingServiceCatalog(),
             'categories' => [
                 'domestic' => [
                     [
                         'id' => 'domestic_within_3_days',
                         'label' => 'Within 3 Days',
+                        'serviceLevelKey' => 'two_three_day',
                         'slaDays' => 3,
                         'basePrice' => 250,
                         'perKgPrice' => 35,
@@ -2928,6 +3033,7 @@ class VendorCourierDashboardController extends Controller
                     [
                         'id' => 'domestic_one_day',
                         'label' => 'One Day',
+                        'serviceLevelKey' => 'next_day',
                         'slaDays' => 1,
                         'basePrice' => 1000,
                         'perKgPrice' => 70,
@@ -2939,6 +3045,7 @@ class VendorCourierDashboardController extends Controller
                     [
                         'id' => 'logistic_standard',
                         'label' => 'Logistic Standard',
+                        'serviceLevelKey' => 'two_three_day',
                         'slaDays' => 4,
                         'basePrice' => 1400,
                         'perKgPrice' => 90,
@@ -2948,6 +3055,7 @@ class VendorCourierDashboardController extends Controller
                     [
                         'id' => 'logistic_express',
                         'label' => 'Logistic Express',
+                        'serviceLevelKey' => 'next_day',
                         'slaDays' => 2,
                         'basePrice' => 2200,
                         'perKgPrice' => 130,
@@ -2956,6 +3064,88 @@ class VendorCourierDashboardController extends Controller
                     ],
                 ],
             ],
+            'governance' => $this->defaultPricingGovernance(),
+        ];
+    }
+
+    private function defaultPricingServiceCatalog(): array
+    {
+        return [
+            'domestic' => [
+                [
+                    'key' => 'same_day',
+                    'label' => 'Same Day',
+                    'promisedSlaDays' => 1,
+                    'cutoffTime' => '10:30',
+                    'isActive' => true,
+                    'sortOrder' => 1,
+                ],
+                [
+                    'key' => 'next_day',
+                    'label' => 'Next Day',
+                    'promisedSlaDays' => 1,
+                    'cutoffTime' => '15:00',
+                    'isActive' => true,
+                    'sortOrder' => 2,
+                ],
+                [
+                    'key' => 'two_three_day',
+                    'label' => '2-3 Day',
+                    'promisedSlaDays' => 3,
+                    'cutoffTime' => '17:00',
+                    'isActive' => true,
+                    'sortOrder' => 3,
+                ],
+                [
+                    'key' => 'economy',
+                    'label' => 'Economy',
+                    'promisedSlaDays' => 5,
+                    'cutoffTime' => '18:00',
+                    'isActive' => true,
+                    'sortOrder' => 4,
+                ],
+            ],
+            'logistic' => [
+                [
+                    'key' => 'next_day',
+                    'label' => 'Next Day',
+                    'promisedSlaDays' => 2,
+                    'cutoffTime' => '13:00',
+                    'isActive' => true,
+                    'sortOrder' => 1,
+                ],
+                [
+                    'key' => 'two_three_day',
+                    'label' => '2-3 Day',
+                    'promisedSlaDays' => 3,
+                    'cutoffTime' => '16:00',
+                    'isActive' => true,
+                    'sortOrder' => 2,
+                ],
+                [
+                    'key' => 'economy',
+                    'label' => 'Economy',
+                    'promisedSlaDays' => 6,
+                    'cutoffTime' => '18:00',
+                    'isActive' => true,
+                    'sortOrder' => 3,
+                ],
+            ],
+        ];
+    }
+
+    private function defaultPricingGovernance(): array
+    {
+        return [
+            'requireApproval' => false,
+            'approverRoles' => ['courier_owner', 'courier_admin'],
+            'draftVersion' => 1,
+            'publishedVersion' => 1,
+            'publishedAt' => null,
+            'publishedBy' => null,
+            'pendingApproval' => null,
+            'scheduledPublish' => null,
+            'changeLog' => [],
         ];
     }
 
@@ -2990,15 +3180,31 @@ class VendorCourierDashboardController extends Controller
         $pricing['formula']['taxPercent'] = max(0, (float) ($pricing['formula']['taxPercent'] ?? 0));
         $pricing['formula']['roundTo'] = max(0, min(4, (int) ($pricing['formula']['roundTo'] ?? 2)));
 
+        $pricing['serviceCatalog'] = $this->normalizePricingServiceCatalog(
+            is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : []
+        );
+
         foreach (['domestic', 'logistic'] as $category) {
             $items = is_array($pricing['categories'][$category] ?? null) ? $pricing['categories'][$category] : [];
+            $allowedServiceKeys = collect($pricing['serviceCatalog'][$category] ?? [])
+                ->map(fn ($item) => (string) ($item['key'] ?? ''))
+                ->filter()
+                ->values()
+                ->all();
+            $defaultServiceKey = $allowedServiceKeys[0] ?? 'economy';
+
             $pricing['categories'][$category] = collect($items)
-                ->map(function ($item, $index) use ($category) {
+                ->map(function ($item, $index) use ($category, $allowedServiceKeys, $defaultServiceKey) {
                     $row = is_array($item) ? $item : [];
+                    $serviceLevelKey = $this->normalizeServiceLevelKey((string) ($row['serviceLevelKey'] ?? ''));
+                    if (!in_array($serviceLevelKey, $allowedServiceKeys, true)) {
+                        $serviceLevelKey = $defaultServiceKey;
+                    }
 
                     return [
                         'id' => trim((string) ($row['id'] ?? "{$category}_tier_{$index}")) ?: "{$category}_tier_{$index}",
                         'label' => trim((string) ($row['label'] ?? 'Tier')) ?: 'Tier',
+                        'serviceLevelKey' => $serviceLevelKey,
                         'slaDays' => max(1, (int) ($row['slaDays'] ?? 1)),
                         'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
                         'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
@@ -3010,7 +3216,163 @@ class VendorCourierDashboardController extends Controller
                 ->all();
         }
 
+        $governance = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : [];
+        $defaultGovernance = $this->defaultPricingGovernance();
+        $pricing['governance'] = array_replace($defaultGovernance, $governance);
+        $pricing['governance']['requireApproval'] = (bool) ($pricing['governance']['requireApproval'] ?? false);
+        $pricing['governance']['approverRoles'] = collect($pricing['governance']['approverRoles'] ?? $defaultGovernance['approverRoles'])
+            ->map(fn ($role) => trim((string) $role))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $pricing['governance']['draftVersion'] = max(1, (int) ($pricing['governance']['draftVersion'] ?? 1));
+        $pricing['governance']['publishedVersion'] = max(1, (int) ($pricing['governance']['publishedVersion'] ?? 1));
+        $pricing['governance']['changeLog'] = collect($pricing['governance']['changeLog'] ?? [])
+            ->filter(fn ($entry) => is_array($entry))
+            ->take(50)
+            ->values()
+            ->all();
+
         return $pricing;
+    }
+
+    private function extractPricingSnapshot(array $pricing): array
+    {
+        return [
+            'localization' => is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [],
+            'formula' => is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [],
+            'serviceCatalog' => is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : [],
+            'categories' => is_array($pricing['categories'] ?? null) ? $pricing['categories'] : [],
+        ];
+    }
+
+    private function applyPricingSnapshot(array $pricing, array $snapshot): array
+    {
+        $pricing['localization'] = is_array($snapshot['localization'] ?? null) ? $snapshot['localization'] : ($pricing['localization'] ?? []);
+        $pricing['formula'] = is_array($snapshot['formula'] ?? null) ? $snapshot['formula'] : ($pricing['formula'] ?? []);
+        $pricing['serviceCatalog'] = is_array($snapshot['serviceCatalog'] ?? null) ? $snapshot['serviceCatalog'] : ($pricing['serviceCatalog'] ?? []);
+        $pricing['categories'] = is_array($snapshot['categories'] ?? null) ? $snapshot['categories'] : ($pricing['categories'] ?? []);
+
+        return $this->normalizePricingSettings($pricing);
+    }
+
+    private function normalizePricingServiceCatalog(array $input): array
+    {
+        $defaults = $this->defaultPricingServiceCatalog();
+        $normalized = [];
+
+        foreach (['domestic', 'logistic'] as $category) {
+            $source = is_array($input[$category] ?? null) ? $input[$category] : ($defaults[$category] ?? []);
+            $fallback = is_array($defaults[$category] ?? null) ? $defaults[$category] : [];
+
+            $rows = collect($source)
+                ->map(function ($item, $index) use ($fallback) {
+                    $row = is_array($item) ? $item : [];
+                    $fallbackItem = $fallback[$index] ?? [];
+
+                    $key = $this->normalizeServiceLevelKey((string) ($row['key'] ?? ($fallbackItem['key'] ?? '')));
+                    $label = trim((string) ($row['label'] ?? ($fallbackItem['label'] ?? 'Service Level')));
+                    $cutoff = $this->normalizeTimeValue((string) ($row['cutoffTime'] ?? ($fallbackItem['cutoffTime'] ?? '18:00')));
+
+                    return [
+                        'key' => $key !== '' ? $key : 'service_level_' . ($index + 1),
+                        'label' => $label !== '' ? $label : 'Service Level',
+                        'promisedSlaDays' => max(1, (int) ($row['promisedSlaDays'] ?? ($fallbackItem['promisedSlaDays'] ?? 1))),
+                        'cutoffTime' => $cutoff,
+                        'isActive' => (bool) ($row['isActive'] ?? ($fallbackItem['isActive'] ?? true)),
+                        'sortOrder' => max(1, (int) ($row['sortOrder'] ?? ($fallbackItem['sortOrder'] ?? ($index + 1)))),
+                    ];
+                })
+                ->filter(fn ($row) => trim((string) ($row['key'] ?? '')) !== '')
+                ->unique('key')
+                ->sortBy('sortOrder')
+                ->values()
+                ->all();
+
+            if (empty($rows)) {
+                $rows = $defaults[$category] ?? [];
+            }
+
+            $normalized[$category] = $rows;
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeServiceLevelKey(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+
+        return trim($normalized, '_');
+    }
+
+    private function appendPricingGovernanceLog(array $pricing, string $event, ?int $actorId, array $meta = []): array
+    {
+        $pricing = $this->normalizePricingSettings($pricing);
+        $governance = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : $this->defaultPricingGovernance();
+
+        if ($event === 'draft_saved') {
+            $governance['draftVersion'] = max(1, (int) ($governance['draftVersion'] ?? 1)) + 1;
+        }
+
+        $governance['changeLog'] = collect($governance['changeLog'] ?? [])
+            ->prepend([
+                'event' => $event,
+                'at' => now()->toDateTimeString(),
+                'actorUserId' => $actorId,
+                'meta' => $meta,
+            ])
+            ->take(50)
+            ->values()
+            ->all();
+
+        $pricing['governance'] = $governance;
+        return $pricing;
+    }
+
+    private function publishPricingSnapshot(array $pricing, array $snapshot, ?int $actorId, string $event = 'published_now'): array
+    {
+        $pricing = $this->applyPricingSnapshot($pricing, $snapshot);
+        $governance = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : $this->defaultPricingGovernance();
+        $governance['publishedVersion'] = max(1, (int) ($governance['publishedVersion'] ?? 1)) + 1;
+        $governance['publishedAt'] = now()->toDateTimeString();
+        $governance['publishedBy'] = $actorId;
+        $governance['scheduledPublish'] = null;
+        $governance['pendingApproval'] = null;
+        $pricing['governance'] = $governance;
+
+        return $this->appendPricingGovernanceLog($pricing, $event, $actorId, [
+            'publishedVersion' => $governance['publishedVersion'],
+        ]);
+    }
+
+    private function canActorApprovePricingGovernance(Request $request, array $governance): bool
+    {
+        if ($this->isVendorOwnerActor($request)) {
+            return true;
+        }
+
+        $approverRoles = collect($governance['approverRoles'] ?? [])
+            ->map(fn ($role) => strtolower(trim((string) $role)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($approverRoles)) {
+            return false;
+        }
+
+        $actorRoles = collect($this->actorCourierRoles($request))
+            ->map(fn ($role) => strtolower(trim((string) $role)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return !empty(array_intersect($actorRoles, $approverRoles));
     }
 
     private function normalizeTeamSettings(array $team): array

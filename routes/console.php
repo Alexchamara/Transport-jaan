@@ -25,3 +25,9 @@ Schedule::command('courier:refresh-exchange-rates')
     ->dailyAt('00:20')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Publish scheduled pricing snapshots once effective time is reached.
+Schedule::command('courier:publish-scheduled-pricing')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

@@ -110,6 +110,17 @@ const DEFAULT_SETTINGS = {
                 },
             ],
         },
+        governance: {
+            requireApproval: false,
+            approverRoles: ["courier_owner", "courier_admin"],
+            draftVersion: 1,
+            publishedVersion: 1,
+            publishedAt: null,
+            publishedBy: null,
+            pendingApproval: null,
+            scheduledPublish: null,
+            changeLog: [],
+        },
     },
     team: {
         dispatcherCanCancel: false,
@@ -425,6 +436,27 @@ const Settings = () => {
     const scopeZoneOptions = Array.isArray(teamScopeControlOptions.availableZones) ? teamScopeControlOptions.availableZones : [];
     const scopeHubOptions = Array.isArray(teamScopeControlOptions.availableHubs) ? teamScopeControlOptions.availableHubs : [];
     const scopeCustomerOptions = Array.isArray(teamScopeControlOptions.customerAccounts) ? teamScopeControlOptions.customerAccounts : [];
+    const authUser = props.auth && typeof props.auth === "object" && props.auth.user && typeof props.auth.user === "object"
+        ? props.auth.user
+        : {};
+    const currentUserRoleNames = [
+        ...(Array.isArray(authUser.roles) ? authUser.roles : []).map((role) => {
+            if (typeof role === "string") {
+                return role;
+            }
+
+            if (role && typeof role === "object") {
+                return role.name || role.slug || role.code || role.role || "";
+            }
+
+            return "";
+        }),
+        String(authUser.role || ""),
+        String(authUser.roleName || ""),
+        String(authUser.currentRole || ""),
+    ]
+        .map((role) => String(role || "").trim())
+        .filter(Boolean);
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const teamCapabilities = props.teamCapabilities || {};
@@ -491,6 +523,16 @@ const Settings = () => {
                     logistic: Array.isArray(incomingPricing.categories?.logistic)
                         ? incomingPricing.categories.logistic
                         : DEFAULT_SETTINGS.pricing.categories.logistic,
+                },
+                governance: {
+                    ...DEFAULT_SETTINGS.pricing.governance,
+                    ...(incomingPricing.governance && typeof incomingPricing.governance === "object" ? incomingPricing.governance : {}),
+                    approverRoles: Array.isArray(incomingPricing.governance?.approverRoles)
+                        ? incomingPricing.governance.approverRoles
+                        : DEFAULT_SETTINGS.pricing.governance.approverRoles,
+                    changeLog: Array.isArray(incomingPricing.governance?.changeLog)
+                        ? incomingPricing.governance.changeLog
+                        : DEFAULT_SETTINGS.pricing.governance.changeLog,
                 },
             },
             team: {
@@ -691,6 +733,9 @@ const Settings = () => {
         widthCm: 20,
         heightCm: 20,
     });
+    const [pricingPublishAt, setPricingPublishAt] = useState("");
+    const [pricingGovernanceNote, setPricingGovernanceNote] = useState("");
+    const [pricingGovernanceActionBusy, setPricingGovernanceActionBusy] = useState(false);
     const [liveRateBusy, setLiveRateBusy] = useState(false);
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
     const stepUpGuidanceRef = useRef(null);
@@ -740,6 +785,37 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const updatePricingGovernance = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            pricing: {
+                ...(prev.pricing || DEFAULT_SETTINGS.pricing),
+                governance: {
+                    ...((prev.pricing && prev.pricing.governance) || DEFAULT_SETTINGS.pricing.governance),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const runPricingGovernanceAction = (action, options = {}) => {
+        setPricingGovernanceActionBusy(true);
+        router.post(
+            route("courierService.settings.update"),
+            {
+                action,
+                effectiveAt: options.effectiveAt || null,
+                note: options.note || pricingGovernanceNote || null,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => setPricingGovernanceActionBusy(false),
+                onError: () => setFeedback({ type: "error", message: "Pricing governance action failed." }),
+            },
+        );
     };
 
     const updatePricingTier = (categoryKey, index, key, value) => {
@@ -2752,6 +2828,23 @@ const Settings = () => {
     const saveButtonLabel = TAB_CONFIG.find((tab) => tab.key === activeTab)?.label;
     const pricingLocalization = settings?.pricing?.localization || DEFAULT_SETTINGS.pricing.localization;
     const pricingFormula = settings?.pricing?.formula || DEFAULT_SETTINGS.pricing.formula;
+    const pricingGovernance = settings?.pricing?.governance || DEFAULT_SETTINGS.pricing.governance;
+    const normalizedCurrentUserRoles = currentUserRoleNames.map((role) => role.toLowerCase());
+    const normalizedApproverRoles = (Array.isArray(pricingGovernance.approverRoles) ? pricingGovernance.approverRoles : [])
+        .map((role) => String(role || "").trim().toLowerCase())
+        .filter(Boolean);
+    const hasGovernanceApproverRole = normalizedApproverRoles.length > 0
+        ? normalizedApproverRoles.some((role) => normalizedCurrentUserRoles.includes(role))
+        : false;
+    const governanceApproverRoleOptions = [...new Set([
+        ...(Array.isArray(teamRoleOptions) ? teamRoleOptions : []),
+        ...(Array.isArray(pricingGovernance.approverRoles) ? pricingGovernance.approverRoles : []),
+    ])]
+        .map((role) => String(role || "").trim())
+        .filter(Boolean);
+    const canConfigurePricingGovernance = canAssignPermissions;
+    const canPublishPricingChanges = canAssignPermissions;
+    const canReviewPricingPublish = canAssignPermissions && (hasGovernanceApproverRole || normalizedCurrentUserRoles.length === 0);
     const activePricingRows = Array.isArray(settings?.pricing?.categories?.[activePricingCategory])
         ? settings.pricing.categories[activePricingCategory]
         : [];
@@ -3036,6 +3129,133 @@ const Settings = () => {
                                     <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula("roundTo", Number(e.target.value || 2))} />
                                 </Field>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                        <p className="text-[13px] font-[700] text-[#111827] mb-2">Pricing Governance</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(pricingGovernance.requireApproval)}
+                                    disabled={!canConfigurePricingGovernance}
+                                    onChange={(e) => updatePricingGovernance("requireApproval", e.target.checked)}
+                                />
+                                Require approval before publish
+                            </label>
+                            <Field label="Approver Roles">
+                                <div className="w-full rounded-[8px] border border-[#D1D5DB] bg-white p-2">
+                                    <div className="flex flex-wrap gap-2">
+                                        {governanceApproverRoleOptions.map((roleName) => {
+                                            const selectedRoles = Array.isArray(pricingGovernance.approverRoles)
+                                                ? pricingGovernance.approverRoles
+                                                : [];
+                                            const isSelected = selectedRoles.includes(roleName);
+
+                                            return (
+                                                <label
+                                                    key={`governance-approver-${roleName}`}
+                                                    className={`inline-flex items-center gap-1 rounded-[999px] border px-2 py-1 text-[11px] font-[700] ${isSelected ? "border-[#0955AC] bg-[#EFF6FF] text-[#0955AC]" : "border-[#E5E7EB] text-[#475569]"}`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-[12px] w-[12px]"
+                                                        disabled={!canConfigurePricingGovernance}
+                                                        checked={isSelected}
+                                                        onChange={() => updatePricingGovernance(
+                                                            "approverRoles",
+                                                            toggleInArray(selectedRoles, roleName),
+                                                        )}
+                                                    />
+                                                    {roleName}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </Field>
+                            <Field label="Schedule Publish At">
+                                <input
+                                    type="datetime-local"
+                                    className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                    value={pricingPublishAt}
+                                    onChange={(e) => setPricingPublishAt(e.target.value)}
+                                />
+                            </Field>
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <p className="text-[11px] text-[#475569]">Draft Version: {Number(pricingGovernance.draftVersion || 1)}</p>
+                            <p className="text-[11px] text-[#475569]">Published Version: {Number(pricingGovernance.publishedVersion || 1)}</p>
+                            <p className="text-[11px] text-[#475569]">Published At: {pricingGovernance.publishedAt || "Not published"}</p>
+                            <p className="text-[11px] text-[#475569]">Pending Approval: {pricingGovernance.pendingApproval ? "Yes" : "No"}</p>
+                        </div>
+
+                        <textarea
+                            rows={2}
+                            className="mt-2 w-full rounded-[8px] border border-[#D1D5DB] px-2 py-1 text-[12px]"
+                            placeholder="Optional governance note"
+                            value={pricingGovernanceNote}
+                            onChange={(e) => setPricingGovernanceNote(e.target.value)}
+                        />
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                            {canPublishPricingChanges && (
+                                <button
+                                    type="button"
+                                    disabled={pricingGovernanceActionBusy}
+                                    className="h-[30px] px-3 rounded-[8px] bg-[#0F766E] text-white text-[11px] font-[700] disabled:opacity-50"
+                                    onClick={() => runPricingGovernanceAction("pricing_publish_now")}
+                                >
+                                    Publish Now
+                                </button>
+                            )}
+                            {canPublishPricingChanges && (
+                                <button
+                                    type="button"
+                                    disabled={pricingGovernanceActionBusy || !pricingPublishAt}
+                                    className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700] disabled:opacity-50"
+                                    onClick={() => runPricingGovernanceAction("pricing_schedule_publish", { effectiveAt: pricingPublishAt })}
+                                >
+                                    Schedule Publish
+                                </button>
+                            )}
+                            {canReviewPricingPublish && (
+                                <button
+                                    type="button"
+                                    disabled={pricingGovernanceActionBusy || !pricingGovernance.pendingApproval}
+                                    className="h-[30px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
+                                    onClick={() => runPricingGovernanceAction("pricing_approve_publish")}
+                                >
+                                    Approve Publish
+                                </button>
+                            )}
+                            {canReviewPricingPublish && (
+                                <button
+                                    type="button"
+                                    disabled={pricingGovernanceActionBusy || !pricingGovernance.pendingApproval}
+                                    className="h-[30px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700] disabled:opacity-50"
+                                    onClick={() => runPricingGovernanceAction("pricing_reject_publish")}
+                                >
+                                    Reject Publish
+                                </button>
+                            )}
+                        </div>
+                        {!canPublishPricingChanges && !canReviewPricingPublish && (
+                            <p className="mt-2 text-[11px] text-[#6B7280]">You do not have permission to run pricing governance actions.</p>
+                        )}
+
+                        <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white max-h-[180px] overflow-y-auto">
+                            <p className="text-[12px] font-[700] text-[#111827] mb-1">Pricing Audit Trail</p>
+                            {(pricingGovernance.changeLog || []).length === 0 && (
+                                <p className="text-[11px] text-[#6B7280]">No governance events yet.</p>
+                            )}
+                            {(pricingGovernance.changeLog || []).map((entry, idx) => (
+                                <p key={`pricing-log-${idx}`} className="text-[11px] text-[#475569] mb-1">
+                                    {String(entry?.at || "-")} • {titleCase(String(entry?.event || "event"))}
+                                </p>
+                            ))}
                         </div>
                     </div>
 
