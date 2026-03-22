@@ -64,6 +64,7 @@ const Details = () => {
                     insurance: false,
                     deliveryNotes: "",
                     estimatedValue: "",
+                    distanceKm: "",
                 },
                 packages: [
                     {
@@ -133,6 +134,7 @@ const Details = () => {
                 insurance: Boolean(shipment.insurance),
                 deliveryNotes: shipment.deliveryNotes ?? "",
                 estimatedValue: shipment.estimatedValue ?? "",
+                distanceKm: shipment.distanceKm ?? "",
             },
             packages: (formData.packages ?? []).map((pkg) => ({
                 ...pkg,
@@ -1146,6 +1148,22 @@ const Details = () => {
                                     {combinedErrors["shipment.estimatedValue"] && (
                                         <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.estimatedValue"]}</p>
                                     )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Route distance (km)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={data.shipment.distanceKm}
+                                        onChange={(event) => updateNestedField("shipment.distanceKm", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        placeholder="Optional, e.g. 28.5"
+                                    />
+                                    {combinedErrors["shipment.distanceKm"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.distanceKm"]}</p>
+                                    )}
+                                    <p className="mt-2 text-xs text-[#6B7893]">Provide route km to apply distance-band lane tariffs accurately.</p>
                                 </div>
                             </div>
                             <div>

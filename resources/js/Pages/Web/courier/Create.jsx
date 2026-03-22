@@ -17,6 +17,7 @@ const Create = () => {
     const serviceLevels = props.serviceLevels || [];
     const { flash } = props;
     const recentShipmentId = props.recentShipmentId;
+    const recentPricingExplanation = props.recentPricingExplanation;
     const packageSectionDescription = "Add one entry per parcel or grouped items.";
 
     // Currency conversion state
@@ -294,6 +295,26 @@ const Create = () => {
                                     >
                                         Download bill
                                     </a>
+                                </div>
+                            )}
+                            {recentPricingExplanation && (
+                                <div className="rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-3 text-xs text-[#1E3A8A]">
+                                    <p className="font-semibold">Pricing enforcement summary</p>
+                                    <p className="mt-1">Mode: {recentPricingExplanation.mode === "lane_matrix" ? "Lane Matrix" : "Selected Quotes"}</p>
+                                    {recentPricingExplanation.reason && (
+                                        <p className="mt-1">Reason: {recentPricingExplanation.reason}</p>
+                                    )}
+                                    {recentPricingExplanation.distanceKm !== null && recentPricingExplanation.distanceKm !== undefined && (
+                                        <p className="mt-1">Distance: {Number(recentPricingExplanation.distanceKm).toFixed(1)} km</p>
+                                    )}
+                                    {recentPricingExplanation.matchedRule && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            <p>Lane: {recentPricingExplanation.matchedRule.originZone} → {recentPricingExplanation.matchedRule.destinationZone}</p>
+                                            <p>Service: {recentPricingExplanation.matchedRule.serviceLevelKey || "any"}</p>
+                                            <p>Band: {Number(recentPricingExplanation.matchedRule.distanceFromKm || 0).toFixed(1)} - {recentPricingExplanation.matchedRule.distanceToKm === null || recentPricingExplanation.matchedRule.distanceToKm === undefined ? "*" : Number(recentPricingExplanation.matchedRule.distanceToKm).toFixed(1)} km</p>
+                                            <p>Estimate (USD): {Number(recentPricingExplanation.totalEstimatedUsd || 0).toFixed(2)}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -370,6 +370,7 @@ class ClientCourierController extends Controller
             'countries' => $countries,
             'recentReference' => $request->session()->pull('courier_reference'),
             'recentShipmentId' => $request->session()->pull('courier_bill_id'),
+            'recentPricingExplanation' => $request->session()->pull('courier_pricing_explanation'),
         ]);
     }
 
@@ -450,6 +451,7 @@ class ClientCourierController extends Controller
                 'insurance' => false,
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
+                'distanceKm' => null,
             ],
         ];
 
@@ -643,9 +645,72 @@ class ClientCourierController extends Controller
             return redirect()->route('couriers.details');
         }
 
+        $pricingPreview = $this->buildSummaryPricingPreview((array) $formData);
+
         return Inertia::render('Web/courier/Summary', [
             'formData' => $formData,
+            'pricingPreview' => $pricingPreview,
         ]);
+    }
+
+    private function buildSummaryPricingPreview(array $formData): array
+    {
+        $selectedQuotes = collect($formData['reviewContext']['selectedQuotes'] ?? []);
+        $fallbackEstimatedUsd = (float) ($formData['reviewContext']['totalPriceUSD'] ?? 0);
+        if ($fallbackEstimatedUsd <= 0) {
+            $fallbackEstimatedUsd = (float) $selectedQuotes->reduce(
+                fn ($carry, $quote) => $carry + (float) ($quote['priceUSD'] ?? 0),
+                0.0
+            );
+        }
+
+        $shipment = new CourierShipment();
+        $shipment->setRelation('senderAddress', (object) [
+            'country' => strtoupper((string) ($formData['sender']['address']['country'] ?? '')),
+        ]);
+        $shipment->setRelation('recipientAddress', (object) [
+            'country' => strtoupper((string) ($formData['recipient']['address']['country'] ?? '')),
+        ]);
+
+        $assignmentService = app(CourierVendorAssignmentService::class);
+        $assignment = $assignmentService->determineAssignment($shipment);
+
+        $shipment->assignment_category = (string) ($assignment['assignment_category'] ?? $this->resolvePayloadCategory($formData));
+        $shipment->assignment_status = (string) ($assignment['assignment_status'] ?? 'unassigned');
+        $shipment->assigned_vendor_user_id = $assignment['assigned_vendor_user_id'] ?? null;
+        $shipment->assigned_vendor_registration_id = $assignment['assigned_vendor_registration_id'] ?? null;
+
+        $pricingExplanation = null;
+        try {
+            $enforcedEstimatedUsd = $this->resolveEstimatedCostWithLaneMatrix($shipment, $formData, $fallbackEstimatedUsd, $pricingExplanation);
+        } catch (ValidationException $exception) {
+            $message = (string) collect($exception->errors())
+                ->flatten()
+                ->first();
+
+            return [
+                'mode' => 'lane_matrix_unmatched',
+                'reason' => $message !== '' ? $message : 'No active lane pricing rule found for the selected shipment details.',
+                'distanceKm' => $formData['shipment']['distanceKm'] ?? null,
+                'matchedRule' => null,
+                'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
+                'assignment' => [
+                    'category' => $shipment->assignment_category,
+                    'status' => $shipment->assignment_status,
+                    'vendorUserId' => $shipment->assigned_vendor_user_id,
+                ],
+            ];
+        }
+
+        $pricingExplanation = is_array($pricingExplanation) ? $pricingExplanation : [];
+        $pricingExplanation['totalEstimatedUsd'] = round(max(0, (float) $enforcedEstimatedUsd), 2);
+        $pricingExplanation['assignment'] = [
+            'category' => $shipment->assignment_category,
+            'status' => $shipment->assignment_status,
+            'vendorUserId' => $shipment->assigned_vendor_user_id,
+        ];
+
+        return $pricingExplanation;
     }
 
     public function store(StoreCourierShipmentRequest $request)
@@ -749,13 +814,15 @@ class ClientCourierController extends Controller
             return $shipment;
         });
 
-        $enforcedEstimatedCostUsd = $this->resolveEstimatedCostWithLaneMatrix($shipment, $payload, $estimatedCostUsd);
+        $pricingExplanation = null;
+        $enforcedEstimatedCostUsd = $this->resolveEstimatedCostWithLaneMatrix($shipment, $payload, $estimatedCostUsd, $pricingExplanation);
 
         $shipment->update([
             'estimated_cost' => $enforcedEstimatedCostUsd > 0 ? round($enforcedEstimatedCostUsd, 2) : null,
         ]);
 
         $request->session()->forget('courier_preview');
+        $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
 
         return redirect()
             ->route('couriers.create')
@@ -1005,10 +1072,19 @@ class ClientCourierController extends Controller
         return $score;
     }
 
-    private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd): float
+    private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd, ?array &$pricingExplanation = null): float
     {
+        $pricingExplanation = [
+            'mode' => 'fallback_quotes',
+            'reason' => null,
+            'distanceKm' => null,
+            'matchedRule' => null,
+            'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
+        ];
+
         $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
         if ($vendorId <= 0) {
+            $pricingExplanation['reason'] = 'No assigned vendor for lane matrix enforcement.';
             return $fallbackEstimatedUsd;
         }
 
@@ -1017,12 +1093,14 @@ class ClientCourierController extends Controller
 
         $laneMatrix = $this->resolveLaneMatrixForVendor($vendorId, $category);
         if (!(bool) ($laneMatrix['enabled'] ?? false)) {
+            $pricingExplanation['reason'] = 'Lane matrix pricing is disabled for this category.';
             return $fallbackEstimatedUsd;
         }
 
         $originZone = $this->resolveZoneFromPayloadAddress((array) ($payload['sender']['address'] ?? []));
         $destinationZone = $this->resolveZoneFromPayloadAddress((array) ($payload['recipient']['address'] ?? []));
         $distanceKm = $this->resolveDistanceKmFromPayload($payload);
+        $pricingExplanation['distanceKm'] = $distanceKm;
 
         $matchedRule = collect($laneMatrix['rows'] ?? [])
             ->values()
@@ -1072,6 +1150,26 @@ class ClientCourierController extends Controller
                 'shipment.serviceLevel' => 'No active lane pricing rule found for the selected route, service level, and distance band.',
             ]);
         }
+
+        $pricingExplanation['mode'] = 'lane_matrix';
+        $pricingExplanation['reason'] = 'Estimated cost enforced by active lane matrix tariff.';
+        $pricingExplanation['matchedRule'] = [
+            'originZone' => (string) ($matchedRule['originZone'] ?? '*'),
+            'destinationZone' => (string) ($matchedRule['destinationZone'] ?? '*'),
+            'serviceLevelKey' => (string) ($matchedRule['serviceLevelKey'] ?? ''),
+            'distanceFromKm' => isset($matchedRule['distanceFromKm']) ? (float) $matchedRule['distanceFromKm'] : 0.0,
+            'distanceToKm' => isset($matchedRule['distanceToKm']) && $matchedRule['distanceToKm'] !== null
+                ? (float) $matchedRule['distanceToKm']
+                : null,
+            'distanceBaseKm' => isset($matchedRule['distanceBaseKm']) ? (float) $matchedRule['distanceBaseKm'] : 0.0,
+            'perKmPrice' => isset($matchedRule['perKmPrice']) ? (float) $matchedRule['perKmPrice'] : 0.0,
+            'distanceSurcharge' => isset($matchedRule['distanceSurcharge']) ? (float) $matchedRule['distanceSurcharge'] : 0.0,
+            'distanceMultiplier' => isset($matchedRule['distanceMultiplier']) ? (float) $matchedRule['distanceMultiplier'] : 1.0,
+            'basePrice' => isset($matchedRule['basePrice']) ? (float) $matchedRule['basePrice'] : 0.0,
+            'perKgPrice' => isset($matchedRule['perKgPrice']) ? (float) $matchedRule['perKgPrice'] : 0.0,
+            'minPrice' => isset($matchedRule['minPrice']) ? (float) $matchedRule['minPrice'] : 0.0,
+            'priorityMultiplier' => isset($matchedRule['priorityMultiplier']) ? (float) $matchedRule['priorityMultiplier'] : 1.0,
+        ];
 
         $settings = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->value('settings');
         $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : [];
@@ -1127,7 +1225,10 @@ class ClientCourierController extends Controller
             $usdRate = max(0.000001, (float) ($manualRates['USD'] ?? 1));
         }
 
-        return $totalBase * $usdRate;
+        $totalEstimatedUsd = $totalBase * $usdRate;
+        $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalEstimatedUsd), 2);
+
+        return $totalEstimatedUsd;
     }
 
     private function assertShipmentServiceCatalogPolicy(CourierShipment $shipment, array $payload): void
