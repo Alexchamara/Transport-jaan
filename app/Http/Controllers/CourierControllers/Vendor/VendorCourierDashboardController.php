@@ -670,11 +670,12 @@ class VendorCourierDashboardController extends Controller
         $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
-            'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults,pricing_publish_now,pricing_schedule_publish,pricing_approve_publish,pricing_reject_publish'],
+            'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults,pricing_publish_now,pricing_schedule_publish,pricing_approve_publish,pricing_reject_publish,pricing_rollback_version'],
             'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,pricing,team'],
             'settings' => ['nullable', 'array'],
             'effectiveAt' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:400'],
+            'rollbackVersion' => ['nullable', 'integer', 'min:1'],
             'pricingCategory' => ['nullable', 'string', 'in:domestic,logistic'],
         ]);
 
@@ -696,7 +697,7 @@ class VendorCourierDashboardController extends Controller
             $pricingCategory = 'domestic';
         }
 
-        if (in_array($action, ['pricing_publish_now', 'pricing_schedule_publish', 'pricing_approve_publish', 'pricing_reject_publish'], true)) {
+        if (in_array($action, ['pricing_publish_now', 'pricing_schedule_publish', 'pricing_approve_publish', 'pricing_reject_publish', 'pricing_rollback_version'], true)) {
             if (!in_array($pricingCategory, $approvedPricingCategories, true)) {
                 abort(403, 'This pricing category is not approved for this vendor.');
             }
@@ -758,13 +759,13 @@ class VendorCourierDashboardController extends Controller
             }
 
             if ($action === 'pricing_approve_publish') {
-                if (!$this->canActorApprovePricingGovernance($request, $governance)) {
-                    abort(403, 'You are not allowed to approve pricing governance actions.');
-                }
-
                 $pending = is_array($governance['pendingApproval'] ?? null) ? $governance['pendingApproval'] : null;
                 if (!$pending || !is_array($pending['snapshot'] ?? null)) {
                     return back()->with('error', 'No pending pricing publish request found.');
+                }
+
+                if (!$this->canActorApprovePricingGovernance($request, $governance, $pending, 'approve')) {
+                    abort(403, 'You are not allowed to approve pricing governance actions.');
                 }
 
                 $pricing = $this->publishPricingSnapshot($pricing, $pending['snapshot'], $actorId, 'publish_approved', $pricingCategory);
@@ -794,6 +795,39 @@ class VendorCourierDashboardController extends Controller
                 $record->update(['settings' => $current]);
 
                 return back()->with('success', 'Pending pricing publish request rejected.');
+            }
+
+            if ($action === 'pricing_rollback_version') {
+                if (!$this->canActorApprovePricingGovernance($request, $governance)) {
+                    abort(403, 'You are not allowed to rollback pricing versions.');
+                }
+
+                if (is_array($governance['pendingApproval'] ?? null)) {
+                    return back()->with('error', 'Cannot rollback while a pending pricing approval request exists. Resolve it first.');
+                }
+
+                $targetVersion = isset($validated['rollbackVersion']) ? (int) $validated['rollbackVersion'] : null;
+                $target = $this->resolvePricingRollbackTarget($governance, $targetVersion);
+                if (!$target || !is_array($target['snapshot'] ?? null)) {
+                    return back()->with('error', 'No eligible published pricing version was found to rollback.');
+                }
+
+                $resolvedTargetVersion = (int) ($target['version'] ?? 0);
+                $pricing = $this->publishPricingSnapshot(
+                    $pricing,
+                    $target['snapshot'],
+                    $actorId,
+                    'publish_rolled_back',
+                    $pricingCategory,
+                    [
+                        'rolledBackFromVersion' => $resolvedTargetVersion,
+                        'note' => (string) ($validated['note'] ?? ''),
+                    ]
+                );
+                $current['pricing'] = $pricing;
+                $record->update(['settings' => $current]);
+
+                return back()->with('success', 'Rolled back ' . $pricingCategory . ' pricing to published version ' . $resolvedTargetVersion . '.');
             }
         }
 
@@ -3428,6 +3462,7 @@ class VendorCourierDashboardController extends Controller
                 'publishedBy' => null,
                 'pendingApproval' => null,
                 'scheduledPublish' => null,
+                'versionHistory' => [],
                 'changeLog' => [],
             ],
             'logistic' => [
@@ -3439,6 +3474,7 @@ class VendorCourierDashboardController extends Controller
                 'publishedBy' => null,
                 'pendingApproval' => null,
                 'scheduledPublish' => null,
+                'versionHistory' => [],
                 'changeLog' => [],
             ],
         ];
@@ -3606,6 +3642,22 @@ class VendorCourierDashboardController extends Controller
                 ->all();
             $governance['draftVersion'] = max(1, (int) ($governance['draftVersion'] ?? 1));
             $governance['publishedVersion'] = max(1, (int) ($governance['publishedVersion'] ?? 1));
+            $governance['versionHistory'] = collect($governance['versionHistory'] ?? [])
+                ->filter(fn ($entry) => is_array($entry))
+                ->map(function ($entry) {
+                    $item = is_array($entry) ? $entry : [];
+                    return [
+                        'version' => max(1, (int) ($item['version'] ?? 1)),
+                        'publishedAt' => $item['publishedAt'] ?? null,
+                        'publishedBy' => isset($item['publishedBy']) ? (int) $item['publishedBy'] : null,
+                        'event' => trim((string) ($item['event'] ?? 'published_now')),
+                        'snapshot' => is_array($item['snapshot'] ?? null) ? $item['snapshot'] : [],
+                        'meta' => is_array($item['meta'] ?? null) ? $item['meta'] : [],
+                    ];
+                })
+                ->take(25)
+                ->values()
+                ->all();
             $governance['changeLog'] = collect($governance['changeLog'] ?? [])
                 ->filter(fn ($entry) => is_array($entry))
                 ->take(50)
@@ -4221,7 +4273,14 @@ class VendorCourierDashboardController extends Controller
         return $pricing;
     }
 
-    private function publishPricingSnapshot(array $pricing, array $snapshot, ?int $actorId, string $event = 'published_now', ?string $category = null): array
+    private function publishPricingSnapshot(
+        array $pricing,
+        array $snapshot,
+        ?int $actorId,
+        string $event = 'published_now',
+        ?string $category = null,
+        array $eventMeta = []
+    ): array
     {
         $category = in_array((string) $category, ['domestic', 'logistic'], true)
             ? (string) $category
@@ -4236,15 +4295,41 @@ class VendorCourierDashboardController extends Controller
         $governance['publishedBy'] = $actorId;
         $governance['scheduledPublish'] = null;
         $governance['pendingApproval'] = null;
+        $governance['versionHistory'] = collect($governance['versionHistory'] ?? [])
+            ->prepend([
+                'version' => (int) $governance['publishedVersion'],
+                'publishedAt' => $governance['publishedAt'],
+                'publishedBy' => $actorId,
+                'event' => $event,
+                'snapshot' => $this->extractPricingSnapshot($pricing, $category),
+                'meta' => $eventMeta,
+            ])
+            ->take(25)
+            ->values()
+            ->all();
         $pricing['governance'][$category] = $governance;
 
         return $this->appendPricingGovernanceLog($pricing, $event, $actorId, [
             'publishedVersion' => $governance['publishedVersion'],
+            ...$eventMeta,
         ], $category);
     }
 
-    private function canActorApprovePricingGovernance(Request $request, array $governance): bool
+    private function canActorApprovePricingGovernance(
+        Request $request,
+        array $governance,
+        ?array $pendingApproval = null,
+        string $action = 'review'
+    ): bool
     {
+        $actorId = (int) optional($request->user())->id;
+        if ($action === 'approve' && $actorId > 0 && is_array($pendingApproval)) {
+            $requestedBy = (int) ($pendingApproval['requestedBy'] ?? 0);
+            if ($requestedBy > 0 && $requestedBy === $actorId) {
+                return false;
+            }
+        }
+
         if ($this->isVendorOwnerActor($request)) {
             return true;
         }
@@ -4268,6 +4353,37 @@ class VendorCourierDashboardController extends Controller
             ->all();
 
         return !empty(array_intersect($actorRoles, $approverRoles));
+    }
+
+    private function resolvePricingRollbackTarget(array $governance, ?int $targetVersion = null): ?array
+    {
+        $history = collect($governance['versionHistory'] ?? [])
+            ->filter(fn ($entry) => is_array($entry) && is_array($entry['snapshot'] ?? null))
+            ->map(function ($entry) {
+                $item = is_array($entry) ? $entry : [];
+                return [
+                    'version' => max(1, (int) ($item['version'] ?? 1)),
+                    'snapshot' => is_array($item['snapshot'] ?? null) ? $item['snapshot'] : [],
+                ];
+            })
+            ->sortByDesc(fn ($entry) => (int) ($entry['version'] ?? 0))
+            ->values();
+
+        if ($history->isEmpty()) {
+            return null;
+        }
+
+        if ($targetVersion !== null && $targetVersion > 0) {
+            return $history->first(fn ($entry) => (int) ($entry['version'] ?? 0) === $targetVersion);
+        }
+
+        $currentPublishedVersion = max(1, (int) ($governance['publishedVersion'] ?? 1));
+        $previous = $history->first(fn ($entry) => (int) ($entry['version'] ?? 0) < $currentPublishedVersion);
+        if ($previous) {
+            return $previous;
+        }
+
+        return $history->skip(1)->first();
     }
 
     private function normalizeTeamSettings(array $team): array

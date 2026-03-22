@@ -144,6 +144,21 @@ class PublishScheduledCourierPricing extends Command
                     $governance['publishedBy'] = null;
                     $governance['scheduledPublish'] = null;
                     $governance['pendingApproval'] = null;
+                    $governance['versionHistory'] = collect($governance['versionHistory'] ?? [])
+                        ->prepend([
+                            'version' => (int) $governance['publishedVersion'],
+                            'publishedAt' => $governance['publishedAt'],
+                            'publishedBy' => null,
+                            'event' => 'scheduled_publish_executed',
+                            'snapshot' => is_array($snapshot) ? $snapshot : [],
+                            'meta' => [
+                                'effectiveAt' => (string) $scheduled['effectiveAt'],
+                                'category' => $snapshotCategory ?: $category,
+                            ],
+                        ])
+                        ->take(25)
+                        ->values()
+                        ->all();
 
                     $governanceByCategory[$category] = $governance;
                     $publishedInRecord = true;

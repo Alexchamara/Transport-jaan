@@ -532,6 +532,7 @@ const DEFAULT_SETTINGS = {
                 publishedBy: null,
                 pendingApproval: null,
                 scheduledPublish: null,
+                versionHistory: [],
                 changeLog: [],
             },
             logistic: {
@@ -543,6 +544,7 @@ const DEFAULT_SETTINGS = {
                 publishedBy: null,
                 pendingApproval: null,
                 scheduledPublish: null,
+                versionHistory: [],
                 changeLog: [],
             },
         },
@@ -1413,6 +1415,7 @@ const Settings = () => {
     const [pricingPublishAt, setPricingPublishAt] = useState("");
     const [pricingGovernanceNote, setPricingGovernanceNote] = useState("");
     const [pricingGovernanceActionBusy, setPricingGovernanceActionBusy] = useState(false);
+    const [pricingRollbackVersion, setPricingRollbackVersion] = useState("");
     const [liveRateBusy, setLiveRateBusy] = useState(false);
     const [pricingZoneDraft, setPricingZoneDraft] = useState("");
     const [addTierModalOpen, setAddTierModalOpen] = useState(false);
@@ -1704,6 +1707,7 @@ const Settings = () => {
                 action,
                 effectiveAt: options.effectiveAt || null,
                 note: options.note || pricingGovernanceNote || null,
+                rollbackVersion: options.rollbackVersion || null,
                 pricingCategory: activePricingCategory,
             },
             {
@@ -4083,6 +4087,15 @@ const Settings = () => {
     const activePricingGovernance = (pricingGovernanceByCategory && typeof pricingGovernanceByCategory[activePricingCategory] === "object")
         ? pricingGovernanceByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.governance[activePricingCategory];
+    const activePricingVersionHistory = Array.isArray(activePricingGovernance.versionHistory)
+        ? activePricingGovernance.versionHistory
+        : [];
+    const pendingApprovalRequestedByCurrentActor = Boolean(
+        activePricingGovernance.pendingApproval
+        && Number(activePricingGovernance.pendingApproval.requestedBy || 0) > 0
+        && Number(activePricingGovernance.pendingApproval.requestedBy || 0) === Number(authUser.id || 0),
+    );
+    const rollbackCandidates = activePricingVersionHistory.filter((entry) => Number(entry?.version || 0) > 0);
     const normalizedApproverRoles = (Array.isArray(activePricingGovernance.approverRoles) ? activePricingGovernance.approverRoles : [])
         .map((role) => String(role || "").trim().toLowerCase())
         .filter(Boolean);
@@ -5589,7 +5602,7 @@ const Settings = () => {
                             {canReviewPricingPublish && (
                                 <button
                                     type="button"
-                                    disabled={pricingGovernanceActionBusy || !activePricingGovernance.pendingApproval}
+                                    disabled={pricingGovernanceActionBusy || !activePricingGovernance.pendingApproval || pendingApprovalRequestedByCurrentActor}
                                     className="h-[30px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
                                     onClick={() => runPricingGovernanceAction("pricing_approve_publish")}
                                 >
@@ -5606,7 +5619,36 @@ const Settings = () => {
                                     Reject Publish
                                 </button>
                             )}
+                            {canReviewPricingPublish && (
+                                <div className="inline-flex items-center gap-2">
+                                    <select
+                                        className="h-[30px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                        value={pricingRollbackVersion}
+                                        onChange={(e) => setPricingRollbackVersion(e.target.value)}
+                                    >
+                                        <option value="">Previous Version</option>
+                                        {rollbackCandidates.map((entry) => (
+                                            <option key={`rollback-version-${entry.version}`} value={String(entry.version)}>
+                                                v{Number(entry.version)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        disabled={pricingGovernanceActionBusy || rollbackCandidates.length === 0}
+                                        className="h-[30px] px-3 rounded-[8px] border border-[#0F766E] text-[#0F766E] text-[11px] font-[700] disabled:opacity-50"
+                                        onClick={() => runPricingGovernanceAction("pricing_rollback_version", {
+                                            rollbackVersion: pricingRollbackVersion ? Number(pricingRollbackVersion) : null,
+                                        })}
+                                    >
+                                        Rollback Version
+                                    </button>
+                                </div>
+                            )}
                         </div>
+                        {pendingApprovalRequestedByCurrentActor && canReviewPricingPublish && (
+                            <p className="mt-2 text-[11px] text-[#B45309]">Four-eyes control: requester cannot approve their own publish request.</p>
+                        )}
                         {!canPublishPricingChanges && !canReviewPricingPublish && (
                             <p className="mt-2 text-[11px] text-[#6B7280]">You do not have permission to run pricing governance actions.</p>
                         )}
