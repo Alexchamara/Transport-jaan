@@ -319,6 +319,17 @@ const Summary = () => {
                             {pricingPreview.reason && (
                                 <p className="mt-3 text-sm text-[#1E40AF]"><span className="font-semibold">Reason:</span> {pricingPreview.reason}</p>
                             )}
+                            {pricingPreview.speedEtaTier && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">Speed/ETA Tier Projection</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        <p><span className="font-semibold">Tier:</span> {pricingPreview.speedEtaTier.etaLabel || pricingPreview.speedEtaTier.tierLabel || pricingPreview.speedEtaTier.tierKey || "—"}</p>
+                                        <p><span className="font-semibold">ETA Range:</span> {Number(pricingPreview.speedEtaTier.etaMinDays || 0)} - {pricingPreview.speedEtaTier.etaMaxDays === null || pricingPreview.speedEtaTier.etaMaxDays === undefined ? "*" : Number(pricingPreview.speedEtaTier.etaMaxDays)} days</p>
+                                        <p><span className="font-semibold">Projected Delivery Window:</span> {pricingPreview.speedEtaTier.etaStartDate || "—"} {pricingPreview.speedEtaTier.etaEndDate ? `to ${pricingPreview.speedEtaTier.etaEndDate}` : ""}</p>
+                                        <p><span className="font-semibold">Tier Multiplier:</span> x{Number(pricingPreview.speedEtaTier.priceMultiplier || 1).toFixed(2)} {pricingPreview.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
+                                    </div>
+                                </div>
+                            )}
                             {Array.isArray(pricingPreview.policyAdjustments) && pricingPreview.policyAdjustments.length > 0 && (
                                 <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
                                     <p className="font-semibold">Applied Policy Adjustments</p>

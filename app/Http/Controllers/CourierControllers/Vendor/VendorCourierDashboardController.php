@@ -3211,6 +3211,65 @@ class VendorCourierDashboardController extends Controller
                 'enabled' => true,
                 'minimumTotal' => 0,
             ],
+            'speedEtaTierEngine' => [
+                'enabled' => false,
+                'enforceFixedNamedTiers' => true,
+                'enforceTierPricingMultiplier' => true,
+                'tiers' => [
+                    'same_day' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Same Day',
+                        'etaMinDays' => 0,
+                        'etaMaxDays' => 1,
+                        'priceMultiplier' => 1.25,
+                        'maxDistanceKm' => 80,
+                        'maxWeightKg' => 20,
+                        'minLeadHours' => 1,
+                        'maxLeadHours' => 12,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                    'next_day' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Next Day',
+                        'etaMinDays' => 1,
+                        'etaMaxDays' => 2,
+                        'priceMultiplier' => 1.12,
+                        'maxDistanceKm' => 250,
+                        'maxWeightKg' => 30,
+                        'minLeadHours' => 2,
+                        'maxLeadHours' => null,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                    'two_three_day' => [
+                        'enabled' => true,
+                        'etaLabel' => '2-3 Days',
+                        'etaMinDays' => 2,
+                        'etaMaxDays' => 3,
+                        'priceMultiplier' => 1.0,
+                        'maxDistanceKm' => null,
+                        'maxWeightKg' => null,
+                        'minLeadHours' => 0,
+                        'maxLeadHours' => null,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                    'economy' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Economy',
+                        'etaMinDays' => 4,
+                        'etaMaxDays' => 7,
+                        'priceMultiplier' => 0.92,
+                        'maxDistanceKm' => null,
+                        'maxWeightKg' => null,
+                        'minLeadHours' => 0,
+                        'maxLeadHours' => null,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                ],
+            ],
         ];
 
         return [
@@ -3567,6 +3626,60 @@ class VendorCourierDashboardController extends Controller
                 'minimumShipmentCharge' => [
                     'enabled' => (bool) ($row['minimumShipmentCharge']['enabled'] ?? true),
                     'minimumTotal' => max(0, (float) ($row['minimumShipmentCharge']['minimumTotal'] ?? 0)),
+                ],
+                'speedEtaTierEngine' => [
+                    'enabled' => (bool) ($row['speedEtaTierEngine']['enabled'] ?? false),
+                    'enforceFixedNamedTiers' => (bool) ($row['speedEtaTierEngine']['enforceFixedNamedTiers'] ?? true),
+                    'enforceTierPricingMultiplier' => (bool) ($row['speedEtaTierEngine']['enforceTierPricingMultiplier'] ?? true),
+                    'tiers' => collect($defaults[$category]['speedEtaTierEngine']['tiers'] ?? [])
+                        ->mapWithKeys(function ($fallbackTier, $tierKey) use ($row) {
+                            $tierInput = $row['speedEtaTierEngine']['tiers'][$tierKey] ?? [];
+                            $tierRow = array_replace(
+                                is_array($fallbackTier) ? $fallbackTier : [],
+                                is_array($tierInput) ? $tierInput : []
+                            );
+
+                            $etaMinDays = max(0, (int) ($tierRow['etaMinDays'] ?? 0));
+                            $etaMaxDays = isset($tierRow['etaMaxDays']) && $tierRow['etaMaxDays'] !== '' && $tierRow['etaMaxDays'] !== null
+                                ? max($etaMinDays, (int) $tierRow['etaMaxDays'])
+                                : null;
+                            $minLeadHours = max(0, (float) ($tierRow['minLeadHours'] ?? 0));
+                            $maxLeadHours = isset($tierRow['maxLeadHours']) && $tierRow['maxLeadHours'] !== '' && $tierRow['maxLeadHours'] !== null
+                                ? max($minLeadHours, (float) $tierRow['maxLeadHours'])
+                                : null;
+                            $allowedPickupDays = collect($tierRow['allowedPickupDays'] ?? [1, 2, 3, 4, 5, 6, 7])
+                                ->map(fn ($item) => (int) $item)
+                                ->filter(fn ($item) => $item >= 1 && $item <= 7)
+                                ->unique()
+                                ->values()
+                                ->all();
+
+                            return [
+                                $tierKey => [
+                                    'enabled' => (bool) ($tierRow['enabled'] ?? true),
+                                    'etaLabel' => trim((string) ($tierRow['etaLabel'] ?? '')) ?: ucwords(str_replace('_', ' ', (string) $tierKey)),
+                                    'etaMinDays' => $etaMinDays,
+                                    'etaMaxDays' => $etaMaxDays,
+                                    'priceMultiplier' => max(0.1, (float) ($tierRow['priceMultiplier'] ?? 1)),
+                                    'maxDistanceKm' => isset($tierRow['maxDistanceKm']) && $tierRow['maxDistanceKm'] !== '' && $tierRow['maxDistanceKm'] !== null
+                                        ? max(0.1, (float) $tierRow['maxDistanceKm'])
+                                        : null,
+                                    'maxWeightKg' => isset($tierRow['maxWeightKg']) && $tierRow['maxWeightKg'] !== '' && $tierRow['maxWeightKg'] !== null
+                                        ? max(0.1, (float) $tierRow['maxWeightKg'])
+                                        : null,
+                                    'minLeadHours' => $minLeadHours,
+                                    'maxLeadHours' => $maxLeadHours,
+                                    'allowedPickupDays' => !empty($allowedPickupDays) ? $allowedPickupDays : [1, 2, 3, 4, 5, 6, 7],
+                                    'blackoutDates' => collect($tierRow['blackoutDates'] ?? [])
+                                        ->map(fn ($item) => trim((string) $item))
+                                        ->filter(fn ($item) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $item) === 1)
+                                        ->unique()
+                                        ->values()
+                                        ->all(),
+                                ],
+                            ];
+                        })
+                        ->all(),
                 ],
             ];
         }

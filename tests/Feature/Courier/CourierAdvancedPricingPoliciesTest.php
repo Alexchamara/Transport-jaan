@@ -143,6 +143,59 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'minimum_shipment_guardrail', 30.0);
     }
 
+    public function test_speed_eta_tier_engine_applies_multiplier(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'speedEtaTierEngine' => [
+                'enabled' => true,
+                'enforceFixedNamedTiers' => true,
+                'enforceTierPricingMultiplier' => true,
+                'tiers' => [
+                    'next_day' => [
+                        'enabled' => true,
+                        'priceMultiplier' => 1.2,
+                        'etaMinDays' => 1,
+                        'etaMaxDays' => 2,
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(60.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'speed_eta_tier_multiplier', 10.0);
+        $this->assertSame('next_day', $result['pricingExplanation']['speedEtaTier']['tierKey'] ?? null);
+        $this->assertNotNull($result['pricingExplanation']['speedEtaTier']['etaStartDate'] ?? null);
+    }
+
+    public function test_speed_eta_tier_engine_blocks_excess_weight(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'speedEtaTierEngine' => [
+                'enabled' => true,
+                'enforceFixedNamedTiers' => true,
+                'tiers' => [
+                    'next_day' => [
+                        'enabled' => true,
+                        'maxWeightKg' => 4,
+                    ],
+                ],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        $payload = $this->buildPayload();
+        $csrfToken = 'advanced-policy-test-token-weight-block';
+
+        $response = $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
+
+        $response->assertSessionHasErrors('packages');
+        $this->assertNull(CourierShipment::query()->first());
+    }
+
     private function createDomesticVendorWithPolicyModules(array $policyModules): User
     {
         $vendor = User::factory()->create([

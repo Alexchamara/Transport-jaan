@@ -315,6 +315,14 @@ const Create = () => {
                                             <p>Estimate (USD): {Number(recentPricingExplanation.totalEstimatedUsd || 0).toFixed(2)}</p>
                                         </div>
                                     )}
+                                    {recentPricingExplanation.speedEtaTier && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            <p>Speed/ETA Tier: {recentPricingExplanation.speedEtaTier.etaLabel || recentPricingExplanation.speedEtaTier.tierLabel || recentPricingExplanation.speedEtaTier.tierKey || "—"}</p>
+                                            <p>ETA Range: {Number(recentPricingExplanation.speedEtaTier.etaMinDays || 0)} - {recentPricingExplanation.speedEtaTier.etaMaxDays === null || recentPricingExplanation.speedEtaTier.etaMaxDays === undefined ? "*" : Number(recentPricingExplanation.speedEtaTier.etaMaxDays)} days</p>
+                                            <p>Projected Window: {recentPricingExplanation.speedEtaTier.etaStartDate || "—"} {recentPricingExplanation.speedEtaTier.etaEndDate ? `to ${recentPricingExplanation.speedEtaTier.etaEndDate}` : ""}</p>
+                                            <p>Tier Multiplier: x{Number(recentPricingExplanation.speedEtaTier.priceMultiplier || 1).toFixed(2)} {recentPricingExplanation.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
+                                        </div>
+                                    )}
                                     {Array.isArray(recentPricingExplanation.policyAdjustments) && recentPricingExplanation.policyAdjustments.length > 0 && (
                                         <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
                                             {recentPricingExplanation.policyAdjustments.map((item, idx) => (

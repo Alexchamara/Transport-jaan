@@ -1079,6 +1079,7 @@ class ClientCourierController extends Controller
             'reason' => null,
             'distanceKm' => null,
             'matchedRule' => null,
+            'speedEtaTier' => null,
             'policyAdjustments' => [],
             'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
         ];
@@ -1095,6 +1096,11 @@ class ClientCourierController extends Controller
         $formula = $pricingConfig['formula'];
         $localization = $pricingConfig['localization'];
         $policyModules = $pricingConfig['policyModules'];
+        $pricingExplanation['speedEtaTier'] = $this->resolveSpeedEtaTierProjection(
+            $policyModules,
+            $selectedLevelKey,
+            $payload
+        );
         $baseCurrency = strtoupper((string) ($localization['baseCurrency'] ?? 'USD'));
         $manualRates = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
         $usdRate = 1.0;
@@ -1345,6 +1351,65 @@ class ClientCourierController extends Controller
                 'enabled' => true,
                 'minimumTotal' => 0,
             ],
+            'speedEtaTierEngine' => [
+                'enabled' => false,
+                'enforceFixedNamedTiers' => true,
+                'enforceTierPricingMultiplier' => true,
+                'tiers' => [
+                    'same_day' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Same Day',
+                        'etaMinDays' => 0,
+                        'etaMaxDays' => 1,
+                        'priceMultiplier' => 1.25,
+                        'maxDistanceKm' => 80,
+                        'maxWeightKg' => 20,
+                        'minLeadHours' => 1,
+                        'maxLeadHours' => 12,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                    'next_day' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Next Day',
+                        'etaMinDays' => 1,
+                        'etaMaxDays' => 2,
+                        'priceMultiplier' => 1.12,
+                        'maxDistanceKm' => 250,
+                        'maxWeightKg' => 30,
+                        'minLeadHours' => 2,
+                        'maxLeadHours' => null,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                    'two_three_day' => [
+                        'enabled' => true,
+                        'etaLabel' => '2-3 Days',
+                        'etaMinDays' => 2,
+                        'etaMaxDays' => 3,
+                        'priceMultiplier' => 1.0,
+                        'maxDistanceKm' => null,
+                        'maxWeightKg' => null,
+                        'minLeadHours' => 0,
+                        'maxLeadHours' => null,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                    'economy' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Economy',
+                        'etaMinDays' => 4,
+                        'etaMaxDays' => 7,
+                        'priceMultiplier' => 0.92,
+                        'maxDistanceKm' => null,
+                        'maxWeightKg' => null,
+                        'minLeadHours' => 0,
+                        'maxLeadHours' => null,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
+                ],
+            ],
         ];
 
         $policyInput = is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : [];
@@ -1373,6 +1438,28 @@ class ClientCourierController extends Controller
             0,
             (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
+
+        $tierPolicy = is_array($policyModules['speedEtaTierEngine'] ?? null) ? $policyModules['speedEtaTierEngine'] : [];
+        $selectedTierKey = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
+        $selectedTier = is_array($tierPolicy['tiers'][$selectedTierKey] ?? null) ? $tierPolicy['tiers'][$selectedTierKey] : null;
+        if ((bool) ($tierPolicy['enabled'] ?? false)
+            && (bool) ($tierPolicy['enforceTierPricingMultiplier'] ?? true)
+            && is_array($selectedTier)
+            && (bool) ($selectedTier['enabled'] ?? true)
+        ) {
+            $multiplier = max(0.1, (float) ($selectedTier['priceMultiplier'] ?? 1));
+            if (abs($multiplier - 1.0) > 0.0001) {
+                $preMultiplier = $total;
+                $total = $total * $multiplier;
+                $delta = $total - $preMultiplier;
+                if (abs($delta) > 0.0001) {
+                    $policyBreakdown[] = [
+                        'key' => 'speed_eta_tier_multiplier',
+                        'amount' => round($delta, 2),
+                    ];
+                }
+            }
+        }
 
         $remotePolicy = is_array($policyModules['remoteAreaSurcharge'] ?? null) ? $policyModules['remoteAreaSurcharge'] : [];
         if ((bool) ($remotePolicy['enabled'] ?? false)) {
@@ -1533,6 +1620,45 @@ class ClientCourierController extends Controller
         return $total;
     }
 
+    private function resolveSpeedEtaTierProjection(array $policyModules, string $selectedLevelKey, array $payload): ?array
+    {
+        $tierEngine = is_array($policyModules['speedEtaTierEngine'] ?? null) ? $policyModules['speedEtaTierEngine'] : [];
+        if (!(bool) ($tierEngine['enabled'] ?? false)) {
+            return null;
+        }
+
+        $tiers = is_array($tierEngine['tiers'] ?? null) ? $tierEngine['tiers'] : [];
+        $tier = is_array($tiers[$selectedLevelKey] ?? null) ? $tiers[$selectedLevelKey] : null;
+        if (!$tier) {
+            return null;
+        }
+
+        $etaMinDays = max(0, (int) ($tier['etaMinDays'] ?? 0));
+        $etaMaxDays = isset($tier['etaMaxDays']) && $tier['etaMaxDays'] !== null && $tier['etaMaxDays'] !== ''
+            ? max($etaMinDays, (int) $tier['etaMaxDays'])
+            : null;
+
+        $pickupDate = isset($payload['shipment']['pickupDate']) && $payload['shipment']['pickupDate']
+            ? Carbon::parse((string) $payload['shipment']['pickupDate'])
+            : null;
+        $etaStartDate = $pickupDate ? $pickupDate->copy()->addDays($etaMinDays)->format('Y-m-d') : null;
+        $etaEndDate = $pickupDate
+            ? ($etaMaxDays !== null ? $pickupDate->copy()->addDays($etaMaxDays)->format('Y-m-d') : null)
+            : null;
+
+        return [
+            'tierKey' => $selectedLevelKey,
+            'tierLabel' => ucwords(str_replace('_', ' ', $selectedLevelKey)),
+            'etaLabel' => trim((string) ($tier['etaLabel'] ?? '')),
+            'etaMinDays' => $etaMinDays,
+            'etaMaxDays' => $etaMaxDays,
+            'enforceTierPricingMultiplier' => (bool) ($tierEngine['enforceTierPricingMultiplier'] ?? true),
+            'priceMultiplier' => max(0.1, (float) ($tier['priceMultiplier'] ?? 1)),
+            'etaStartDate' => $etaStartDate,
+            'etaEndDate' => $etaEndDate,
+        ];
+    }
+
     private function addressMatchesRemotePolicy(array $address, array $remotePolicy): bool
     {
         $postalPrefixes = collect($remotePolicy['postalCodePrefixes'] ?? [])
@@ -1587,10 +1713,6 @@ class ClientCourierController extends Controller
         }
 
         $cutoff = trim((string) ($selectedEntry['cutoffTime'] ?? ''));
-        if ($cutoff === '') {
-            return;
-        }
-
         $pickupDate = isset($payload['shipment']['pickupDate']) && $payload['shipment']['pickupDate']
             ? Carbon::parse((string) $payload['shipment']['pickupDate'])
             : null;
@@ -1598,15 +1720,138 @@ class ClientCourierController extends Controller
             ? (string) $payload['shipment']['pickupWindowStart']
             : null;
 
-        if ($pickupDate && $pickupDate->isToday() && now()->format('H:i') > $cutoff) {
+        if ($cutoff !== '' && $pickupDate && $pickupDate->isToday() && now()->format('H:i') > $cutoff) {
             throw ValidationException::withMessages([
                 'shipment.serviceLevel' => "{$selectedEntry['label']} service is closed for today's cutoff ({$cutoff}).",
             ]);
         }
 
-        if ($pickupStart && $pickupStart > $cutoff) {
+        if ($cutoff !== '' && $pickupStart && $pickupStart > $cutoff) {
             throw ValidationException::withMessages([
                 'shipment.pickupWindowStart' => "Pickup start must be before service cutoff time ({$cutoff}) for {$selectedEntry['label']}.",
+            ]);
+        }
+
+        $this->assertSpeedEtaTierPolicyConstraints($shipment, $payload, $category, $selectedLevelKey, $selectedEntry);
+    }
+
+    private function assertSpeedEtaTierPolicyConstraints(
+        CourierShipment $shipment,
+        array $payload,
+        string $category,
+        string $selectedLevelKey,
+        array $selectedEntry
+    ): void {
+        $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
+        if ($vendorId <= 0) {
+            return;
+        }
+
+        $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
+        $policyModules = is_array($pricingConfig['policyModules'] ?? null) ? $pricingConfig['policyModules'] : [];
+        $tierEngine = is_array($policyModules['speedEtaTierEngine'] ?? null) ? $policyModules['speedEtaTierEngine'] : [];
+
+        if (!(bool) ($tierEngine['enabled'] ?? false)) {
+            return;
+        }
+
+        $tiers = is_array($tierEngine['tiers'] ?? null) ? $tierEngine['tiers'] : [];
+        $selectedTier = is_array($tiers[$selectedLevelKey] ?? null) ? $tiers[$selectedLevelKey] : null;
+        $requiresFixedNamedTier = (bool) ($tierEngine['enforceFixedNamedTiers'] ?? true);
+        if ($requiresFixedNamedTier && !$selectedTier) {
+            throw ValidationException::withMessages([
+                'shipment.serviceLevel' => 'Selected service level is not part of the fixed speed/ETA tier engine.',
+            ]);
+        }
+
+        if (!$selectedTier) {
+            return;
+        }
+
+        if (!(bool) ($selectedTier['enabled'] ?? true)) {
+            throw ValidationException::withMessages([
+                'shipment.serviceLevel' => 'Selected service tier is currently disabled by speed/ETA policy controls.',
+            ]);
+        }
+
+        $pickupDate = isset($payload['shipment']['pickupDate']) && $payload['shipment']['pickupDate']
+            ? Carbon::parse((string) $payload['shipment']['pickupDate'])
+            : null;
+        $pickupStart = isset($payload['shipment']['pickupWindowStart']) && $payload['shipment']['pickupWindowStart']
+            ? trim((string) $payload['shipment']['pickupWindowStart'])
+            : '00:00';
+
+        if ($pickupDate) {
+            $allowedPickupDays = collect($selectedTier['allowedPickupDays'] ?? [1, 2, 3, 4, 5, 6, 7])
+                ->map(fn ($value) => (int) $value)
+                ->filter(fn ($value) => $value >= 1 && $value <= 7)
+                ->values()
+                ->all();
+            if (!empty($allowedPickupDays) && !in_array($pickupDate->dayOfWeekIso, $allowedPickupDays, true)) {
+                throw ValidationException::withMessages([
+                    'shipment.pickupDate' => 'Selected pickup date is not allowed for this service tier.',
+                ]);
+            }
+
+            $blackoutDates = collect($selectedTier['blackoutDates'] ?? [])
+                ->map(fn ($value) => trim((string) $value))
+                ->filter()
+                ->values()
+                ->all();
+            if (in_array($pickupDate->format('Y-m-d'), $blackoutDates, true)) {
+                throw ValidationException::withMessages([
+                    'shipment.pickupDate' => 'Selected pickup date is blocked by tier blackout policy.',
+                ]);
+            }
+
+            $pickupDateTime = Carbon::parse($pickupDate->format('Y-m-d') . ' ' . (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $pickupStart) === 1 ? $pickupStart : '00:00'));
+            $leadHours = now()->diffInMinutes($pickupDateTime, false) / 60;
+            $minLeadHours = max(0, (float) ($selectedTier['minLeadHours'] ?? 0));
+            if ($leadHours < $minLeadHours) {
+                throw ValidationException::withMessages([
+                    'shipment.pickupWindowStart' => 'Pickup lead time is below the minimum allowed for this service tier.',
+                ]);
+            }
+
+            if (isset($selectedTier['maxLeadHours']) && $selectedTier['maxLeadHours'] !== null && $selectedTier['maxLeadHours'] !== '') {
+                $maxLeadHours = max($minLeadHours, (float) $selectedTier['maxLeadHours']);
+                if ($leadHours > $maxLeadHours) {
+                    throw ValidationException::withMessages([
+                        'shipment.pickupWindowStart' => 'Pickup lead time exceeds the maximum window allowed for this service tier.',
+                    ]);
+                }
+            }
+        }
+
+        if (isset($selectedTier['maxDistanceKm']) && $selectedTier['maxDistanceKm'] !== null && $selectedTier['maxDistanceKm'] !== '') {
+            $distanceKm = $this->resolveDistanceKmFromPayload($payload);
+            if ($distanceKm !== null && $distanceKm > (float) $selectedTier['maxDistanceKm']) {
+                throw ValidationException::withMessages([
+                    'shipment.distanceKm' => 'Route distance exceeds the maximum allowed for this service tier.',
+                ]);
+            }
+        }
+
+        if (isset($selectedTier['maxWeightKg']) && $selectedTier['maxWeightKg'] !== null && $selectedTier['maxWeightKg'] !== '') {
+            $maxPackageWeight = collect($payload['packages'] ?? [])
+                ->map(fn ($item) => max(0, (float) ((is_array($item) ? ($item['weightKg'] ?? 0) : 0))))
+                ->max();
+            if ($maxPackageWeight !== null && $maxPackageWeight > (float) $selectedTier['maxWeightKg']) {
+                throw ValidationException::withMessages([
+                    'packages' => 'At least one package exceeds the maximum weight allowed for this service tier.',
+                ]);
+            }
+        }
+
+        $promisedSlaDays = max(1, (int) ($selectedEntry['promisedSlaDays'] ?? 1));
+        $etaMinDays = max(0, (int) ($selectedTier['etaMinDays'] ?? 0));
+        $etaMaxDays = isset($selectedTier['etaMaxDays']) && $selectedTier['etaMaxDays'] !== null && $selectedTier['etaMaxDays'] !== ''
+            ? max($etaMinDays, (int) $selectedTier['etaMaxDays'])
+            : null;
+
+        if ($promisedSlaDays < $etaMinDays || ($etaMaxDays !== null && $promisedSlaDays > $etaMaxDays)) {
+            throw ValidationException::withMessages([
+                'shipment.serviceLevel' => 'Selected service level SLA is outside the allowed speed/ETA tier range.',
             ]);
         }
     }

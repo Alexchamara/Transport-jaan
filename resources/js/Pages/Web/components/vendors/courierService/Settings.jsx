@@ -171,6 +171,65 @@ const DEFAULT_SETTINGS = {
                     enabled: true,
                     minimumTotal: 0,
                 },
+                speedEtaTierEngine: {
+                    enabled: false,
+                    enforceFixedNamedTiers: true,
+                    enforceTierPricingMultiplier: true,
+                    tiers: {
+                        same_day: {
+                            enabled: true,
+                            etaLabel: "Same Day",
+                            etaMinDays: 0,
+                            etaMaxDays: 1,
+                            priceMultiplier: 1.25,
+                            maxDistanceKm: 80,
+                            maxWeightKg: 20,
+                            minLeadHours: 1,
+                            maxLeadHours: 12,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                        next_day: {
+                            enabled: true,
+                            etaLabel: "Next Day",
+                            etaMinDays: 1,
+                            etaMaxDays: 2,
+                            priceMultiplier: 1.12,
+                            maxDistanceKm: 250,
+                            maxWeightKg: 30,
+                            minLeadHours: 2,
+                            maxLeadHours: null,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                        two_three_day: {
+                            enabled: true,
+                            etaLabel: "2-3 Days",
+                            etaMinDays: 2,
+                            etaMaxDays: 3,
+                            priceMultiplier: 1,
+                            maxDistanceKm: null,
+                            maxWeightKg: null,
+                            minLeadHours: 0,
+                            maxLeadHours: null,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                        economy: {
+                            enabled: true,
+                            etaLabel: "Economy",
+                            etaMinDays: 4,
+                            etaMaxDays: 7,
+                            priceMultiplier: 0.92,
+                            maxDistanceKm: null,
+                            maxWeightKg: null,
+                            minLeadHours: 0,
+                            maxLeadHours: null,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                    },
+                },
             },
             logistic: {
                 remoteAreaSurcharge: {
@@ -211,6 +270,65 @@ const DEFAULT_SETTINGS = {
                 minimumShipmentCharge: {
                     enabled: true,
                     minimumTotal: 0,
+                },
+                speedEtaTierEngine: {
+                    enabled: false,
+                    enforceFixedNamedTiers: true,
+                    enforceTierPricingMultiplier: true,
+                    tiers: {
+                        same_day: {
+                            enabled: true,
+                            etaLabel: "Same Day",
+                            etaMinDays: 0,
+                            etaMaxDays: 1,
+                            priceMultiplier: 1.25,
+                            maxDistanceKm: 80,
+                            maxWeightKg: 20,
+                            minLeadHours: 1,
+                            maxLeadHours: 12,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                        next_day: {
+                            enabled: true,
+                            etaLabel: "Next Day",
+                            etaMinDays: 1,
+                            etaMaxDays: 2,
+                            priceMultiplier: 1.12,
+                            maxDistanceKm: 250,
+                            maxWeightKg: 30,
+                            minLeadHours: 2,
+                            maxLeadHours: null,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                        two_three_day: {
+                            enabled: true,
+                            etaLabel: "2-3 Days",
+                            etaMinDays: 2,
+                            etaMaxDays: 3,
+                            priceMultiplier: 1,
+                            maxDistanceKm: null,
+                            maxWeightKg: null,
+                            minLeadHours: 0,
+                            maxLeadHours: null,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                        economy: {
+                            enabled: true,
+                            etaLabel: "Economy",
+                            etaMinDays: 4,
+                            etaMaxDays: 7,
+                            priceMultiplier: 0.92,
+                            maxDistanceKm: null,
+                            maxWeightKg: null,
+                            minLeadHours: 0,
+                            maxLeadHours: null,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
+                    },
                 },
             },
         },
@@ -491,6 +609,13 @@ const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "role-studio", label: "Role Studio" },
 ];
 
+const FIXED_SPEED_ETA_TIERS = [
+    { key: "same_day", label: "Same Day" },
+    { key: "next_day", label: "Next Day" },
+    { key: "two_three_day", label: "2-3 Day" },
+    { key: "economy", label: "Economy" },
+];
+
 const SectionCard = ({ title, description, children }) => (
     <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
         <div className="mb-4">
@@ -757,12 +882,44 @@ const Settings = () => {
                         ...(incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" && incomingPricing.policyModules.domestic && typeof incomingPricing.policyModules.domestic === "object"
                             ? incomingPricing.policyModules.domestic
                             : (incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" ? incomingPricing.policyModules : {})),
+                        speedEtaTierEngine: {
+                            ...DEFAULT_SETTINGS.pricing.policyModules.domestic.speedEtaTierEngine,
+                            ...(incomingPricing.policyModules?.domestic?.speedEtaTierEngine && typeof incomingPricing.policyModules.domestic.speedEtaTierEngine === "object"
+                                ? incomingPricing.policyModules.domestic.speedEtaTierEngine
+                                : (incomingPricing.policyModules?.speedEtaTierEngine && typeof incomingPricing.policyModules.speedEtaTierEngine === "object"
+                                    ? incomingPricing.policyModules.speedEtaTierEngine
+                                    : {})),
+                            tiers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.speedEtaTierEngine.tiers,
+                                ...(incomingPricing.policyModules?.domestic?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.domestic.speedEtaTierEngine.tiers === "object"
+                                    ? incomingPricing.policyModules.domestic.speedEtaTierEngine.tiers
+                                    : (incomingPricing.policyModules?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.speedEtaTierEngine.tiers === "object"
+                                        ? incomingPricing.policyModules.speedEtaTierEngine.tiers
+                                        : {})),
+                            },
+                        },
                     },
                     logistic: {
                         ...DEFAULT_SETTINGS.pricing.policyModules.logistic,
                         ...(incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" && incomingPricing.policyModules.logistic && typeof incomingPricing.policyModules.logistic === "object"
                             ? incomingPricing.policyModules.logistic
                             : (incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" ? incomingPricing.policyModules : {})),
+                        speedEtaTierEngine: {
+                            ...DEFAULT_SETTINGS.pricing.policyModules.logistic.speedEtaTierEngine,
+                            ...(incomingPricing.policyModules?.logistic?.speedEtaTierEngine && typeof incomingPricing.policyModules.logistic.speedEtaTierEngine === "object"
+                                ? incomingPricing.policyModules.logistic.speedEtaTierEngine
+                                : (incomingPricing.policyModules?.speedEtaTierEngine && typeof incomingPricing.policyModules.speedEtaTierEngine === "object"
+                                    ? incomingPricing.policyModules.speedEtaTierEngine
+                                    : {})),
+                            tiers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.speedEtaTierEngine.tiers,
+                                ...(incomingPricing.policyModules?.logistic?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.logistic.speedEtaTierEngine.tiers === "object"
+                                    ? incomingPricing.policyModules.logistic.speedEtaTierEngine.tiers
+                                    : (incomingPricing.policyModules?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.speedEtaTierEngine.tiers === "object"
+                                        ? incomingPricing.policyModules.speedEtaTierEngine.tiers
+                                        : {})),
+                            },
+                        },
                     },
                 },
                 categories: {
@@ -1109,6 +1266,39 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const updatePricingTierEngineTier = (categoryKey, tierKey, key, value) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const policyModules = pricing.policyModules || DEFAULT_SETTINGS.pricing.policyModules;
+            const categoryModules = policyModules[categoryKey] || DEFAULT_SETTINGS.pricing.policyModules[categoryKey];
+            const tierEngine = categoryModules.speedEtaTierEngine || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine;
+            const tiers = tierEngine.tiers || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine.tiers;
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    policyModules: {
+                        ...policyModules,
+                        [categoryKey]: {
+                            ...categoryModules,
+                            speedEtaTierEngine: {
+                                ...tierEngine,
+                                tiers: {
+                                    ...tiers,
+                                    [tierKey]: {
+                                        ...(tiers[tierKey] || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine.tiers[tierKey] || {}),
+                                        [key]: value,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+        });
     };
 
     const parseCommaList = (value, transform = (item) => item) => String(value || "")
@@ -3527,6 +3717,9 @@ const Settings = () => {
     const activePricingPolicyModules = (pricingPolicyModulesByCategory && typeof pricingPolicyModulesByCategory[activePricingCategory] === "object")
         ? pricingPolicyModulesByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory];
+    const activeSpeedEtaTierEngine = (activePricingPolicyModules && typeof activePricingPolicyModules.speedEtaTierEngine === "object")
+        ? activePricingPolicyModules.speedEtaTierEngine
+        : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].speedEtaTierEngine;
     const activePricingZones = Array.isArray(pricingZoneMasterByCategory?.[activePricingCategory])
         ? pricingZoneMasterByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.zoneMaster[activePricingCategory];
@@ -3869,6 +4062,112 @@ const Settings = () => {
                     <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
                         <p className="text-[13px] font-[700] text-[#111827] mb-2">Rule-Based Policy Modules ({titleCase(activePricingCategory)})</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
+                                <p className="text-[12px] font-[700] text-[#111827]">Speed/ETA Explicit Tier Engine</p>
+                                <p className="text-[11px] text-[#64748B] mt-1">Fixed named tiers with explicit ETA ranges, constraints, and optional tier price multipliers.</p>
+                                <div className="mt-2 flex flex-wrap gap-3">
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activeSpeedEtaTierEngine?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enabled", e.target.checked)}
+                                        />
+                                        Enable
+                                    </label>
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activeSpeedEtaTierEngine?.enforceFixedNamedTiers)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enforceFixedNamedTiers", e.target.checked)}
+                                        />
+                                        Enforce Fixed Tier Keys
+                                    </label>
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activeSpeedEtaTierEngine?.enforceTierPricingMultiplier)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enforceTierPricingMultiplier", e.target.checked)}
+                                        />
+                                        Enforce Tier Price Multiplier
+                                    </label>
+                                </div>
+
+                                <div className="mt-3 overflow-x-auto">
+                                    <table className="w-full min-w-[1200px] text-[12px]">
+                                        <thead>
+                                            <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
+                                                <th className="px-2 py-2">Tier</th>
+                                                <th className="px-2 py-2">Enabled</th>
+                                                <th className="px-2 py-2">ETA Label</th>
+                                                <th className="px-2 py-2">ETA Min Days</th>
+                                                <th className="px-2 py-2">ETA Max Days</th>
+                                                <th className="px-2 py-2">Price Multiplier</th>
+                                                <th className="px-2 py-2">Max Distance (km)</th>
+                                                <th className="px-2 py-2">Max Weight (kg)</th>
+                                                <th className="px-2 py-2">Min Lead Hours</th>
+                                                <th className="px-2 py-2">Max Lead Hours</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {FIXED_SPEED_ETA_TIERS.map((tier) => {
+                                                const tierRow = activeSpeedEtaTierEngine?.tiers?.[tier.key] || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].speedEtaTierEngine.tiers[tier.key] || {};
+                                                return (
+                                                    <tr key={`speed-eta-tier-${tier.key}`} className="border-x border-b border-[#E5E7EB]">
+                                                        <td className="px-2 py-2 font-[700] text-[#0F172A]">{tier.label}</td>
+                                                        <td className="px-2 py-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(tierRow?.enabled)}
+                                                                onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "enabled", e.target.checked)}
+                                                            />
+                                                        </td>
+                                                        <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(tierRow?.etaLabel || tier.label)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaLabel", e.target.value)} /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0} step="1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.etaMinDays ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaMinDays", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0} step="1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.etaMaxDays === null || tierRow?.etaMaxDays === undefined ? "" : Number(tierRow?.etaMaxDays ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaMaxDays", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.priceMultiplier ?? 1)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "priceMultiplier", Number(e.target.value || 1))} /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0.1} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxDistanceKm === null || tierRow?.maxDistanceKm === undefined ? "" : Number(tierRow?.maxDistanceKm ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxDistanceKm", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0.1} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxWeightKg === null || tierRow?.maxWeightKg === undefined ? "" : Number(tierRow?.maxWeightKg ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxWeightKg", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.25" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.minLeadHours ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "minLeadHours", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.25" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxLeadHours === null || tierRow?.maxLeadHours === undefined ? "" : Number(tierRow?.maxLeadHours ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxLeadHours", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {FIXED_SPEED_ETA_TIERS.map((tier) => {
+                                        const tierRow = activeSpeedEtaTierEngine?.tiers?.[tier.key] || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].speedEtaTierEngine.tiers[tier.key] || {};
+                                        return (
+                                            <div key={`speed-eta-tier-list-${tier.key}`} className="rounded-[8px] border border-[#E5E7EB] p-2">
+                                                <p className="text-[11px] font-[700] text-[#0F172A]">{tier.label} Constraints</p>
+                                                <Field label="Allowed Pickup Days (1-7, comma-separated)">
+                                                    <input
+                                                        className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Array.isArray(tierRow?.allowedPickupDays) ? tierRow.allowedPickupDays.join(", ") : "1, 2, 3, 4, 5, 6, 7"}
+                                                        onChange={(e) => updatePricingTierEngineTier(
+                                                            activePricingCategory,
+                                                            tier.key,
+                                                            "allowedPickupDays",
+                                                            parseCommaList(e.target.value, (item) => Number(item)).filter((item) => Number.isInteger(item) && item >= 1 && item <= 7),
+                                                        )}
+                                                    />
+                                                </Field>
+                                                <Field label="Blackout Dates (YYYY-MM-DD, comma-separated)">
+                                                    <input
+                                                        className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                        value={Array.isArray(tierRow?.blackoutDates) ? tierRow.blackoutDates.join(", ") : ""}
+                                                        onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "blackoutDates", parseCommaList(e.target.value))}
+                                                        placeholder="2026-12-25, 2027-01-01"
+                                                    />
+                                                </Field>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
                                 <p className="text-[12px] font-[700] text-[#111827]">Remote Area Surcharge</p>
                                 <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
