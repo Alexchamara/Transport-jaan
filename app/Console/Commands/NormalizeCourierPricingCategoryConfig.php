@@ -120,6 +120,10 @@ class NormalizeCourierPricingCategoryConfig extends Command
                 'enabled' => true,
                 'minimumTotal' => 0,
             ],
+            'customerContractPricing' => [
+                'enabled' => false,
+                'contracts' => [],
+            ],
             'quoteRuntimeGovernance' => [
                 'enabled' => false,
                 'fieldLocks' => [
@@ -326,6 +330,86 @@ class NormalizeCourierPricingCategoryConfig extends Command
                 'minimumShipmentCharge' => [
                     'enabled' => (bool) ($row['minimumShipmentCharge']['enabled'] ?? true),
                     'minimumTotal' => max(0, (float) ($row['minimumShipmentCharge']['minimumTotal'] ?? 0)),
+                ],
+                'customerContractPricing' => [
+                    'enabled' => (bool) ($row['customerContractPricing']['enabled'] ?? false),
+                    'contracts' => collect($row['customerContractPricing']['contracts'] ?? [])
+                        ->map(function ($contract) use ($category) {
+                            $item = is_array($contract) ? $contract : [];
+                            $allowedCategories = ['domestic', 'logistic'];
+                            $normalizedContractCategory = strtolower(trim((string) ($item['category'] ?? '')));
+                            if (!in_array($normalizedContractCategory, $allowedCategories, true)) {
+                                $normalizedContractCategory = $category;
+                            }
+
+                            $normalizedContractCategories = collect($item['categories'] ?? [])
+                                ->map(fn ($value) => strtolower(trim((string) $value)))
+                                ->filter(fn ($value) => in_array($value, $allowedCategories, true))
+                                ->unique()
+                                ->values()
+                                ->all();
+                            if (empty($normalizedContractCategories)) {
+                                $normalizedContractCategories = [$normalizedContractCategory];
+                            }
+
+                            $effectiveFrom = trim((string) ($item['effectiveFrom'] ?? ''));
+                            $effectiveTo = trim((string) ($item['effectiveTo'] ?? ''));
+                            $renewalCycleDays = max(0, (int) ($item['renewalCycleDays'] ?? 0));
+                            $renewalGraceDays = max(0, (int) ($item['renewalGraceDays'] ?? 0));
+                            $maxRenewals = max(0, (int) ($item['maxRenewals'] ?? 0));
+
+                            $volumeLookbackDays = max(1, (int) ($item['volumeLookbackDays'] ?? 30));
+                            $volumeMetric = strtolower(trim((string) ($item['volumeMetric'] ?? 'shipment_count_30d')));
+                            if ($volumeMetric === '') {
+                                $volumeMetric = 'shipment_count_30d';
+                            }
+
+                            $volumeTiers = collect($item['volumeTiers'] ?? [])
+                                ->map(function ($tier) {
+                                    $tierRow = is_array($tier) ? $tier : [];
+                                    $minVolume = max(0, (float) ($tierRow['minVolume'] ?? 0));
+                                    $hasMaxVolume = isset($tierRow['maxVolume']) && $tierRow['maxVolume'] !== '' && $tierRow['maxVolume'] !== null;
+
+                                    return [
+                                        'enabled' => (bool) ($tierRow['enabled'] ?? true),
+                                        'minVolume' => $minVolume,
+                                        'maxVolume' => $hasMaxVolume ? max($minVolume, (float) $tierRow['maxVolume']) : null,
+                                        'adjustmentType' => strtolower(trim((string) ($tierRow['adjustmentType'] ?? 'percent_off'))),
+                                        'adjustmentValue' => max(0, (float) ($tierRow['adjustmentValue'] ?? 0)),
+                                    ];
+                                })
+                                ->values()
+                                ->all();
+
+                            return [
+                                'enabled' => (bool) ($item['enabled'] ?? true),
+                                'priority' => (int) ($item['priority'] ?? 0),
+                                'allAccounts' => (bool) ($item['allAccounts'] ?? false),
+                                'accountUserId' => (int) ($item['accountUserId'] ?? 0),
+                                'accountUserIds' => collect($item['accountUserIds'] ?? [])
+                                    ->map(fn ($value) => (int) $value)
+                                    ->filter(fn ($value) => $value > 0)
+                                    ->unique()
+                                    ->values()
+                                    ->all(),
+                                'category' => $normalizedContractCategory,
+                                'categories' => $normalizedContractCategories,
+                                'effectiveFrom' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $effectiveFrom) === 1 ? $effectiveFrom : null,
+                                'effectiveTo' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $effectiveTo) === 1 ? $effectiveTo : null,
+                                'autoRenew' => (bool) ($item['autoRenew'] ?? false),
+                                'renewalCycleDays' => $renewalCycleDays,
+                                'renewalGraceDays' => $renewalGraceDays,
+                                'maxRenewals' => $maxRenewals,
+                                'negotiatedRateType' => strtolower(trim((string) ($item['negotiatedRateType'] ?? ''))),
+                                'negotiatedRateValue' => max(0, (float) ($item['negotiatedRateValue'] ?? 0)),
+                                'minimumTotal' => max(0, (float) ($item['minimumTotal'] ?? 0)),
+                                'volumeMetric' => $volumeMetric,
+                                'volumeLookbackDays' => $volumeLookbackDays,
+                                'volumeTiers' => $volumeTiers,
+                            ];
+                        })
+                        ->values()
+                        ->all(),
                 ],
                 'quoteRuntimeGovernance' => [
                     'enabled' => (bool) ($row['quoteRuntimeGovernance']['enabled'] ?? false),

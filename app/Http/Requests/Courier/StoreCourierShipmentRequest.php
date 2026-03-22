@@ -72,6 +72,7 @@ class StoreCourierShipmentRequest extends FormRequest
             'reviewContext.totalPriceUSD' => ['nullable', 'numeric', 'min:0'],
             'reviewContext.discountPercent' => ['nullable', 'numeric', 'min:0'],
             'reviewContext.discountAmountUSD' => ['nullable', 'numeric', 'min:0'],
+            'reviewContext.accountUserId' => ['nullable', 'integer', 'min:1'],
             'reviewContext.selectedQuotes' => ['nullable', 'array'],
             'reviewContext.selectedQuotes.*.packageIndex' => ['nullable', 'integer', 'min:0'],
             'reviewContext.selectedQuotes.*.providerId' => ['nullable', 'string', 'max:80'],

@@ -405,6 +405,7 @@ class ClientCourierController extends Controller
             'reviewContext.totalPriceUSD' => ['nullable', 'numeric', 'min:0'],
             'reviewContext.discountPercent' => ['nullable', 'numeric', 'min:0'],
             'reviewContext.discountAmountUSD' => ['nullable', 'numeric', 'min:0'],
+            'reviewContext.accountUserId' => ['nullable', 'integer', 'min:1'],
             'reviewContext.selectedQuotes' => ['required', 'array', 'min:1'],
             'reviewContext.selectedQuotes.*.packageIndex' => ['required', 'integer', 'min:0'],
             'reviewContext.selectedQuotes.*.providerId' => ['required', 'string', 'max:80'],
@@ -599,6 +600,7 @@ class ClientCourierController extends Controller
                 'reviewContext.totalPriceUSD' => ['nullable', 'numeric', 'min:0'],
                 'reviewContext.discountPercent' => ['nullable', 'numeric', 'min:0'],
                 'reviewContext.discountAmountUSD' => ['nullable', 'numeric', 'min:0'],
+                'reviewContext.accountUserId' => ['nullable', 'integer', 'min:1'],
                 'reviewContext.selectedQuotes' => ['nullable', 'array'],
                 'reviewContext.selectedQuotes.*.packageIndex' => ['required_with:reviewContext.selectedQuotes', 'integer', 'min:0'],
                 'reviewContext.selectedQuotes.*.providerId' => ['required_with:reviewContext.selectedQuotes', 'string', 'max:80'],
@@ -680,6 +682,10 @@ class ClientCourierController extends Controller
             $normalizedSelectedQuotes,
             static fn ($carry, $quote) => $carry + ($quote['priceUSD'] ?? 0),
             0.0
+        );
+        $normalized['reviewContext']['accountUserId'] = (int) (
+            $normalized['reviewContext']['accountUserId']
+            ?? ($existing['reviewContext']['accountUserId'] ?? Auth::id())
         );
 
         $request->session()->put('courier_preview', $normalized);
@@ -771,7 +777,14 @@ class ClientCourierController extends Controller
     {
         $payload = $request->validated();
         $assignmentService = app(CourierVendorAssignmentService::class);
-        $reviewContext = $request->input('reviewContext', []);
+        $reviewContext = is_array($request->input('reviewContext', []))
+            ? $request->input('reviewContext', [])
+            : [];
+        $reviewContext['accountUserId'] = (int) ($reviewContext['accountUserId'] ?? Auth::id());
+        $payload['reviewContext'] = array_replace(
+            is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [],
+            $reviewContext
+        );
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
@@ -1180,7 +1193,9 @@ class ClientCourierController extends Controller
                 $policyModules,
                 $policyBreakdown,
                 1,
-                $usdRate
+                $usdRate,
+                $vendorId,
+                $category
             );
             $pricingExplanation['policyAdjustments'] = $policyBreakdown;
             $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalWithPolicy), 2);
@@ -1309,7 +1324,9 @@ class ClientCourierController extends Controller
             $policyModules,
             $policyBreakdown,
             1,
-            1
+            1,
+            $vendorId,
+            $category
         );
 
         $totalEstimatedUsd = $totalBase * $usdRate;
@@ -1411,6 +1428,10 @@ class ClientCourierController extends Controller
             'minimumShipmentCharge' => [
                 'enabled' => true,
                 'minimumTotal' => 0,
+            ],
+            'customerContractPricing' => [
+                'enabled' => false,
+                'contracts' => [],
             ],
             'quoteRuntimeGovernance' => [
                 'enabled' => false,
@@ -1555,7 +1576,9 @@ class ClientCourierController extends Controller
         array $policyModules,
         array &$policyBreakdown,
         float $flatFeeFactor,
-        float $percentBaseFactor
+        float $percentBaseFactor,
+        ?int $vendorId = null,
+        ?string $category = null
     ): float {
         $total = max(0, $currentTotal);
         $policyBreakdown = [];
@@ -1567,7 +1590,7 @@ class ClientCourierController extends Controller
             0,
             (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
-        $category = $this->resolvePayloadCategory($payload);
+        $category = $category ?: $this->resolvePayloadCategory($payload);
 
         $this->assertQuoteRuntimeGovernanceFieldLocks($payload, $policyModules);
 
@@ -1796,9 +1819,315 @@ class ClientCourierController extends Controller
             }
         }
 
+        $total = $this->applyCustomerContractPricing(
+            $total,
+            $payload,
+            $policyModules,
+            $policyBreakdown,
+            (int) ($vendorId ?? 0),
+            $category,
+            $flatFeeFactor,
+            $percentBaseFactor
+        );
+
         $total = $this->applyQuoteRuntimeGovernanceGuardrails($total, $payload, $policyModules, $policyBreakdown);
 
         return $total;
+    }
+
+    private function applyCustomerContractPricing(
+        float $currentTotal,
+        array $payload,
+        array $policyModules,
+        array &$policyBreakdown,
+        int $vendorId,
+        string $category,
+        float $flatFeeFactor,
+        float $percentBaseFactor
+    ): float {
+        $policy = is_array($policyModules['customerContractPricing'] ?? null)
+            ? $policyModules['customerContractPricing']
+            : [];
+        if (!(bool) ($policy['enabled'] ?? false) || $vendorId <= 0) {
+            return $currentTotal;
+        }
+
+        $reviewContext = is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [];
+        $accountUserId = (int) ($reviewContext['accountUserId'] ?? Auth::id());
+        if ($accountUserId <= 0) {
+            return $currentTotal;
+        }
+
+        $contract = $this->resolveActiveCustomerContract($policy, $accountUserId, $category);
+        if (!$contract) {
+            return $currentTotal;
+        }
+
+        $total = max(0, $currentTotal);
+
+        $negotiatedType = $this->normalizeZoneKey((string) ($contract['negotiatedRateType'] ?? ''));
+        $negotiatedValue = max(0, (float) ($contract['negotiatedRateValue'] ?? 0));
+        if ($negotiatedType !== '' && $negotiatedValue > 0) {
+            if ($negotiatedType === 'percent_off') {
+                $discount = min($total, $total * ($negotiatedValue / 100) * $percentBaseFactor);
+                if ($discount > 0) {
+                    $total -= $discount;
+                    $policyBreakdown[] = [
+                        'key' => 'contract_negotiated_rate_discount',
+                        'amount' => round(-1 * $discount, 2),
+                    ];
+                }
+            } elseif ($negotiatedType === 'flat_off') {
+                $discount = min($total, $negotiatedValue * $flatFeeFactor);
+                if ($discount > 0) {
+                    $total -= $discount;
+                    $policyBreakdown[] = [
+                        'key' => 'contract_negotiated_rate_discount',
+                        'amount' => round(-1 * $discount, 2),
+                    ];
+                }
+            } elseif ($negotiatedType === 'fixed_total') {
+                $targetTotal = max(0, $negotiatedValue * $flatFeeFactor);
+                $delta = $targetTotal - $total;
+                $total = $targetTotal;
+                if (abs($delta) > 0.0001) {
+                    $policyBreakdown[] = [
+                        'key' => 'contract_negotiated_rate_override',
+                        'amount' => round($delta, 2),
+                    ];
+                }
+            } elseif ($negotiatedType === 'multiplier') {
+                $multiplier = max(0.01, $negotiatedValue);
+                $before = $total;
+                $total *= $multiplier;
+                $delta = $total - $before;
+                if (abs($delta) > 0.0001) {
+                    $policyBreakdown[] = [
+                        'key' => 'contract_negotiated_rate_multiplier',
+                        'amount' => round($delta, 2),
+                    ];
+                }
+            }
+        }
+
+        $volumeTiers = collect($contract['volumeTiers'] ?? [])
+            ->map(fn ($item) => is_array($item) ? $item : [])
+            ->filter(fn ($item) => (bool) ($item['enabled'] ?? true))
+            ->values()
+            ->all();
+        if (!empty($volumeTiers)) {
+            $metricValue = $this->resolveContractVolumeMetric($payload, $vendorId, $accountUserId, $category, $contract);
+            $matchedTier = $this->resolveBestVolumeTier($metricValue, $volumeTiers);
+            if ($matchedTier) {
+                $tierType = $this->normalizeZoneKey((string) ($matchedTier['adjustmentType'] ?? ''));
+                $tierValue = max(0, (float) ($matchedTier['adjustmentValue'] ?? 0));
+
+                if ($tierType === 'percent_off' && $tierValue > 0) {
+                    $discount = min($total, $total * ($tierValue / 100) * $percentBaseFactor);
+                    if ($discount > 0) {
+                        $total -= $discount;
+                        $policyBreakdown[] = [
+                            'key' => 'contract_volume_tier_discount',
+                            'amount' => round(-1 * $discount, 2),
+                        ];
+                    }
+                } elseif ($tierType === 'flat_off' && $tierValue > 0) {
+                    $discount = min($total, $tierValue * $flatFeeFactor);
+                    if ($discount > 0) {
+                        $total -= $discount;
+                        $policyBreakdown[] = [
+                            'key' => 'contract_volume_tier_discount',
+                            'amount' => round(-1 * $discount, 2),
+                        ];
+                    }
+                } elseif ($tierType === 'multiplier' && $tierValue > 0) {
+                    $multiplier = max(0.01, $tierValue);
+                    $before = $total;
+                    $total *= $multiplier;
+                    $delta = $total - $before;
+                    if (abs($delta) > 0.0001) {
+                        $policyBreakdown[] = [
+                            'key' => 'contract_volume_tier_multiplier',
+                            'amount' => round($delta, 2),
+                        ];
+                    }
+                } elseif ($tierType === 'fixed_total' && $tierValue > 0) {
+                    $targetTotal = max(0, $tierValue * $flatFeeFactor);
+                    $delta = $targetTotal - $total;
+                    $total = $targetTotal;
+                    if (abs($delta) > 0.0001) {
+                        $policyBreakdown[] = [
+                            'key' => 'contract_volume_tier_override',
+                            'amount' => round($delta, 2),
+                        ];
+                    }
+                }
+            }
+        }
+
+        $contractMinimum = max(0, (float) ($contract['minimumTotal'] ?? 0)) * $flatFeeFactor;
+        if ($contractMinimum > 0 && $total < $contractMinimum) {
+            $delta = $contractMinimum - $total;
+            $total = $contractMinimum;
+            $policyBreakdown[] = [
+                'key' => 'contract_minimum_guardrail',
+                'amount' => round($delta, 2),
+            ];
+        }
+
+        return max(0, $total);
+    }
+
+    private function resolveActiveCustomerContract(array $policy, int $accountUserId, string $category): ?array
+    {
+        $contracts = collect($policy['contracts'] ?? [])
+            ->map(fn ($item) => is_array($item) ? $item : [])
+            ->filter(fn ($item) => (bool) ($item['enabled'] ?? true))
+            ->values();
+        if ($contracts->isEmpty()) {
+            return null;
+        }
+
+        $now = Carbon::now();
+
+        return $contracts
+            ->filter(function (array $contract) use ($accountUserId, $category, $now) {
+                $accountIds = collect($contract['accountUserIds'] ?? [])
+                    ->map(fn ($item) => (int) $item)
+                    ->filter(fn ($item) => $item > 0)
+                    ->values();
+                $singleAccountId = (int) ($contract['accountUserId'] ?? 0);
+                if ($singleAccountId > 0) {
+                    $accountIds->push($singleAccountId);
+                }
+                $allAccounts = (bool) ($contract['allAccounts'] ?? false);
+                if (!$allAccounts && $accountIds->isNotEmpty() && !$accountIds->contains($accountUserId)) {
+                    return false;
+                }
+
+                $categories = collect($contract['categories'] ?? [])
+                    ->map(fn ($item) => $this->normalizeZoneKey((string) $item))
+                    ->filter(fn ($item) => $item !== '' && $item !== '*')
+                    ->values();
+                $contractCategory = $this->normalizeZoneKey((string) ($contract['category'] ?? ''));
+                if ($contractCategory !== '*' && !$categories->contains($contractCategory)) {
+                    $categories->push($contractCategory);
+                }
+                $normalizedCategory = $this->normalizeZoneKey($category);
+                if ($categories->isNotEmpty() && $normalizedCategory !== '*' && !$categories->contains($normalizedCategory)) {
+                    return false;
+                }
+
+                $effectiveFromRaw = trim((string) ($contract['effectiveFrom'] ?? ''));
+                $effectiveToRaw = trim((string) ($contract['effectiveTo'] ?? ''));
+
+                $effectiveFrom = $effectiveFromRaw !== '' ? Carbon::parse($effectiveFromRaw)->startOfDay() : null;
+                $effectiveTo = $effectiveToRaw !== '' ? Carbon::parse($effectiveToRaw)->endOfDay() : null;
+
+                if ($effectiveFrom && $now->lt($effectiveFrom)) {
+                    return false;
+                }
+
+                if ($effectiveTo && $now->gt($effectiveTo)) {
+                    if (!(bool) ($contract['autoRenew'] ?? false)) {
+                        return false;
+                    }
+
+                    $renewalCycleDays = max(0, (int) ($contract['renewalCycleDays'] ?? 0));
+                    $renewalGraceDays = max(0, (int) ($contract['renewalGraceDays'] ?? 0));
+                    if ($renewalCycleDays <= 0) {
+                        return $now->lte($effectiveTo->copy()->addDays($renewalGraceDays));
+                    }
+
+                    $maxRenewals = max(0, (int) ($contract['maxRenewals'] ?? 0));
+                    $rollingEnd = $effectiveTo->copy();
+                    $renewalCount = 0;
+                    while ($rollingEnd->lt($now)) {
+                        if ($maxRenewals > 0 && $renewalCount >= $maxRenewals) {
+                            return false;
+                        }
+                        $rollingEnd->addDays($renewalCycleDays);
+                        $renewalCount++;
+                    }
+
+                    return true;
+                }
+
+                return true;
+            })
+            ->sortByDesc(fn ($contract) => (int) ($contract['priority'] ?? 0))
+            ->first();
+    }
+
+    private function resolveContractVolumeMetric(
+        array $payload,
+        int $vendorId,
+        int $accountUserId,
+        string $category,
+        array $contract
+    ): float {
+        $metric = $this->normalizeZoneKey((string) ($contract['volumeMetric'] ?? 'shipment_count_30d'));
+        $lookbackDays = max(1, (int) ($contract['volumeLookbackDays'] ?? 30));
+        $since = Carbon::now()->subDays($lookbackDays);
+
+        if ($metric === 'current_shipment_weight_kg') {
+            return collect($payload['packages'] ?? [])->reduce(function ($carry, $package) {
+                $item = is_array($package) ? $package : [];
+                $qty = max(1, (int) ($item['quantity'] ?? 1));
+                $weight = max(0, (float) ($item['weightKg'] ?? 0));
+
+                return $carry + ($qty * $weight);
+            }, 0.0);
+        }
+
+        $shipmentsQuery = CourierShipment::query()
+            ->where('requested_by_user_id', $accountUserId)
+            ->where('assigned_vendor_user_id', $vendorId)
+            ->where('created_at', '>=', $since);
+
+        $normalizedCategory = $this->normalizeZoneKey($category);
+        if ($normalizedCategory !== '') {
+            $shipmentsQuery->where('assignment_category', $normalizedCategory);
+        }
+
+        if ($metric === 'revenue_usd_30d') {
+            return (float) $shipmentsQuery->sum('estimated_cost');
+        }
+
+        if ($metric === 'total_weight_kg_30d') {
+            return (float) $shipmentsQuery
+                ->with(['packages:id,courier_shipment_id,weight_kg,quantity'])
+                ->get()
+                ->sum(function (CourierShipment $shipment) {
+                    return $shipment->packages->sum(function ($package) {
+                        $qty = max(1, (int) ($package->quantity ?? 1));
+                        $weight = max(0, (float) ($package->weight_kg ?? 0));
+
+                        return $qty * $weight;
+                    });
+                });
+        }
+
+        return (float) $shipmentsQuery->count();
+    }
+
+    private function resolveBestVolumeTier(float $metricValue, array $volumeTiers): ?array
+    {
+        return collect($volumeTiers)
+            ->map(fn ($item) => is_array($item) ? $item : [])
+            ->filter(function (array $tier) use ($metricValue) {
+                $minVolume = max(0, (float) ($tier['minVolume'] ?? 0));
+                $hasMaxVolume = isset($tier['maxVolume']) && $tier['maxVolume'] !== null && $tier['maxVolume'] !== '';
+                $maxVolume = $hasMaxVolume ? max($minVolume, (float) $tier['maxVolume']) : null;
+
+                if ($metricValue < $minVolume) {
+                    return false;
+                }
+
+                return $maxVolume === null ? true : $metricValue <= $maxVolume;
+            })
+            ->sortByDesc(fn ($tier) => max(0, (float) ($tier['minVolume'] ?? 0)))
+            ->first();
     }
 
     private function assertQuoteRuntimeGovernanceFieldLocks(array $payload, array $policyModules): void

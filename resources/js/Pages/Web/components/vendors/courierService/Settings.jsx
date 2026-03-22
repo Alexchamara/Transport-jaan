@@ -171,6 +171,10 @@ const DEFAULT_SETTINGS = {
                     enabled: true,
                     minimumTotal: 0,
                 },
+                customerContractPricing: {
+                    enabled: false,
+                    contracts: [],
+                },
                 quoteRuntimeGovernance: {
                     enabled: false,
                     fieldLocks: {
@@ -338,6 +342,10 @@ const DEFAULT_SETTINGS = {
                 minimumShipmentCharge: {
                     enabled: true,
                     minimumTotal: 0,
+                },
+                customerContractPricing: {
+                    enabled: false,
+                    contracts: [],
                 },
                 quoteRuntimeGovernance: {
                     enabled: false,
@@ -5055,6 +5063,372 @@ const Settings = () => {
                                     </Field>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                        <div className="flex items-center justify-between gap-2">
+                            <div>
+                                <p className="text-[13px] font-[700] text-[#111827]">Customer Contract Pricing</p>
+                                <p className="text-[11px] text-[#64748B] mt-1">Configure account-level negotiated rates, effective ranges, renewal controls, and volume tiers.</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                onClick={() => {
+                                    const existingContracts = Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts)
+                                        ? activePricingPolicyModules.customerContractPricing.contracts
+                                        : [];
+                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", [
+                                        ...existingContracts,
+                                        {
+                                            enabled: true,
+                                            priority: 0,
+                                            allAccounts: true,
+                                            accountUserIds: [],
+                                            category: activePricingCategory,
+                                            categories: [activePricingCategory],
+                                            effectiveFrom: "",
+                                            effectiveTo: "",
+                                            autoRenew: false,
+                                            renewalCycleDays: 30,
+                                            renewalGraceDays: 0,
+                                            maxRenewals: 0,
+                                            negotiatedRateType: "percent_off",
+                                            negotiatedRateValue: 0,
+                                            minimumTotal: 0,
+                                            volumeMetric: "shipment_count_30d",
+                                            volumeLookbackDays: 30,
+                                            volumeTiers: [],
+                                        },
+                                    ]);
+                                }}
+                            >
+                                Add Contract
+                            </button>
+                        </div>
+
+                        <label className="mt-3 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                            <input
+                                type="checkbox"
+                                checked={Boolean(activePricingPolicyModules.customerContractPricing?.enabled)}
+                                onChange={(e) => updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "enabled", e.target.checked)}
+                            />
+                            Enable Customer Contract Pricing
+                        </label>
+
+                        <div className="mt-3 space-y-3">
+                            {(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts)
+                                ? activePricingPolicyModules.customerContractPricing.contracts
+                                : []).map((contract, contractIndex) => {
+                                const contractRow = contract && typeof contract === "object" ? contract : {};
+                                const tiers = Array.isArray(contractRow.volumeTiers) ? contractRow.volumeTiers : [];
+
+                                return (
+                                    <div key={`contract-${activePricingCategory}-${contractIndex}`} className="rounded-[8px] border border-[#E5E7EB] p-3 bg-[#F8FAFC]">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="text-[12px] font-[700] text-[#111827]">Contract #{contractIndex + 1}</p>
+                                            <button
+                                                type="button"
+                                                className="h-[26px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]"
+                                                onClick={() => {
+                                                    const nextContracts = (Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts)
+                                                        ? activePricingPolicyModules.customerContractPricing.contracts
+                                                        : []).filter((_, idx) => idx !== contractIndex);
+                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                }}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+
+                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(contractRow.enabled ?? true)}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, enabled: e.target.checked };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                />
+                                                Active
+                                            </label>
+                                            <Field label="Priority">
+                                                <input
+                                                    type="number"
+                                                    step="1"
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={Number(contractRow.priority || 0)}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, priority: Number(e.target.value || 0) };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                />
+                                            </Field>
+                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(contractRow.allAccounts)}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, allAccounts: e.target.checked };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                />
+                                                Apply To All Accounts
+                                            </label>
+                                        </div>
+
+                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            <Field label="Account User IDs (comma-separated)">
+                                                <input
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={Array.isArray(contractRow.accountUserIds) ? contractRow.accountUserIds.join(", ") : ""}
+                                                    onChange={(e) => {
+                                                        const parsedIds = parseCommaList(e.target.value)
+                                                            .map((value) => Number(value))
+                                                            .filter((value) => Number.isInteger(value) && value > 0);
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, accountUserIds: parsedIds };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                    placeholder="102, 204, 305"
+                                                />
+                                            </Field>
+                                            <Field label="Contract Category">
+                                                <select
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={String(contractRow.category || activePricingCategory)}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = {
+                                                            ...contractRow,
+                                                            category: e.target.value,
+                                                            categories: [e.target.value],
+                                                        };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                >
+                                                    {visiblePricingCategoryOptions.map((option) => (
+                                                        <option key={`contract-category-option-${option.key}`} value={option.key}>{option.label}</option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                            <Field label="Effective From">
+                                                <input
+                                                    type="date"
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={String(contractRow.effectiveFrom || "")}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, effectiveFrom: e.target.value };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                />
+                                            </Field>
+                                            <Field label="Effective To">
+                                                <input
+                                                    type="date"
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={String(contractRow.effectiveTo || "")}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, effectiveTo: e.target.value };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                />
+                                            </Field>
+                                        </div>
+
+                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(contractRow.autoRenew)}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, autoRenew: e.target.checked };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                />
+                                                Auto Renew
+                                            </label>
+                                            <Field label="Renewal Cycle (days)">
+                                                <input type="number" min={0} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.renewalCycleDays || 0)} onChange={(e) => {
+                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                    nextContracts[contractIndex] = { ...contractRow, renewalCycleDays: Number(e.target.value || 0) };
+                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                }} />
+                                            </Field>
+                                            <Field label="Renewal Grace (days)">
+                                                <input type="number" min={0} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.renewalGraceDays || 0)} onChange={(e) => {
+                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                    nextContracts[contractIndex] = { ...contractRow, renewalGraceDays: Number(e.target.value || 0) };
+                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                }} />
+                                            </Field>
+                                            <Field label="Max Renewals (0 = unlimited)">
+                                                <input type="number" min={0} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.maxRenewals || 0)} onChange={(e) => {
+                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                    nextContracts[contractIndex] = { ...contractRow, maxRenewals: Number(e.target.value || 0) };
+                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                }} />
+                                            </Field>
+                                        </div>
+
+                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                            <Field label="Negotiated Rate Type">
+                                                <select
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={String(contractRow.negotiatedRateType || "percent_off")}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, negotiatedRateType: e.target.value };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                >
+                                                    <option value="percent_off">Percent Off</option>
+                                                    <option value="flat_off">Flat Off</option>
+                                                    <option value="fixed_total">Fixed Total</option>
+                                                    <option value="multiplier">Multiplier</option>
+                                                </select>
+                                            </Field>
+                                            <Field label="Negotiated Value">
+                                                <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.negotiatedRateValue || 0)} onChange={(e) => {
+                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                    nextContracts[contractIndex] = { ...contractRow, negotiatedRateValue: Number(e.target.value || 0) };
+                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                }} />
+                                            </Field>
+                                            <Field label="Contract Minimum Total">
+                                                <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.minimumTotal || 0)} onChange={(e) => {
+                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                    nextContracts[contractIndex] = { ...contractRow, minimumTotal: Number(e.target.value || 0) };
+                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                }} />
+                                            </Field>
+                                            <Field label="Volume Metric">
+                                                <select
+                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                    value={String(contractRow.volumeMetric || "shipment_count_30d")}
+                                                    onChange={(e) => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        nextContracts[contractIndex] = { ...contractRow, volumeMetric: e.target.value };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                >
+                                                    <option value="shipment_count_30d">Shipment Count (30d)</option>
+                                                    <option value="total_weight_kg_30d">Total Weight KG (30d)</option>
+                                                    <option value="revenue_usd_30d">Revenue USD (30d)</option>
+                                                    <option value="current_shipment_weight_kg">Current Shipment Weight KG</option>
+                                                </select>
+                                            </Field>
+                                        </div>
+
+                                        <Field label="Volume Lookback Days">
+                                            <input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.volumeLookbackDays || 30)} onChange={(e) => {
+                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                nextContracts[contractIndex] = { ...contractRow, volumeLookbackDays: Number(e.target.value || 30) };
+                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                            }} />
+                                        </Field>
+
+                                        <div className="mt-2 rounded-[8px] border border-[#E5E7EB] bg-white p-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-[11px] font-[700] text-[#334155]">Volume Tiers</p>
+                                                <button
+                                                    type="button"
+                                                    className="h-[24px] px-2 rounded-[6px] border border-[#0955AC] text-[#0955AC] text-[10px] font-[700]"
+                                                    onClick={() => {
+                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                        const nextTiers = [...tiers, { enabled: true, minVolume: 0, maxVolume: null, adjustmentType: "percent_off", adjustmentValue: 0 }];
+                                                        nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                    }}
+                                                >
+                                                    Add Tier
+                                                </button>
+                                            </div>
+
+                                            <div className="mt-2 space-y-2">
+                                                {tiers.map((tier, tierIndex) => {
+                                                    const tierRow = tier && typeof tier === "object" ? tier : {};
+                                                    return (
+                                                        <div key={`tier-${contractIndex}-${tierIndex}`} className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={Boolean(tierRow.enabled ?? true)}
+                                                                    onChange={(e) => {
+                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                                        const nextTiers = [...tiers];
+                                                                        nextTiers[tierIndex] = { ...tierRow, enabled: e.target.checked };
+                                                                        nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                                    }}
+                                                                />
+                                                                Active
+                                                            </label>
+                                                            <Field label="Min Volume"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.minVolume || 0)} onChange={(e) => {
+                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                                const nextTiers = [...tiers];
+                                                                nextTiers[tierIndex] = { ...tierRow, minVolume: Number(e.target.value || 0) };
+                                                                nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                            }} /></Field>
+                                                            <Field label="Max Volume"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={tierRow.maxVolume === null || tierRow.maxVolume === undefined ? "" : Number(tierRow.maxVolume || 0)} onChange={(e) => {
+                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                                const nextTiers = [...tiers];
+                                                                nextTiers[tierIndex] = { ...tierRow, maxVolume: e.target.value === "" ? null : Number(e.target.value || 0) };
+                                                                nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                            }} /></Field>
+                                                            <Field label="Adjustment Type">
+                                                                <select className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(tierRow.adjustmentType || "percent_off")} onChange={(e) => {
+                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                                    const nextTiers = [...tiers];
+                                                                    nextTiers[tierIndex] = { ...tierRow, adjustmentType: e.target.value };
+                                                                    nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                                }}>
+                                                                    <option value="percent_off">Percent Off</option>
+                                                                    <option value="flat_off">Flat Off</option>
+                                                                    <option value="fixed_total">Fixed Total</option>
+                                                                    <option value="multiplier">Multiplier</option>
+                                                                </select>
+                                                            </Field>
+                                                            <Field label="Adjustment Value"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.adjustmentValue || 0)} onChange={(e) => {
+                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                                const nextTiers = [...tiers];
+                                                                nextTiers[tierIndex] = { ...tierRow, adjustmentValue: Number(e.target.value || 0) };
+                                                                nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                            }} /></Field>
+                                                            <div className="flex items-end">
+                                                                <button
+                                                                    type="button"
+                                                                    className="h-[26px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700]"
+                                                                    onClick={() => {
+                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
+                                                                        const nextTiers = tiers.filter((_, idx) => idx !== tierIndex);
+                                                                        nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
+                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
+                                                                    }}
+                                                                >
+                                                                    Remove Tier
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

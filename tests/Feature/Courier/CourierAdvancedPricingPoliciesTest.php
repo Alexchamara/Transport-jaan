@@ -366,6 +366,88 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_floor_price_guardrail', 2.0);
     }
 
+    public function test_customer_contract_negotiated_rate_is_applied(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'customerContractPricing' => [
+                'enabled' => true,
+                'contracts' => [
+                    [
+                        'enabled' => true,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subDay()->toDateString(),
+                        'effectiveTo' => now()->addDay()->toDateString(),
+                        'negotiatedRateType' => 'percent_off',
+                        'negotiatedRateValue' => 20,
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(40.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_negotiated_rate_discount', -10.0);
+    }
+
+    public function test_customer_contract_volume_tier_is_applied_when_renewed(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'customerContractPricing' => [
+                'enabled' => true,
+                'contracts' => [
+                    [
+                        'enabled' => true,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subMonths(2)->toDateString(),
+                        'effectiveTo' => now()->subDay()->toDateString(),
+                        'autoRenew' => true,
+                        'renewalCycleDays' => 30,
+                        'volumeMetric' => 'current_shipment_weight_kg',
+                        'volumeTiers' => [
+                            [
+                                'enabled' => true,
+                                'minVolume' => 5,
+                                'adjustmentType' => 'flat_off',
+                                'adjustmentValue' => 5,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(45.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_volume_tier_discount', -5.0);
+    }
+
+    public function test_customer_contract_outside_effective_range_without_renewal_is_not_applied(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'customerContractPricing' => [
+                'enabled' => true,
+                'contracts' => [
+                    [
+                        'enabled' => true,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subMonths(2)->toDateString(),
+                        'effectiveTo' => now()->subMonth()->toDateString(),
+                        'autoRenew' => false,
+                        'negotiatedRateType' => 'percent_off',
+                        'negotiatedRateValue' => 20,
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(50.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentMissing($result['pricingExplanation'], 'contract_negotiated_rate_discount');
+    }
+
     private function createDomesticVendorWithPolicyModules(array $policyModules): User
     {
         return $this->createVendorWithPolicyModules($policyModules, 'domestic', 'Courier Domestic');
@@ -551,5 +633,13 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         $this->assertNotNull($adjustment, sprintf('Policy adjustment "%s" was not found.', $key));
         $this->assertEqualsWithDelta($expectedAmount, (float) ($adjustment['amount'] ?? 0), 0.01);
+    }
+
+    private function assertPolicyAdjustmentMissing(array $pricingExplanation, string $key): void
+    {
+        $adjustment = collect($pricingExplanation['policyAdjustments'] ?? [])
+            ->first(fn ($item) => is_array($item) && ($item['key'] ?? null) === $key);
+
+        $this->assertNull($adjustment, sprintf('Policy adjustment "%s" should not be present.', $key));
     }
 }
