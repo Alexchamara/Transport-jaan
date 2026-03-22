@@ -167,13 +167,27 @@ class ServiceProviderController extends Controller
             ->get()
             ->map(function ($reg) {
                 $subCat = $reg->serviceSubCategory;
+                $serviceCategory = (string) ($reg->serviceCategory?->name ?? '');
+                $serviceSubCategoryName = (string) ($subCat?->name ?? '');
+                $serviceSubCategorySlug = (string) ($subCat?->slug ?? '');
+                $requiredFields = is_array($subCat?->required_fields ?? null) ? $subCat->required_fields : [];
+
+                if (strcasecmp($serviceCategory, 'Courier Services') === 0) {
+                    if (strcasecmp($serviceSubCategoryName, 'International') === 0 || strcasecmp($serviceSubCategorySlug, 'international') === 0) {
+                        $serviceSubCategoryName = 'Logistic';
+                        $serviceSubCategorySlug = 'logistic';
+                    }
+
+                    $requiredFields = $this->normalizeCourierRequiredFields($requiredFields);
+                }
+
                 return [
                     'id' => $reg->id,
                     'service_category' => $reg->serviceCategory?->name,
                     'service_category_slug' => $reg->serviceCategory?->slug,
-                    'service_sub_category' => $subCat?->name,
-                    'service_sub_category_slug' => $subCat?->slug,
-                    'required_fields' => $subCat?->required_fields ?? [],
+                    'service_sub_category' => $serviceSubCategoryName,
+                    'service_sub_category_slug' => $serviceSubCategorySlug,
+                    'required_fields' => $requiredFields,
                     'field_values' => $reg->field_values ?? [],
                     'pre_revision_field_values' => $reg->pre_revision_field_values,
                     'status' => $reg->status,
@@ -255,6 +269,7 @@ class ServiceProviderController extends Controller
     public function approveService(Request $request, VendorServiceRegistration $registration)
     {
         $admin = Auth::user();
+        $serviceName = $registration->serviceSubCategory?->name;
 
         $registration->update([
             'status' => 'approved',
@@ -269,9 +284,9 @@ class ServiceProviderController extends Controller
             'action' => 'service_approved',
             'target_type' => 'vendor_service_registration',
             'target_id' => $registration->id,
-            'description' => "Service '{$registration->serviceSubCategory?->name}' approved.",
+            'description' => "Service '{$serviceName}' approved.",
             'metadata' => [
-                'service_name' => $registration->serviceSubCategory?->name,
+                'service_name' => $serviceName,
                 'category_name' => $registration->serviceCategory?->name,
             ],
         ]);
@@ -292,6 +307,7 @@ class ServiceProviderController extends Controller
         ]);
 
         $admin = Auth::user();
+        $serviceName = $registration->serviceSubCategory?->name;
 
         $registration->update([
             'status' => 'rejected',
@@ -306,9 +322,9 @@ class ServiceProviderController extends Controller
             'action' => 'service_rejected',
             'target_type' => 'vendor_service_registration',
             'target_id' => $registration->id,
-            'description' => "Service '{$registration->serviceSubCategory?->name}' rejected.",
+            'description' => "Service '{$serviceName}' rejected.",
             'metadata' => [
-                'service_name' => $registration->serviceSubCategory?->name,
+                'service_name' => $serviceName,
                 'reason' => $request->input('admin_notes'),
             ],
         ]);
@@ -326,6 +342,7 @@ class ServiceProviderController extends Controller
         ]);
 
         $admin = Auth::user();
+        $serviceName = $registration->serviceSubCategory?->name;
 
         $registration->update([
             'status' => 'revision_requested',
@@ -352,9 +369,9 @@ class ServiceProviderController extends Controller
             'action' => 'service_revision_requested',
             'target_type' => 'vendor_service_registration',
             'target_id' => $registration->id,
-            'description' => "Revision requested for '{$registration->serviceSubCategory?->name}'.",
+            'description' => "Revision requested for '{$serviceName}'.",
             'metadata' => [
-                'service_name' => $registration->serviceSubCategory?->name,
+                'service_name' => $serviceName,
                 'reason' => $request->input('admin_notes'),
             ],
         ]);
@@ -678,6 +695,7 @@ class ServiceProviderController extends Controller
 
         $admin = Auth::user();
         $previousStatus = $registration->status;
+        $serviceName = $registration->serviceSubCategory?->name;
 
         $registration->update([
             'status' => $request->input('status'),
@@ -698,9 +716,9 @@ class ServiceProviderController extends Controller
             'action' => $actionMap[$request->input('status')],
             'target_type' => 'vendor_service_registration',
             'target_id' => $registration->id,
-            'description' => "Service '{$registration->serviceSubCategory?->name}' reviewed (resubmitted). Status: {$request->input('status')}. Previous resubmissions: {$registration->resubmission_count}",
+            'description' => "Service '{$serviceName}' reviewed (resubmitted). Status: {$request->input('status')}. Previous resubmissions: {$registration->resubmission_count}",
             'metadata' => [
-                'service_name' => $registration->serviceSubCategory?->name,
+                'service_name' => $serviceName,
                 'previous_status' => $previousStatus,
                 'resubmission_count' => $registration->resubmission_count,
                 'admin_notes' => $request->input('admin_notes'),
@@ -750,4 +768,20 @@ class ServiceProviderController extends Controller
             }
         }
     }
+
+    private function normalizeCourierRequiredFields(array $requiredFields): array
+    {
+        return collect($requiredFields)->map(function ($field) {
+            if (!is_array($field)) {
+                return $field;
+            }
+
+            if (isset($field['label']) && is_string($field['label'])) {
+                $field['label'] = str_ireplace('International', 'Logistic', $field['label']);
+            }
+
+            return $field;
+        })->values()->all();
+    }
+
 }

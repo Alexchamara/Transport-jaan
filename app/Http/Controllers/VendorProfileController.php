@@ -68,7 +68,10 @@ class VendorProfileController extends Controller
         $serviceCategories = ServiceCategory::active()
             ->ordered()
             ->with('activeSubCategories')
-            ->get();
+            ->get()
+            ->map(function (ServiceCategory $category) {
+                return $this->normalizeCourierCategoryPayload($category);
+            });
 
         $vendorRegistrations = VendorServiceRegistration::where('user_id', $user->id)
             ->get()
@@ -149,6 +152,7 @@ class VendorProfileController extends Controller
     {
         $user = Auth::user();
         $requiredFields = $subCategory->required_fields;
+        $serviceName = (string) $subCategory->name;
 
         // Build field values from request
         $fieldValues = [];
@@ -290,9 +294,9 @@ class VendorProfileController extends Controller
         if ($existingReg && $existingReg->status === 'rejected') {
             // Resubmitting a rejected service
             $action = 'service_resubmitted';
-            $description = "Service '{$subCategory->name}' resubmitted after rejection.";
+            $description = "Service '{$serviceName}' resubmitted after rejection.";
             $metadata = [
-                'service_name' => $subCategory->name,
+                'service_name' => $serviceName,
                 'category_name' => $subCategory->serviceCategory?->name,
                 'resubmission_count' => ($existingReg->resubmission_count ?? 0) + 1,
             ];
@@ -300,18 +304,18 @@ class VendorProfileController extends Controller
         } elseif ($existingReg) {
             // Updating existing service
             $action = 'service_updated';
-            $description = "Vendor updated service registration for '{$subCategory->name}'.";
+            $description = "Vendor updated service registration for '{$serviceName}'.";
             $metadata = [
-                'service_name' => $subCategory->name,
+                'service_name' => $serviceName,
                 'category_name' => $subCategory->serviceCategory?->name,
             ];
             $message = 'Service registration updated successfully.';
         } else {
             // Creating new service
             $action = 'service_created';
-            $description = "Vendor created new service registration for '{$subCategory->name}'.";
+            $description = "Vendor created new service registration for '{$serviceName}'.";
             $metadata = [
-                'service_name' => $subCategory->name,
+                'service_name' => $serviceName,
                 'category_name' => $subCategory->serviceCategory?->name,
             ];
             $message = 'Service registration saved successfully.';
@@ -336,6 +340,7 @@ class VendorProfileController extends Controller
     public function removeServiceRegistration(ServiceSubCategory $subCategory)
     {
         $user = Auth::user();
+        $serviceName = (string) $subCategory->name;
 
         // Block removal during revision mode
         $profile = VendorProfile::where('user_id', $user->id)->first();
@@ -364,9 +369,9 @@ class VendorProfileController extends Controller
                 'action' => 'service_removed',
                 'target_type' => 'vendor_service_registration',
                 'target_id' => $registration->id,
-                'description' => "Vendor removed service registration for '{$subCategory->name}'.",
+                'description' => "Vendor removed service registration for '{$serviceName}'.",
                 'metadata' => [
-                    'service_name' => $subCategory->name,
+                    'service_name' => $serviceName,
                     'category_name' => $subCategory->serviceCategory?->name,
                 ],
             ]);
@@ -401,6 +406,8 @@ class VendorProfileController extends Controller
             $subCategory = ServiceSubCategory::find($registration->service_sub_category_id);
             if (!$subCategory) continue;
 
+            $serviceName = (string) $subCategory->name;
+
             $requiredFields = $subCategory->required_fields;
             $fieldValues = $registration->field_values ?? [];
 
@@ -415,7 +422,7 @@ class VendorProfileController extends Controller
                     case 'file_optional':
                         if (empty($fieldValues[$key]['file'])) {
                             return redirect()->back()->withErrors([
-                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                                'services' => "Missing required document: {$field['label']} for {$serviceName}"
                             ]);
                         }
                         break;
@@ -423,12 +430,12 @@ class VendorProfileController extends Controller
                     case 'file_with_dates':
                         if (empty($fieldValues[$key]['file'])) {
                             return redirect()->back()->withErrors([
-                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                                'services' => "Missing required document: {$field['label']} for {$serviceName}"
                             ]);
                         }
                         if (empty($fieldValues[$key]['effective_date']) || empty($fieldValues[$key]['expiry_date'])) {
                             return redirect()->back()->withErrors([
-                                'services' => "Missing dates for {$field['label']} in {$subCategory->name}"
+                                'services' => "Missing dates for {$field['label']} in {$serviceName}"
                             ]);
                         }
                         break;
@@ -503,6 +510,8 @@ class VendorProfileController extends Controller
             $subCategory = ServiceSubCategory::find($registration->service_sub_category_id);
             if (!$subCategory) continue;
 
+            $serviceName = (string) $subCategory->name;
+
             $requiredFields = $subCategory->required_fields;
             $fieldValues = $registration->field_values ?? [];
 
@@ -516,19 +525,19 @@ class VendorProfileController extends Controller
                     case 'file_optional':
                         if (empty($fieldValues[$key]['file'])) {
                             return redirect()->back()->withErrors([
-                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                                'services' => "Missing required document: {$field['label']} for {$serviceName}"
                             ]);
                         }
                         break;
                     case 'file_with_dates':
                         if (empty($fieldValues[$key]['file'])) {
                             return redirect()->back()->withErrors([
-                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                                'services' => "Missing required document: {$field['label']} for {$serviceName}"
                             ]);
                         }
                         if (empty($fieldValues[$key]['effective_date']) || empty($fieldValues[$key]['expiry_date'])) {
                             return redirect()->back()->withErrors([
-                                'services' => "Missing dates for {$field['label']} in {$subCategory->name}"
+                                'services' => "Missing dates for {$field['label']} in {$serviceName}"
                             ]);
                         }
                         break;
@@ -806,4 +815,48 @@ class VendorProfileController extends Controller
             'likedWarehouseIds' => $likedWarehouseIds,
         ]);
     }
+
+    private function normalizeCourierCategoryPayload(ServiceCategory $category): ServiceCategory
+    {
+        if (strcasecmp((string) $category->name, 'Courier Services') !== 0) {
+            return $category;
+        }
+
+        $normalizedSubCategories = $category->activeSubCategories->map(function ($subCategory) {
+            $slug = strtolower(trim((string) $subCategory->slug));
+            $name = strtolower(trim((string) $subCategory->name));
+
+            if ($slug === 'international' || $name === 'international') {
+                $subCategory->slug = 'logistic';
+                $subCategory->name = 'Logistic';
+                $subCategory->description = 'Logistic courier services';
+            }
+
+            if (is_array($subCategory->required_fields ?? null)) {
+                $subCategory->required_fields = $this->normalizeCourierRequiredFields($subCategory->required_fields);
+            }
+
+            return $subCategory;
+        });
+
+        $category->setRelation('activeSubCategories', $normalizedSubCategories);
+
+        return $category;
+    }
+
+    private function normalizeCourierRequiredFields(array $requiredFields): array
+    {
+        return collect($requiredFields)->map(function ($field) {
+            if (!is_array($field)) {
+                return $field;
+            }
+
+            if (isset($field['label']) && is_string($field['label'])) {
+                $field['label'] = str_ireplace('International', 'Logistic', $field['label']);
+            }
+
+            return $field;
+        })->values()->all();
+    }
+
 }

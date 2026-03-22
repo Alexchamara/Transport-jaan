@@ -611,8 +611,8 @@ const Create = () => {
                             {quoteMatrix.length === 0 ? (
                                 <div className="mt-6 rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
                                     {incompletePackages > 0
-                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available international courier services.`
-                                        : "Add package details to view available international courier services."}
+                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available logistic courier services.`
+                                        : "Add package details to view available logistic courier services."}
                                 </div>
                             ) : (
                                 <div className="mt-8 space-y-8">
