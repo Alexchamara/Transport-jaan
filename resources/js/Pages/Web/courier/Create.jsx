@@ -102,6 +102,31 @@ const Create = () => {
         ],
     });
 
+    const POLICY_ADJUSTMENT_LABELS = {
+        remote_area_surcharge: "Remote area surcharge",
+        overweight_surcharge: "Overweight surcharge",
+        oversize_surcharge: "Oversize surcharge",
+        holiday_surcharge: "Holiday surcharge",
+        peak_hour_surcharge: "Peak-hour surcharge",
+        cod_fee: "COD fee",
+        minimum_shipment_guardrail: "Minimum shipment guardrail",
+        speed_eta_tier_multiplier: "Speed/ETA tier multiplier",
+        logistic_dimensions_engine: "Logistic dimensions engine",
+        quote_runtime_discount_applied: "Quote runtime discount applied",
+        quote_runtime_discount_ceiling_guardrail: "Quote runtime discount ceiling guardrail",
+        quote_runtime_floor_price_guardrail: "Quote runtime floor-price guardrail",
+    };
+
+    const formatPolicyAdjustmentLabel = (key) => {
+        const normalizedKey = String(key || "").trim();
+        if (!normalizedKey) {
+            return "Policy adjustment";
+        }
+
+        return POLICY_ADJUSTMENT_LABELS[normalizedKey]
+            || normalizedKey.replaceAll("_", " ");
+    };
+
     const updatePackage = (index, field, value) => {
         const nextPackages = data.packages.map((item, idx) =>
             idx === index
@@ -344,7 +369,7 @@ const Create = () => {
                                         <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
                                             {recentPricingExplanation.policyAdjustments.map((item, idx) => (
                                                 <p key={`recent-pricing-adjustment-${idx}`}>
-                                                    {String(item?.key || "adjustment").replaceAll("_", " ")}: +{Number(item?.amount || 0).toFixed(2)}
+                                                    {formatPolicyAdjustmentLabel(item?.key)}: {Number(item?.amount || 0) >= 0 ? "+" : "-"}{Math.abs(Number(item?.amount || 0)).toFixed(2)}
                                                 </p>
                                             ))}
                                         </div>

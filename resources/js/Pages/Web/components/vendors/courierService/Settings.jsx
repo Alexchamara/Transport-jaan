@@ -171,6 +171,25 @@ const DEFAULT_SETTINGS = {
                     enabled: true,
                     minimumTotal: 0,
                 },
+                quoteRuntimeGovernance: {
+                    enabled: false,
+                    fieldLocks: {
+                        enabled: false,
+                        lockShipmentServiceLevel: true,
+                        lockPackageServiceLevel: true,
+                        lockPackageCourierProvider: true,
+                        lockQuoteTotal: true,
+                    },
+                    discountGuardrails: {
+                        enabled: false,
+                        maxDiscountPercent: 0,
+                        maxDiscountAmountUsd: 0,
+                    },
+                    floorPriceGuardrail: {
+                        enabled: false,
+                        minimumTotalUsd: 0,
+                    },
+                },
                 speedEtaTierEngine: {
                     enabled: false,
                     enforceFixedNamedTiers: true,
@@ -319,6 +338,25 @@ const DEFAULT_SETTINGS = {
                 minimumShipmentCharge: {
                     enabled: true,
                     minimumTotal: 0,
+                },
+                quoteRuntimeGovernance: {
+                    enabled: false,
+                    fieldLocks: {
+                        enabled: false,
+                        lockShipmentServiceLevel: true,
+                        lockPackageServiceLevel: true,
+                        lockPackageCourierProvider: true,
+                        lockQuoteTotal: true,
+                    },
+                    discountGuardrails: {
+                        enabled: false,
+                        maxDiscountPercent: 0,
+                        maxDiscountAmountUsd: 0,
+                    },
+                    floorPriceGuardrail: {
+                        enabled: false,
+                        minimumTotalUsd: 0,
+                    },
                 },
                 speedEtaTierEngine: {
                     enabled: false,
@@ -4823,6 +4861,199 @@ const Settings = () => {
                                 <Field label="Minimum Total">
                                     <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
                                 </Field>
+                            </div>
+
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
+                                <p className="text-[12px] font-[700] text-[#111827]">Quote Runtime Governance Guardrails</p>
+                                <p className="mt-1 text-[11px] text-[#64748B]">Lock quote-critical fields and enforce discount/floor controls at booking runtime.</p>
+
+                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.enabled)}
+                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "quoteRuntimeGovernance", "enabled", e.target.checked)}
+                                    />
+                                    Enable Quote Runtime Governance
+                                </label>
+
+                                <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-2">
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(
+                                                activePricingCategory,
+                                                "quoteRuntimeGovernance",
+                                                "fieldLocks",
+                                                {
+                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
+                                                    enabled: e.target.checked,
+                                                },
+                                            )}
+                                        />
+                                        Enable Field Locks
+                                    </label>
+                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-[#334155]">
+                                        <label className="inline-flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockShipmentServiceLevel)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "quoteRuntimeGovernance",
+                                                    "fieldLocks",
+                                                    {
+                                                        ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
+                                                        lockShipmentServiceLevel: e.target.checked,
+                                                    },
+                                                )}
+                                            />
+                                            Lock Shipment Service Level
+                                        </label>
+                                        <label className="inline-flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockPackageServiceLevel)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "quoteRuntimeGovernance",
+                                                    "fieldLocks",
+                                                    {
+                                                        ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
+                                                        lockPackageServiceLevel: e.target.checked,
+                                                    },
+                                                )}
+                                            />
+                                            Lock Package Service Level
+                                        </label>
+                                        <label className="inline-flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockPackageCourierProvider)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "quoteRuntimeGovernance",
+                                                    "fieldLocks",
+                                                    {
+                                                        ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
+                                                        lockPackageCourierProvider: e.target.checked,
+                                                    },
+                                                )}
+                                            />
+                                            Lock Package Courier Provider
+                                        </label>
+                                        <label className="inline-flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockQuoteTotal)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "quoteRuntimeGovernance",
+                                                    "fieldLocks",
+                                                    {
+                                                        ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
+                                                        lockQuoteTotal: e.target.checked,
+                                                    },
+                                                )}
+                                            />
+                                            Lock Review Quote Total
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-2">
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(
+                                                activePricingCategory,
+                                                "quoteRuntimeGovernance",
+                                                "discountGuardrails",
+                                                {
+                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.discountGuardrails),
+                                                    enabled: e.target.checked,
+                                                },
+                                            )}
+                                        />
+                                        Enable Discount Ceiling Guardrails
+                                    </label>
+                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <Field label="Max Discount (%)">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step="0.01"
+                                                className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                value={Number(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails?.maxDiscountPercent || 0)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "quoteRuntimeGovernance",
+                                                    "discountGuardrails",
+                                                    {
+                                                        ...(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.discountGuardrails),
+                                                        maxDiscountPercent: Number(e.target.value || 0),
+                                                    },
+                                                )}
+                                            />
+                                        </Field>
+                                        <Field label="Max Discount Amount (USD)">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step="0.01"
+                                                className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                value={Number(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails?.maxDiscountAmountUsd || 0)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "quoteRuntimeGovernance",
+                                                    "discountGuardrails",
+                                                    {
+                                                        ...(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.discountGuardrails),
+                                                        maxDiscountAmountUsd: Number(e.target.value || 0),
+                                                    },
+                                                )}
+                                            />
+                                        </Field>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-2">
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(
+                                                activePricingCategory,
+                                                "quoteRuntimeGovernance",
+                                                "floorPriceGuardrail",
+                                                {
+                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.floorPriceGuardrail),
+                                                    enabled: e.target.checked,
+                                                },
+                                            )}
+                                        />
+                                        Enable Floor Price Guardrail
+                                    </label>
+                                    <Field label="Minimum Total (USD)">
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            step="0.01"
+                                            className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                            value={Number(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail?.minimumTotalUsd || 0)}
+                                            onChange={(e) => updatePricingPolicyModule(
+                                                activePricingCategory,
+                                                "quoteRuntimeGovernance",
+                                                "floorPriceGuardrail",
+                                                {
+                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.floorPriceGuardrail),
+                                                    minimumTotalUsd: Number(e.target.value || 0),
+                                                },
+                                            )}
+                                        />
+                                    </Field>
+                                </div>
                             </div>
                         </div>
                     </div>

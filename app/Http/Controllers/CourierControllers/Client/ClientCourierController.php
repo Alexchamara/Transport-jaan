@@ -403,6 +403,8 @@ class ClientCourierController extends Controller
             'reviewContext' => ['required', 'array'],
             'reviewContext.displayCurrency' => ['nullable', 'string', 'max:4'],
             'reviewContext.totalPriceUSD' => ['nullable', 'numeric', 'min:0'],
+            'reviewContext.discountPercent' => ['nullable', 'numeric', 'min:0'],
+            'reviewContext.discountAmountUSD' => ['nullable', 'numeric', 'min:0'],
             'reviewContext.selectedQuotes' => ['required', 'array', 'min:1'],
             'reviewContext.selectedQuotes.*.packageIndex' => ['required', 'integer', 'min:0'],
             'reviewContext.selectedQuotes.*.providerId' => ['required', 'string', 'max:80'],
@@ -595,6 +597,8 @@ class ClientCourierController extends Controller
                 'reviewContext' => ['nullable', 'array'],
                 'reviewContext.displayCurrency' => ['nullable', 'string', 'max:4'],
                 'reviewContext.totalPriceUSD' => ['nullable', 'numeric', 'min:0'],
+                'reviewContext.discountPercent' => ['nullable', 'numeric', 'min:0'],
+                'reviewContext.discountAmountUSD' => ['nullable', 'numeric', 'min:0'],
                 'reviewContext.selectedQuotes' => ['nullable', 'array'],
                 'reviewContext.selectedQuotes.*.packageIndex' => ['required_with:reviewContext.selectedQuotes', 'integer', 'min:0'],
                 'reviewContext.selectedQuotes.*.providerId' => ['required_with:reviewContext.selectedQuotes', 'string', 'max:80'],
@@ -1408,6 +1412,25 @@ class ClientCourierController extends Controller
                 'enabled' => true,
                 'minimumTotal' => 0,
             ],
+            'quoteRuntimeGovernance' => [
+                'enabled' => false,
+                'fieldLocks' => [
+                    'enabled' => false,
+                    'lockShipmentServiceLevel' => true,
+                    'lockPackageServiceLevel' => true,
+                    'lockPackageCourierProvider' => true,
+                    'lockQuoteTotal' => true,
+                ],
+                'discountGuardrails' => [
+                    'enabled' => false,
+                    'maxDiscountPercent' => 0,
+                    'maxDiscountAmountUsd' => 0,
+                ],
+                'floorPriceGuardrail' => [
+                    'enabled' => false,
+                    'minimumTotalUsd' => 0,
+                ],
+            ],
             'speedEtaTierEngine' => [
                 'enabled' => false,
                 'enforceFixedNamedTiers' => true,
@@ -1545,6 +1568,8 @@ class ClientCourierController extends Controller
             (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
         $category = $this->resolvePayloadCategory($payload);
+
+        $this->assertQuoteRuntimeGovernanceFieldLocks($payload, $policyModules);
 
         $logisticDimensionsPolicy = is_array($policyModules['logisticDimensionsEngine'] ?? null) ? $policyModules['logisticDimensionsEngine'] : [];
         $dimensionsPolicyInScope = !((bool) ($logisticDimensionsPolicy['enforceForLogisticOnly'] ?? true)) || $category === 'logistic';
@@ -1767,6 +1792,142 @@ class ClientCourierController extends Controller
                 $policyBreakdown[] = [
                     'key' => 'minimum_shipment_guardrail',
                     'amount' => round($minimumAdjustment, 2),
+                ];
+            }
+        }
+
+        $total = $this->applyQuoteRuntimeGovernanceGuardrails($total, $payload, $policyModules, $policyBreakdown);
+
+        return $total;
+    }
+
+    private function assertQuoteRuntimeGovernanceFieldLocks(array $payload, array $policyModules): void
+    {
+        $governance = is_array($policyModules['quoteRuntimeGovernance'] ?? null)
+            ? $policyModules['quoteRuntimeGovernance']
+            : [];
+        if (!(bool) ($governance['enabled'] ?? false)) {
+            return;
+        }
+
+        $fieldLocks = is_array($governance['fieldLocks'] ?? null) ? $governance['fieldLocks'] : [];
+        if (!(bool) ($fieldLocks['enabled'] ?? false)) {
+            return;
+        }
+
+        $selectedQuotes = collect($payload['reviewContext']['selectedQuotes'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $errors = [];
+
+        if ((bool) ($fieldLocks['lockShipmentServiceLevel'] ?? true) && $selectedQuotes->isNotEmpty()) {
+            $selectedServiceLevel = $this->normalizeServiceLevelKey((string) ($selectedQuotes->first()['serviceLevel'] ?? ''));
+            $shipmentServiceLevel = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
+            if ($selectedServiceLevel !== '' && $shipmentServiceLevel !== '' && $selectedServiceLevel !== $shipmentServiceLevel) {
+                $errors['shipment.serviceLevel'] = 'Shipment service level is locked by pricing governance and must match the selected quote.';
+            }
+        }
+
+        if ((bool) ($fieldLocks['lockPackageServiceLevel'] ?? true)) {
+            $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+            foreach ($packages as $index => $package) {
+                $quote = is_array($selectedQuotes->get($index)) ? $selectedQuotes->get($index) : [];
+                if (empty($quote)) {
+                    continue;
+                }
+
+                $packageLevel = $this->normalizeServiceLevelKey((string) ($package['serviceLevel'] ?? ''));
+                $quoteLevel = $this->normalizeServiceLevelKey((string) ($quote['serviceLevel'] ?? ''));
+                if ($packageLevel !== '' && $quoteLevel !== '' && $packageLevel !== $quoteLevel) {
+                    $errors["packages.{$index}.serviceLevel"] = 'Package service level is locked by pricing governance and must match the selected quote tier.';
+                }
+            }
+        }
+
+        if ((bool) ($fieldLocks['lockPackageCourierProvider'] ?? true)) {
+            $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+            foreach ($packages as $index => $package) {
+                $quote = is_array($selectedQuotes->get($index)) ? $selectedQuotes->get($index) : [];
+                if (empty($quote)) {
+                    continue;
+                }
+
+                $packageProvider = $this->normalizeZoneKey((string) ($package['courierProvider'] ?? ''));
+                $quoteProvider = $this->normalizeZoneKey((string) ($quote['providerId'] ?? ''));
+                if ($packageProvider !== '' && $quoteProvider !== '' && $packageProvider !== $quoteProvider) {
+                    $errors["packages.{$index}.courierProvider"] = 'Courier provider is locked by pricing governance and must match the selected quote provider.';
+                }
+            }
+        }
+
+        if ((bool) ($fieldLocks['lockQuoteTotal'] ?? true)) {
+            $selectedQuoteTotal = (float) $selectedQuotes->reduce(
+                fn ($carry, $quote) => $carry + (float) ($quote['priceUSD'] ?? 0),
+                0.0
+            );
+            $reviewTotal = max(0, (float) ($payload['reviewContext']['totalPriceUSD'] ?? 0));
+            if (abs($reviewTotal - $selectedQuoteTotal) > 0.01) {
+                $errors['reviewContext.totalPriceUSD'] = 'Quote total is locked by pricing governance and must equal the sum of selected quotes.';
+            }
+        }
+
+        if (!empty($errors)) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function applyQuoteRuntimeGovernanceGuardrails(
+        float $currentTotal,
+        array $payload,
+        array $policyModules,
+        array &$policyBreakdown
+    ): float {
+        $governance = is_array($policyModules['quoteRuntimeGovernance'] ?? null)
+            ? $policyModules['quoteRuntimeGovernance']
+            : [];
+        if (!(bool) ($governance['enabled'] ?? false)) {
+            return $currentTotal;
+        }
+
+        $total = max(0, $currentTotal);
+        $reviewContext = is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [];
+        $requestedDiscountPercent = max(0, (float) ($reviewContext['discountPercent'] ?? 0));
+        $requestedDiscountAmount = max(0, (float) ($reviewContext['discountAmountUSD'] ?? 0));
+
+        $discountGuardrails = is_array($governance['discountGuardrails'] ?? null) ? $governance['discountGuardrails'] : [];
+        if ((bool) ($discountGuardrails['enabled'] ?? false) && ($requestedDiscountPercent > 0 || $requestedDiscountAmount > 0)) {
+            $maxDiscountPercent = max(0, (float) ($discountGuardrails['maxDiscountPercent'] ?? 0));
+            $maxDiscountAmount = max(0, (float) ($discountGuardrails['maxDiscountAmountUsd'] ?? 0));
+
+            $cappedPercent = min($requestedDiscountPercent, $maxDiscountPercent);
+            $cappedAmount = min($requestedDiscountAmount, $maxDiscountAmount);
+            $requestedTotalDiscount = ($total * ($requestedDiscountPercent / 100)) + $requestedDiscountAmount;
+            $allowedTotalDiscount = ($total * ($cappedPercent / 100)) + $cappedAmount;
+            $effectiveDiscount = min($total, max(0, $allowedTotalDiscount));
+
+            if ($effectiveDiscount > 0) {
+                $total -= $effectiveDiscount;
+                $policyBreakdown[] = [
+                    'key' => 'quote_runtime_discount_applied',
+                    'amount' => round(-1 * $effectiveDiscount, 2),
+                ];
+            }
+
+            if ($requestedTotalDiscount - $allowedTotalDiscount > 0.0001) {
+                $policyBreakdown[] = [
+                    'key' => 'quote_runtime_discount_ceiling_guardrail',
+                    'amount' => round($requestedTotalDiscount - $allowedTotalDiscount, 2),
+                ];
+            }
+        }
+
+        $floorGuardrail = is_array($governance['floorPriceGuardrail'] ?? null) ? $governance['floorPriceGuardrail'] : [];
+        if ((bool) ($floorGuardrail['enabled'] ?? false)) {
+            $minimumTotal = max(0, (float) ($floorGuardrail['minimumTotalUsd'] ?? 0));
+            if ($minimumTotal > 0 && $total < $minimumTotal) {
+                $floorAdjustment = $minimumTotal - $total;
+                $total = $minimumTotal;
+                $policyBreakdown[] = [
+                    'key' => 'quote_runtime_floor_price_guardrail',
+                    'amount' => round($floorAdjustment, 2),
                 ];
             }
         }

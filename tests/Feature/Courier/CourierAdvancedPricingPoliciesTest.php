@@ -298,6 +298,74 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertNull(CourierShipment::query()->first());
     }
 
+    public function test_quote_runtime_governance_field_lock_rejects_service_level_mismatch(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'quoteRuntimeGovernance' => [
+                'enabled' => true,
+                'fieldLocks' => [
+                    'enabled' => true,
+                    'lockShipmentServiceLevel' => true,
+                    'lockPackageServiceLevel' => false,
+                    'lockPackageCourierProvider' => false,
+                    'lockQuoteTotal' => false,
+                ],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        $payload = $this->buildPayload([
+            'shipment' => [
+                'serviceLevel' => 'Economy',
+            ],
+            'reviewContext' => [
+                'selectedQuotes' => [
+                    [
+                        'serviceLevel' => 'next_day',
+                        'serviceLabel' => 'Next Day',
+                    ],
+                ],
+            ],
+        ]);
+        $csrfToken = 'advanced-policy-test-token-runtime-lock';
+
+        $response = $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
+
+        $response->assertSessionHasErrors('shipment.serviceLevel');
+    }
+
+    public function test_quote_runtime_discount_ceiling_and_floor_guardrails_are_enforced(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'quoteRuntimeGovernance' => [
+                'enabled' => true,
+                'discountGuardrails' => [
+                    'enabled' => true,
+                    'maxDiscountPercent' => 10,
+                    'maxDiscountAmountUsd' => 2,
+                ],
+                'floorPriceGuardrail' => [
+                    'enabled' => true,
+                    'minimumTotalUsd' => 45,
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment([
+            'reviewContext' => [
+                'discountPercent' => 50,
+                'discountAmountUSD' => 10,
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta(45.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_discount_applied', -7.0);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_discount_ceiling_guardrail', 28.0);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_floor_price_guardrail', 2.0);
+    }
+
     private function createDomesticVendorWithPolicyModules(array $policyModules): User
     {
         return $this->createVendorWithPolicyModules($policyModules, 'domestic', 'Courier Domestic');

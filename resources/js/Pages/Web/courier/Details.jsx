@@ -295,6 +295,23 @@ const Details = () => {
     }
     const combinedErrors = { ...errors, ...formErrors };
     const packages = data.packages || [];
+    const governanceRuntimeErrors = useMemo(
+        () => Object.entries(combinedErrors)
+            .filter(([field]) => {
+                if (field === "reviewContext.totalPriceUSD") {
+                    return true;
+                }
+
+                if (field === "shipment.serviceLevel") {
+                    return true;
+                }
+
+                return (field.startsWith("packages.") && (field.endsWith(".serviceLevel") || field.endsWith(".courierProvider")));
+            })
+            .map(([, message]) => String(message || "").trim())
+            .filter(Boolean),
+        [combinedErrors],
+    );
 
     const fallbackReviewContext = useMemo(() => {
         const context = formData.reviewContext || {};
@@ -512,6 +529,18 @@ const Details = () => {
             <main className="container mx-auto px-4 mt-16 mb-16 flex-1">
                 <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
                     <form onSubmit={handleSubmit} className="space-y-10">
+                        {governanceRuntimeErrors.length > 0 && (
+                            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                <p className="text-sm font-semibold text-amber-900">Pricing governance blocked submission</p>
+                                <p className="mt-1 text-xs text-amber-800">Review the locked quote fields and selected service/provider values before continuing.</p>
+                                <div className="mt-2 space-y-1">
+                                    {governanceRuntimeErrors.map((message, index) => (
+                                        <p key={`governance-runtime-error-${index}`} className="text-xs text-amber-900">• {message}</p>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
                         {packages.length > 0 && (
                             <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

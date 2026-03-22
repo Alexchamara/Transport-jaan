@@ -120,6 +120,25 @@ class NormalizeCourierPricingCategoryConfig extends Command
                 'enabled' => true,
                 'minimumTotal' => 0,
             ],
+            'quoteRuntimeGovernance' => [
+                'enabled' => false,
+                'fieldLocks' => [
+                    'enabled' => false,
+                    'lockShipmentServiceLevel' => true,
+                    'lockPackageServiceLevel' => true,
+                    'lockPackageCourierProvider' => true,
+                    'lockQuoteTotal' => true,
+                ],
+                'discountGuardrails' => [
+                    'enabled' => false,
+                    'maxDiscountPercent' => 0,
+                    'maxDiscountAmountUsd' => 0,
+                ],
+                'floorPriceGuardrail' => [
+                    'enabled' => false,
+                    'minimumTotalUsd' => 0,
+                ],
+            ],
             'speedEtaTierEngine' => [
                 'enabled' => false,
                 'enforceFixedNamedTiers' => true,
@@ -307,6 +326,25 @@ class NormalizeCourierPricingCategoryConfig extends Command
                 'minimumShipmentCharge' => [
                     'enabled' => (bool) ($row['minimumShipmentCharge']['enabled'] ?? true),
                     'minimumTotal' => max(0, (float) ($row['minimumShipmentCharge']['minimumTotal'] ?? 0)),
+                ],
+                'quoteRuntimeGovernance' => [
+                    'enabled' => (bool) ($row['quoteRuntimeGovernance']['enabled'] ?? false),
+                    'fieldLocks' => [
+                        'enabled' => (bool) ($row['quoteRuntimeGovernance']['fieldLocks']['enabled'] ?? false),
+                        'lockShipmentServiceLevel' => (bool) ($row['quoteRuntimeGovernance']['fieldLocks']['lockShipmentServiceLevel'] ?? true),
+                        'lockPackageServiceLevel' => (bool) ($row['quoteRuntimeGovernance']['fieldLocks']['lockPackageServiceLevel'] ?? true),
+                        'lockPackageCourierProvider' => (bool) ($row['quoteRuntimeGovernance']['fieldLocks']['lockPackageCourierProvider'] ?? true),
+                        'lockQuoteTotal' => (bool) ($row['quoteRuntimeGovernance']['fieldLocks']['lockQuoteTotal'] ?? true),
+                    ],
+                    'discountGuardrails' => [
+                        'enabled' => (bool) ($row['quoteRuntimeGovernance']['discountGuardrails']['enabled'] ?? false),
+                        'maxDiscountPercent' => max(0, (float) ($row['quoteRuntimeGovernance']['discountGuardrails']['maxDiscountPercent'] ?? 0)),
+                        'maxDiscountAmountUsd' => max(0, (float) ($row['quoteRuntimeGovernance']['discountGuardrails']['maxDiscountAmountUsd'] ?? 0)),
+                    ],
+                    'floorPriceGuardrail' => [
+                        'enabled' => (bool) ($row['quoteRuntimeGovernance']['floorPriceGuardrail']['enabled'] ?? false),
+                        'minimumTotalUsd' => max(0, (float) ($row['quoteRuntimeGovernance']['floorPriceGuardrail']['minimumTotalUsd'] ?? 0)),
+                    ],
                 ],
                 'speedEtaTierEngine' => [
                     'enabled' => (bool) ($row['speedEtaTierEngine']['enabled'] ?? false),
