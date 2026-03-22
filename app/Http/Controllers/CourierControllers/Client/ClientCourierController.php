@@ -527,6 +527,7 @@ class ClientCourierController extends Controller
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
+                'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
                 'packages' => ['required', 'array', 'min:1'],
                 'packages.*.label' => ['nullable', 'string', 'max:120'],
                 'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -885,10 +886,21 @@ class ClientCourierController extends Controller
                     return null;
                 }
 
+                $distanceFrom = max(0, (float) ($item['distanceFromKm'] ?? 0));
+                $distanceTo = isset($item['distanceToKm']) && $item['distanceToKm'] !== ''
+                    ? max($distanceFrom, (float) $item['distanceToKm'])
+                    : null;
+
                 return [
                     'originZone' => $this->normalizeZoneKey((string) ($item['originZone'] ?? '*')),
                     'destinationZone' => $this->normalizeZoneKey((string) ($item['destinationZone'] ?? '*')),
                     'serviceLevelKey' => $this->normalizeServiceLevelKey((string) ($item['serviceLevelKey'] ?? '')),
+                    'distanceFromKm' => $distanceFrom,
+                    'distanceToKm' => $distanceTo,
+                    'distanceBaseKm' => max(0, (float) ($item['distanceBaseKm'] ?? 0)),
+                    'perKmPrice' => max(0, (float) ($item['perKmPrice'] ?? 0)),
+                    'distanceSurcharge' => max(0, (float) ($item['distanceSurcharge'] ?? 0)),
+                    'distanceMultiplier' => max(0.1, (float) ($item['distanceMultiplier'] ?? 1)),
                     'basePrice' => max(0, (float) ($item['basePrice'] ?? 0)),
                     'perKgPrice' => max(0, (float) ($item['perKgPrice'] ?? 0)),
                     'minPrice' => max(0, (float) ($item['minPrice'] ?? 0)),
@@ -930,6 +942,69 @@ class ClientCourierController extends Controller
         return $this->normalizeZoneKey($candidate);
     }
 
+    private function resolveDistanceKmFromPayload(array $payload): ?float
+    {
+        $distanceKm = $payload['shipment']['distanceKm'] ?? null;
+        if ($distanceKm === null || $distanceKm === '') {
+            return null;
+        }
+
+        return max(0, (float) $distanceKm);
+    }
+
+    private function laneRuleMatchesDistance(array $rule, ?float $distanceKm): bool
+    {
+        $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
+        $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
+            ? max(0, (float) $rule['distanceToKm'])
+            : null;
+
+        if ($distanceKm === null) {
+            return $distanceFrom <= 0 && $distanceTo === null;
+        }
+
+        if ($distanceKm < $distanceFrom) {
+            return false;
+        }
+
+        if ($distanceTo !== null && $distanceKm > $distanceTo) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function laneRuleSpecificityScore(array $rule): int
+    {
+        $score = 0;
+
+        if ((string) ($rule['serviceLevelKey'] ?? '') !== '') {
+            $score += 4;
+        }
+
+        if ((string) ($rule['originZone'] ?? '*') !== '*') {
+            $score += 3;
+        }
+
+        if ((string) ($rule['destinationZone'] ?? '*') !== '*') {
+            $score += 3;
+        }
+
+        $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
+        $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
+            ? max(0, (float) $rule['distanceToKm'])
+            : null;
+        if ($distanceFrom > 0 || $distanceTo !== null) {
+            $score += 2;
+        }
+
+        if ($distanceTo !== null) {
+            $score += 1;
+        }
+
+        return $score;
+    }
+
     private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd): float
     {
         $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
@@ -947,11 +1022,18 @@ class ClientCourierController extends Controller
 
         $originZone = $this->resolveZoneFromPayloadAddress((array) ($payload['sender']['address'] ?? []));
         $destinationZone = $this->resolveZoneFromPayloadAddress((array) ($payload['recipient']['address'] ?? []));
+        $distanceKm = $this->resolveDistanceKmFromPayload($payload);
 
-        $matchedRule = collect($laneMatrix['rows'] ?? [])->first(function ($rule) use ($selectedLevelKey, $originZone, $destinationZone) {
+        $matchedRule = collect($laneMatrix['rows'] ?? [])
+            ->values()
+            ->map(function ($rule, $index) use ($selectedLevelKey, $originZone, $destinationZone, $distanceKm) {
+                if (!is_array($rule)) {
+                    return null;
+                }
+
             $ruleLevel = (string) ($rule['serviceLevelKey'] ?? '');
             if ($ruleLevel !== '' && $ruleLevel !== $selectedLevelKey) {
-                return false;
+                    return null;
             }
 
             $ruleOrigin = (string) ($rule['originZone'] ?? '*');
@@ -959,13 +1041,35 @@ class ClientCourierController extends Controller
 
             $originMatches = $ruleOrigin === '*' || $ruleOrigin === $originZone;
             $destinationMatches = $ruleDestination === '*' || $ruleDestination === $destinationZone;
+                if (!$originMatches || !$destinationMatches) {
+                    return null;
+                }
 
-            return $originMatches && $destinationMatches;
-        });
+                if (!$this->laneRuleMatchesDistance($rule, $distanceKm)) {
+                    return null;
+                }
+
+                return [
+                    'rule' => $rule,
+                    'index' => (int) $index,
+                    'score' => $this->laneRuleSpecificityScore($rule),
+                ];
+            })
+            ->filter()
+            ->sort(function ($left, $right) {
+                $scoreCompare = ($right['score'] ?? 0) <=> ($left['score'] ?? 0);
+                if ($scoreCompare !== 0) {
+                    return $scoreCompare;
+                }
+
+                return ($left['index'] ?? 0) <=> ($right['index'] ?? 0);
+            })
+            ->map(fn ($entry) => $entry['rule'])
+            ->first();
 
         if (!$matchedRule) {
             throw ValidationException::withMessages([
-                'shipment.serviceLevel' => 'No active lane pricing rule found for the selected route and service level.',
+                'shipment.serviceLevel' => 'No active lane pricing rule found for the selected route, service level, and distance band.',
             ]);
         }
 
@@ -984,7 +1088,7 @@ class ClientCourierController extends Controller
         $handlingFee = max(0, (float) ($formula['handlingFee'] ?? 0));
         $taxPercent = max(0, (float) ($formula['taxPercent'] ?? 0));
 
-        $subtotal = collect($payload['packages'] ?? [])->reduce(function ($carry, $package) use ($matchedRule, $divisor, $useChargeableWeight) {
+        $subtotal = collect($payload['packages'] ?? [])->reduce(function ($carry, $package) use ($matchedRule, $divisor, $useChargeableWeight, $distanceKm) {
             $actualWeight = max(0.1, (float) ($package['weightKg'] ?? 0));
             $length = max(1, (float) ($package['lengthCm'] ?? 1));
             $width = max(1, (float) ($package['widthCm'] ?? 1));
@@ -997,9 +1101,18 @@ class ClientCourierController extends Controller
             $perKg = (float) ($matchedRule['perKgPrice'] ?? 0);
             $minPrice = (float) ($matchedRule['minPrice'] ?? 0);
             $priorityMultiplier = max(0.1, (float) ($matchedRule['priorityMultiplier'] ?? 1));
+            $distanceBaseKm = max(0, (float) ($matchedRule['distanceBaseKm'] ?? 0));
+            $perKmPrice = max(0, (float) ($matchedRule['perKmPrice'] ?? 0));
+            $distanceSurcharge = max(0, (float) ($matchedRule['distanceSurcharge'] ?? 0));
+            $distanceMultiplier = max(0.1, (float) ($matchedRule['distanceMultiplier'] ?? 1));
+            $effectiveDistanceKm = max(0, (float) ($distanceKm ?? 0));
+            $billableDistanceKm = max($effectiveDistanceKm - $distanceBaseKm, 0);
 
-            $raw = $base + (max($chargeableWeight - 1, 0) * $perKg);
-            $tierTotal = max($minPrice, $raw) * $priorityMultiplier;
+            $raw = $base
+                + (max($chargeableWeight - 1, 0) * $perKg)
+                + ($billableDistanceKm * $perKmPrice)
+                + $distanceSurcharge;
+            $tierTotal = max($minPrice, $raw) * $priorityMultiplier * $distanceMultiplier;
 
             return $carry + ($tierTotal * $qty);
         }, 0.0);

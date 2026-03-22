@@ -3639,6 +3639,10 @@ class VendorCourierDashboardController extends Controller
             $normalized[$category] = collect($items)
                 ->map(function ($item, $index) use ($category, $allowedServiceKeys, $defaultServiceKey, $allowedZones, $defaultZone) {
                     $row = is_array($item) ? $item : [];
+                    $distanceFrom = max(0, (float) ($row['distanceFromKm'] ?? 0));
+                    $distanceTo = isset($row['distanceToKm']) && $row['distanceToKm'] !== ''
+                        ? max($distanceFrom, (float) $row['distanceToKm'])
+                        : null;
 
                     $serviceLevelKey = $this->normalizeServiceLevelKey((string) ($row['serviceLevelKey'] ?? ''));
                     if (!in_array($serviceLevelKey, $allowedServiceKeys, true)) {
@@ -3660,6 +3664,12 @@ class VendorCourierDashboardController extends Controller
                         'originZone' => $originZone,
                         'destinationZone' => $destinationZone,
                         'serviceLevelKey' => $serviceLevelKey,
+                        'distanceFromKm' => $distanceFrom,
+                        'distanceToKm' => $distanceTo,
+                        'distanceBaseKm' => max(0, (float) ($row['distanceBaseKm'] ?? 0)),
+                        'perKmPrice' => max(0, (float) ($row['perKmPrice'] ?? 0)),
+                        'distanceSurcharge' => max(0, (float) ($row['distanceSurcharge'] ?? 0)),
+                        'distanceMultiplier' => max(0.1, (float) ($row['distanceMultiplier'] ?? 1)),
                         'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
                         'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
                         'minPrice' => max(0, (float) ($row['minPrice'] ?? 0)),

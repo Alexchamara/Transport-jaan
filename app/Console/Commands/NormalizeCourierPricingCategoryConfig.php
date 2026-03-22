@@ -271,14 +271,61 @@ class NormalizeCourierPricingCategoryConfig extends Command
             ];
         }
 
+        $normalizeRows = function ($rows, string $category): array {
+            $items = is_array($rows) ? $rows : [];
+
+            return collect($items)
+                ->map(function ($item, $index) use ($category) {
+                    $row = is_array($item) ? $item : [];
+                    $distanceFrom = max(0, (float) ($row['distanceFromKm'] ?? 0));
+                    $distanceTo = isset($row['distanceToKm']) && $row['distanceToKm'] !== ''
+                        ? max($distanceFrom, (float) $row['distanceToKm'])
+                        : null;
+
+                    return [
+                        'id' => trim((string) ($row['id'] ?? "{$category}_lane_{$index}")) ?: "{$category}_lane_{$index}",
+                        'originZone' => $this->normalizeZoneKey((string) ($row['originZone'] ?? '*')),
+                        'destinationZone' => $this->normalizeZoneKey((string) ($row['destinationZone'] ?? '*')),
+                        'serviceLevelKey' => $this->normalizeServiceLevelKey((string) ($row['serviceLevelKey'] ?? '')),
+                        'distanceFromKm' => $distanceFrom,
+                        'distanceToKm' => $distanceTo,
+                        'distanceBaseKm' => max(0, (float) ($row['distanceBaseKm'] ?? 0)),
+                        'perKmPrice' => max(0, (float) ($row['perKmPrice'] ?? 0)),
+                        'distanceSurcharge' => max(0, (float) ($row['distanceSurcharge'] ?? 0)),
+                        'distanceMultiplier' => max(0.1, (float) ($row['distanceMultiplier'] ?? 1)),
+                        'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
+                        'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
+                        'minPrice' => max(0, (float) ($row['minPrice'] ?? 0)),
+                        'priorityMultiplier' => max(0.1, (float) ($row['priorityMultiplier'] ?? 1)),
+                        'isActive' => (bool) ($row['isActive'] ?? true),
+                    ];
+                })
+                ->values()
+                ->all();
+        };
+
         return [
             'enabled' => [
                 'domestic' => (bool) ($enabled['domestic'] ?? false),
                 'logistic' => (bool) ($enabled['logistic'] ?? false),
             ],
-            'domestic' => is_array($source['domestic'] ?? null) ? $source['domestic'] : [],
-            'logistic' => is_array($source['logistic'] ?? null) ? $source['logistic'] : [],
+            'domestic' => $normalizeRows($source['domestic'] ?? [], 'domestic'),
+            'logistic' => $normalizeRows($source['logistic'] ?? [], 'logistic'),
         ];
+    }
+
+    private function normalizeServiceLevelKey(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+
+        return match ($normalized) {
+            'same_day', 'sameday' => 'same_day',
+            'next_day', 'nextday', 'express', 'one_day', 'oneday' => 'next_day',
+            '2_3_day', '2_3_days', 'two_three_day', 'standard', 'within_3_days' => 'two_three_day',
+            default => $normalized,
+        };
     }
 
     private function normalizeZoneKey(string $value): string

@@ -1228,6 +1228,12 @@ const Settings = () => {
                                 originZone: "*",
                                 destinationZone: "*",
                                 serviceLevelKey: defaultServiceLevelKey,
+                                distanceFromKm: 0,
+                                distanceToKm: null,
+                                distanceBaseKm: 0,
+                                perKmPrice: 0,
+                                distanceSurcharge: 0,
+                                distanceMultiplier: 1,
                                 basePrice: 0,
                                 perKgPrice: 0,
                                 minPrice: 0,
@@ -4084,15 +4090,21 @@ const Settings = () => {
                                 Enable lane-based pricing enforcement
                             </label>
                         </div>
-                        <p className="text-[11px] text-[#64748B] mt-1">When enabled, booking runtime requires a matching lane rule by origin zone, destination zone, and service level.</p>
+                        <p className="text-[11px] text-[#64748B] mt-1">When enabled, booking runtime requires a matching lane rule by origin zone, destination zone, service level, and distance band (if configured).</p>
 
                         <div className="mt-2 overflow-x-auto">
-                            <table className="w-full min-w-[1080px] text-[12px]">
+                            <table className="w-full min-w-[1700px] text-[12px]">
                                 <thead>
                                     <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
                                         <th className="px-2 py-2">Origin Zone</th>
                                         <th className="px-2 py-2">Destination Zone</th>
                                         <th className="px-2 py-2">Service Level</th>
+                                        <th className="px-2 py-2">Distance From (km)</th>
+                                        <th className="px-2 py-2">Distance To (km)</th>
+                                        <th className="px-2 py-2">Included Km</th>
+                                        <th className="px-2 py-2">Per Km</th>
+                                        <th className="px-2 py-2">Distance Fee</th>
+                                        <th className="px-2 py-2">Distance Mult.</th>
                                         <th className="px-2 py-2">Base Price</th>
                                         <th className="px-2 py-2">Per Kg</th>
                                         <th className="px-2 py-2">Min Price</th>
@@ -4137,6 +4149,12 @@ const Settings = () => {
                                                     ))}
                                                 </select>
                                             </td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceFromKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceFromKm", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={row?.distanceToKm === null || row?.distanceToKm === undefined || row?.distanceToKm === "" ? "" : Number(row?.distanceToKm || 0)} placeholder="No limit" onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceToKm", e.target.value === "" ? null : Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceBaseKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceBaseKm", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKmPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKmPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceSurcharge || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceSurcharge", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceMultiplier", Number(e.target.value || 1))} /></td>
                                             <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
                                             <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
                                             <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>

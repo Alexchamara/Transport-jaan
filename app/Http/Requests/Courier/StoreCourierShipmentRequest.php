@@ -46,6 +46,7 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.insurance' => ['nullable', 'boolean'],
             'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
             'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
+            'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
 
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
