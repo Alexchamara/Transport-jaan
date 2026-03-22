@@ -48,31 +48,94 @@ const DEFAULT_SETTINGS = {
     },
     pricing: {
         localization: {
-            baseCurrency: "LKR",
-            displayCurrency: "LKR",
-            locale: "en-LK",
-            exchangeRateProvider: "frankfurter.app",
-            autoLiveRates: true,
-            manualRates: {
-                LKR: 1,
-                USD: 0.00308,
-                EUR: 0.00284,
+            domestic: {
+                baseCurrency: "LKR",
+                displayCurrency: "LKR",
+                locale: "en-LK",
+                exchangeRateProvider: "frankfurter.app",
+                autoLiveRates: true,
+                manualRates: {
+                    LKR: 1,
+                    USD: 0.00308,
+                    EUR: 0.00284,
+                },
+                lastSyncedAt: null,
             },
-            lastSyncedAt: null,
+            logistic: {
+                baseCurrency: "LKR",
+                displayCurrency: "LKR",
+                locale: "en-LK",
+                exchangeRateProvider: "frankfurter.app",
+                autoLiveRates: true,
+                manualRates: {
+                    LKR: 1,
+                    USD: 0.00308,
+                    EUR: 0.00284,
+                },
+                lastSyncedAt: null,
+            },
         },
         formula: {
-            volumetricDivisor: 5000,
-            useChargeableWeight: true,
-            fuelSurchargePercent: 0,
-            handlingFee: 0,
-            taxPercent: 0,
-            roundTo: 2,
+            domestic: {
+                volumetricDivisor: 5000,
+                useChargeableWeight: true,
+                fuelSurchargePercent: 0,
+                handlingFee: 0,
+                taxPercent: 0,
+                roundTo: 2,
+            },
+            logistic: {
+                volumetricDivisor: 5000,
+                useChargeableWeight: true,
+                fuelSurchargePercent: 0,
+                handlingFee: 0,
+                taxPercent: 0,
+                roundTo: 2,
+            },
+        },
+        serviceCatalog: {
+            domestic: [
+                { key: "same_day", label: "Same Day", promisedSlaDays: 1, cutoffTime: "10:30", isActive: true, sortOrder: 1 },
+                { key: "next_day", label: "Next Day", promisedSlaDays: 1, cutoffTime: "15:00", isActive: true, sortOrder: 2 },
+                { key: "two_three_day", label: "2-3 Day", promisedSlaDays: 3, cutoffTime: "17:00", isActive: true, sortOrder: 3 },
+                { key: "economy", label: "Economy", promisedSlaDays: 5, cutoffTime: "18:00", isActive: true, sortOrder: 4 },
+            ],
+            logistic: [
+                { key: "next_day", label: "Next Day", promisedSlaDays: 2, cutoffTime: "13:00", isActive: true, sortOrder: 1 },
+                { key: "two_three_day", label: "2-3 Day", promisedSlaDays: 3, cutoffTime: "16:00", isActive: true, sortOrder: 2 },
+                { key: "economy", label: "Economy", promisedSlaDays: 6, cutoffTime: "18:00", isActive: true, sortOrder: 3 },
+            ],
+        },
+        zoneMaster: {
+            domestic: [
+                { key: "colombo", label: "Colombo", isActive: true, sortOrder: 1 },
+                { key: "gampaha", label: "Gampaha", isActive: true, sortOrder: 2 },
+                { key: "kalutara", label: "Kalutara", isActive: true, sortOrder: 3 },
+                { key: "kandy", label: "Kandy", isActive: true, sortOrder: 4 },
+                { key: "galle", label: "Galle", isActive: true, sortOrder: 5 },
+            ],
+            logistic: [
+                { key: "colombo", label: "Colombo", isActive: true, sortOrder: 1 },
+                { key: "gampaha", label: "Gampaha", isActive: true, sortOrder: 2 },
+                { key: "kandy", label: "Kandy", isActive: true, sortOrder: 3 },
+                { key: "kurunegala", label: "Kurunegala", isActive: true, sortOrder: 4 },
+                { key: "matara", label: "Matara", isActive: true, sortOrder: 5 },
+            ],
+        },
+        laneMatrix: {
+            enabled: {
+                domestic: false,
+                logistic: false,
+            },
+            domestic: [],
+            logistic: [],
         },
         categories: {
             domestic: [
                 {
                     id: "domestic_within_3_days",
                     label: "Within 3 Days",
+                    serviceLevelKey: "two_three_day",
                     slaDays: 3,
                     basePrice: 250,
                     perKgPrice: 35,
@@ -82,6 +145,7 @@ const DEFAULT_SETTINGS = {
                 {
                     id: "domestic_one_day",
                     label: "One Day",
+                    serviceLevelKey: "next_day",
                     slaDays: 1,
                     basePrice: 1000,
                     perKgPrice: 70,
@@ -93,6 +157,7 @@ const DEFAULT_SETTINGS = {
                 {
                     id: "logistic_standard",
                     label: "Logistic Standard",
+                    serviceLevelKey: "two_three_day",
                     slaDays: 4,
                     basePrice: 1400,
                     perKgPrice: 90,
@@ -102,6 +167,7 @@ const DEFAULT_SETTINGS = {
                 {
                     id: "logistic_express",
                     label: "Logistic Express",
+                    serviceLevelKey: "next_day",
                     slaDays: 2,
                     basePrice: 2200,
                     perKgPrice: 130,
@@ -111,15 +177,28 @@ const DEFAULT_SETTINGS = {
             ],
         },
         governance: {
-            requireApproval: false,
-            approverRoles: ["courier_owner", "courier_admin"],
-            draftVersion: 1,
-            publishedVersion: 1,
-            publishedAt: null,
-            publishedBy: null,
-            pendingApproval: null,
-            scheduledPublish: null,
-            changeLog: [],
+            domestic: {
+                requireApproval: false,
+                approverRoles: ["courier_owner", "courier_admin"],
+                draftVersion: 1,
+                publishedVersion: 1,
+                publishedAt: null,
+                publishedBy: null,
+                pendingApproval: null,
+                scheduledPublish: null,
+                changeLog: [],
+            },
+            logistic: {
+                requireApproval: false,
+                approverRoles: ["courier_owner", "courier_admin"],
+                draftVersion: 1,
+                publishedVersion: 1,
+                publishedAt: null,
+                publishedBy: null,
+                pendingApproval: null,
+                scheduledPublish: null,
+                changeLog: [],
+            },
         },
     },
     team: {
@@ -503,18 +582,80 @@ const Settings = () => {
                 ...DEFAULT_SETTINGS.pricing,
                 ...incomingPricing,
                 localization: {
-                    ...DEFAULT_SETTINGS.pricing.localization,
-                    ...(incomingPricing.localization && typeof incomingPricing.localization === "object" ? incomingPricing.localization : {}),
-                    manualRates: {
-                        ...DEFAULT_SETTINGS.pricing.localization.manualRates,
-                        ...(incomingPricing.localization?.manualRates && typeof incomingPricing.localization.manualRates === "object"
-                            ? incomingPricing.localization.manualRates
-                            : {}),
+                    domestic: {
+                        ...DEFAULT_SETTINGS.pricing.localization.domestic,
+                        ...(incomingPricing.localization && typeof incomingPricing.localization === "object" && incomingPricing.localization.domestic && typeof incomingPricing.localization.domestic === "object"
+                            ? incomingPricing.localization.domestic
+                            : (incomingPricing.localization && typeof incomingPricing.localization === "object" ? incomingPricing.localization : {})),
+                        manualRates: {
+                            ...DEFAULT_SETTINGS.pricing.localization.domestic.manualRates,
+                            ...(incomingPricing.localization?.domestic?.manualRates && typeof incomingPricing.localization.domestic.manualRates === "object"
+                                ? incomingPricing.localization.domestic.manualRates
+                                : (incomingPricing.localization?.manualRates && typeof incomingPricing.localization.manualRates === "object"
+                                    ? incomingPricing.localization.manualRates
+                                    : {})),
+                        },
+                    },
+                    logistic: {
+                        ...DEFAULT_SETTINGS.pricing.localization.logistic,
+                        ...(incomingPricing.localization && typeof incomingPricing.localization === "object" && incomingPricing.localization.logistic && typeof incomingPricing.localization.logistic === "object"
+                            ? incomingPricing.localization.logistic
+                            : (incomingPricing.localization && typeof incomingPricing.localization === "object" ? incomingPricing.localization : {})),
+                        manualRates: {
+                            ...DEFAULT_SETTINGS.pricing.localization.logistic.manualRates,
+                            ...(incomingPricing.localization?.logistic?.manualRates && typeof incomingPricing.localization.logistic.manualRates === "object"
+                                ? incomingPricing.localization.logistic.manualRates
+                                : (incomingPricing.localization?.manualRates && typeof incomingPricing.localization.manualRates === "object"
+                                    ? incomingPricing.localization.manualRates
+                                    : {})),
+                        },
                     },
                 },
                 formula: {
-                    ...DEFAULT_SETTINGS.pricing.formula,
-                    ...(incomingPricing.formula && typeof incomingPricing.formula === "object" ? incomingPricing.formula : {}),
+                    domestic: {
+                        ...DEFAULT_SETTINGS.pricing.formula.domestic,
+                        ...((incomingPricing.formula && typeof incomingPricing.formula === "object" && incomingPricing.formula.domestic && typeof incomingPricing.formula.domestic === "object")
+                            ? incomingPricing.formula.domestic
+                            : (incomingPricing.formula && typeof incomingPricing.formula === "object" ? incomingPricing.formula : {})),
+                    },
+                    logistic: {
+                        ...DEFAULT_SETTINGS.pricing.formula.logistic,
+                        ...((incomingPricing.formula && typeof incomingPricing.formula === "object" && incomingPricing.formula.logistic && typeof incomingPricing.formula.logistic === "object")
+                            ? incomingPricing.formula.logistic
+                            : (incomingPricing.formula && typeof incomingPricing.formula === "object" ? incomingPricing.formula : {})),
+                    },
+                },
+                serviceCatalog: {
+                    domestic: Array.isArray(incomingPricing.serviceCatalog?.domestic)
+                        ? incomingPricing.serviceCatalog.domestic
+                        : DEFAULT_SETTINGS.pricing.serviceCatalog.domestic,
+                    logistic: Array.isArray(incomingPricing.serviceCatalog?.logistic)
+                        ? incomingPricing.serviceCatalog.logistic
+                        : DEFAULT_SETTINGS.pricing.serviceCatalog.logistic,
+                },
+                zoneMaster: {
+                    domestic: Array.isArray(incomingPricing.zoneMaster?.domestic)
+                        ? incomingPricing.zoneMaster.domestic
+                        : (Array.isArray(incomingPricing.zoneMaster) ? incomingPricing.zoneMaster : DEFAULT_SETTINGS.pricing.zoneMaster.domestic),
+                    logistic: Array.isArray(incomingPricing.zoneMaster?.logistic)
+                        ? incomingPricing.zoneMaster.logistic
+                        : (Array.isArray(incomingPricing.zoneMaster) ? incomingPricing.zoneMaster : DEFAULT_SETTINGS.pricing.zoneMaster.logistic),
+                },
+                laneMatrix: {
+                    enabled: {
+                        domestic: typeof incomingPricing.laneMatrix?.enabled === "object"
+                            ? Boolean(incomingPricing.laneMatrix.enabled?.domestic)
+                            : Boolean(incomingPricing.laneMatrix?.enabled),
+                        logistic: typeof incomingPricing.laneMatrix?.enabled === "object"
+                            ? Boolean(incomingPricing.laneMatrix.enabled?.logistic)
+                            : Boolean(incomingPricing.laneMatrix?.enabled),
+                    },
+                    domestic: Array.isArray(incomingPricing.laneMatrix?.domestic)
+                        ? incomingPricing.laneMatrix.domestic
+                        : DEFAULT_SETTINGS.pricing.laneMatrix.domestic,
+                    logistic: Array.isArray(incomingPricing.laneMatrix?.logistic)
+                        ? incomingPricing.laneMatrix.logistic
+                        : DEFAULT_SETTINGS.pricing.laneMatrix.logistic,
                 },
                 categories: {
                     domestic: Array.isArray(incomingPricing.categories?.domestic)
@@ -525,14 +666,38 @@ const Settings = () => {
                         : DEFAULT_SETTINGS.pricing.categories.logistic,
                 },
                 governance: {
-                    ...DEFAULT_SETTINGS.pricing.governance,
-                    ...(incomingPricing.governance && typeof incomingPricing.governance === "object" ? incomingPricing.governance : {}),
-                    approverRoles: Array.isArray(incomingPricing.governance?.approverRoles)
-                        ? incomingPricing.governance.approverRoles
-                        : DEFAULT_SETTINGS.pricing.governance.approverRoles,
-                    changeLog: Array.isArray(incomingPricing.governance?.changeLog)
-                        ? incomingPricing.governance.changeLog
-                        : DEFAULT_SETTINGS.pricing.governance.changeLog,
+                    domestic: {
+                        ...DEFAULT_SETTINGS.pricing.governance.domestic,
+                        ...(incomingPricing.governance && typeof incomingPricing.governance === "object" && incomingPricing.governance.domestic && typeof incomingPricing.governance.domestic === "object"
+                            ? incomingPricing.governance.domestic
+                            : (incomingPricing.governance && typeof incomingPricing.governance === "object" ? incomingPricing.governance : {})),
+                        approverRoles: Array.isArray(incomingPricing.governance?.domestic?.approverRoles)
+                            ? incomingPricing.governance.domestic.approverRoles
+                            : (Array.isArray(incomingPricing.governance?.approverRoles)
+                                ? incomingPricing.governance.approverRoles
+                                : DEFAULT_SETTINGS.pricing.governance.domestic.approverRoles),
+                        changeLog: Array.isArray(incomingPricing.governance?.domestic?.changeLog)
+                            ? incomingPricing.governance.domestic.changeLog
+                            : (Array.isArray(incomingPricing.governance?.changeLog)
+                                ? incomingPricing.governance.changeLog
+                                : DEFAULT_SETTINGS.pricing.governance.domestic.changeLog),
+                    },
+                    logistic: {
+                        ...DEFAULT_SETTINGS.pricing.governance.logistic,
+                        ...(incomingPricing.governance && typeof incomingPricing.governance === "object" && incomingPricing.governance.logistic && typeof incomingPricing.governance.logistic === "object"
+                            ? incomingPricing.governance.logistic
+                            : (incomingPricing.governance && typeof incomingPricing.governance === "object" ? incomingPricing.governance : {})),
+                        approverRoles: Array.isArray(incomingPricing.governance?.logistic?.approverRoles)
+                            ? incomingPricing.governance.logistic.approverRoles
+                            : (Array.isArray(incomingPricing.governance?.approverRoles)
+                                ? incomingPricing.governance.approverRoles
+                                : DEFAULT_SETTINGS.pricing.governance.logistic.approverRoles),
+                        changeLog: Array.isArray(incomingPricing.governance?.logistic?.changeLog)
+                            ? incomingPricing.governance.logistic.changeLog
+                            : (Array.isArray(incomingPricing.governance?.changeLog)
+                                ? incomingPricing.governance.changeLog
+                                : DEFAULT_SETTINGS.pricing.governance.logistic.changeLog),
+                    },
                 },
             },
             team: {
@@ -737,6 +902,7 @@ const Settings = () => {
     const [pricingGovernanceNote, setPricingGovernanceNote] = useState("");
     const [pricingGovernanceActionBusy, setPricingGovernanceActionBusy] = useState(false);
     const [liveRateBusy, setLiveRateBusy] = useState(false);
+    const [pricingZoneDraft, setPricingZoneDraft] = useState("");
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
     const stepUpGuidanceRef = useRef(null);
     const stepUpGuidanceTimerRef = useRef(null);
@@ -761,40 +927,49 @@ const Settings = () => {
         }));
     };
 
-    const updatePricingLocalization = (key, value) => {
+    const updatePricingLocalization = (categoryKey, key, value) => {
         setSettings((prev) => ({
             ...prev,
             pricing: {
                 ...(prev.pricing || DEFAULT_SETTINGS.pricing),
                 localization: {
                     ...((prev.pricing && prev.pricing.localization) || DEFAULT_SETTINGS.pricing.localization),
-                    [key]: value,
+                    [categoryKey]: {
+                        ...(((prev.pricing && prev.pricing.localization && prev.pricing.localization[categoryKey]) || DEFAULT_SETTINGS.pricing.localization[categoryKey])),
+                        [key]: value,
+                    },
                 },
             },
         }));
     };
 
-    const updatePricingFormula = (key, value) => {
+    const updatePricingFormula = (categoryKey, key, value) => {
         setSettings((prev) => ({
             ...prev,
             pricing: {
                 ...(prev.pricing || DEFAULT_SETTINGS.pricing),
                 formula: {
                     ...((prev.pricing && prev.pricing.formula) || DEFAULT_SETTINGS.pricing.formula),
-                    [key]: value,
+                    [categoryKey]: {
+                        ...(((prev.pricing && prev.pricing.formula && prev.pricing.formula[categoryKey]) || DEFAULT_SETTINGS.pricing.formula[categoryKey])),
+                        [key]: value,
+                    },
                 },
             },
         }));
     };
 
-    const updatePricingGovernance = (key, value) => {
+    const updatePricingGovernance = (categoryKey, key, value) => {
         setSettings((prev) => ({
             ...prev,
             pricing: {
                 ...(prev.pricing || DEFAULT_SETTINGS.pricing),
                 governance: {
                     ...((prev.pricing && prev.pricing.governance) || DEFAULT_SETTINGS.pricing.governance),
-                    [key]: value,
+                    [categoryKey]: {
+                        ...(((prev.pricing && prev.pricing.governance && prev.pricing.governance[categoryKey]) || DEFAULT_SETTINGS.pricing.governance[categoryKey])),
+                        [key]: value,
+                    },
                 },
             },
         }));
@@ -808,6 +983,7 @@ const Settings = () => {
                 action,
                 effectiveAt: options.effectiveAt || null,
                 note: options.note || pricingGovernanceNote || null,
+                pricingCategory: activePricingCategory,
             },
             {
                 preserveScroll: true,
@@ -816,6 +992,329 @@ const Settings = () => {
                 onError: () => setFeedback({ type: "error", message: "Pricing governance action failed." }),
             },
         );
+    };
+
+    const updatePricingServiceLevel = (categoryKey, index, key, value) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const catalog = pricing.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
+            const rows = Array.isArray(catalog[categoryKey]) ? catalog[categoryKey] : [];
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    serviceCatalog: {
+                        ...catalog,
+                        [categoryKey]: rows.map((row, rowIndex) => {
+                            if (rowIndex !== index) {
+                                return row;
+                            }
+
+                            return {
+                                ...row,
+                                [key]: value,
+                            };
+                        }),
+                    },
+                },
+            };
+        });
+    };
+
+    const updatePricingLaneMatrix = (categoryKey, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            pricing: {
+                ...(prev.pricing || DEFAULT_SETTINGS.pricing),
+                laneMatrix: {
+                    ...((prev.pricing && prev.pricing.laneMatrix) || DEFAULT_SETTINGS.pricing.laneMatrix),
+                    [key]: {
+                        ...((((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || DEFAULT_SETTINGS.pricing.laneMatrix[key]) && typeof ((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || DEFAULT_SETTINGS.pricing.laneMatrix[key]) === "object"
+                            ? ((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || DEFAULT_SETTINGS.pricing.laneMatrix[key])
+                            : { domestic: Boolean((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || false), logistic: Boolean((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || false) })),
+                        [categoryKey]: value,
+                    },
+                },
+            },
+        }));
+    };
+
+    const sanitizePricingZoneKey = (value) => String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+    const addPricingZone = (categoryKey) => {
+        const zoneLabel = String(pricingZoneDraft || "").trim();
+        const zoneKey = sanitizePricingZoneKey(zoneLabel);
+        if (!zoneKey) {
+            return;
+        }
+
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const zoneMaster = pricing.zoneMaster || DEFAULT_SETTINGS.pricing.zoneMaster;
+            const currentZones = Array.isArray(zoneMaster[categoryKey]) ? zoneMaster[categoryKey] : [];
+            if (currentZones.some((row) => String(row?.key || "") === zoneKey)) {
+                return prev;
+            }
+
+            const nextSortOrder = currentZones.length + 1;
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    zoneMaster: {
+                        ...zoneMaster,
+                        [categoryKey]: [
+                            ...currentZones,
+                            {
+                                key: zoneKey,
+                                label: zoneLabel,
+                                isActive: true,
+                                sortOrder: nextSortOrder,
+                            },
+                        ],
+                    },
+                },
+            };
+        });
+
+        setPricingZoneDraft("");
+    };
+
+    const updatePricingZone = (categoryKey, index, key, value) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const zoneMaster = pricing.zoneMaster || DEFAULT_SETTINGS.pricing.zoneMaster;
+            const currentZones = Array.isArray(zoneMaster[categoryKey]) ? zoneMaster[categoryKey] : [];
+
+            const nextZones = currentZones.map((row, rowIndex) => {
+                if (rowIndex !== index) {
+                    return row;
+                }
+
+                if (key === "label") {
+                    return {
+                        ...row,
+                        label: String(value || ""),
+                    };
+                }
+
+                return {
+                    ...row,
+                    [key]: value,
+                };
+            });
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    zoneMaster: {
+                        ...zoneMaster,
+                        [categoryKey]: nextZones,
+                    },
+                },
+            };
+        });
+    };
+
+    const removePricingZone = (categoryKey, index) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const zoneMaster = pricing.zoneMaster || DEFAULT_SETTINGS.pricing.zoneMaster;
+            const currentZones = Array.isArray(zoneMaster[categoryKey]) ? zoneMaster[categoryKey] : [];
+            if (currentZones.length <= 1) {
+                return prev;
+            }
+
+            const removedZoneKey = String(currentZones[index]?.key || "");
+            const nextZones = currentZones
+                .filter((_, rowIndex) => rowIndex !== index)
+                .map((row, rowIndex) => ({
+                    ...row,
+                    sortOrder: rowIndex + 1,
+                }));
+
+            const laneMatrix = pricing.laneMatrix || DEFAULT_SETTINGS.pricing.laneMatrix;
+            const fallbackZoneKey = String(nextZones[0]?.key || "*");
+            const nextLaneMatrix = {
+                ...laneMatrix,
+                [categoryKey]: (Array.isArray(laneMatrix[categoryKey]) ? laneMatrix[categoryKey] : []).map((row) => ({
+                    ...row,
+                    originZone: String(row?.originZone || "*") === removedZoneKey ? fallbackZoneKey : String(row?.originZone || "*"),
+                    destinationZone: String(row?.destinationZone || "*") === removedZoneKey ? fallbackZoneKey : String(row?.destinationZone || "*"),
+                })),
+            };
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    zoneMaster: {
+                        ...zoneMaster,
+                        [categoryKey]: nextZones,
+                    },
+                    laneMatrix: nextLaneMatrix,
+                },
+            };
+        });
+    };
+
+    const updatePricingLaneRule = (categoryKey, index, key, value) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const laneMatrix = pricing.laneMatrix || DEFAULT_SETTINGS.pricing.laneMatrix;
+            const rows = Array.isArray(laneMatrix[categoryKey]) ? laneMatrix[categoryKey] : [];
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    laneMatrix: {
+                        ...laneMatrix,
+                        [categoryKey]: rows.map((row, rowIndex) => {
+                            if (rowIndex !== index) {
+                                return row;
+                            }
+
+                            return {
+                                ...row,
+                                [key]: value,
+                            };
+                        }),
+                    },
+                },
+            };
+        });
+    };
+
+    const addPricingLaneRule = (categoryKey) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const laneMatrix = pricing.laneMatrix || DEFAULT_SETTINGS.pricing.laneMatrix;
+            const rows = Array.isArray(laneMatrix[categoryKey]) ? laneMatrix[categoryKey] : [];
+            const defaultServiceLevelKey = String((pricing.serviceCatalog?.[categoryKey]?.[0]?.key) || "economy");
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    laneMatrix: {
+                        ...laneMatrix,
+                        [categoryKey]: [
+                            ...rows,
+                            {
+                                id: `${categoryKey}_lane_${rows.length + 1}`,
+                                originZone: "*",
+                                destinationZone: "*",
+                                serviceLevelKey: defaultServiceLevelKey,
+                                basePrice: 0,
+                                perKgPrice: 0,
+                                minPrice: 0,
+                                priorityMultiplier: 1,
+                                isActive: true,
+                            },
+                        ],
+                    },
+                },
+            };
+        });
+    };
+
+    const removePricingLaneRule = (categoryKey, index) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const laneMatrix = pricing.laneMatrix || DEFAULT_SETTINGS.pricing.laneMatrix;
+            const rows = Array.isArray(laneMatrix[categoryKey]) ? laneMatrix[categoryKey] : [];
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    laneMatrix: {
+                        ...laneMatrix,
+                        [categoryKey]: rows.filter((_, rowIndex) => rowIndex !== index),
+                    },
+                },
+            };
+        });
+    };
+
+    const addPricingServiceLevel = (categoryKey) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const catalog = pricing.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
+            const rows = Array.isArray(catalog[categoryKey]) ? catalog[categoryKey] : [];
+            const nextIndex = rows.length + 1;
+            const nextKey = `${categoryKey}_service_${nextIndex}`;
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    serviceCatalog: {
+                        ...catalog,
+                        [categoryKey]: [
+                            ...rows,
+                            {
+                                key: nextKey,
+                                label: "New Service",
+                                promisedSlaDays: 2,
+                                cutoffTime: "18:00",
+                                isActive: true,
+                                sortOrder: nextIndex,
+                            },
+                        ],
+                    },
+                },
+            };
+        });
+    };
+
+    const removePricingServiceLevel = (categoryKey, index) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const catalog = pricing.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
+            const categories = pricing.categories || DEFAULT_SETTINGS.pricing.categories;
+            const rows = Array.isArray(catalog[categoryKey]) ? catalog[categoryKey] : [];
+
+            if (rows.length <= 1) {
+                return prev;
+            }
+
+            const removedKey = String(rows[index]?.key || "");
+            const nextCatalogRows = rows.filter((_, rowIndex) => rowIndex !== index);
+            const fallbackServiceKey = String(nextCatalogRows[0]?.key || "economy");
+            const nextCategoryRows = (Array.isArray(categories[categoryKey]) ? categories[categoryKey] : []).map((tierRow) => {
+                if (String(tierRow?.serviceLevelKey || "") !== removedKey) {
+                    return tierRow;
+                }
+
+                return {
+                    ...tierRow,
+                    serviceLevelKey: fallbackServiceKey,
+                };
+            });
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    serviceCatalog: {
+                        ...catalog,
+                        [categoryKey]: nextCatalogRows,
+                    },
+                    categories: {
+                        ...categories,
+                        [categoryKey]: nextCategoryRows,
+                    },
+                },
+            };
+        });
     };
 
     const updatePricingTier = (categoryKey, index, key, value) => {
@@ -852,11 +1351,15 @@ const Settings = () => {
         setSettings((prev) => {
             const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
             const categories = pricing.categories || DEFAULT_SETTINGS.pricing.categories;
+            const serviceCatalog = pricing.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
+            const serviceLevels = Array.isArray(serviceCatalog[categoryKey]) ? serviceCatalog[categoryKey] : [];
             const rows = Array.isArray(categories[categoryKey]) ? categories[categoryKey] : [];
+            const defaultServiceLevelKey = String(serviceLevels[0]?.key || "economy");
 
             const nextRow = {
                 id: `${categoryKey}_tier_${rows.length + 1}`,
                 label: "New Tier",
+                serviceLevelKey: defaultServiceLevelKey,
                 slaDays: 2,
                 basePrice: 0,
                 perKgPrice: 0,
@@ -939,12 +1442,14 @@ const Settings = () => {
         return payload;
     };
 
-    const resolveExchangeRate = (baseCurrency, displayCurrency) => {
+    const resolveExchangeRate = (localization) => {
+        const baseCurrency = String(localization?.baseCurrency || "LKR").toUpperCase();
+        const displayCurrency = String(localization?.displayCurrency || baseCurrency).toUpperCase();
         if (baseCurrency === displayCurrency) {
             return 1;
         }
 
-        const rates = settings?.pricing?.localization?.manualRates || {};
+        const rates = localization?.manualRates || {};
         const value = Number(rates[displayCurrency] || 0);
         if (!Number.isFinite(value) || value <= 0) {
             return 1;
@@ -966,8 +1471,11 @@ const Settings = () => {
     };
 
     const fetchLiveExchangeRates = async () => {
-        const baseCurrency = String(settings?.pricing?.localization?.baseCurrency || "LKR").toUpperCase();
-        const manualRates = settings?.pricing?.localization?.manualRates || {};
+        const activeLocalization = (settings?.pricing?.localization && settings.pricing.localization[activePricingCategory])
+            ? settings.pricing.localization[activePricingCategory]
+            : DEFAULT_SETTINGS.pricing.localization[activePricingCategory];
+        const baseCurrency = String(activeLocalization?.baseCurrency || "LKR").toUpperCase();
+        const manualRates = activeLocalization?.manualRates || {};
         const targets = Object.keys(manualRates)
             .map((code) => String(code || "").toUpperCase())
             .filter((code) => code && code !== baseCurrency);
@@ -984,13 +1492,19 @@ const Settings = () => {
                     ...(prev.pricing || DEFAULT_SETTINGS.pricing),
                     localization: {
                         ...((prev.pricing && prev.pricing.localization) || DEFAULT_SETTINGS.pricing.localization),
-                        manualRates: {
-                            ...((prev.pricing && prev.pricing.localization && prev.pricing.localization.manualRates) || {}),
-                            ...rates,
-                            [baseCurrency]: 1,
+                        [activePricingCategory]: {
+                            ...((prev.pricing && prev.pricing.localization && prev.pricing.localization[activePricingCategory]) || DEFAULT_SETTINGS.pricing.localization[activePricingCategory]),
+                            manualRates: {
+                                ...((prev.pricing
+                                    && prev.pricing.localization
+                                    && prev.pricing.localization[activePricingCategory]
+                                    && prev.pricing.localization[activePricingCategory].manualRates) || {}),
+                                ...rates,
+                                [baseCurrency]: 1,
+                            },
+                            lastSyncedAt: payload?.date || new Date().toISOString(),
+                            exchangeRateProvider: payload?.provider || "frankfurter.app",
                         },
-                        lastSyncedAt: payload?.date || new Date().toISOString(),
-                        exchangeRateProvider: payload?.provider || "frankfurter.app",
                     },
                 },
             }));
@@ -2826,11 +3340,20 @@ const Settings = () => {
     };
 
     const saveButtonLabel = TAB_CONFIG.find((tab) => tab.key === activeTab)?.label;
-    const pricingLocalization = settings?.pricing?.localization || DEFAULT_SETTINGS.pricing.localization;
-    const pricingFormula = settings?.pricing?.formula || DEFAULT_SETTINGS.pricing.formula;
-    const pricingGovernance = settings?.pricing?.governance || DEFAULT_SETTINGS.pricing.governance;
+    const pricingLocalizationByCategory = settings?.pricing?.localization || DEFAULT_SETTINGS.pricing.localization;
+    const pricingFormulaByCategory = settings?.pricing?.formula || DEFAULT_SETTINGS.pricing.formula;
+    const pricingServiceCatalog = settings?.pricing?.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
+    const pricingZoneMasterByCategory = settings?.pricing?.zoneMaster || DEFAULT_SETTINGS.pricing.zoneMaster;
+    const pricingLaneMatrix = settings?.pricing?.laneMatrix || DEFAULT_SETTINGS.pricing.laneMatrix;
+    const pricingGovernanceByCategory = settings?.pricing?.governance || DEFAULT_SETTINGS.pricing.governance;
     const normalizedCurrentUserRoles = currentUserRoleNames.map((role) => role.toLowerCase());
-    const normalizedApproverRoles = (Array.isArray(pricingGovernance.approverRoles) ? pricingGovernance.approverRoles : [])
+    const activePricingLocalization = (pricingLocalizationByCategory && typeof pricingLocalizationByCategory[activePricingCategory] === "object")
+        ? pricingLocalizationByCategory[activePricingCategory]
+        : DEFAULT_SETTINGS.pricing.localization[activePricingCategory];
+    const activePricingGovernance = (pricingGovernanceByCategory && typeof pricingGovernanceByCategory[activePricingCategory] === "object")
+        ? pricingGovernanceByCategory[activePricingCategory]
+        : DEFAULT_SETTINGS.pricing.governance[activePricingCategory];
+    const normalizedApproverRoles = (Array.isArray(activePricingGovernance.approverRoles) ? activePricingGovernance.approverRoles : [])
         .map((role) => String(role || "").trim().toLowerCase())
         .filter(Boolean);
     const hasGovernanceApproverRole = normalizedApproverRoles.length > 0
@@ -2838,24 +3361,70 @@ const Settings = () => {
         : false;
     const governanceApproverRoleOptions = [...new Set([
         ...(Array.isArray(teamRoleOptions) ? teamRoleOptions : []),
-        ...(Array.isArray(pricingGovernance.approverRoles) ? pricingGovernance.approverRoles : []),
+        ...(Array.isArray(activePricingGovernance.approverRoles) ? activePricingGovernance.approverRoles : []),
     ])]
         .map((role) => String(role || "").trim())
         .filter(Boolean);
     const canConfigurePricingGovernance = canAssignPermissions;
     const canPublishPricingChanges = canAssignPermissions;
     const canReviewPricingPublish = canAssignPermissions && (hasGovernanceApproverRole || normalizedCurrentUserRoles.length === 0);
+    const activeServiceCatalogRows = Array.isArray(pricingServiceCatalog?.[activePricingCategory])
+        ? pricingServiceCatalog[activePricingCategory]
+        : [];
+    const activePricingFormula = (pricingFormulaByCategory && typeof pricingFormulaByCategory[activePricingCategory] === "object")
+        ? pricingFormulaByCategory[activePricingCategory]
+        : DEFAULT_SETTINGS.pricing.formula[activePricingCategory];
+    const activePricingZones = Array.isArray(pricingZoneMasterByCategory?.[activePricingCategory])
+        ? pricingZoneMasterByCategory[activePricingCategory]
+        : DEFAULT_SETTINGS.pricing.zoneMaster[activePricingCategory];
+    const activeServiceLevelOptions = activeServiceCatalogRows
+        .map((row) => ({
+            key: String(row?.key || ""),
+            label: String(row?.label || row?.key || "Service"),
+            promisedSlaDays: Number(row?.promisedSlaDays || 1),
+            cutoffTime: String(row?.cutoffTime || "18:00"),
+            isActive: Boolean(row?.isActive),
+        }))
+        .filter((row) => row.key);
+    const serviceLevelLabelMap = activeServiceLevelOptions.reduce((acc, item) => {
+        acc[item.key] = item.label;
+        return acc;
+    }, {});
+    const serviceLevelMetaMap = activeServiceLevelOptions.reduce((acc, item) => {
+        acc[item.key] = item;
+        return acc;
+    }, {});
     const activePricingRows = Array.isArray(settings?.pricing?.categories?.[activePricingCategory])
         ? settings.pricing.categories[activePricingCategory]
         : [];
+    const activeLaneRows = Array.isArray(pricingLaneMatrix?.[activePricingCategory])
+        ? pricingLaneMatrix[activePricingCategory]
+        : [];
+    const activeLaneEnabled = (() => {
+        const enabled = pricingLaneMatrix?.enabled;
+        if (enabled && typeof enabled === "object") {
+            return Boolean(enabled[activePricingCategory]);
+        }
+        return Boolean(enabled);
+    })();
+    const activeZoneOptions = [
+        { key: "*", label: "Any zone (*)" },
+        ...activePricingZones
+            .filter((row) => Boolean(row?.isActive))
+            .map((row) => ({
+                key: String(row?.key || ""),
+                label: String(row?.label || row?.key || ""),
+            }))
+            .filter((row) => row.key),
+    ];
     const pricingPreviewRows = activePricingRows.map((row) => {
         const actualWeight = Math.max(0.1, Number(pricingPreviewInput.weightKg || 0));
         const length = Math.max(1, Number(pricingPreviewInput.lengthCm || 0));
         const width = Math.max(1, Number(pricingPreviewInput.widthCm || 0));
         const height = Math.max(1, Number(pricingPreviewInput.heightCm || 0));
-        const divisor = Math.max(1, Number(pricingFormula.volumetricDivisor || 5000));
+        const divisor = Math.max(1, Number(activePricingFormula.volumetricDivisor || 5000));
         const volumetricWeight = (length * width * height) / divisor;
-        const chargeableWeight = pricingFormula.useChargeableWeight
+        const chargeableWeight = activePricingFormula.useChargeableWeight
             ? Math.max(actualWeight, volumetricWeight)
             : actualWeight;
 
@@ -2866,18 +3435,20 @@ const Settings = () => {
         const priorityMultiplier = Math.max(0.1, Number(row?.priorityMultiplier || 1));
         const computedBase = basePrice + (Math.max(roundedChargeable - 1, 0) * perKgPrice);
         const tierPrice = Math.max(minPrice, computedBase) * priorityMultiplier;
-        const fuelFee = tierPrice * (Math.max(0, Number(pricingFormula.fuelSurchargePercent || 0)) / 100);
-        const handlingFee = Math.max(0, Number(pricingFormula.handlingFee || 0));
+        const fuelFee = tierPrice * (Math.max(0, Number(activePricingFormula.fuelSurchargePercent || 0)) / 100);
+        const handlingFee = Math.max(0, Number(activePricingFormula.handlingFee || 0));
         const subtotal = tierPrice + fuelFee + handlingFee;
-        const taxFee = subtotal * (Math.max(0, Number(pricingFormula.taxPercent || 0)) / 100);
+        const taxFee = subtotal * (Math.max(0, Number(activePricingFormula.taxPercent || 0)) / 100);
         const totalBaseCurrency = subtotal + taxFee;
-        const conversionRate = resolveExchangeRate(pricingLocalization.baseCurrency, pricingLocalization.displayCurrency);
+        const conversionRate = resolveExchangeRate(activePricingLocalization);
         const totalDisplayCurrency = totalBaseCurrency * conversionRate;
-        const roundTo = Math.max(0, Math.min(4, Number(pricingFormula.roundTo || 2)));
+        const roundTo = Math.max(0, Math.min(4, Number(activePricingFormula.roundTo || 2)));
 
         return {
             id: String(row?.id || ""),
             label: String(row?.label || "Tier"),
+            serviceLevelLabel: serviceLevelLabelMap[String(row?.serviceLevelKey || "")] || "Unmapped",
+            cutoffTime: serviceLevelMetaMap[String(row?.serviceLevelKey || "")]?.cutoffTime || "-",
             slaDays: Number(row?.slaDays || 1),
             chargeableWeight: roundedChargeable,
             totalBaseCurrency: Number(totalBaseCurrency.toFixed(roundTo)),
@@ -3027,8 +3598,8 @@ const Settings = () => {
                                 <Field label="Base Currency">
                                     <select
                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        value={String(pricingLocalization.baseCurrency || "LKR").toUpperCase()}
-                                        onChange={(e) => updatePricingLocalization("baseCurrency", String(e.target.value || "LKR").toUpperCase())}
+                                        value={String(activePricingLocalization.baseCurrency || "LKR").toUpperCase()}
+                                        onChange={(e) => updatePricingLocalization(activePricingCategory, "baseCurrency", String(e.target.value || "LKR").toUpperCase())}
                                     >
                                         {CURRENCY_OPTIONS.map((currencyCode) => (
                                             <option key={`base_currency_${currencyCode}`} value={currencyCode}>{currencyCode}</option>
@@ -3038,8 +3609,8 @@ const Settings = () => {
                                 <Field label="Display Currency">
                                     <select
                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        value={String(pricingLocalization.displayCurrency || "LKR").toUpperCase()}
-                                        onChange={(e) => updatePricingLocalization("displayCurrency", String(e.target.value || "LKR").toUpperCase())}
+                                        value={String(activePricingLocalization.displayCurrency || "LKR").toUpperCase()}
+                                        onChange={(e) => updatePricingLocalization(activePricingCategory, "displayCurrency", String(e.target.value || "LKR").toUpperCase())}
                                     >
                                         {CURRENCY_OPTIONS.map((currencyCode) => (
                                             <option key={`display_currency_${currencyCode}`} value={currencyCode}>{currencyCode}</option>
@@ -3049,8 +3620,8 @@ const Settings = () => {
                                 <Field label="Locale">
                                     <input
                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        value={String(pricingLocalization.locale || "en-LK")}
-                                        onChange={(e) => updatePricingLocalization("locale", e.target.value)}
+                                        value={String(activePricingLocalization.locale || "en-LK")}
+                                        onChange={(e) => updatePricingLocalization(activePricingCategory, "locale", e.target.value)}
                                         placeholder="en-LK"
                                     />
                                 </Field>
@@ -3060,14 +3631,14 @@ const Settings = () => {
                                         min={0.000001}
                                         step="0.000001"
                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        value={Number((pricingLocalization.manualRates || {})[String(pricingLocalization.displayCurrency || "LKR").toUpperCase()] || 1)}
+                                        value={Number((activePricingLocalization.manualRates || {})[String(activePricingLocalization.displayCurrency || "LKR").toUpperCase()] || 1)}
                                         onChange={(e) => {
-                                            const displayCurrency = String(pricingLocalization.displayCurrency || "LKR").toUpperCase();
+                                            const displayCurrency = String(activePricingLocalization.displayCurrency || "LKR").toUpperCase();
                                             const nextRate = Math.max(0.000001, Number(e.target.value || 1));
-                                            const currentManual = pricingLocalization.manualRates || {};
-                                            updatePricingLocalization("manualRates", {
+                                            const currentManual = activePricingLocalization.manualRates || {};
+                                            updatePricingLocalization(activePricingCategory, "manualRates", {
                                                 ...currentManual,
-                                                [String(pricingLocalization.baseCurrency || "LKR").toUpperCase()]: 1,
+                                                [String(activePricingLocalization.baseCurrency || "LKR").toUpperCase()]: 1,
                                                 [displayCurrency]: nextRate,
                                             });
                                         }}
@@ -3086,49 +3657,113 @@ const Settings = () => {
                                 <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                     <input
                                         type="checkbox"
-                                        checked={Boolean(pricingLocalization.autoLiveRates)}
-                                        onChange={(e) => updatePricingLocalization("autoLiveRates", e.target.checked)}
+                                        checked={Boolean(activePricingLocalization.autoLiveRates)}
+                                        onChange={(e) => updatePricingLocalization(activePricingCategory, "autoLiveRates", e.target.checked)}
                                     />
                                     Enable live-rate strategy
                                 </label>
                                 <span className="text-[11px] text-[#64748B]">
-                                    Provider: {pricingLocalization.exchangeRateProvider || "frankfurter.app"}
+                                    Provider: {activePricingLocalization.exchangeRateProvider || "frankfurter.app"}
                                 </span>
                                 <span className="text-[11px] text-[#64748B]">
-                                    Last Sync: {pricingLocalization.lastSyncedAt || "Not synced"}
+                                    Last Sync: {activePricingLocalization.lastSyncedAt || "Not synced"}
                                 </span>
                             </div>
                         </div>
 
                         <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
-                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Controls</p>
+                            <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Controls ({titleCase(activePricingCategory)})</p>
                             <div className="grid grid-cols-2 gap-2">
                                 <Field label="Volumetric Divisor">
-                                    <input type="number" min={1} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.volumetricDivisor || 5000)} onChange={(e) => updatePricingFormula("volumetricDivisor", Number(e.target.value || 5000))} />
+                                    <input type="number" min={1} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.volumetricDivisor || 5000)} onChange={(e) => updatePricingFormula(activePricingCategory, "volumetricDivisor", Number(e.target.value || 5000))} />
                                 </Field>
                                 <Field label="Fuel Surcharge %">
-                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.fuelSurchargePercent || 0)} onChange={(e) => updatePricingFormula("fuelSurchargePercent", Number(e.target.value || 0))} />
+                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.fuelSurchargePercent || 0)} onChange={(e) => updatePricingFormula(activePricingCategory, "fuelSurchargePercent", Number(e.target.value || 0))} />
                                 </Field>
                                 <Field label="Handling Fee">
-                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.handlingFee || 0)} onChange={(e) => updatePricingFormula("handlingFee", Number(e.target.value || 0))} />
+                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.handlingFee || 0)} onChange={(e) => updatePricingFormula(activePricingCategory, "handlingFee", Number(e.target.value || 0))} />
                                 </Field>
                                 <Field label="Tax %">
-                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.taxPercent || 0)} onChange={(e) => updatePricingFormula("taxPercent", Number(e.target.value || 0))} />
+                                    <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.taxPercent || 0)} onChange={(e) => updatePricingFormula(activePricingCategory, "taxPercent", Number(e.target.value || 0))} />
                                 </Field>
                             </div>
                             <div className="mt-2 grid grid-cols-2 gap-2">
                                 <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                     <input
                                         type="checkbox"
-                                        checked={Boolean(pricingFormula.useChargeableWeight)}
-                                        onChange={(e) => updatePricingFormula("useChargeableWeight", e.target.checked)}
+                                        checked={Boolean(activePricingFormula.useChargeableWeight)}
+                                        onChange={(e) => updatePricingFormula(activePricingCategory, "useChargeableWeight", e.target.checked)}
                                     />
                                     Use chargeable weight
                                 </label>
                                 <Field label="Round Decimals">
-                                    <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula("roundTo", Number(e.target.value || 2))} />
+                                    <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula(activePricingCategory, "roundTo", Number(e.target.value || 2))} />
                                 </Field>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-[13px] font-[700] text-[#111827]">Service Catalog</p>
+                            <button
+                                type="button"
+                                className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                onClick={() => addPricingServiceLevel(activePricingCategory)}
+                            >
+                                Add Service Level
+                            </button>
+                        </div>
+                        <p className="text-[11px] text-[#64748B] mt-1">Define explicit service-level policies with cutoff times and promised SLA for {titleCase(activePricingCategory)}.</p>
+                        <div className="mt-2 overflow-x-auto">
+                            <table className="w-full min-w-[920px] text-[12px]">
+                                <thead>
+                                    <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
+                                        <th className="px-2 py-2">Key</th>
+                                        <th className="px-2 py-2">Label</th>
+                                        <th className="px-2 py-2">Promised SLA (days)</th>
+                                        <th className="px-2 py-2">Cutoff Time</th>
+                                        <th className="px-2 py-2">Active</th>
+                                        <th className="px-2 py-2">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activeServiceCatalogRows.map((row, index) => (
+                                        <tr key={`${activePricingCategory}-service-${row?.key || index}`} className="border-x border-b border-[#E5E7EB]">
+                                            <td className="px-2 py-2">
+                                                <input
+                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2"
+                                                    value={String(row?.key || "")}
+                                                    onChange={(e) => updatePricingServiceLevel(
+                                                        activePricingCategory,
+                                                        index,
+                                                        "key",
+                                                        String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+                                                    )}
+                                                />
+                                            </td>
+                                            <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(row?.label || "")} onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "label", e.target.value)} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.promisedSlaDays || 1)} onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "promisedSlaDays", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-2"><input type="time" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(row?.cutoffTime || "18:00")} onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "cutoffTime", e.target.value)} /></td>
+                                            <td className="px-2 py-2">
+                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(row?.isActive)}
+                                                        onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "isActive", e.target.checked)}
+                                                    />
+                                                    Active
+                                                </label>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingServiceLevel(activePricingCategory, index)}>
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -3138,9 +3773,9 @@ const Settings = () => {
                             <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                 <input
                                     type="checkbox"
-                                    checked={Boolean(pricingGovernance.requireApproval)}
+                                    checked={Boolean(activePricingGovernance.requireApproval)}
                                     disabled={!canConfigurePricingGovernance}
-                                    onChange={(e) => updatePricingGovernance("requireApproval", e.target.checked)}
+                                    onChange={(e) => updatePricingGovernance(activePricingCategory, "requireApproval", e.target.checked)}
                                 />
                                 Require approval before publish
                             </label>
@@ -3148,8 +3783,8 @@ const Settings = () => {
                                 <div className="w-full rounded-[8px] border border-[#D1D5DB] bg-white p-2">
                                     <div className="flex flex-wrap gap-2">
                                         {governanceApproverRoleOptions.map((roleName) => {
-                                            const selectedRoles = Array.isArray(pricingGovernance.approverRoles)
-                                                ? pricingGovernance.approverRoles
+                                            const selectedRoles = Array.isArray(activePricingGovernance.approverRoles)
+                                                ? activePricingGovernance.approverRoles
                                                 : [];
                                             const isSelected = selectedRoles.includes(roleName);
 
@@ -3164,6 +3799,7 @@ const Settings = () => {
                                                         disabled={!canConfigurePricingGovernance}
                                                         checked={isSelected}
                                                         onChange={() => updatePricingGovernance(
+                                                            activePricingCategory,
                                                             "approverRoles",
                                                             toggleInArray(selectedRoles, roleName),
                                                         )}
@@ -3186,10 +3822,10 @@ const Settings = () => {
                         </div>
 
                         <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <p className="text-[11px] text-[#475569]">Draft Version: {Number(pricingGovernance.draftVersion || 1)}</p>
-                            <p className="text-[11px] text-[#475569]">Published Version: {Number(pricingGovernance.publishedVersion || 1)}</p>
-                            <p className="text-[11px] text-[#475569]">Published At: {pricingGovernance.publishedAt || "Not published"}</p>
-                            <p className="text-[11px] text-[#475569]">Pending Approval: {pricingGovernance.pendingApproval ? "Yes" : "No"}</p>
+                            <p className="text-[11px] text-[#475569]">Draft Version: {Number(activePricingGovernance.draftVersion || 1)}</p>
+                            <p className="text-[11px] text-[#475569]">Published Version: {Number(activePricingGovernance.publishedVersion || 1)}</p>
+                            <p className="text-[11px] text-[#475569]">Published At: {activePricingGovernance.publishedAt || "Not published"}</p>
+                            <p className="text-[11px] text-[#475569]">Pending Approval: {activePricingGovernance.pendingApproval ? "Yes" : "No"}</p>
                         </div>
 
                         <textarea
@@ -3224,7 +3860,7 @@ const Settings = () => {
                             {canReviewPricingPublish && (
                                 <button
                                     type="button"
-                                    disabled={pricingGovernanceActionBusy || !pricingGovernance.pendingApproval}
+                                    disabled={pricingGovernanceActionBusy || !activePricingGovernance.pendingApproval}
                                     className="h-[30px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
                                     onClick={() => runPricingGovernanceAction("pricing_approve_publish")}
                                 >
@@ -3234,7 +3870,7 @@ const Settings = () => {
                             {canReviewPricingPublish && (
                                 <button
                                     type="button"
-                                    disabled={pricingGovernanceActionBusy || !pricingGovernance.pendingApproval}
+                                    disabled={pricingGovernanceActionBusy || !activePricingGovernance.pendingApproval}
                                     className="h-[30px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700] disabled:opacity-50"
                                     onClick={() => runPricingGovernanceAction("pricing_reject_publish")}
                                 >
@@ -3248,10 +3884,10 @@ const Settings = () => {
 
                         <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white max-h-[180px] overflow-y-auto">
                             <p className="text-[12px] font-[700] text-[#111827] mb-1">Pricing Audit Trail</p>
-                            {(pricingGovernance.changeLog || []).length === 0 && (
+                            {(activePricingGovernance.changeLog || []).length === 0 && (
                                 <p className="text-[11px] text-[#6B7280]">No governance events yet.</p>
                             )}
-                            {(pricingGovernance.changeLog || []).map((entry, idx) => (
+                            {(activePricingGovernance.changeLog || []).map((entry, idx) => (
                                 <p key={`pricing-log-${idx}`} className="text-[11px] text-[#475569] mb-1">
                                     {String(entry?.at || "-")} • {titleCase(String(entry?.event || "event"))}
                                 </p>
@@ -3283,6 +3919,7 @@ const Settings = () => {
                                 <thead>
                                     <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
                                         <th className="px-2 py-2">Label</th>
+                                        <th className="px-2 py-2">Service Level</th>
                                         <th className="px-2 py-2">SLA Days</th>
                                         <th className="px-2 py-2">Base Price</th>
                                         <th className="px-2 py-2">Per Kg</th>
@@ -3294,12 +3931,23 @@ const Settings = () => {
                                 <tbody>
                                     {activePricingRows.map((row, index) => (
                                         <tr key={`${activePricingCategory}-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                            <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
+                                            <td className="px-2 py-2">
+                                                <select
+                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
+                                                    onChange={(e) => updatePricingTier(activePricingCategory, index, "serviceLevelKey", e.target.value)}
+                                                >
+                                                    {activeServiceLevelOptions.map((option) => (
+                                                        <option key={`${activePricingCategory}-tier-service-${option.key}`} value={option.key}>{option.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
                                             <td className="px-2 py-2">
                                                 <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
                                                     Remove
@@ -3317,6 +3965,175 @@ const Settings = () => {
                         </div>
                     </div>
 
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p className="text-[13px] font-[700] text-[#111827]">Zone Master ({titleCase(activePricingCategory)})</p>
+                                <p className="text-[11px] text-[#64748B] mt-1">Define category-specific zones for {titleCase(activePricingCategory)} lane rules.</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    className="h-[32px] w-[220px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]"
+                                    value={pricingZoneDraft}
+                                    placeholder="Add zone label"
+                                    onChange={(e) => setPricingZoneDraft(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                    onClick={() => addPricingZone(activePricingCategory)}
+                                >
+                                    Add Zone
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mt-2 overflow-x-auto">
+                            <table className="w-full min-w-[560px] text-[12px]">
+                                <thead>
+                                    <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
+                                        <th className="px-2 py-2">Zone Label</th>
+                                        <th className="px-2 py-2">Zone Key</th>
+                                        <th className="px-2 py-2">Active</th>
+                                        <th className="px-2 py-2">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activePricingZones.map((zone, index) => (
+                                        <tr key={`zone-master-${zone?.key || index}`} className="border-x border-b border-[#E5E7EB]">
+                                            <td className="px-2 py-2">
+                                                <input
+                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]"
+                                                    value={String(zone?.label || "")}
+                                                    onChange={(e) => updatePricingZone(activePricingCategory, index, "label", e.target.value)}
+                                                />
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <span className="inline-flex h-[32px] items-center rounded-[8px] border border-[#E5E7EB] bg-[#F8FAFC] px-2 text-[11px] font-[700] text-[#334155]">{String(zone?.key || "")}</span>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(zone?.isActive)}
+                                                        onChange={(e) => updatePricingZone(activePricingCategory, index, "isActive", e.target.checked)}
+                                                    />
+                                                    Active
+                                                </label>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <button
+                                                    type="button"
+                                                    className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]"
+                                                    onClick={() => removePricingZone(activePricingCategory, index)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[13px] font-[700] text-[#111827]">Lane Matrix Pricing</p>
+                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                <input
+                                    type="checkbox"
+                                    checked={activeLaneEnabled}
+                                    onChange={(e) => updatePricingLaneMatrix(activePricingCategory, "enabled", e.target.checked)}
+                                />
+                                Enable lane-based pricing enforcement
+                            </label>
+                        </div>
+                        <p className="text-[11px] text-[#64748B] mt-1">When enabled, booking runtime requires a matching lane rule by origin zone, destination zone, and service level.</p>
+
+                        <div className="mt-2 overflow-x-auto">
+                            <table className="w-full min-w-[1080px] text-[12px]">
+                                <thead>
+                                    <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
+                                        <th className="px-2 py-2">Origin Zone</th>
+                                        <th className="px-2 py-2">Destination Zone</th>
+                                        <th className="px-2 py-2">Service Level</th>
+                                        <th className="px-2 py-2">Base Price</th>
+                                        <th className="px-2 py-2">Per Kg</th>
+                                        <th className="px-2 py-2">Min Price</th>
+                                        <th className="px-2 py-2">Priority Mult.</th>
+                                        <th className="px-2 py-2">Active</th>
+                                        <th className="px-2 py-2">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activeLaneRows.map((row, index) => (
+                                        <tr key={`${activePricingCategory}-lane-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
+                                            <td className="px-2 py-2">
+                                                <select
+                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    value={String(row?.originZone || "*")}
+                                                    onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "originZone", String(e.target.value || "*"))}
+                                                >
+                                                    {activeZoneOptions.map((option) => (
+                                                        <option key={`${activePricingCategory}-origin-zone-${option.key}`} value={option.key}>{option.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <select
+                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    value={String(row?.destinationZone || "*")}
+                                                    onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "destinationZone", String(e.target.value || "*"))}
+                                                >
+                                                    {activeZoneOptions.map((option) => (
+                                                        <option key={`${activePricingCategory}-destination-zone-${option.key}`} value={option.key}>{option.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <select
+                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
+                                                    onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "serviceLevelKey", e.target.value)}
+                                                >
+                                                    {activeServiceLevelOptions.map((option) => (
+                                                        <option key={`${activePricingCategory}-lane-service-${option.key}`} value={option.key}>{option.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-2">
+                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(row?.isActive)}
+                                                        onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "isActive", e.target.checked)}
+                                                    />
+                                                    Active
+                                                </label>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                                <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingLaneRule(activePricingCategory, index)}>
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="mt-2">
+                            <button type="button" className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]" onClick={() => addPricingLaneRule(activePricingCategory)}>
+                                Add Lane Rule
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
                         <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Validation Preview</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -3330,9 +4147,10 @@ const Settings = () => {
                             {pricingPreviewRows.map((row) => (
                                 <div key={`preview-${row.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
                                     <p className="text-[12px] font-[700] text-[#111827]">{row.label} ({row.slaDays} day{row.slaDays > 1 ? "s" : ""})</p>
+                                    <p className="text-[11px] text-[#475569] mt-1">Service Level: {row.serviceLevelLabel} • Cutoff {row.cutoffTime}</p>
                                     <p className="text-[11px] text-[#475569] mt-1">Chargeable Weight: {row.chargeableWeight} kg</p>
-                                    <p className="text-[11px] text-[#475569] mt-1">Base Currency Total: {formatMoney(row.totalBaseCurrency, pricingLocalization.baseCurrency, pricingLocalization.locale)}</p>
-                                    <p className="text-[12px] font-[700] text-[#0F172A] mt-1">Display Total: {formatMoney(row.totalDisplayCurrency, pricingLocalization.displayCurrency, pricingLocalization.locale)}</p>
+                                    <p className="text-[11px] text-[#475569] mt-1">Base Currency Total: {formatMoney(row.totalBaseCurrency, activePricingLocalization.baseCurrency, activePricingLocalization.locale)}</p>
+                                    <p className="text-[12px] font-[700] text-[#0F172A] mt-1">Display Total: {formatMoney(row.totalDisplayCurrency, activePricingLocalization.displayCurrency, activePricingLocalization.locale)}</p>
                                 </div>
                             ))}
                             {pricingPreviewRows.length === 0 && (

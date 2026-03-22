@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\VendorCourierSetting;
 use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ClientCourierController extends Controller
@@ -356,7 +360,7 @@ class ClientCourierController extends Controller
 
     public function create(Request $request)
     {
-        $serviceLevels = ['Same Day', 'Express', 'Standard'];
+        $serviceLevels = $this->serviceLevelLabelsForCategory('domestic');
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
 
@@ -464,7 +468,8 @@ class ClientCourierController extends Controller
             return redirect()->route('couriers.create');
         }
 
-        $serviceLevels = ['Same Day', 'Express', 'Standard'];
+        $category = $this->resolvePayloadCategory($formData);
+        $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
 
@@ -485,6 +490,8 @@ class ClientCourierController extends Controller
         }
 
         $reviewContextInput = null;
+        $category = $this->resolvePayloadCategory($existing);
+        $allowedServiceLevels = $this->serviceLevelLabelsForCategory($category);
 
         $validated = $request->validate(
             [
@@ -515,7 +522,7 @@ class ClientCourierController extends Controller
                 'shipment.pickupDate' => ['nullable', 'date', 'after_or_equal:today'],
                 'shipment.pickupWindowStart' => ['nullable', 'date_format:H:i'],
                 'shipment.pickupWindowEnd' => ['nullable', 'date_format:H:i'],
-                'shipment.serviceLevel' => ['required', 'string', 'max:50'],
+                'shipment.serviceLevel' => ['required', 'string', 'max:50', Rule::in($allowedServiceLevels)],
                 'shipment.currency' => ['required', 'string', 'size:3'],
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
@@ -736,12 +743,15 @@ class ClientCourierController extends Controller
             }
 
             $assignmentService->assignShipment($shipment);
+            $this->assertShipmentServiceCatalogPolicy($shipment, $payload);
 
             return $shipment;
         });
 
+        $enforcedEstimatedCostUsd = $this->resolveEstimatedCostWithLaneMatrix($shipment, $payload, $estimatedCostUsd);
+
         $shipment->update([
-            'estimated_cost' => $estimatedCostUsd > 0 ? round($estimatedCostUsd, 2) : null,
+            'estimated_cost' => $enforcedEstimatedCostUsd > 0 ? round($enforcedEstimatedCostUsd, 2) : null,
         ]);
 
         $request->session()->forget('courier_preview');
@@ -751,6 +761,300 @@ class ClientCourierController extends Controller
             ->with('success', 'Courier request submitted successfully.')
             ->with('courier_reference', $shipment->reference)
             ->with('courier_bill_id', $shipment->id);
+    }
+
+    private function defaultServiceCatalog(): array
+    {
+        return [
+            'domestic' => [
+                ['key' => 'same_day', 'label' => 'Same Day', 'promisedSlaDays' => 1, 'cutoffTime' => '10:30', 'isActive' => true],
+                ['key' => 'next_day', 'label' => 'Next Day', 'promisedSlaDays' => 1, 'cutoffTime' => '15:00', 'isActive' => true],
+                ['key' => 'two_three_day', 'label' => '2-3 Day', 'promisedSlaDays' => 3, 'cutoffTime' => '17:00', 'isActive' => true],
+                ['key' => 'economy', 'label' => 'Economy', 'promisedSlaDays' => 5, 'cutoffTime' => '18:00', 'isActive' => true],
+            ],
+            'logistic' => [
+                ['key' => 'next_day', 'label' => 'Next Day', 'promisedSlaDays' => 2, 'cutoffTime' => '13:00', 'isActive' => true],
+                ['key' => 'two_three_day', 'label' => '2-3 Day', 'promisedSlaDays' => 3, 'cutoffTime' => '16:00', 'isActive' => true],
+                ['key' => 'economy', 'label' => 'Economy', 'promisedSlaDays' => 6, 'cutoffTime' => '18:00', 'isActive' => true],
+            ],
+        ];
+    }
+
+    private function serviceLevelLabelsForCategory(string $category): array
+    {
+        $category = $category === 'logistic' ? 'logistic' : 'domestic';
+        $catalog = $this->defaultServiceCatalog();
+
+        return collect($catalog[$category] ?? [])
+            ->filter(fn ($item) => (bool) ($item['isActive'] ?? false))
+            ->map(fn ($item) => (string) ($item['label'] ?? ''))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function resolvePayloadCategory(array $payload): string
+    {
+        $senderCountry = strtoupper((string) ($payload['sender']['address']['country'] ?? ''));
+        $recipientCountry = strtoupper((string) ($payload['recipient']['address']['country'] ?? ''));
+
+        if ($senderCountry === 'LK' && $recipientCountry === 'LK') {
+            return 'domestic';
+        }
+
+        return 'logistic';
+    }
+
+    private function normalizeServiceLevelKey(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+
+        return match ($normalized) {
+            'same_day', 'sameday' => 'same_day',
+            'next_day', 'nextday', 'express', 'one_day', 'oneday' => 'next_day',
+            '2_3_day', '2_3_days', 'two_three_day', 'standard', 'within_3_days' => 'two_three_day',
+            default => $normalized,
+        };
+    }
+
+    private function resolveServiceCatalogForVendor(?int $vendorId, string $category): array
+    {
+        $category = $category === 'logistic' ? 'logistic' : 'domestic';
+        $defaults = $this->defaultServiceCatalog();
+
+        if (!$vendorId || $vendorId <= 0) {
+            return $defaults[$category] ?? [];
+        }
+
+        $settings = VendorCourierSetting::query()
+            ->where('vendor_user_id', $vendorId)
+            ->value('settings');
+
+        $serviceCatalog = is_array($settings['pricing']['serviceCatalog'][$category] ?? null)
+            ? $settings['pricing']['serviceCatalog'][$category]
+            : ($defaults[$category] ?? []);
+
+        return collect($serviceCatalog)
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+
+                $key = $this->normalizeServiceLevelKey((string) ($item['key'] ?? ''));
+                if ($key === '') {
+                    return null;
+                }
+
+                return [
+                    'key' => $key,
+                    'label' => trim((string) ($item['label'] ?? '')) ?: 'Service Level',
+                    'promisedSlaDays' => max(1, (int) ($item['promisedSlaDays'] ?? 1)),
+                    'cutoffTime' => trim((string) ($item['cutoffTime'] ?? '18:00')) ?: '18:00',
+                    'isActive' => (bool) ($item['isActive'] ?? true),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function resolveLaneMatrixForVendor(?int $vendorId, string $category): array
+    {
+        $category = $category === 'logistic' ? 'logistic' : 'domestic';
+
+        if (!$vendorId || $vendorId <= 0) {
+            return ['enabled' => false, 'rows' => []];
+        }
+
+        $settings = VendorCourierSetting::query()
+            ->where('vendor_user_id', $vendorId)
+            ->value('settings');
+
+        $laneConfig = is_array($settings['pricing']['laneMatrix'] ?? null) ? $settings['pricing']['laneMatrix'] : [];
+        $rows = is_array($laneConfig[$category] ?? null) ? $laneConfig[$category] : [];
+        $enabledConfig = $laneConfig['enabled'] ?? false;
+        $isEnabled = is_array($enabledConfig)
+            ? (bool) ($enabledConfig[$category] ?? false)
+            : (bool) $enabledConfig;
+
+        $normalizedRows = collect($rows)
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+
+                return [
+                    'originZone' => $this->normalizeZoneKey((string) ($item['originZone'] ?? '*')),
+                    'destinationZone' => $this->normalizeZoneKey((string) ($item['destinationZone'] ?? '*')),
+                    'serviceLevelKey' => $this->normalizeServiceLevelKey((string) ($item['serviceLevelKey'] ?? '')),
+                    'basePrice' => max(0, (float) ($item['basePrice'] ?? 0)),
+                    'perKgPrice' => max(0, (float) ($item['perKgPrice'] ?? 0)),
+                    'minPrice' => max(0, (float) ($item['minPrice'] ?? 0)),
+                    'priorityMultiplier' => max(0.1, (float) ($item['priorityMultiplier'] ?? 1)),
+                    'isActive' => (bool) ($item['isActive'] ?? true),
+                ];
+            })
+            ->filter(fn ($item) => is_array($item) && (bool) ($item['isActive'] ?? false))
+            ->values()
+            ->all();
+
+        return [
+            'enabled' => $isEnabled,
+            'rows' => $normalizedRows,
+        ];
+    }
+
+    private function normalizeZoneKey(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '' || $trimmed === '*') {
+            return '*';
+        }
+
+        $normalized = strtolower($trimmed);
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+
+        return $normalized !== '' ? $normalized : '*';
+    }
+
+    private function resolveZoneFromPayloadAddress(array $address): string
+    {
+        $candidate = (string) ($address['state'] ?? '');
+        if (trim($candidate) === '') {
+            $candidate = (string) ($address['city'] ?? '');
+        }
+
+        return $this->normalizeZoneKey($candidate);
+    }
+
+    private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd): float
+    {
+        $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
+        if ($vendorId <= 0) {
+            return $fallbackEstimatedUsd;
+        }
+
+        $category = (string) ($shipment->assignment_category ?: $this->resolvePayloadCategory($payload));
+        $selectedLevelKey = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
+
+        $laneMatrix = $this->resolveLaneMatrixForVendor($vendorId, $category);
+        if (!(bool) ($laneMatrix['enabled'] ?? false)) {
+            return $fallbackEstimatedUsd;
+        }
+
+        $originZone = $this->resolveZoneFromPayloadAddress((array) ($payload['sender']['address'] ?? []));
+        $destinationZone = $this->resolveZoneFromPayloadAddress((array) ($payload['recipient']['address'] ?? []));
+
+        $matchedRule = collect($laneMatrix['rows'] ?? [])->first(function ($rule) use ($selectedLevelKey, $originZone, $destinationZone) {
+            $ruleLevel = (string) ($rule['serviceLevelKey'] ?? '');
+            if ($ruleLevel !== '' && $ruleLevel !== $selectedLevelKey) {
+                return false;
+            }
+
+            $ruleOrigin = (string) ($rule['originZone'] ?? '*');
+            $ruleDestination = (string) ($rule['destinationZone'] ?? '*');
+
+            $originMatches = $ruleOrigin === '*' || $ruleOrigin === $originZone;
+            $destinationMatches = $ruleDestination === '*' || $ruleDestination === $destinationZone;
+
+            return $originMatches && $destinationMatches;
+        });
+
+        if (!$matchedRule) {
+            throw ValidationException::withMessages([
+                'shipment.serviceLevel' => 'No active lane pricing rule found for the selected route and service level.',
+            ]);
+        }
+
+        $settings = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->value('settings');
+        $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : [];
+        $formulaConfig = is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [];
+        $formula = is_array($formulaConfig[$category] ?? null) ? $formulaConfig[$category] : $formulaConfig;
+        $localizationConfig = is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [];
+        $localization = is_array($localizationConfig[$category] ?? null) ? $localizationConfig[$category] : $localizationConfig;
+        $baseCurrency = strtoupper((string) ($localization['baseCurrency'] ?? 'USD'));
+        $manualRates = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
+
+        $divisor = max(1, (float) ($formula['volumetricDivisor'] ?? 5000));
+        $useChargeableWeight = (bool) ($formula['useChargeableWeight'] ?? true);
+        $fuelPercent = max(0, (float) ($formula['fuelSurchargePercent'] ?? 0));
+        $handlingFee = max(0, (float) ($formula['handlingFee'] ?? 0));
+        $taxPercent = max(0, (float) ($formula['taxPercent'] ?? 0));
+
+        $subtotal = collect($payload['packages'] ?? [])->reduce(function ($carry, $package) use ($matchedRule, $divisor, $useChargeableWeight) {
+            $actualWeight = max(0.1, (float) ($package['weightKg'] ?? 0));
+            $length = max(1, (float) ($package['lengthCm'] ?? 1));
+            $width = max(1, (float) ($package['widthCm'] ?? 1));
+            $height = max(1, (float) ($package['heightCm'] ?? 1));
+            $qty = max(1, (int) ($package['quantity'] ?? 1));
+
+            $volumetric = ($length * $width * $height) / $divisor;
+            $chargeableWeight = $useChargeableWeight ? max($actualWeight, $volumetric) : $actualWeight;
+            $base = (float) ($matchedRule['basePrice'] ?? 0);
+            $perKg = (float) ($matchedRule['perKgPrice'] ?? 0);
+            $minPrice = (float) ($matchedRule['minPrice'] ?? 0);
+            $priorityMultiplier = max(0.1, (float) ($matchedRule['priorityMultiplier'] ?? 1));
+
+            $raw = $base + (max($chargeableWeight - 1, 0) * $perKg);
+            $tierTotal = max($minPrice, $raw) * $priorityMultiplier;
+
+            return $carry + ($tierTotal * $qty);
+        }, 0.0);
+
+        $fuelFee = $subtotal * ($fuelPercent / 100);
+        $subtotalWithFees = $subtotal + $fuelFee + $handlingFee;
+        $taxFee = $subtotalWithFees * ($taxPercent / 100);
+        $totalBase = $subtotalWithFees + $taxFee;
+
+        $usdRate = 1.0;
+        if ($baseCurrency !== 'USD') {
+            $usdRate = max(0.000001, (float) ($manualRates['USD'] ?? 1));
+        }
+
+        return $totalBase * $usdRate;
+    }
+
+    private function assertShipmentServiceCatalogPolicy(CourierShipment $shipment, array $payload): void
+    {
+        $category = (string) ($shipment->assignment_category ?: $this->resolvePayloadCategory($payload));
+        $selectedLevelKey = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
+        $catalog = $this->resolveServiceCatalogForVendor((int) ($shipment->assigned_vendor_user_id ?? 0), $category);
+
+        $selectedEntry = collect($catalog)
+            ->first(fn ($item) => (bool) ($item['isActive'] ?? false) && (string) ($item['key'] ?? '') === $selectedLevelKey);
+
+        if (!$selectedEntry) {
+            throw ValidationException::withMessages([
+                'shipment.serviceLevel' => 'Selected service level is not available for the assigned courier service catalog.',
+            ]);
+        }
+
+        $cutoff = trim((string) ($selectedEntry['cutoffTime'] ?? ''));
+        if ($cutoff === '') {
+            return;
+        }
+
+        $pickupDate = isset($payload['shipment']['pickupDate']) && $payload['shipment']['pickupDate']
+            ? Carbon::parse((string) $payload['shipment']['pickupDate'])
+            : null;
+        $pickupStart = isset($payload['shipment']['pickupWindowStart']) && $payload['shipment']['pickupWindowStart']
+            ? (string) $payload['shipment']['pickupWindowStart']
+            : null;
+
+        if ($pickupDate && $pickupDate->isToday() && now()->format('H:i') > $cutoff) {
+            throw ValidationException::withMessages([
+                'shipment.serviceLevel' => "{$selectedEntry['label']} service is closed for today's cutoff ({$cutoff}).",
+            ]);
+        }
+
+        if ($pickupStart && $pickupStart > $cutoff) {
+            throw ValidationException::withMessages([
+                'shipment.pickupWindowStart' => "Pickup start must be before service cutoff time ({$cutoff}) for {$selectedEntry['label']}.",
+            ]);
+        }
     }
 
     public function downloadBill(Request $request, CourierShipment $shipment)

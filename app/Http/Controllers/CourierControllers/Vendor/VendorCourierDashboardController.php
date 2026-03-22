@@ -673,6 +673,7 @@ class VendorCourierDashboardController extends Controller
             'settings' => ['nullable', 'array'],
             'effectiveAt' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:400'],
+            'pricingCategory' => ['nullable', 'string', 'in:domestic,logistic'],
         ]);
 
         $record = VendorCourierSetting::query()->firstOrCreate(
@@ -687,15 +688,19 @@ class VendorCourierDashboardController extends Controller
 
         $action = $validated['action'];
         $actorId = (int) optional($request->user())->id ?: null;
+        $pricingCategory = (string) ($validated['pricingCategory'] ?? 'domestic');
 
         if (in_array($action, ['pricing_publish_now', 'pricing_schedule_publish', 'pricing_approve_publish', 'pricing_reject_publish'], true)) {
             $pricing = $this->normalizePricingSettings(is_array($current['pricing'] ?? null) ? $current['pricing'] : []);
-            $governance = is_array($pricing['governance'] ?? null)
+            $governanceByCategory = is_array($pricing['governance'] ?? null)
                 ? $pricing['governance']
                 : $this->defaultPricingGovernance();
+            $governance = is_array($governanceByCategory[$pricingCategory] ?? null)
+                ? $governanceByCategory[$pricingCategory]
+                : ($this->defaultPricingGovernance()[$pricingCategory] ?? []);
 
             if ($action === 'pricing_publish_now') {
-                $snapshot = $this->extractPricingSnapshot($pricing);
+                $snapshot = $this->extractPricingSnapshot($pricing, $pricingCategory);
                 if ((bool) ($governance['requireApproval'] ?? false)) {
                     $governance['pendingApproval'] = [
                         'snapshot' => $snapshot,
@@ -703,21 +708,21 @@ class VendorCourierDashboardController extends Controller
                         'requestedBy' => $actorId,
                         'note' => (string) ($validated['note'] ?? ''),
                     ];
-                    $pricing['governance'] = $governance;
+                    $pricing['governance'][$pricingCategory] = $governance;
                     $pricing = $this->appendPricingGovernanceLog($pricing, 'publish_requested', $actorId, [
                         'note' => (string) ($validated['note'] ?? ''),
-                    ]);
+                    ], $pricingCategory);
                     $current['pricing'] = $pricing;
                     $record->update(['settings' => $current]);
 
-                    return back()->with('success', 'Pricing publish request submitted for approval.');
+                    return back()->with('success', ucfirst($pricingCategory) . ' pricing publish request submitted for approval.');
                 }
 
-                $pricing = $this->publishPricingSnapshot($pricing, $snapshot, $actorId, 'published_now');
+                $pricing = $this->publishPricingSnapshot($pricing, $snapshot, $actorId, 'published_now', $pricingCategory);
                 $current['pricing'] = $pricing;
                 $record->update(['settings' => $current]);
 
-                return back()->with('success', 'Pricing published successfully.');
+                return back()->with('success', ucfirst($pricingCategory) . ' pricing published successfully.');
             }
 
             if ($action === 'pricing_schedule_publish') {
@@ -727,19 +732,19 @@ class VendorCourierDashboardController extends Controller
                 }
 
                 $governance['scheduledPublish'] = [
-                    'snapshot' => $this->extractPricingSnapshot($pricing),
+                    'snapshot' => $this->extractPricingSnapshot($pricing, $pricingCategory),
                     'effectiveAt' => Carbon::parse((string) $effectiveAt)->toDateTimeString(),
                     'scheduledBy' => $actorId,
                     'note' => (string) ($validated['note'] ?? ''),
                 ];
-                $pricing['governance'] = $governance;
+                $pricing['governance'][$pricingCategory] = $governance;
                 $pricing = $this->appendPricingGovernanceLog($pricing, 'publish_scheduled', $actorId, [
                     'effectiveAt' => Carbon::parse((string) $effectiveAt)->toDateTimeString(),
-                ]);
+                ], $pricingCategory);
                 $current['pricing'] = $pricing;
                 $record->update(['settings' => $current]);
 
-                return back()->with('success', 'Pricing publish scheduled successfully.');
+                return back()->with('success', ucfirst($pricingCategory) . ' pricing publish scheduled successfully.');
             }
 
             if ($action === 'pricing_approve_publish') {
@@ -752,12 +757,12 @@ class VendorCourierDashboardController extends Controller
                     return back()->with('error', 'No pending pricing publish request found.');
                 }
 
-                $pricing = $this->publishPricingSnapshot($pricing, $pending['snapshot'], $actorId, 'publish_approved');
-                $pricing['governance']['pendingApproval'] = null;
+                $pricing = $this->publishPricingSnapshot($pricing, $pending['snapshot'], $actorId, 'publish_approved', $pricingCategory);
+                $pricing['governance'][$pricingCategory]['pendingApproval'] = null;
                 $current['pricing'] = $pricing;
                 $record->update(['settings' => $current]);
 
-                return back()->with('success', 'Pending pricing publish approved and published.');
+                return back()->with('success', 'Pending ' . $pricingCategory . ' pricing publish approved and published.');
             }
 
             if ($action === 'pricing_reject_publish') {
@@ -771,10 +776,10 @@ class VendorCourierDashboardController extends Controller
                 }
 
                 $governance['pendingApproval'] = null;
-                $pricing['governance'] = $governance;
+                $pricing['governance'][$pricingCategory] = $governance;
                 $pricing = $this->appendPricingGovernanceLog($pricing, 'publish_rejected', $actorId, [
                     'note' => (string) ($validated['note'] ?? ''),
-                ]);
+                ], $pricingCategory);
                 $current['pricing'] = $pricing;
                 $record->update(['settings' => $current]);
 
@@ -809,7 +814,7 @@ class VendorCourierDashboardController extends Controller
                 $incomingSection = $this->normalizePricingSettings(array_replace_recursive($current['pricing'] ?? [], $incomingSection));
                 $incomingSection = $this->appendPricingGovernanceLog($incomingSection, 'draft_saved', $actorId, [
                     'mode' => 'save_section',
-                ]);
+                ], $pricingCategory);
             }
 
             $current[$section] = array_replace($current[$section], $incomingSection);
@@ -840,7 +845,7 @@ class VendorCourierDashboardController extends Controller
             $next['pricing'] = $this->normalizePricingSettings($next['pricing']);
             $next['pricing'] = $this->appendPricingGovernanceLog($next['pricing'], 'draft_saved', $actorId, [
                 'mode' => 'save_all',
-            ]);
+            ], $pricingCategory);
         }
 
         $record->update(['settings' => $next]);
@@ -2997,27 +3002,61 @@ class VendorCourierDashboardController extends Controller
     {
         return [
             'localization' => [
-                'baseCurrency' => 'LKR',
-                'displayCurrency' => 'LKR',
-                'locale' => 'en-LK',
-                'exchangeRateProvider' => 'frankfurter.app',
-                'autoLiveRates' => true,
-                'manualRates' => [
-                    'LKR' => 1,
-                    'USD' => 0.00308,
-                    'EUR' => 0.00284,
+                'domestic' => [
+                    'baseCurrency' => 'LKR',
+                    'displayCurrency' => 'LKR',
+                    'locale' => 'en-LK',
+                    'exchangeRateProvider' => 'frankfurter.app',
+                    'autoLiveRates' => true,
+                    'manualRates' => [
+                        'LKR' => 1,
+                        'USD' => 0.00308,
+                        'EUR' => 0.00284,
+                    ],
+                    'lastSyncedAt' => null,
                 ],
-                'lastSyncedAt' => null,
+                'logistic' => [
+                    'baseCurrency' => 'LKR',
+                    'displayCurrency' => 'LKR',
+                    'locale' => 'en-LK',
+                    'exchangeRateProvider' => 'frankfurter.app',
+                    'autoLiveRates' => true,
+                    'manualRates' => [
+                        'LKR' => 1,
+                        'USD' => 0.00308,
+                        'EUR' => 0.00284,
+                    ],
+                    'lastSyncedAt' => null,
+                ],
             ],
             'formula' => [
-                'volumetricDivisor' => 5000,
-                'useChargeableWeight' => true,
-                'fuelSurchargePercent' => 0,
-                'handlingFee' => 0,
-                'taxPercent' => 0,
-                'roundTo' => 2,
+                'domestic' => [
+                    'volumetricDivisor' => 5000,
+                    'useChargeableWeight' => true,
+                    'fuelSurchargePercent' => 0,
+                    'handlingFee' => 0,
+                    'taxPercent' => 0,
+                    'roundTo' => 2,
+                ],
+                'logistic' => [
+                    'volumetricDivisor' => 5000,
+                    'useChargeableWeight' => true,
+                    'fuelSurchargePercent' => 0,
+                    'handlingFee' => 0,
+                    'taxPercent' => 0,
+                    'roundTo' => 2,
+                ],
             ],
             'serviceCatalog' => $this->defaultPricingServiceCatalog(),
+            'zoneMaster' => $this->defaultPricingZoneMaster(),
+            'laneMatrix' => [
+                'enabled' => [
+                    'domestic' => false,
+                    'logistic' => false,
+                ],
+                'domestic' => [],
+                'logistic' => [],
+            ],
             'categories' => [
                 'domestic' => [
                     [
@@ -3137,15 +3176,48 @@ class VendorCourierDashboardController extends Controller
     private function defaultPricingGovernance(): array
     {
         return [
-            'requireApproval' => false,
-            'approverRoles' => ['courier_owner', 'courier_admin'],
-            'draftVersion' => 1,
-            'publishedVersion' => 1,
-            'publishedAt' => null,
-            'publishedBy' => null,
-            'pendingApproval' => null,
-            'scheduledPublish' => null,
-            'changeLog' => [],
+            'domestic' => [
+                'requireApproval' => false,
+                'approverRoles' => ['courier_owner', 'courier_admin'],
+                'draftVersion' => 1,
+                'publishedVersion' => 1,
+                'publishedAt' => null,
+                'publishedBy' => null,
+                'pendingApproval' => null,
+                'scheduledPublish' => null,
+                'changeLog' => [],
+            ],
+            'logistic' => [
+                'requireApproval' => false,
+                'approverRoles' => ['courier_owner', 'courier_admin'],
+                'draftVersion' => 1,
+                'publishedVersion' => 1,
+                'publishedAt' => null,
+                'publishedBy' => null,
+                'pendingApproval' => null,
+                'scheduledPublish' => null,
+                'changeLog' => [],
+            ],
+        ];
+    }
+
+    private function defaultPricingZoneMaster(): array
+    {
+        return [
+            'domestic' => [
+                ['key' => 'colombo', 'label' => 'Colombo', 'isActive' => true, 'sortOrder' => 1],
+                ['key' => 'gampaha', 'label' => 'Gampaha', 'isActive' => true, 'sortOrder' => 2],
+                ['key' => 'kalutara', 'label' => 'Kalutara', 'isActive' => true, 'sortOrder' => 3],
+                ['key' => 'kandy', 'label' => 'Kandy', 'isActive' => true, 'sortOrder' => 4],
+                ['key' => 'galle', 'label' => 'Galle', 'isActive' => true, 'sortOrder' => 5],
+            ],
+            'logistic' => [
+                ['key' => 'colombo', 'label' => 'Colombo', 'isActive' => true, 'sortOrder' => 1],
+                ['key' => 'gampaha', 'label' => 'Gampaha', 'isActive' => true, 'sortOrder' => 2],
+                ['key' => 'kandy', 'label' => 'Kandy', 'isActive' => true, 'sortOrder' => 3],
+                ['key' => 'kurunegala', 'label' => 'Kurunegala', 'isActive' => true, 'sortOrder' => 4],
+                ['key' => 'matara', 'label' => 'Matara', 'isActive' => true, 'sortOrder' => 5],
+            ],
         ];
     }
 
@@ -3154,34 +3226,81 @@ class VendorCourierDashboardController extends Controller
         $defaults = $this->defaultPricingSettings();
         $pricing = array_replace_recursive($defaults, $pricing);
 
-        $pricing['localization']['baseCurrency'] = strtoupper((string) ($pricing['localization']['baseCurrency'] ?? 'LKR'));
-        $pricing['localization']['displayCurrency'] = strtoupper((string) ($pricing['localization']['displayCurrency'] ?? $pricing['localization']['baseCurrency']));
-        $pricing['localization']['locale'] = trim((string) ($pricing['localization']['locale'] ?? 'en-LK')) ?: 'en-LK';
-        $pricing['localization']['exchangeRateProvider'] = trim((string) ($pricing['localization']['exchangeRateProvider'] ?? 'frankfurter.app')) ?: 'frankfurter.app';
-        $pricing['localization']['autoLiveRates'] = (bool) ($pricing['localization']['autoLiveRates'] ?? true);
-        $pricing['localization']['lastSyncedAt'] = $pricing['localization']['lastSyncedAt'] ?? null;
-
-        $manualRates = is_array($pricing['localization']['manualRates'] ?? null) ? $pricing['localization']['manualRates'] : [];
-        $normalizedRates = [];
-        foreach ($manualRates as $currency => $rate) {
-            $currency = strtoupper(trim((string) $currency));
-            if ($currency === '' || strlen($currency) !== 3) {
-                continue;
-            }
-            $normalizedRates[$currency] = max(0.000001, (float) $rate);
+        $localizationInput = is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [];
+        $hasCategoryLocalization = is_array($localizationInput['domestic'] ?? null) || is_array($localizationInput['logistic'] ?? null);
+        if (!$hasCategoryLocalization) {
+            $localizationInput = [
+                'domestic' => $localizationInput,
+                'logistic' => $localizationInput,
+            ];
         }
-        $normalizedRates[$pricing['localization']['baseCurrency']] = 1.0;
-        $pricing['localization']['manualRates'] = $normalizedRates;
 
-        $pricing['formula']['volumetricDivisor'] = max(1, (int) ($pricing['formula']['volumetricDivisor'] ?? 5000));
-        $pricing['formula']['useChargeableWeight'] = (bool) ($pricing['formula']['useChargeableWeight'] ?? true);
-        $pricing['formula']['fuelSurchargePercent'] = max(0, (float) ($pricing['formula']['fuelSurchargePercent'] ?? 0));
-        $pricing['formula']['handlingFee'] = max(0, (float) ($pricing['formula']['handlingFee'] ?? 0));
-        $pricing['formula']['taxPercent'] = max(0, (float) ($pricing['formula']['taxPercent'] ?? 0));
-        $pricing['formula']['roundTo'] = max(0, min(4, (int) ($pricing['formula']['roundTo'] ?? 2)));
+        foreach (['domestic', 'logistic'] as $category) {
+            $localization = array_replace(
+                is_array($defaults['localization'][$category] ?? null) ? $defaults['localization'][$category] : [],
+                is_array($localizationInput[$category] ?? null) ? $localizationInput[$category] : []
+            );
+
+            $baseCurrency = strtoupper((string) ($localization['baseCurrency'] ?? 'LKR'));
+            $displayCurrency = strtoupper((string) ($localization['displayCurrency'] ?? $baseCurrency));
+            $manualRates = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
+
+            $normalizedRates = [];
+            foreach ($manualRates as $currency => $rate) {
+                $currency = strtoupper(trim((string) $currency));
+                if ($currency === '' || strlen($currency) !== 3) {
+                    continue;
+                }
+                $normalizedRates[$currency] = max(0.000001, (float) $rate);
+            }
+            $normalizedRates[$baseCurrency] = 1.0;
+
+            $pricing['localization'][$category] = [
+                'baseCurrency' => $baseCurrency,
+                'displayCurrency' => $displayCurrency,
+                'locale' => trim((string) ($localization['locale'] ?? 'en-LK')) ?: 'en-LK',
+                'exchangeRateProvider' => trim((string) ($localization['exchangeRateProvider'] ?? 'frankfurter.app')) ?: 'frankfurter.app',
+                'autoLiveRates' => (bool) ($localization['autoLiveRates'] ?? true),
+                'manualRates' => $normalizedRates,
+                'lastSyncedAt' => $localization['lastSyncedAt'] ?? null,
+            ];
+        }
+
+        $formulaInput = is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [];
+        $hasCategoryFormula = is_array($formulaInput['domestic'] ?? null) || is_array($formulaInput['logistic'] ?? null);
+        if (!$hasCategoryFormula) {
+            $formulaInput = [
+                'domestic' => $formulaInput,
+                'logistic' => $formulaInput,
+            ];
+        }
+
+        foreach (['domestic', 'logistic'] as $category) {
+            $formula = array_replace(
+                is_array($defaults['formula'][$category] ?? null) ? $defaults['formula'][$category] : [],
+                is_array($formulaInput[$category] ?? null) ? $formulaInput[$category] : []
+            );
+
+            $pricing['formula'][$category] = [
+                'volumetricDivisor' => max(1, (int) ($formula['volumetricDivisor'] ?? 5000)),
+                'useChargeableWeight' => (bool) ($formula['useChargeableWeight'] ?? true),
+                'fuelSurchargePercent' => max(0, (float) ($formula['fuelSurchargePercent'] ?? 0)),
+                'handlingFee' => max(0, (float) ($formula['handlingFee'] ?? 0)),
+                'taxPercent' => max(0, (float) ($formula['taxPercent'] ?? 0)),
+                'roundTo' => max(0, min(4, (int) ($formula['roundTo'] ?? 2))),
+            ];
+        }
 
         $pricing['serviceCatalog'] = $this->normalizePricingServiceCatalog(
             is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : []
+        );
+        $pricing['zoneMaster'] = $this->normalizePricingZoneMaster(
+            is_array($pricing['zoneMaster'] ?? null) ? $pricing['zoneMaster'] : []
+        );
+        $pricing['laneMatrix'] = $this->normalizePricingLaneMatrix(
+            is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : [],
+            $pricing['serviceCatalog'],
+            $pricing['zoneMaster']
         );
 
         foreach (['domestic', 'logistic'] as $category) {
@@ -3216,45 +3335,148 @@ class VendorCourierDashboardController extends Controller
                 ->all();
         }
 
-        $governance = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : [];
+        $governanceInput = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : [];
         $defaultGovernance = $this->defaultPricingGovernance();
-        $pricing['governance'] = array_replace($defaultGovernance, $governance);
-        $pricing['governance']['requireApproval'] = (bool) ($pricing['governance']['requireApproval'] ?? false);
-        $pricing['governance']['approverRoles'] = collect($pricing['governance']['approverRoles'] ?? $defaultGovernance['approverRoles'])
-            ->map(fn ($role) => trim((string) $role))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-        $pricing['governance']['draftVersion'] = max(1, (int) ($pricing['governance']['draftVersion'] ?? 1));
-        $pricing['governance']['publishedVersion'] = max(1, (int) ($pricing['governance']['publishedVersion'] ?? 1));
-        $pricing['governance']['changeLog'] = collect($pricing['governance']['changeLog'] ?? [])
-            ->filter(fn ($entry) => is_array($entry))
-            ->take(50)
-            ->values()
-            ->all();
+        $hasCategoryGovernance = is_array($governanceInput['domestic'] ?? null) || is_array($governanceInput['logistic'] ?? null);
+        if (!$hasCategoryGovernance) {
+            $governanceInput = [
+                'domestic' => $governanceInput,
+                'logistic' => $governanceInput,
+            ];
+        }
+
+        foreach (['domestic', 'logistic'] as $category) {
+            $governance = array_replace(
+                is_array($defaultGovernance[$category] ?? null) ? $defaultGovernance[$category] : [],
+                is_array($governanceInput[$category] ?? null) ? $governanceInput[$category] : []
+            );
+
+            $governance['requireApproval'] = (bool) ($governance['requireApproval'] ?? false);
+            $governance['approverRoles'] = collect($governance['approverRoles'] ?? ($defaultGovernance[$category]['approverRoles'] ?? []))
+                ->map(fn ($role) => trim((string) $role))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            $governance['draftVersion'] = max(1, (int) ($governance['draftVersion'] ?? 1));
+            $governance['publishedVersion'] = max(1, (int) ($governance['publishedVersion'] ?? 1));
+            $governance['changeLog'] = collect($governance['changeLog'] ?? [])
+                ->filter(fn ($entry) => is_array($entry))
+                ->take(50)
+                ->values()
+                ->all();
+
+            $pricing['governance'][$category] = $governance;
+        }
 
         return $pricing;
     }
 
-    private function extractPricingSnapshot(array $pricing): array
+    private function extractPricingSnapshot(array $pricing, ?string $category = null): array
     {
+        $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : null;
+
+        if ($category !== null) {
+            return [
+                'category' => $category,
+                'localization' => is_array($pricing['localization'][$category] ?? null) ? $pricing['localization'][$category] : [],
+                'formula' => is_array($pricing['formula'][$category] ?? null) ? $pricing['formula'][$category] : [],
+                'serviceCatalog' => is_array($pricing['serviceCatalog'][$category] ?? null) ? $pricing['serviceCatalog'][$category] : [],
+                'zoneMaster' => is_array($pricing['zoneMaster'][$category] ?? null) ? $pricing['zoneMaster'][$category] : [],
+                'laneMatrix' => [
+                    'enabled' => (bool) ((is_array($pricing['laneMatrix']['enabled'] ?? null)
+                        ? ($pricing['laneMatrix']['enabled'][$category] ?? false)
+                        : ($pricing['laneMatrix']['enabled'] ?? false))),
+                    'rows' => is_array($pricing['laneMatrix'][$category] ?? null) ? $pricing['laneMatrix'][$category] : [],
+                ],
+                'categories' => is_array($pricing['categories'][$category] ?? null) ? $pricing['categories'][$category] : [],
+            ];
+        }
+
         return [
             'localization' => is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [],
             'formula' => is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [],
             'serviceCatalog' => is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : [],
+            'zoneMaster' => is_array($pricing['zoneMaster'] ?? null) ? $pricing['zoneMaster'] : [],
+            'laneMatrix' => is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : [],
             'categories' => is_array($pricing['categories'] ?? null) ? $pricing['categories'] : [],
         ];
     }
 
-    private function applyPricingSnapshot(array $pricing, array $snapshot): array
+    private function applyPricingSnapshot(array $pricing, array $snapshot, ?string $category = null): array
     {
+        $categoryFromSnapshot = in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'logistic'], true)
+            ? (string) $snapshot['category']
+            : null;
+        $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : $categoryFromSnapshot;
+
+        if ($category !== null) {
+            $pricing['localization'][$category] = is_array($snapshot['localization'] ?? null) ? $snapshot['localization'] : ($pricing['localization'][$category] ?? []);
+            $pricing['formula'][$category] = is_array($snapshot['formula'] ?? null) ? $snapshot['formula'] : ($pricing['formula'][$category] ?? []);
+            $pricing['serviceCatalog'][$category] = is_array($snapshot['serviceCatalog'] ?? null) ? $snapshot['serviceCatalog'] : ($pricing['serviceCatalog'][$category] ?? []);
+            $pricing['zoneMaster'][$category] = is_array($snapshot['zoneMaster'] ?? null) ? $snapshot['zoneMaster'] : ($pricing['zoneMaster'][$category] ?? []);
+            $pricing['laneMatrix']['enabled'] = is_array($pricing['laneMatrix']['enabled'] ?? null) ? $pricing['laneMatrix']['enabled'] : [
+                'domestic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
+                'logistic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
+            ];
+            $pricing['laneMatrix']['enabled'][$category] = (bool) ($snapshot['laneMatrix']['enabled'] ?? false);
+            $pricing['laneMatrix'][$category] = is_array($snapshot['laneMatrix']['rows'] ?? null)
+                ? $snapshot['laneMatrix']['rows']
+                : ($pricing['laneMatrix'][$category] ?? []);
+            $pricing['categories'][$category] = is_array($snapshot['categories'] ?? null) ? $snapshot['categories'] : ($pricing['categories'][$category] ?? []);
+
+            return $this->normalizePricingSettings($pricing);
+        }
+
         $pricing['localization'] = is_array($snapshot['localization'] ?? null) ? $snapshot['localization'] : ($pricing['localization'] ?? []);
         $pricing['formula'] = is_array($snapshot['formula'] ?? null) ? $snapshot['formula'] : ($pricing['formula'] ?? []);
         $pricing['serviceCatalog'] = is_array($snapshot['serviceCatalog'] ?? null) ? $snapshot['serviceCatalog'] : ($pricing['serviceCatalog'] ?? []);
+        $pricing['zoneMaster'] = is_array($snapshot['zoneMaster'] ?? null) ? $snapshot['zoneMaster'] : ($pricing['zoneMaster'] ?? []);
+        $pricing['laneMatrix'] = is_array($snapshot['laneMatrix'] ?? null) ? $snapshot['laneMatrix'] : ($pricing['laneMatrix'] ?? []);
         $pricing['categories'] = is_array($snapshot['categories'] ?? null) ? $snapshot['categories'] : ($pricing['categories'] ?? []);
 
         return $this->normalizePricingSettings($pricing);
+    }
+
+    private function normalizePricingZoneMaster(array $input): array
+    {
+        $defaults = $this->defaultPricingZoneMaster();
+        $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['logistic'] ?? null);
+        $flatRows = $isCategoryShape ? [] : (array_values($input) === $input ? $input : []);
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $source = $isCategoryShape
+                ? (is_array($input[$category] ?? null) ? $input[$category] : ($defaults[$category] ?? []))
+                : (!empty($flatRows) ? $flatRows : ($defaults[$category] ?? []));
+
+            $rows = $this->normalizePricingZoneRows($source);
+            $normalized[$category] = !empty($rows) ? $rows : ($defaults[$category] ?? []);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizePricingZoneRows(array $source): array
+    {
+        return collect($source)
+            ->map(function ($item, $index) {
+                $row = is_array($item) ? $item : [];
+                $key = $this->normalizeZoneKey((string) ($row['key'] ?? $row['label'] ?? ''));
+                $label = trim((string) ($row['label'] ?? ''));
+
+                return [
+                    'key' => $key,
+                    'label' => $label !== '' ? $label : ucwords(str_replace('_', ' ', $key)),
+                    'isActive' => (bool) ($row['isActive'] ?? true),
+                    'sortOrder' => max(1, (int) ($row['sortOrder'] ?? ($index + 1))),
+                ];
+            })
+            ->filter(fn ($row) => ($row['key'] ?? '') !== '*' && trim((string) ($row['key'] ?? '')) !== '')
+            ->unique('key')
+            ->sortBy('sortOrder')
+            ->values()
+            ->all();
     }
 
     private function normalizePricingServiceCatalog(array $input): array
@@ -3304,14 +3526,115 @@ class VendorCourierDashboardController extends Controller
     {
         $normalized = strtolower(trim($value));
         $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
 
-        return trim($normalized, '_');
+        return match ($normalized) {
+            'same_day', 'sameday' => 'same_day',
+            'next_day', 'nextday', 'express', 'one_day', 'oneday' => 'next_day',
+            '2_3_day', '2_3_days', 'two_three_day', 'standard', 'within_3_days' => 'two_three_day',
+            default => $normalized,
+        };
     }
 
-    private function appendPricingGovernanceLog(array $pricing, string $event, ?int $actorId, array $meta = []): array
+    private function normalizePricingLaneMatrix(array $input, array $serviceCatalog, array $zoneMaster): array
+    {
+        $normalized = array_replace([
+            'enabled' => [
+                'domestic' => false,
+                'logistic' => false,
+            ],
+            'domestic' => [],
+            'logistic' => [],
+        ], $input);
+
+        $enabledInput = $normalized['enabled'] ?? false;
+        if (!is_array($enabledInput)) {
+            $enabledInput = [
+                'domestic' => (bool) $enabledInput,
+                'logistic' => (bool) $enabledInput,
+            ];
+        }
+        $normalized['enabled'] = [
+            'domestic' => (bool) ($enabledInput['domestic'] ?? false),
+            'logistic' => (bool) ($enabledInput['logistic'] ?? false),
+        ];
+
+        foreach (['domestic', 'logistic'] as $category) {
+            $items = is_array($normalized[$category] ?? null) ? $normalized[$category] : [];
+            $allowedServiceKeys = collect($serviceCatalog[$category] ?? [])
+                ->map(fn ($item) => (string) ($item['key'] ?? ''))
+                ->filter()
+                ->values()
+                ->all();
+            $allowedZones = collect($zoneMaster[$category] ?? [])
+                ->filter(fn ($zone) => (bool) ($zone['isActive'] ?? true))
+                ->map(fn ($zone) => $this->normalizeZoneKey((string) ($zone['key'] ?? '')))
+                ->filter(fn ($zone) => $zone !== '*' && $zone !== '')
+                ->values()
+                ->all();
+            $defaultServiceKey = $allowedServiceKeys[0] ?? 'economy';
+            $defaultZone = $allowedZones[0] ?? '*';
+
+            $normalized[$category] = collect($items)
+                ->map(function ($item, $index) use ($category, $allowedServiceKeys, $defaultServiceKey, $allowedZones, $defaultZone) {
+                    $row = is_array($item) ? $item : [];
+
+                    $serviceLevelKey = $this->normalizeServiceLevelKey((string) ($row['serviceLevelKey'] ?? ''));
+                    if (!in_array($serviceLevelKey, $allowedServiceKeys, true)) {
+                        $serviceLevelKey = $defaultServiceKey;
+                    }
+
+                    $originZone = $this->normalizeZoneKey((string) ($row['originZone'] ?? '*'));
+                    if ($originZone !== '*' && !in_array($originZone, $allowedZones, true)) {
+                        $originZone = $defaultZone;
+                    }
+
+                    $destinationZone = $this->normalizeZoneKey((string) ($row['destinationZone'] ?? '*'));
+                    if ($destinationZone !== '*' && !in_array($destinationZone, $allowedZones, true)) {
+                        $destinationZone = $defaultZone;
+                    }
+
+                    return [
+                        'id' => trim((string) ($row['id'] ?? "{$category}_lane_{$index}")) ?: "{$category}_lane_{$index}",
+                        'originZone' => $originZone,
+                        'destinationZone' => $destinationZone,
+                        'serviceLevelKey' => $serviceLevelKey,
+                        'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
+                        'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
+                        'minPrice' => max(0, (float) ($row['minPrice'] ?? 0)),
+                        'priorityMultiplier' => max(0.1, (float) ($row['priorityMultiplier'] ?? 1)),
+                        'isActive' => (bool) ($row['isActive'] ?? true),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeZoneKey(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '*' || $trimmed === '') {
+            return '*';
+        }
+
+        $normalized = strtolower($trimmed);
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+
+        return $normalized !== '' ? $normalized : '*';
+    }
+
+    private function appendPricingGovernanceLog(array $pricing, string $event, ?int $actorId, array $meta = [], ?string $category = null): array
     {
         $pricing = $this->normalizePricingSettings($pricing);
-        $governance = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : $this->defaultPricingGovernance();
+        $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : 'domestic';
+        $governanceByCategory = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : $this->defaultPricingGovernance();
+        $governance = is_array($governanceByCategory[$category] ?? null)
+            ? $governanceByCategory[$category]
+            : ($this->defaultPricingGovernance()[$category] ?? []);
 
         if ($event === 'draft_saved') {
             $governance['draftVersion'] = max(1, (int) ($governance['draftVersion'] ?? 1)) + 1;
@@ -3328,24 +3651,30 @@ class VendorCourierDashboardController extends Controller
             ->values()
             ->all();
 
-        $pricing['governance'] = $governance;
+        $pricing['governance'][$category] = $governance;
         return $pricing;
     }
 
-    private function publishPricingSnapshot(array $pricing, array $snapshot, ?int $actorId, string $event = 'published_now'): array
+    private function publishPricingSnapshot(array $pricing, array $snapshot, ?int $actorId, string $event = 'published_now', ?string $category = null): array
     {
-        $pricing = $this->applyPricingSnapshot($pricing, $snapshot);
-        $governance = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : $this->defaultPricingGovernance();
+        $category = in_array((string) $category, ['domestic', 'logistic'], true)
+            ? (string) $category
+            : (in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'logistic'], true) ? (string) $snapshot['category'] : 'domestic');
+
+        $pricing = $this->applyPricingSnapshot($pricing, $snapshot, $category);
+        $governance = is_array($pricing['governance'][$category] ?? null)
+            ? $pricing['governance'][$category]
+            : ($this->defaultPricingGovernance()[$category] ?? []);
         $governance['publishedVersion'] = max(1, (int) ($governance['publishedVersion'] ?? 1)) + 1;
         $governance['publishedAt'] = now()->toDateTimeString();
         $governance['publishedBy'] = $actorId;
         $governance['scheduledPublish'] = null;
         $governance['pendingApproval'] = null;
-        $pricing['governance'] = $governance;
+        $pricing['governance'][$category] = $governance;
 
         return $this->appendPricingGovernanceLog($pricing, $event, $actorId, [
             'publishedVersion' => $governance['publishedVersion'],
-        ]);
+        ], $category);
     }
 
     private function canActorApprovePricingGovernance(Request $request, array $governance): bool

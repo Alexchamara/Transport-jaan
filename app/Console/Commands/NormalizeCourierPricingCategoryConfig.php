@@ -1,0 +1,302 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\Courier\VendorCourierSetting;
+use Illuminate\Console\Command;
+
+class NormalizeCourierPricingCategoryConfig extends Command
+{
+    protected $signature = 'courier:normalize-pricing-category-config
+        {--vendor= : Normalize only one vendor_user_id}
+        {--dry-run : Preview changes without persisting updates}';
+
+    protected $description = 'Normalize courier pricing JSON into domestic/logistic category-scoped structure';
+
+    public function handle(): int
+    {
+        $dryRun = (bool) $this->option('dry-run');
+        $vendorFilter = $this->option('vendor');
+
+        if ($dryRun) {
+            $this->warn('DRY RUN MODE - No pricing settings will be persisted.');
+        }
+
+        $query = VendorCourierSetting::query()->orderBy('id');
+        if (is_numeric($vendorFilter)) {
+            $query->where('vendor_user_id', (int) $vendorFilter);
+        }
+
+        $processed = 0;
+        $updated = 0;
+        $unchanged = 0;
+        $skipped = 0;
+
+        $query->chunkById(100, function ($records) use (&$processed, &$updated, &$unchanged, &$skipped, $dryRun) {
+            foreach ($records as $record) {
+                $processed++;
+
+                $settings = is_array($record->settings) ? $record->settings : [];
+                $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : null;
+                if (!is_array($pricing)) {
+                    $skipped++;
+                    continue;
+                }
+
+                $normalized = $this->normalizePricing($pricing);
+                if ($this->sameJson($pricing, $normalized)) {
+                    $unchanged++;
+                    continue;
+                }
+
+                if (!$dryRun) {
+                    $settings['pricing'] = $normalized;
+                    $record->update(['settings' => $settings]);
+                }
+
+                $updated++;
+            }
+        });
+
+        $this->info("Processed: {$processed}");
+        $this->info("Updated: {$updated}");
+        $this->line("Unchanged: {$unchanged}");
+        $this->line("Skipped (no pricing): {$skipped}");
+
+        return self::SUCCESS;
+    }
+
+    private function normalizePricing(array $pricing): array
+    {
+        $pricing['localization'] = $this->normalizeLocalization($pricing['localization'] ?? []);
+        $pricing['formula'] = $this->normalizeFormula($pricing['formula'] ?? []);
+        $pricing['zoneMaster'] = $this->normalizeZoneMaster($pricing['zoneMaster'] ?? []);
+        $pricing['governance'] = $this->normalizeGovernance($pricing['governance'] ?? []);
+        $pricing['laneMatrix'] = $this->normalizeLaneMatrix($pricing['laneMatrix'] ?? []);
+
+        return $pricing;
+    }
+
+    private function normalizeLocalization($input): array
+    {
+        $defaults = [
+            'baseCurrency' => 'LKR',
+            'displayCurrency' => 'LKR',
+            'locale' => 'en-LK',
+            'exchangeRateProvider' => 'frankfurter.app',
+            'autoLiveRates' => true,
+            'manualRates' => [
+                'LKR' => 1,
+                'USD' => 0.00308,
+                'EUR' => 0.00284,
+            ],
+            'lastSyncedAt' => null,
+        ];
+
+        $source = is_array($input) ? $input : [];
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        if (!$hasCategoryShape) {
+            $source = [
+                'domestic' => $source,
+                'logistic' => $source,
+            ];
+        }
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $row = array_replace($defaults, is_array($source[$category] ?? null) ? $source[$category] : []);
+            $base = strtoupper((string) ($row['baseCurrency'] ?? 'LKR'));
+            $display = strtoupper((string) ($row['displayCurrency'] ?? $base));
+            $rates = is_array($row['manualRates'] ?? null) ? $row['manualRates'] : [];
+            $nextRates = [];
+
+            foreach ($rates as $code => $rate) {
+                $currency = strtoupper(trim((string) $code));
+                if ($currency === '' || strlen($currency) !== 3) {
+                    continue;
+                }
+                $nextRates[$currency] = max(0.000001, (float) $rate);
+            }
+            $nextRates[$base] = 1.0;
+
+            $normalized[$category] = [
+                'baseCurrency' => $base,
+                'displayCurrency' => $display,
+                'locale' => trim((string) ($row['locale'] ?? 'en-LK')) ?: 'en-LK',
+                'exchangeRateProvider' => trim((string) ($row['exchangeRateProvider'] ?? 'frankfurter.app')) ?: 'frankfurter.app',
+                'autoLiveRates' => (bool) ($row['autoLiveRates'] ?? true),
+                'manualRates' => $nextRates,
+                'lastSyncedAt' => $row['lastSyncedAt'] ?? null,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeFormula($input): array
+    {
+        $defaults = [
+            'volumetricDivisor' => 5000,
+            'useChargeableWeight' => true,
+            'fuelSurchargePercent' => 0,
+            'handlingFee' => 0,
+            'taxPercent' => 0,
+            'roundTo' => 2,
+        ];
+
+        $source = is_array($input) ? $input : [];
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        if (!$hasCategoryShape) {
+            $source = [
+                'domestic' => $source,
+                'logistic' => $source,
+            ];
+        }
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $row = array_replace($defaults, is_array($source[$category] ?? null) ? $source[$category] : []);
+            $normalized[$category] = [
+                'volumetricDivisor' => max(1, (int) ($row['volumetricDivisor'] ?? 5000)),
+                'useChargeableWeight' => (bool) ($row['useChargeableWeight'] ?? true),
+                'fuelSurchargePercent' => max(0, (float) ($row['fuelSurchargePercent'] ?? 0)),
+                'handlingFee' => max(0, (float) ($row['handlingFee'] ?? 0)),
+                'taxPercent' => max(0, (float) ($row['taxPercent'] ?? 0)),
+                'roundTo' => max(0, min(4, (int) ($row['roundTo'] ?? 2))),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeZoneMaster($input): array
+    {
+        $source = is_array($input) ? $input : [];
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $flatRows = $hasCategoryShape ? [] : (array_values($source) === $source ? $source : []);
+
+        $defaults = [
+            ['key' => 'colombo', 'label' => 'Colombo', 'isActive' => true, 'sortOrder' => 1],
+            ['key' => 'gampaha', 'label' => 'Gampaha', 'isActive' => true, 'sortOrder' => 2],
+        ];
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $rows = $hasCategoryShape
+                ? (is_array($source[$category] ?? null) ? $source[$category] : $defaults)
+                : (!empty($flatRows) ? $flatRows : $defaults);
+
+            $normalized[$category] = collect($rows)
+                ->map(function ($item, $index) {
+                    $row = is_array($item) ? $item : [];
+                    $key = $this->normalizeZoneKey((string) ($row['key'] ?? $row['label'] ?? ''));
+                    $label = trim((string) ($row['label'] ?? ''));
+
+                    return [
+                        'key' => $key,
+                        'label' => $label !== '' ? $label : ucwords(str_replace('_', ' ', $key)),
+                        'isActive' => (bool) ($row['isActive'] ?? true),
+                        'sortOrder' => max(1, (int) ($row['sortOrder'] ?? ($index + 1))),
+                    ];
+                })
+                ->filter(fn ($row) => ($row['key'] ?? '') !== '*' && trim((string) ($row['key'] ?? '')) !== '')
+                ->unique('key')
+                ->sortBy('sortOrder')
+                ->values()
+                ->all();
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeGovernance($input): array
+    {
+        $defaults = [
+            'requireApproval' => false,
+            'approverRoles' => ['courier_owner', 'courier_admin'],
+            'draftVersion' => 1,
+            'publishedVersion' => 1,
+            'publishedAt' => null,
+            'publishedBy' => null,
+            'pendingApproval' => null,
+            'scheduledPublish' => null,
+            'changeLog' => [],
+        ];
+
+        $source = is_array($input) ? $input : [];
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        if (!$hasCategoryShape) {
+            $source = [
+                'domestic' => $source,
+                'logistic' => $source,
+            ];
+        }
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $row = array_replace($defaults, is_array($source[$category] ?? null) ? $source[$category] : []);
+            $normalized[$category] = [
+                'requireApproval' => (bool) ($row['requireApproval'] ?? false),
+                'approverRoles' => collect($row['approverRoles'] ?? $defaults['approverRoles'])
+                    ->map(fn ($role) => trim((string) $role))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+                'draftVersion' => max(1, (int) ($row['draftVersion'] ?? 1)),
+                'publishedVersion' => max(1, (int) ($row['publishedVersion'] ?? 1)),
+                'publishedAt' => $row['publishedAt'] ?? null,
+                'publishedBy' => $row['publishedBy'] ?? null,
+                'pendingApproval' => is_array($row['pendingApproval'] ?? null) ? $row['pendingApproval'] : null,
+                'scheduledPublish' => is_array($row['scheduledPublish'] ?? null) ? $row['scheduledPublish'] : null,
+                'changeLog' => collect($row['changeLog'] ?? [])
+                    ->filter(fn ($entry) => is_array($entry))
+                    ->take(50)
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeLaneMatrix($input): array
+    {
+        $source = is_array($input) ? $input : [];
+        $enabled = $source['enabled'] ?? false;
+        if (!is_array($enabled)) {
+            $enabled = [
+                'domestic' => (bool) $enabled,
+                'logistic' => (bool) $enabled,
+            ];
+        }
+
+        return [
+            'enabled' => [
+                'domestic' => (bool) ($enabled['domestic'] ?? false),
+                'logistic' => (bool) ($enabled['logistic'] ?? false),
+            ],
+            'domestic' => is_array($source['domestic'] ?? null) ? $source['domestic'] : [],
+            'logistic' => is_array($source['logistic'] ?? null) ? $source['logistic'] : [],
+        ];
+    }
+
+    private function normalizeZoneKey(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '' || $trimmed === '*') {
+            return '*';
+        }
+
+        $normalized = strtolower($trimmed);
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+        $normalized = trim($normalized, '_');
+
+        return $normalized !== '' ? $normalized : '*';
+    }
+
+    private function sameJson(array $left, array $right): bool
+    {
+        return json_encode($left) === json_encode($right);
+    }
+}
