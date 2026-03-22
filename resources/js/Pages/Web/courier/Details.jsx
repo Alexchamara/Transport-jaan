@@ -11,6 +11,9 @@ import {
 
 const CURRENCY_OPTIONS = ["LKR", "USD"];
 const USD_TO_LKR_RATE = 325;
+const humanizeDimensionKey = (value) => String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 const Details = () => {
     const { props } = usePage();
@@ -19,8 +22,33 @@ const Details = () => {
         countries = [],
         serviceLevels = [],
         packageTypes = [],
+        logisticDimensionOptions = {},
         errors = {},
     } = props;
+
+    const unitTypeOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.unitTypes) ? logisticDimensionOptions.unitTypes : [];
+        const current = String(formData?.shipment?.logisticDimensions?.unitType || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
+
+    const routeClassOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.routeClasses) ? logisticDimensionOptions.routeClasses : [];
+        const current = String(formData?.shipment?.logisticDimensions?.routeClass || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
+
+    const handlingClassOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.handlingClasses) ? logisticDimensionOptions.handlingClasses : [];
+        const current = String(formData?.shipment?.logisticDimensions?.handlingClass || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
+
+    const w2wModeOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.w2wModes) ? logisticDimensionOptions.w2wModes : [];
+        const current = String(formData?.shipment?.logisticDimensions?.w2wMode || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
 
     const initialForm = useMemo(() => {
         if (!formData) {
@@ -65,6 +93,13 @@ const Details = () => {
                     deliveryNotes: "",
                     estimatedValue: "",
                     distanceKm: "",
+                    logisticDimensions: {
+                        unitType: "",
+                        unitCount: "",
+                        routeClass: "",
+                        handlingClass: "",
+                        w2wMode: "",
+                    },
                 },
                 packages: [
                     {
@@ -92,6 +127,7 @@ const Details = () => {
         const senderAddress = formData.sender?.address ?? {};
         const recipientAddress = formData.recipient?.address ?? {};
         const shipment = formData.shipment ?? {};
+        const logisticDimensions = shipment.logisticDimensions ?? {};
         const preferredCurrency = shipment.currency || formData.reviewContext?.displayCurrency || "LKR";
 
         return {
@@ -135,6 +171,13 @@ const Details = () => {
                 deliveryNotes: shipment.deliveryNotes ?? "",
                 estimatedValue: shipment.estimatedValue ?? "",
                 distanceKm: shipment.distanceKm ?? "",
+                logisticDimensions: {
+                    unitType: logisticDimensions.unitType ?? "",
+                    unitCount: logisticDimensions.unitCount ?? "",
+                    routeClass: logisticDimensions.routeClass ?? "",
+                    handlingClass: logisticDimensions.handlingClass ?? "",
+                    w2wMode: logisticDimensions.w2wMode ?? "",
+                },
             },
             packages: (formData.packages ?? []).map((pkg) => ({
                 ...pkg,
@@ -1164,6 +1207,86 @@ const Details = () => {
                                         <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.distanceKm"]}</p>
                                     )}
                                     <p className="mt-2 text-xs text-[#6B7893]">Provide route km to apply distance-band lane tariffs accurately.</p>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Logistic unit type</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.unitType || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.unitType", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select unit type</option>
+                                        {unitTypeOptions.map((option) => (
+                                            <option key={`logistic-unit-type-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.unitType"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.unitType"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Logistic unit count</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={data.shipment.logisticDimensions?.unitCount || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.unitCount", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        placeholder="e.g. 3"
+                                    />
+                                    {combinedErrors["shipment.logisticDimensions.unitCount"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.unitCount"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Route class</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.routeClass || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.routeClass", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select route class</option>
+                                        {routeClassOptions.map((option) => (
+                                            <option key={`logistic-route-class-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.routeClass"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.routeClass"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Handling class</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.handlingClass || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.handlingClass", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select handling class</option>
+                                        {handlingClassOptions.map((option) => (
+                                            <option key={`logistic-handling-class-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.handlingClass"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.handlingClass"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">W2W mode</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.w2wMode || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.w2wMode", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select W2W mode</option>
+                                        {w2wModeOptions.map((option) => (
+                                            <option key={`logistic-w2w-mode-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.w2wMode"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.w2wMode"]}</p>
+                                    )}
                                 </div>
                             </div>
                             <div>

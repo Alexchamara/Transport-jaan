@@ -176,6 +176,19 @@ const DEFAULT_SETTINGS = {
                     enforceFixedNamedTiers: true,
                     enforceTierPricingMultiplier: true,
                     tiers: {
+                        priority_4h: {
+                            enabled: true,
+                            etaLabel: "Priority 4 Hours",
+                            etaMinDays: 0,
+                            etaMaxDays: 0,
+                            priceMultiplier: 1.45,
+                            maxDistanceKm: 35,
+                            maxWeightKg: 12,
+                            minLeadHours: 0.5,
+                            maxLeadHours: 4,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
                         same_day: {
                             enabled: true,
                             etaLabel: "Same Day",
@@ -230,6 +243,42 @@ const DEFAULT_SETTINGS = {
                         },
                     },
                 },
+                logisticDimensionsEngine: {
+                    enabled: false,
+                    enforceForLogisticOnly: true,
+                    unitTypeMultipliers: {
+                        parcel: 1.0,
+                        pallet: 1.18,
+                        crate: 1.24,
+                        container_20ft: 1.55,
+                        container_40ft: 1.85,
+                    },
+                    routeClassMultipliers: {
+                        standard: 1.0,
+                        express_corridor: 1.12,
+                        remote_corridor: 1.22,
+                        multimodal: 1.3,
+                    },
+                    handlingClassMultipliers: {
+                        standard: 1.0,
+                        fragile: 1.08,
+                        hazardous: 1.2,
+                        cold_chain: 1.18,
+                        heavy_lift: 1.26,
+                    },
+                    w2wOption: {
+                        enabled: true,
+                        strictForLogistic: true,
+                        defaultMode: "door_to_door",
+                        minimumUnitCount: 1,
+                        maximumUnitCount: null,
+                        modeMultipliers: {
+                            door_to_door: 1.15,
+                            port_to_port: 0.92,
+                            hybrid: 1,
+                        },
+                    },
+                },
             },
             logistic: {
                 remoteAreaSurcharge: {
@@ -276,6 +325,19 @@ const DEFAULT_SETTINGS = {
                     enforceFixedNamedTiers: true,
                     enforceTierPricingMultiplier: true,
                     tiers: {
+                        priority_4h: {
+                            enabled: true,
+                            etaLabel: "Priority 4 Hours",
+                            etaMinDays: 0,
+                            etaMaxDays: 0,
+                            priceMultiplier: 1.45,
+                            maxDistanceKm: 35,
+                            maxWeightKg: 12,
+                            minLeadHours: 0.5,
+                            maxLeadHours: 4,
+                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+                            blackoutDates: [],
+                        },
                         same_day: {
                             enabled: true,
                             etaLabel: "Same Day",
@@ -327,6 +389,42 @@ const DEFAULT_SETTINGS = {
                             maxLeadHours: null,
                             allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
                             blackoutDates: [],
+                        },
+                    },
+                },
+                logisticDimensionsEngine: {
+                    enabled: false,
+                    enforceForLogisticOnly: true,
+                    unitTypeMultipliers: {
+                        parcel: 1.0,
+                        pallet: 1.18,
+                        crate: 1.24,
+                        container_20ft: 1.55,
+                        container_40ft: 1.85,
+                    },
+                    routeClassMultipliers: {
+                        standard: 1.0,
+                        express_corridor: 1.12,
+                        remote_corridor: 1.22,
+                        multimodal: 1.3,
+                    },
+                    handlingClassMultipliers: {
+                        standard: 1.0,
+                        fragile: 1.08,
+                        hazardous: 1.2,
+                        cold_chain: 1.18,
+                        heavy_lift: 1.26,
+                    },
+                    w2wOption: {
+                        enabled: true,
+                        strictForLogistic: true,
+                        defaultMode: "door_to_door",
+                        minimumUnitCount: 1,
+                        maximumUnitCount: null,
+                        modeMultipliers: {
+                            door_to_door: 1.15,
+                            port_to_port: 0.92,
+                            hybrid: 1,
                         },
                     },
                 },
@@ -609,12 +707,19 @@ const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "role-studio", label: "Role Studio" },
 ];
 
-const FIXED_SPEED_ETA_TIERS = [
-    { key: "same_day", label: "Same Day" },
-    { key: "next_day", label: "Next Day" },
-    { key: "two_three_day", label: "2-3 Day" },
-    { key: "economy", label: "Economy" },
-];
+const DEFAULT_SPEED_ETA_TIER_TEMPLATE = {
+    enabled: true,
+    etaLabel: "Custom Tier",
+    etaMinDays: 0,
+    etaMaxDays: null,
+    priceMultiplier: 1,
+    maxDistanceKm: null,
+    maxWeightKg: null,
+    minLeadHours: 0,
+    maxLeadHours: null,
+    allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
+    blackoutDates: [],
+};
 
 const SectionCard = ({ title, description, children }) => (
     <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
@@ -898,6 +1003,54 @@ const Settings = () => {
                                         : {})),
                             },
                         },
+                        logisticDimensionsEngine: {
+                            ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine,
+                            ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine === "object"
+                                ? incomingPricing.policyModules.domestic.logisticDimensionsEngine
+                                : (incomingPricing.policyModules?.logisticDimensionsEngine && typeof incomingPricing.policyModules.logisticDimensionsEngine === "object"
+                                    ? incomingPricing.policyModules.logisticDimensionsEngine
+                                    : {})),
+                            unitTypeMultipliers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.unitTypeMultipliers,
+                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.unitTypeMultipliers === "object"
+                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.unitTypeMultipliers
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers
+                                        : {})),
+                            },
+                            routeClassMultipliers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.routeClassMultipliers,
+                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.routeClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.routeClassMultipliers
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers
+                                        : {})),
+                            },
+                            handlingClassMultipliers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.handlingClassMultipliers,
+                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.handlingClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.handlingClassMultipliers
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers
+                                        : {})),
+                            },
+                            w2wOption: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.w2wOption,
+                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption === "object"
+                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption
+                                        : {})),
+                                modeMultipliers: {
+                                    ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.w2wOption.modeMultipliers,
+                                    ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                        ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption.modeMultipliers
+                                        : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                            ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers
+                                            : {})),
+                                },
+                            },
+                        },
                     },
                     logistic: {
                         ...DEFAULT_SETTINGS.pricing.policyModules.logistic,
@@ -918,6 +1071,54 @@ const Settings = () => {
                                     : (incomingPricing.policyModules?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.speedEtaTierEngine.tiers === "object"
                                         ? incomingPricing.policyModules.speedEtaTierEngine.tiers
                                         : {})),
+                            },
+                        },
+                        logisticDimensionsEngine: {
+                            ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine,
+                            ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine === "object"
+                                ? incomingPricing.policyModules.logistic.logisticDimensionsEngine
+                                : (incomingPricing.policyModules?.logisticDimensionsEngine && typeof incomingPricing.policyModules.logisticDimensionsEngine === "object"
+                                    ? incomingPricing.policyModules.logisticDimensionsEngine
+                                    : {})),
+                            unitTypeMultipliers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.unitTypeMultipliers,
+                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.unitTypeMultipliers === "object"
+                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.unitTypeMultipliers
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers
+                                        : {})),
+                            },
+                            routeClassMultipliers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.routeClassMultipliers,
+                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.routeClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.routeClassMultipliers
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers
+                                        : {})),
+                            },
+                            handlingClassMultipliers: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.handlingClassMultipliers,
+                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.handlingClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.handlingClassMultipliers
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers
+                                        : {})),
+                            },
+                            w2wOption: {
+                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.w2wOption,
+                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption === "object"
+                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption
+                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption === "object"
+                                        ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption
+                                        : {})),
+                                modeMultipliers: {
+                                    ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.w2wOption.modeMultipliers,
+                                    ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                        ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption.modeMultipliers
+                                        : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                            ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers
+                                            : {})),
+                                },
                             },
                         },
                     },
@@ -1168,6 +1369,10 @@ const Settings = () => {
     const [pricingGovernanceActionBusy, setPricingGovernanceActionBusy] = useState(false);
     const [liveRateBusy, setLiveRateBusy] = useState(false);
     const [pricingZoneDraft, setPricingZoneDraft] = useState("");
+    const [addTierModalOpen, setAddTierModalOpen] = useState(false);
+    const [addTierModalCategory, setAddTierModalCategory] = useState("domestic");
+    const [addTierDraftKey, setAddTierDraftKey] = useState("");
+    const [addTierDraftError, setAddTierDraftError] = useState("");
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
     const stepUpGuidanceRef = useRef(null);
     const stepUpGuidanceTimerRef = useRef(null);
@@ -1301,10 +1506,149 @@ const Settings = () => {
         });
     };
 
+    const openAddTierModal = (categoryKey) => {
+        setAddTierModalCategory(categoryKey);
+        setAddTierDraftKey("");
+        setAddTierDraftError("");
+        setAddTierModalOpen(true);
+    };
+
+    const closeAddTierModal = () => {
+        setAddTierModalOpen(false);
+        setAddTierDraftKey("");
+        setAddTierDraftError("");
+    };
+
+    const addPricingTierEngineTier = (categoryKey, rawKey) => {
+        const tierKey = String(rawKey || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+        if (!tierKey) {
+            setAddTierDraftError("Tier key is required.");
+            return;
+        }
+
+        setAddTierDraftError("");
+        let added = false;
+        let duplicate = false;
+
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const policyModules = pricing.policyModules || DEFAULT_SETTINGS.pricing.policyModules;
+            const categoryModules = policyModules[categoryKey] || DEFAULT_SETTINGS.pricing.policyModules[categoryKey];
+            const tierEngine = categoryModules.speedEtaTierEngine || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine;
+            const tiers = tierEngine.tiers || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine.tiers;
+
+            if (tiers[tierKey]) {
+                duplicate = true;
+                return prev;
+            }
+
+            added = true;
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    policyModules: {
+                        ...policyModules,
+                        [categoryKey]: {
+                            ...categoryModules,
+                            speedEtaTierEngine: {
+                                ...tierEngine,
+                                tiers: {
+                                    ...tiers,
+                                    [tierKey]: {
+                                        ...DEFAULT_SPEED_ETA_TIER_TEMPLATE,
+                                        etaLabel: titleCase(tierKey),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+        });
+
+        if (duplicate) {
+            setAddTierDraftError("Tier key already exists.");
+            return;
+        }
+
+        if (added) {
+            closeAddTierModal();
+        }
+    };
+
+    const removePricingTierEngineTier = (categoryKey, tierKey) => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const policyModules = pricing.policyModules || DEFAULT_SETTINGS.pricing.policyModules;
+            const categoryModules = policyModules[categoryKey] || DEFAULT_SETTINGS.pricing.policyModules[categoryKey];
+            const tierEngine = categoryModules.speedEtaTierEngine || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine;
+            const tiers = { ...(tierEngine.tiers || DEFAULT_SETTINGS.pricing.policyModules[categoryKey].speedEtaTierEngine.tiers) };
+
+            if (!tiers[tierKey]) {
+                return prev;
+            }
+
+            delete tiers[tierKey];
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    policyModules: {
+                        ...policyModules,
+                        [categoryKey]: {
+                            ...categoryModules,
+                            speedEtaTierEngine: {
+                                ...tierEngine,
+                                tiers,
+                            },
+                        },
+                    },
+                },
+            };
+        });
+    };
+
     const parseCommaList = (value, transform = (item) => item) => String(value || "")
         .split(",")
         .map((item) => transform(String(item || "").trim()))
         .filter((item) => Boolean(item));
+
+    const parseMultiplierMapInput = (value) => String(value || "")
+        .split(/\r?\n|,/)
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+        .reduce((acc, row) => {
+            const [rawKey, rawValue] = row.split(":");
+            const normalizedKey = String(rawKey || "")
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "");
+            const numericValue = Number(rawValue);
+
+            if (!normalizedKey || Number.isNaN(numericValue) || numericValue <= 0) {
+                return acc;
+            }
+
+            acc[normalizedKey] = numericValue;
+            return acc;
+        }, {});
+
+    const formatMultiplierMapInput = (value) => {
+        if (!value || typeof value !== "object") {
+            return "";
+        }
+
+        return Object.entries(value)
+            .map(([key, multiplier]) => `${key}: ${Number(multiplier || 1)}`)
+            .join("\n");
+    };
 
     const runPricingGovernanceAction = (action, options = {}) => {
         setPricingGovernanceActionBusy(true);
@@ -3720,6 +4064,23 @@ const Settings = () => {
     const activeSpeedEtaTierEngine = (activePricingPolicyModules && typeof activePricingPolicyModules.speedEtaTierEngine === "object")
         ? activePricingPolicyModules.speedEtaTierEngine
         : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].speedEtaTierEngine;
+    const activeSpeedEtaTierRows = Object.entries(activeSpeedEtaTierEngine?.tiers || {})
+        .map(([tierKey, tierRow]) => ({
+            key: tierKey,
+            row: tierRow && typeof tierRow === "object" ? tierRow : {},
+        }))
+        .sort((a, b) => {
+            const aMin = Number(a.row?.etaMinDays ?? 0);
+            const bMin = Number(b.row?.etaMinDays ?? 0);
+            if (aMin !== bMin) {
+                return aMin - bMin;
+            }
+
+            return String(a.key).localeCompare(String(b.key));
+        });
+    const activeLogisticDimensionsEngine = (activePricingPolicyModules && typeof activePricingPolicyModules.logisticDimensionsEngine === "object")
+        ? activePricingPolicyModules.logisticDimensionsEngine
+        : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine;
     const activePricingZones = Array.isArray(pricingZoneMasterByCategory?.[activePricingCategory])
         ? pricingZoneMasterByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.zoneMaster[activePricingCategory];
@@ -4064,7 +4425,7 @@ const Settings = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
                                 <p className="text-[12px] font-[700] text-[#111827]">Speed/ETA Explicit Tier Engine</p>
-                                <p className="text-[11px] text-[#64748B] mt-1">Fixed named tiers with explicit ETA ranges, constraints, and optional tier price multipliers.</p>
+                                <p className="text-[11px] text-[#64748B] mt-1">Manage your own tiers with explicit ETA ranges, constraints, and optional tier price multipliers.</p>
                                 <div className="mt-2 flex flex-wrap gap-3">
                                     <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                         <input
@@ -4080,7 +4441,7 @@ const Settings = () => {
                                             checked={Boolean(activeSpeedEtaTierEngine?.enforceFixedNamedTiers)}
                                             onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enforceFixedNamedTiers", e.target.checked)}
                                         />
-                                        Enforce Fixed Tier Keys
+                                        Require Selected Service Tier To Exist
                                     </label>
                                     <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                         <input
@@ -4090,6 +4451,13 @@ const Settings = () => {
                                         />
                                         Enforce Tier Price Multiplier
                                     </label>
+                                    <button
+                                        type="button"
+                                        className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                        onClick={() => openAddTierModal(activePricingCategory)}
+                                    >
+                                        Add Tier
+                                    </button>
                                 </div>
 
                                 <div className="mt-3 overflow-x-auto">
@@ -4106,14 +4474,15 @@ const Settings = () => {
                                                 <th className="px-2 py-2">Max Weight (kg)</th>
                                                 <th className="px-2 py-2">Min Lead Hours</th>
                                                 <th className="px-2 py-2">Max Lead Hours</th>
+                                                <th className="px-2 py-2">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {FIXED_SPEED_ETA_TIERS.map((tier) => {
-                                                const tierRow = activeSpeedEtaTierEngine?.tiers?.[tier.key] || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].speedEtaTierEngine.tiers[tier.key] || {};
+                                            {activeSpeedEtaTierRows.map((tier) => {
+                                                const tierRow = tier.row || {};
                                                 return (
                                                     <tr key={`speed-eta-tier-${tier.key}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-2 font-[700] text-[#0F172A]">{tier.label}</td>
+                                                        <td className="px-2 py-2 font-[700] text-[#0F172A]">{tier.key}</td>
                                                         <td className="px-2 py-2">
                                                             <input
                                                                 type="checkbox"
@@ -4121,7 +4490,7 @@ const Settings = () => {
                                                                 onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "enabled", e.target.checked)}
                                                             />
                                                         </td>
-                                                        <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(tierRow?.etaLabel || tier.label)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaLabel", e.target.value)} /></td>
+                                                        <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(tierRow?.etaLabel || titleCase(tier.key))} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaLabel", e.target.value)} /></td>
                                                         <td className="px-2 py-2"><input type="number" min={0} step="1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.etaMinDays ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaMinDays", Number(e.target.value || 0))} /></td>
                                                         <td className="px-2 py-2"><input type="number" min={0} step="1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.etaMaxDays === null || tierRow?.etaMaxDays === undefined ? "" : Number(tierRow?.etaMaxDays ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaMaxDays", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
                                                         <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.priceMultiplier ?? 1)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "priceMultiplier", Number(e.target.value || 1))} /></td>
@@ -4129,6 +4498,15 @@ const Settings = () => {
                                                         <td className="px-2 py-2"><input type="number" min={0.1} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxWeightKg === null || tierRow?.maxWeightKg === undefined ? "" : Number(tierRow?.maxWeightKg ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxWeightKg", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
                                                         <td className="px-2 py-2"><input type="number" min={0} step="0.25" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.minLeadHours ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "minLeadHours", Number(e.target.value || 0))} /></td>
                                                         <td className="px-2 py-2"><input type="number" min={0} step="0.25" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxLeadHours === null || tierRow?.maxLeadHours === undefined ? "" : Number(tierRow?.maxLeadHours ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxLeadHours", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
+                                                        <td className="px-2 py-2">
+                                                            <button
+                                                                type="button"
+                                                                className="h-[28px] px-2 rounded-[6px] border border-[#DC2626] text-[#DC2626] text-[11px] font-[700]"
+                                                                onClick={() => removePricingTierEngineTier(activePricingCategory, tier.key)}
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 );
                                             })}
@@ -4137,11 +4515,11 @@ const Settings = () => {
                                 </div>
 
                                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {FIXED_SPEED_ETA_TIERS.map((tier) => {
-                                        const tierRow = activeSpeedEtaTierEngine?.tiers?.[tier.key] || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].speedEtaTierEngine.tiers[tier.key] || {};
+                                    {activeSpeedEtaTierRows.map((tier) => {
+                                        const tierRow = tier.row || {};
                                         return (
                                             <div key={`speed-eta-tier-list-${tier.key}`} className="rounded-[8px] border border-[#E5E7EB] p-2">
-                                                <p className="text-[11px] font-[700] text-[#0F172A]">{tier.label} Constraints</p>
+                                                <p className="text-[11px] font-[700] text-[#0F172A]">{tierRow?.etaLabel || titleCase(tier.key)} Constraints</p>
                                                 <Field label="Allowed Pickup Days (1-7, comma-separated)">
                                                     <input
                                                         className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
@@ -4165,6 +4543,165 @@ const Settings = () => {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </div>
+
+                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
+                                <p className="text-[12px] font-[700] text-[#111827]">Logistic Dimensions Engine</p>
+                                <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
+                                <div className="mt-2 flex flex-wrap gap-3">
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activeLogisticDimensionsEngine?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "enabled", e.target.checked)}
+                                        />
+                                        Enable
+                                    </label>
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activeLogisticDimensionsEngine?.enforceForLogisticOnly)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "enforceForLogisticOnly", e.target.checked)}
+                                        />
+                                        Enforce for logistic category only
+                                    </label>
+                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(activeLogisticDimensionsEngine?.w2wOption?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(
+                                                activePricingCategory,
+                                                "logisticDimensionsEngine",
+                                                "w2wOption",
+                                                {
+                                                    ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                    enabled: e.target.checked,
+                                                },
+                                            )}
+                                        />
+                                        Enable W2W mode engine
+                                    </label>
+                                </div>
+
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                    <Field label="Unit Type Multipliers (key: value)">
+                                        <textarea
+                                            rows={5}
+                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.unitTypeMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "unitTypeMultipliers", parseMultiplierMapInput(e.target.value))}
+                                            placeholder={"parcel: 1.0\npallet: 1.18\ncrate: 1.24"}
+                                        />
+                                    </Field>
+                                    <Field label="Route Class Multipliers (key: value)">
+                                        <textarea
+                                            rows={5}
+                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.routeClassMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "routeClassMultipliers", parseMultiplierMapInput(e.target.value))}
+                                            placeholder={"standard: 1.0\nexpress_corridor: 1.12\nremote_corridor: 1.22"}
+                                        />
+                                    </Field>
+                                    <Field label="Handling Class Multipliers (key: value)">
+                                        <textarea
+                                            rows={5}
+                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.handlingClassMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "handlingClassMultipliers", parseMultiplierMapInput(e.target.value))}
+                                            placeholder={"standard: 1.0\nfragile: 1.08\nhazardous: 1.2"}
+                                        />
+                                    </Field>
+                                </div>
+
+                                <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-3">
+                                    <p className="text-[11px] font-[700] text-[#111827]">W2W Option Policy</p>
+                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(activeLogisticDimensionsEngine?.w2wOption?.strictForLogistic)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "logisticDimensionsEngine",
+                                                    "w2wOption",
+                                                    {
+                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        strictForLogistic: e.target.checked,
+                                                    },
+                                                )}
+                                            />
+                                            Strict for logistic
+                                        </label>
+                                        <Field label="Default Mode">
+                                            <input
+                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                value={String(activeLogisticDimensionsEngine?.w2wOption?.defaultMode || "")}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "logisticDimensionsEngine",
+                                                    "w2wOption",
+                                                    {
+                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        defaultMode: String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+                                                    },
+                                                )}
+                                            />
+                                        </Field>
+                                        <Field label="Min Unit Count">
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                step="1"
+                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                value={Number(activeLogisticDimensionsEngine?.w2wOption?.minimumUnitCount || 1)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "logisticDimensionsEngine",
+                                                    "w2wOption",
+                                                    {
+                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        minimumUnitCount: Number(e.target.value || 1),
+                                                    },
+                                                )}
+                                            />
+                                        </Field>
+                                        <Field label="Max Unit Count (optional)">
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                step="1"
+                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                value={activeLogisticDimensionsEngine?.w2wOption?.maximumUnitCount === null || activeLogisticDimensionsEngine?.w2wOption?.maximumUnitCount === undefined ? "" : Number(activeLogisticDimensionsEngine?.w2wOption?.maximumUnitCount || 1)}
+                                                onChange={(e) => updatePricingPolicyModule(
+                                                    activePricingCategory,
+                                                    "logisticDimensionsEngine",
+                                                    "w2wOption",
+                                                    {
+                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        maximumUnitCount: e.target.value === "" ? null : Number(e.target.value || 1),
+                                                    },
+                                                )}
+                                            />
+                                        </Field>
+                                    </div>
+                                    <Field label="W2W Mode Multipliers (key: value)">
+                                        <textarea
+                                            rows={4}
+                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.w2wOption?.modeMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(
+                                                activePricingCategory,
+                                                "logisticDimensionsEngine",
+                                                "w2wOption",
+                                                {
+                                                    ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                    modeMultipliers: parseMultiplierMapInput(e.target.value),
+                                                },
+                                            )}
+                                            placeholder={"door_to_door: 1.15\nport_to_port: 0.92\nhybrid: 1.0"}
+                                        />
+                                    </Field>
                                 </div>
                             </div>
 
@@ -7003,6 +7540,55 @@ const Settings = () => {
                 onConfirm={runConfirm}
                 onClose={closeConfirm}
             />
+
+            {addTierModalOpen && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4">
+                    <div className="w-full max-w-[460px] rounded-[12px] bg-white border border-[#E5E7EB] p-4 shadow-2xl">
+                        <p className="text-[15px] font-[700] text-[#111827]">Add Speed/ETA Tier</p>
+                        <p className="mt-1 text-[12px] text-[#6B7280]">
+                            Create a new tier key for {titleCase(addTierModalCategory)} pricing (example: priority_weekend).
+                        </p>
+                        <div className="mt-3">
+                            <label className="block text-[12px] font-[700] text-[#374151]">Tier Key</label>
+                            <input
+                                autoFocus
+                                className="mt-1 h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-3 text-[13px]"
+                                value={addTierDraftKey}
+                                onChange={(e) => {
+                                    setAddTierDraftKey(e.target.value);
+                                    if (addTierDraftError) {
+                                        setAddTierDraftError("");
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addPricingTierEngineTier(addTierModalCategory, addTierDraftKey);
+                                    }
+                                }}
+                                placeholder="priority_weekend"
+                            />
+                            {addTierDraftError && <p className="mt-1 text-[11px] text-[#DC2626]">{addTierDraftError}</p>}
+                        </div>
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                className="h-[34px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700] text-[#374151]"
+                                onClick={closeAddTierModal}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="h-[34px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[700]"
+                                onClick={() => addPricingTierEngineTier(addTierModalCategory, addTierDraftKey)}
+                            >
+                                Add Tier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
                 <div>

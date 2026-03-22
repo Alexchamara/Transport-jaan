@@ -196,7 +196,119 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertNull(CourierShipment::query()->first());
     }
 
+    public function test_logistic_dimensions_engine_applies_combined_multiplier(): void
+    {
+        $this->createLogisticVendorWithPolicyModules([
+            'logisticDimensionsEngine' => [
+                'enabled' => true,
+                'enforceForLogisticOnly' => true,
+                'unitTypeMultipliers' => [
+                    'pallet' => 1.1,
+                ],
+                'routeClassMultipliers' => [
+                    'express_corridor' => 1.2,
+                ],
+                'handlingClassMultipliers' => [
+                    'fragile' => 1.05,
+                ],
+                'w2wOption' => [
+                    'enabled' => true,
+                    'strictForLogistic' => true,
+                    'defaultMode' => 'door_to_door',
+                    'minimumUnitCount' => 1,
+                    'maximumUnitCount' => 5,
+                    'modeMultipliers' => [
+                        'door_to_door' => 1.15,
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment([
+            'sender' => [
+                'address' => [
+                    'country' => 'US',
+                ],
+            ],
+            'shipment' => [
+                'logisticDimensions' => [
+                    'unitType' => 'pallet',
+                    'unitCount' => 2,
+                    'routeClass' => 'express_corridor',
+                    'handlingClass' => 'fragile',
+                    'w2wMode' => 'door_to_door',
+                ],
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta(79.7, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'logistic_dimensions_engine', 29.7);
+    }
+
+    public function test_logistic_dimensions_engine_rejects_invalid_unit_type(): void
+    {
+        $this->createLogisticVendorWithPolicyModules([
+            'logisticDimensionsEngine' => [
+                'enabled' => true,
+                'enforceForLogisticOnly' => true,
+                'unitTypeMultipliers' => [
+                    'pallet' => 1.1,
+                ],
+                'routeClassMultipliers' => [
+                    'standard' => 1.0,
+                ],
+                'handlingClassMultipliers' => [
+                    'standard' => 1.0,
+                ],
+                'w2wOption' => [
+                    'enabled' => true,
+                    'strictForLogistic' => true,
+                    'defaultMode' => 'door_to_door',
+                    'modeMultipliers' => [
+                        'door_to_door' => 1.0,
+                    ],
+                ],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        $payload = $this->buildPayload([
+            'sender' => [
+                'address' => [
+                    'country' => 'US',
+                ],
+            ],
+            'shipment' => [
+                'logisticDimensions' => [
+                    'unitType' => 'unsupported_unit',
+                    'unitCount' => 1,
+                    'routeClass' => 'standard',
+                    'handlingClass' => 'standard',
+                    'w2wMode' => 'door_to_door',
+                ],
+            ],
+        ]);
+        $csrfToken = 'advanced-policy-test-token-logistic-unit-type';
+
+        $response = $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
+
+        $response->assertSessionHasErrors('shipment.logisticDimensions.unitType');
+        $this->assertNull(CourierShipment::query()->first());
+    }
+
     private function createDomesticVendorWithPolicyModules(array $policyModules): User
+    {
+        return $this->createVendorWithPolicyModules($policyModules, 'domestic', 'Courier Domestic');
+    }
+
+    private function createLogisticVendorWithPolicyModules(array $policyModules): User
+    {
+        return $this->createVendorWithPolicyModules($policyModules, 'logistic', 'Courier Logistic');
+    }
+
+    private function createVendorWithPolicyModules(array $policyModules, string $subCategorySlug, string $subCategoryName): User
     {
         $vendor = User::factory()->create([
             'role' => 'vendor',
@@ -213,9 +325,9 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         $subCategory = ServiceSubCategory::query()->create([
             'service_category_id' => $category->id,
-            'name' => 'Courier Domestic',
-            'slug' => 'domestic',
-            'description' => 'Courier domestic category for tests',
+            'name' => $subCategoryName,
+            'slug' => $subCategorySlug,
+            'description' => sprintf('Courier %s category for tests', $subCategorySlug),
             'required_fields' => [],
             'display_order' => 1,
             'is_active' => true,
@@ -262,7 +374,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                             'domestic' => [],
                         ],
                         'policyModules' => [
-                            'domestic' => $policyModules,
+                            $subCategorySlug => $policyModules,
                         ],
                     ],
                 ],

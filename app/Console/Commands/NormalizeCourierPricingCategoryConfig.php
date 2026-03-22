@@ -125,6 +125,19 @@ class NormalizeCourierPricingCategoryConfig extends Command
                 'enforceFixedNamedTiers' => true,
                 'enforceTierPricingMultiplier' => true,
                 'tiers' => [
+                    'priority_4h' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Priority 4 Hours',
+                        'etaMinDays' => 0,
+                        'etaMaxDays' => 0,
+                        'priceMultiplier' => 1.45,
+                        'maxDistanceKm' => 35,
+                        'maxWeightKg' => 12,
+                        'minLeadHours' => 0.5,
+                        'maxLeadHours' => 4,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
                     'same_day' => [
                         'enabled' => true,
                         'etaLabel' => 'Same Day',
@@ -176,6 +189,42 @@ class NormalizeCourierPricingCategoryConfig extends Command
                         'maxLeadHours' => null,
                         'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
                         'blackoutDates' => [],
+                    ],
+                ],
+            ],
+            'logisticDimensionsEngine' => [
+                'enabled' => false,
+                'enforceForLogisticOnly' => true,
+                'unitTypeMultipliers' => [
+                    'parcel' => 1.0,
+                    'pallet' => 1.18,
+                    'crate' => 1.24,
+                    'container_20ft' => 1.55,
+                    'container_40ft' => 1.85,
+                ],
+                'routeClassMultipliers' => [
+                    'standard' => 1.0,
+                    'express_corridor' => 1.12,
+                    'remote_corridor' => 1.22,
+                    'multimodal' => 1.3,
+                ],
+                'handlingClassMultipliers' => [
+                    'standard' => 1.0,
+                    'fragile' => 1.08,
+                    'hazardous' => 1.2,
+                    'cold_chain' => 1.18,
+                    'heavy_lift' => 1.26,
+                ],
+                'w2wOption' => [
+                    'enabled' => true,
+                    'strictForLogistic' => true,
+                    'defaultMode' => 'door_to_door',
+                    'minimumUnitCount' => 1,
+                    'maximumUnitCount' => null,
+                    'modeMultipliers' => [
+                        'door_to_door' => 1.15,
+                        'port_to_port' => 0.92,
+                        'hybrid' => 1.0,
                     ],
                 ],
             ],
@@ -263,9 +312,17 @@ class NormalizeCourierPricingCategoryConfig extends Command
                     'enabled' => (bool) ($row['speedEtaTierEngine']['enabled'] ?? false),
                     'enforceFixedNamedTiers' => (bool) ($row['speedEtaTierEngine']['enforceFixedNamedTiers'] ?? true),
                     'enforceTierPricingMultiplier' => (bool) ($row['speedEtaTierEngine']['enforceTierPricingMultiplier'] ?? true),
-                    'tiers' => collect($defaults['speedEtaTierEngine']['tiers'] ?? [])
-                        ->mapWithKeys(function ($fallbackTier, $tierKey) use ($row) {
-                            $tierInput = $row['speedEtaTierEngine']['tiers'][$tierKey] ?? [];
+                    'tiers' => collect(array_values(array_unique(array_merge(
+                        array_keys(is_array($defaults['speedEtaTierEngine']['tiers'] ?? null) ? $defaults['speedEtaTierEngine']['tiers'] : []),
+                        array_keys(is_array($row['speedEtaTierEngine']['tiers'] ?? null) ? $row['speedEtaTierEngine']['tiers'] : [])
+                    ))))
+                        ->mapWithKeys(function ($tierKey) use ($row, $defaults) {
+                            $fallbackTier = is_array($defaults['speedEtaTierEngine']['tiers'][$tierKey] ?? null)
+                                ? $defaults['speedEtaTierEngine']['tiers'][$tierKey]
+                                : [];
+                            $tierInput = is_array($row['speedEtaTierEngine']['tiers'][$tierKey] ?? null)
+                                ? $row['speedEtaTierEngine']['tiers'][$tierKey]
+                                : [];
                             $tierRow = array_replace(
                                 is_array($fallbackTier) ? $fallbackTier : [],
                                 is_array($tierInput) ? $tierInput : []
@@ -312,6 +369,61 @@ class NormalizeCourierPricingCategoryConfig extends Command
                             ];
                         })
                         ->all(),
+                ],
+                'logisticDimensionsEngine' => [
+                    'enabled' => (bool) ($row['logisticDimensionsEngine']['enabled'] ?? false),
+                    'enforceForLogisticOnly' => (bool) ($row['logisticDimensionsEngine']['enforceForLogisticOnly'] ?? true),
+                    'unitTypeMultipliers' => collect($row['logisticDimensionsEngine']['unitTypeMultipliers'] ?? [])
+                        ->mapWithKeys(function ($value, $key) {
+                            $normalizedKey = strtolower(trim((string) $key));
+                            if ($normalizedKey === '') {
+                                return [];
+                            }
+
+                            return [$normalizedKey => max(0.1, (float) $value)];
+                        })
+                        ->all(),
+                    'routeClassMultipliers' => collect($row['logisticDimensionsEngine']['routeClassMultipliers'] ?? [])
+                        ->mapWithKeys(function ($value, $key) {
+                            $normalizedKey = strtolower(trim((string) $key));
+                            if ($normalizedKey === '') {
+                                return [];
+                            }
+
+                            return [$normalizedKey => max(0.1, (float) $value)];
+                        })
+                        ->all(),
+                    'handlingClassMultipliers' => collect($row['logisticDimensionsEngine']['handlingClassMultipliers'] ?? [])
+                        ->mapWithKeys(function ($value, $key) {
+                            $normalizedKey = strtolower(trim((string) $key));
+                            if ($normalizedKey === '') {
+                                return [];
+                            }
+
+                            return [$normalizedKey => max(0.1, (float) $value)];
+                        })
+                        ->all(),
+                    'w2wOption' => [
+                        'enabled' => (bool) ($row['logisticDimensionsEngine']['w2wOption']['enabled'] ?? true),
+                        'strictForLogistic' => (bool) ($row['logisticDimensionsEngine']['w2wOption']['strictForLogistic'] ?? true),
+                        'defaultMode' => strtolower(trim((string) ($row['logisticDimensionsEngine']['w2wOption']['defaultMode'] ?? ''))),
+                        'minimumUnitCount' => max(1, (int) ($row['logisticDimensionsEngine']['w2wOption']['minimumUnitCount'] ?? 1)),
+                        'maximumUnitCount' => isset($row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'])
+                            && $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'] !== ''
+                            && $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'] !== null
+                            ? max(1, (int) $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'])
+                            : null,
+                        'modeMultipliers' => collect($row['logisticDimensionsEngine']['w2wOption']['modeMultipliers'] ?? [])
+                            ->mapWithKeys(function ($value, $key) {
+                                $normalizedKey = strtolower(trim((string) $key));
+                                if ($normalizedKey === '') {
+                                    return [];
+                                }
+
+                                return [$normalizedKey => max(0.1, (float) $value)];
+                            })
+                            ->all(),
+                    ],
                 ],
             ];
         }
@@ -563,6 +675,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
         $normalized = trim($normalized, '_');
 
         return match ($normalized) {
+            'priority_4h', 'priority4h', 'priority_4_hours', 'priority_4hour', '4h', 'rush_4h', 'rush4h' => 'priority_4h',
             'same_day', 'sameday' => 'same_day',
             'next_day', 'nextday', 'express', 'one_day', 'oneday' => 'next_day',
             '2_3_day', '2_3_days', 'two_three_day', 'standard', 'within_3_days' => 'two_three_day',

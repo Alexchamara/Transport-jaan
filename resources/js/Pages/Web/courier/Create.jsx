@@ -77,6 +77,13 @@ const Create = () => {
             insurance: false,
             deliveryNotes: "",
             estimatedValue: "",
+            logisticDimensions: {
+                unitType: "",
+                unitCount: "",
+                routeClass: "",
+                handlingClass: "",
+                w2wMode: "",
+            },
         },
         packages: [
             {
@@ -321,6 +328,16 @@ const Create = () => {
                                             <p>ETA Range: {Number(recentPricingExplanation.speedEtaTier.etaMinDays || 0)} - {recentPricingExplanation.speedEtaTier.etaMaxDays === null || recentPricingExplanation.speedEtaTier.etaMaxDays === undefined ? "*" : Number(recentPricingExplanation.speedEtaTier.etaMaxDays)} days</p>
                                             <p>Projected Window: {recentPricingExplanation.speedEtaTier.etaStartDate || "—"} {recentPricingExplanation.speedEtaTier.etaEndDate ? `to ${recentPricingExplanation.speedEtaTier.etaEndDate}` : ""}</p>
                                             <p>Tier Multiplier: x{Number(recentPricingExplanation.speedEtaTier.priceMultiplier || 1).toFixed(2)} {recentPricingExplanation.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
+                                        </div>
+                                    )}
+                                    {recentPricingExplanation.logisticDimensions && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            <p>Logistic Unit Type: {recentPricingExplanation.logisticDimensions.unitType || "—"}</p>
+                                            <p>Route Class: {recentPricingExplanation.logisticDimensions.routeClass || "—"}</p>
+                                            <p>Handling Class: {recentPricingExplanation.logisticDimensions.handlingClass || "—"}</p>
+                                            <p>W2W Mode: {recentPricingExplanation.logisticDimensions.w2wMode || "—"}</p>
+                                            <p>Unit Count: {recentPricingExplanation.logisticDimensions.unitCount || "—"}</p>
+                                            <p>Combined Multiplier: x{Number(recentPricingExplanation.logisticDimensions.totalMultiplier || 1).toFixed(2)}</p>
                                         </div>
                                     )}
                                     {Array.isArray(recentPricingExplanation.policyAdjustments) && recentPricingExplanation.policyAdjustments.length > 0 && (

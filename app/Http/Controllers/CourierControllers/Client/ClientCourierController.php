@@ -382,6 +382,12 @@ class ClientCourierController extends Controller
             'recipient' => ['nullable', 'array'],
             'recipient.address' => ['nullable', 'array'],
             'shipment' => ['nullable', 'array'],
+            'shipment.logisticDimensions' => ['nullable', 'array'],
+            'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
+            'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
+            'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
+            'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
+            'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
             'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -452,6 +458,13 @@ class ClientCourierController extends Controller
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
                 'distanceKm' => null,
+                'logisticDimensions' => [
+                    'unitType' => null,
+                    'unitCount' => 1,
+                    'routeClass' => null,
+                    'handlingClass' => null,
+                    'w2wMode' => null,
+                ],
             ],
         ];
 
@@ -474,13 +487,44 @@ class ClientCourierController extends Controller
         $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
+        $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
 
         return Inertia::render('Web/courier/Details', [
             'formData' => $formData,
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
             'countries' => $countries,
+            'logisticDimensionOptions' => $logisticDimensionOptions,
         ]);
+    }
+
+    private function resolveLogisticDimensionOptionsForPayload(array $payload, string $category): array
+    {
+        $shipment = new CourierShipment();
+        $shipment->setRelation('senderAddress', (object) [
+            'country' => strtoupper((string) ($payload['sender']['address']['country'] ?? '')),
+        ]);
+        $shipment->setRelation('recipientAddress', (object) [
+            'country' => strtoupper((string) ($payload['recipient']['address']['country'] ?? '')),
+        ]);
+
+        $assignmentService = app(CourierVendorAssignmentService::class);
+        $assignment = $assignmentService->determineAssignment($shipment);
+        $vendorId = (int) ($assignment['assigned_vendor_user_id'] ?? 0);
+
+        $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
+        $policyModules = is_array($pricingConfig['policyModules'] ?? null) ? $pricingConfig['policyModules'] : [];
+        $engine = is_array($policyModules['logisticDimensionsEngine'] ?? null)
+            ? $policyModules['logisticDimensionsEngine']
+            : [];
+        $w2wOption = is_array($engine['w2wOption'] ?? null) ? $engine['w2wOption'] : [];
+
+        return [
+            'unitTypes' => array_values(array_filter(array_keys(is_array($engine['unitTypeMultipliers'] ?? null) ? $engine['unitTypeMultipliers'] : []))),
+            'routeClasses' => array_values(array_filter(array_keys(is_array($engine['routeClassMultipliers'] ?? null) ? $engine['routeClassMultipliers'] : []))),
+            'handlingClasses' => array_values(array_filter(array_keys(is_array($engine['handlingClassMultipliers'] ?? null) ? $engine['handlingClassMultipliers'] : []))),
+            'w2wModes' => array_values(array_filter(array_keys(is_array($w2wOption['modeMultipliers'] ?? null) ? $w2wOption['modeMultipliers'] : []))),
+        ];
     }
 
     public function storeDetails(Request $request)
@@ -530,6 +574,12 @@ class ClientCourierController extends Controller
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
+                'shipment.logisticDimensions' => ['nullable', 'array'],
+                'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
+                'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
+                'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
+                'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
+                'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
                 'packages' => ['required', 'array', 'min:1'],
                 'packages.*.label' => ['nullable', 'string', 'max:120'],
                 'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -880,6 +930,7 @@ class ClientCourierController extends Controller
         $normalized = trim($normalized, '_');
 
         return match ($normalized) {
+            'priority_4h', 'priority4h', 'priority_4_hours', 'priority_4hour', '4h', 'rush_4h', 'rush4h' => 'priority_4h',
             'same_day', 'sameday' => 'same_day',
             'next_day', 'nextday', 'express', 'one_day', 'oneday' => 'next_day',
             '2_3_day', '2_3_days', 'two_three_day', 'standard', 'within_3_days' => 'two_three_day',
@@ -1080,6 +1131,7 @@ class ClientCourierController extends Controller
             'distanceKm' => null,
             'matchedRule' => null,
             'speedEtaTier' => null,
+            'logisticDimensions' => null,
             'policyAdjustments' => [],
             'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
         ];
@@ -1100,6 +1152,11 @@ class ClientCourierController extends Controller
             $policyModules,
             $selectedLevelKey,
             $payload
+        );
+        $pricingExplanation['logisticDimensions'] = $this->resolveLogisticDimensionsProjection(
+            $policyModules,
+            $payload,
+            $category
         );
         $baseCurrency = strtoupper((string) ($localization['baseCurrency'] ?? 'USD'));
         $manualRates = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
@@ -1356,6 +1413,19 @@ class ClientCourierController extends Controller
                 'enforceFixedNamedTiers' => true,
                 'enforceTierPricingMultiplier' => true,
                 'tiers' => [
+                    'priority_4h' => [
+                        'enabled' => true,
+                        'etaLabel' => 'Priority 4 Hours',
+                        'etaMinDays' => 0,
+                        'etaMaxDays' => 0,
+                        'priceMultiplier' => 1.45,
+                        'maxDistanceKm' => 35,
+                        'maxWeightKg' => 12,
+                        'minLeadHours' => 0.5,
+                        'maxLeadHours' => 4,
+                        'allowedPickupDays' => [1, 2, 3, 4, 5, 6, 7],
+                        'blackoutDates' => [],
+                    ],
                     'same_day' => [
                         'enabled' => true,
                         'etaLabel' => 'Same Day',
@@ -1410,6 +1480,42 @@ class ClientCourierController extends Controller
                     ],
                 ],
             ],
+            'logisticDimensionsEngine' => [
+                'enabled' => false,
+                'enforceForLogisticOnly' => true,
+                'unitTypeMultipliers' => [
+                    'parcel' => 1.0,
+                    'pallet' => 1.18,
+                    'crate' => 1.24,
+                    'container_20ft' => 1.55,
+                    'container_40ft' => 1.85,
+                ],
+                'routeClassMultipliers' => [
+                    'standard' => 1.0,
+                    'express_corridor' => 1.12,
+                    'remote_corridor' => 1.22,
+                    'multimodal' => 1.3,
+                ],
+                'handlingClassMultipliers' => [
+                    'standard' => 1.0,
+                    'fragile' => 1.08,
+                    'hazardous' => 1.2,
+                    'cold_chain' => 1.18,
+                    'heavy_lift' => 1.26,
+                ],
+                'w2wOption' => [
+                    'enabled' => true,
+                    'strictForLogistic' => true,
+                    'defaultMode' => 'door_to_door',
+                    'minimumUnitCount' => 1,
+                    'maximumUnitCount' => null,
+                    'modeMultipliers' => [
+                        'door_to_door' => 1.15,
+                        'port_to_port' => 0.92,
+                        'hybrid' => 1.0,
+                    ],
+                ],
+            ],
         ];
 
         $policyInput = is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : [];
@@ -1438,6 +1544,54 @@ class ClientCourierController extends Controller
             0,
             (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
+        $category = $this->resolvePayloadCategory($payload);
+
+        $logisticDimensionsPolicy = is_array($policyModules['logisticDimensionsEngine'] ?? null) ? $policyModules['logisticDimensionsEngine'] : [];
+        $dimensionsPolicyInScope = !((bool) ($logisticDimensionsPolicy['enforceForLogisticOnly'] ?? true)) || $category === 'logistic';
+        if ((bool) ($logisticDimensionsPolicy['enabled'] ?? false) && $dimensionsPolicyInScope) {
+            $dimensions = is_array($payload['shipment']['logisticDimensions'] ?? null) ? $payload['shipment']['logisticDimensions'] : [];
+            $unitType = $this->normalizeZoneKey((string) ($dimensions['unitType'] ?? ''));
+            $routeClass = $this->normalizeZoneKey((string) ($dimensions['routeClass'] ?? ''));
+            $handlingClass = $this->normalizeZoneKey((string) ($dimensions['handlingClass'] ?? ''));
+            $w2wMode = $this->normalizeZoneKey((string) ($dimensions['w2wMode'] ?? ''));
+
+            $unitTypeMultipliers = is_array($logisticDimensionsPolicy['unitTypeMultipliers'] ?? null)
+                ? $logisticDimensionsPolicy['unitTypeMultipliers']
+                : [];
+            $routeClassMultipliers = is_array($logisticDimensionsPolicy['routeClassMultipliers'] ?? null)
+                ? $logisticDimensionsPolicy['routeClassMultipliers']
+                : [];
+            $handlingClassMultipliers = is_array($logisticDimensionsPolicy['handlingClassMultipliers'] ?? null)
+                ? $logisticDimensionsPolicy['handlingClassMultipliers']
+                : [];
+
+            $w2wOption = is_array($logisticDimensionsPolicy['w2wOption'] ?? null) ? $logisticDimensionsPolicy['w2wOption'] : [];
+            $modeMultipliers = is_array($w2wOption['modeMultipliers'] ?? null) ? $w2wOption['modeMultipliers'] : [];
+            $w2wEnabled = (bool) ($w2wOption['enabled'] ?? true);
+            $effectiveW2wMode = $w2wMode !== ''
+                ? $w2wMode
+                : $this->normalizeZoneKey((string) ($w2wOption['defaultMode'] ?? ''));
+
+            $multiplier = 1.0;
+            $multiplier *= max(0.1, (float) ($unitTypeMultipliers[$unitType] ?? 1));
+            $multiplier *= max(0.1, (float) ($routeClassMultipliers[$routeClass] ?? 1));
+            $multiplier *= max(0.1, (float) ($handlingClassMultipliers[$handlingClass] ?? 1));
+            if ($w2wEnabled) {
+                $multiplier *= max(0.1, (float) ($modeMultipliers[$effectiveW2wMode] ?? 1));
+            }
+
+            if (abs($multiplier - 1.0) > 0.0001) {
+                $before = $total;
+                $total = $total * $multiplier;
+                $delta = $total - $before;
+                if (abs($delta) > 0.0001) {
+                    $policyBreakdown[] = [
+                        'key' => 'logistic_dimensions_engine',
+                        'amount' => round($delta, 2),
+                    ];
+                }
+            }
+        }
 
         $tierPolicy = is_array($policyModules['speedEtaTierEngine'] ?? null) ? $policyModules['speedEtaTierEngine'] : [];
         $selectedTierKey = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
@@ -1659,6 +1813,63 @@ class ClientCourierController extends Controller
         ];
     }
 
+    private function resolveLogisticDimensionsProjection(array $policyModules, array $payload, string $category): ?array
+    {
+        $engine = is_array($policyModules['logisticDimensionsEngine'] ?? null)
+            ? $policyModules['logisticDimensionsEngine']
+            : [];
+        if (!(bool) ($engine['enabled'] ?? false)) {
+            return null;
+        }
+
+        if ((bool) ($engine['enforceForLogisticOnly'] ?? true) && $category !== 'logistic') {
+            return null;
+        }
+
+        $dimensions = is_array($payload['shipment']['logisticDimensions'] ?? null)
+            ? $payload['shipment']['logisticDimensions']
+            : [];
+        $unitType = $this->normalizeZoneKey((string) ($dimensions['unitType'] ?? ''));
+        $routeClass = $this->normalizeZoneKey((string) ($dimensions['routeClass'] ?? ''));
+        $handlingClass = $this->normalizeZoneKey((string) ($dimensions['handlingClass'] ?? ''));
+        $w2wMode = $this->normalizeZoneKey((string) ($dimensions['w2wMode'] ?? ''));
+        $unitCount = max(0, (int) ($dimensions['unitCount'] ?? 0));
+
+        $unitTypeMultiplier = max(
+            0.1,
+            (float) ((is_array($engine['unitTypeMultipliers'] ?? null) ? $engine['unitTypeMultipliers'] : [])[$unitType] ?? 1)
+        );
+        $routeClassMultiplier = max(
+            0.1,
+            (float) ((is_array($engine['routeClassMultipliers'] ?? null) ? $engine['routeClassMultipliers'] : [])[$routeClass] ?? 1)
+        );
+        $handlingClassMultiplier = max(
+            0.1,
+            (float) ((is_array($engine['handlingClassMultipliers'] ?? null) ? $engine['handlingClassMultipliers'] : [])[$handlingClass] ?? 1)
+        );
+
+        $w2wOption = is_array($engine['w2wOption'] ?? null) ? $engine['w2wOption'] : [];
+        $defaultMode = $this->normalizeZoneKey((string) ($w2wOption['defaultMode'] ?? ''));
+        $effectiveMode = $w2wMode !== '' ? $w2wMode : $defaultMode;
+        $w2wMultiplier = max(
+            0.1,
+            (float) ((is_array($w2wOption['modeMultipliers'] ?? null) ? $w2wOption['modeMultipliers'] : [])[$effectiveMode] ?? 1)
+        );
+
+        return [
+            'unitType' => $unitType,
+            'unitCount' => $unitCount,
+            'routeClass' => $routeClass,
+            'handlingClass' => $handlingClass,
+            'w2wMode' => $effectiveMode,
+            'unitTypeMultiplier' => $unitTypeMultiplier,
+            'routeClassMultiplier' => $routeClassMultiplier,
+            'handlingClassMultiplier' => $handlingClassMultiplier,
+            'w2wMultiplier' => $w2wMultiplier,
+            'totalMultiplier' => $unitTypeMultiplier * $routeClassMultiplier * $handlingClassMultiplier * $w2wMultiplier,
+        ];
+    }
+
     private function addressMatchesRemotePolicy(array $address, array $remotePolicy): bool
     {
         $postalPrefixes = collect($remotePolicy['postalCodePrefixes'] ?? [])
@@ -1733,6 +1944,7 @@ class ClientCourierController extends Controller
         }
 
         $this->assertSpeedEtaTierPolicyConstraints($shipment, $payload, $category, $selectedLevelKey, $selectedEntry);
+        $this->assertLogisticDimensionsPolicyConstraints($shipment, $payload, $category);
     }
 
     private function assertSpeedEtaTierPolicyConstraints(
@@ -1853,6 +2065,98 @@ class ClientCourierController extends Controller
             throw ValidationException::withMessages([
                 'shipment.serviceLevel' => 'Selected service level SLA is outside the allowed speed/ETA tier range.',
             ]);
+        }
+    }
+
+    private function assertLogisticDimensionsPolicyConstraints(CourierShipment $shipment, array $payload, string $category): void
+    {
+        $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
+        if ($vendorId <= 0) {
+            return;
+        }
+
+        $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
+        $policyModules = is_array($pricingConfig['policyModules'] ?? null) ? $pricingConfig['policyModules'] : [];
+        $engine = is_array($policyModules['logisticDimensionsEngine'] ?? null)
+            ? $policyModules['logisticDimensionsEngine']
+            : [];
+
+        if (!(bool) ($engine['enabled'] ?? false)) {
+            return;
+        }
+
+        if ((bool) ($engine['enforceForLogisticOnly'] ?? true) && $category !== 'logistic') {
+            return;
+        }
+
+        $dimensions = is_array($payload['shipment']['logisticDimensions'] ?? null) ? $payload['shipment']['logisticDimensions'] : [];
+        $unitType = $this->normalizeZoneKey((string) ($dimensions['unitType'] ?? ''));
+        $routeClass = $this->normalizeZoneKey((string) ($dimensions['routeClass'] ?? ''));
+        $handlingClass = $this->normalizeZoneKey((string) ($dimensions['handlingClass'] ?? ''));
+        $w2wMode = $this->normalizeZoneKey((string) ($dimensions['w2wMode'] ?? ''));
+        $unitCount = max(0, (int) ($dimensions['unitCount'] ?? 0));
+
+        if ($category === 'logistic' && ($unitType === '' || $routeClass === '' || $handlingClass === '')) {
+            throw ValidationException::withMessages([
+                'shipment.logisticDimensions' => 'Logistic unit type, route class, and handling class are required for logistic shipments.',
+            ]);
+        }
+
+        $unitTypeMap = is_array($engine['unitTypeMultipliers'] ?? null) ? $engine['unitTypeMultipliers'] : [];
+        $routeClassMap = is_array($engine['routeClassMultipliers'] ?? null) ? $engine['routeClassMultipliers'] : [];
+        $handlingClassMap = is_array($engine['handlingClassMultipliers'] ?? null) ? $engine['handlingClassMultipliers'] : [];
+        if ($unitType !== '' && !array_key_exists($unitType, $unitTypeMap)) {
+            throw ValidationException::withMessages([
+                'shipment.logisticDimensions.unitType' => 'Selected unit type is not allowed by logistic dimension policy.',
+            ]);
+        }
+
+        if ($routeClass !== '' && !array_key_exists($routeClass, $routeClassMap)) {
+            throw ValidationException::withMessages([
+                'shipment.logisticDimensions.routeClass' => 'Selected route class is not allowed by logistic dimension policy.',
+            ]);
+        }
+
+        if ($handlingClass !== '' && !array_key_exists($handlingClass, $handlingClassMap)) {
+            throw ValidationException::withMessages([
+                'shipment.logisticDimensions.handlingClass' => 'Selected handling class is not allowed by logistic dimension policy.',
+            ]);
+        }
+
+        $w2wOption = is_array($engine['w2wOption'] ?? null) ? $engine['w2wOption'] : [];
+        $w2wEnabled = (bool) ($w2wOption['enabled'] ?? true);
+        if ($w2wEnabled) {
+            $modeMap = is_array($w2wOption['modeMultipliers'] ?? null) ? $w2wOption['modeMultipliers'] : [];
+            $defaultMode = $this->normalizeZoneKey((string) ($w2wOption['defaultMode'] ?? ''));
+            $effectiveMode = $w2wMode !== '' ? $w2wMode : $defaultMode;
+
+            if ((bool) ($w2wOption['strictForLogistic'] ?? true) && $category === 'logistic' && $effectiveMode === '') {
+                throw ValidationException::withMessages([
+                    'shipment.logisticDimensions.w2wMode' => 'A warehouse-to-warehouse mode is required for logistic shipments.',
+                ]);
+            }
+
+            if ($effectiveMode !== '' && !array_key_exists($effectiveMode, $modeMap)) {
+                throw ValidationException::withMessages([
+                    'shipment.logisticDimensions.w2wMode' => 'Selected warehouse-to-warehouse mode is not allowed by policy.',
+                ]);
+            }
+        }
+
+        $minUnits = max(1, (int) ($w2wOption['minimumUnitCount'] ?? 1));
+        if ($unitCount > 0 && $unitCount < $minUnits) {
+            throw ValidationException::withMessages([
+                'shipment.logisticDimensions.unitCount' => 'Unit count is below the minimum allowed by logistic policy.',
+            ]);
+        }
+
+        if (isset($w2wOption['maximumUnitCount']) && $w2wOption['maximumUnitCount'] !== null && $w2wOption['maximumUnitCount'] !== '') {
+            $maxUnits = max($minUnits, (int) $w2wOption['maximumUnitCount']);
+            if ($unitCount > 0 && $unitCount > $maxUnits) {
+                throw ValidationException::withMessages([
+                    'shipment.logisticDimensions.unitCount' => 'Unit count exceeds the maximum allowed by logistic policy.',
+                ]);
+            }
         }
     }
 

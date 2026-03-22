@@ -47,6 +47,12 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
             'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
             'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
+            'shipment.logisticDimensions' => ['nullable', 'array'],
+            'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
+            'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
+            'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
+            'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
+            'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
 
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
