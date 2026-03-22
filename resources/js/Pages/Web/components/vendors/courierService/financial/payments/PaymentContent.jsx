@@ -49,7 +49,7 @@ const PaymentContent = () => {
         {
             id: "INV-1003",
             customer: "Nimal Perera",
-            service: "International",
+            service: "Logistic",
             packages: 3,
             amount: "$38.00",
             dueDate: "2025-08-15",

@@ -258,7 +258,7 @@ class VendorCourierDashboardController extends Controller
 
     public function dashboard(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request, 'reports', 'view');
+        [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'reports', 'view');
         $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
 
         if ($request->query('export') === 'csv') {
@@ -267,18 +267,18 @@ class VendorCourierDashboardController extends Controller
         }
 
         return Inertia::render('Web/home/vendors/courierService/Dashboard', [
-            'courierDashboard' => $this->buildDashboardPayload($shipments, $filters),
+            'courierDashboard' => $this->buildDashboardPayload($shipments, $filters, $approvedCategories),
         ]);
     }
 
     public function bookings(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request, 'bookings', 'view');
+        [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'bookings', 'view');
         $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
         $canViewRates = $this->canActorViewRates($request, $policy);
 
         return Inertia::render('Web/home/vendors/courierService/Booking', [
-            'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates),
+            'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates, $approvedCategories),
         ]);
     }
 
@@ -475,10 +475,10 @@ class VendorCourierDashboardController extends Controller
 
     public function tracking(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request, 'reports', 'view');
+        [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'reports', 'view');
         $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
 
-        $trackingPayload = $this->buildTrackingPayload($shipments, $filters);
+        $trackingPayload = $this->buildTrackingPayload($shipments, $filters, $approvedCategories);
 
         if ($request->query('export') === 'csv') {
             $this->assertAdvancedPermission($request, $policy, 'reports', 'export');
@@ -546,6 +546,7 @@ class VendorCourierDashboardController extends Controller
             $this->defaultCourierSettings(),
             is_array($record->settings) ? $record->settings : []
         );
+        $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
         $roleModel = app(CourierRoleModelService::class);
@@ -603,6 +604,7 @@ class VendorCourierDashboardController extends Controller
 
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
+            'approvedCourierPricingCategories' => $approvedPricingCategories,
             'initialSettingsModule' => $selectedModule,
             'initialTeamAccessTopic' => $selectedTeamTopic,
             'teamPermissionOptions' => Permission::query()
@@ -689,8 +691,16 @@ class VendorCourierDashboardController extends Controller
         $action = $validated['action'];
         $actorId = (int) optional($request->user())->id ?: null;
         $pricingCategory = (string) ($validated['pricingCategory'] ?? 'domestic');
+        $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
+        if (!in_array($pricingCategory, ['domestic', 'logistic'], true)) {
+            $pricingCategory = 'domestic';
+        }
 
         if (in_array($action, ['pricing_publish_now', 'pricing_schedule_publish', 'pricing_approve_publish', 'pricing_reject_publish'], true)) {
+            if (!in_array($pricingCategory, $approvedPricingCategories, true)) {
+                abort(403, 'This pricing category is not approved for this vendor.');
+            }
+
             $pricing = $this->normalizePricingSettings(is_array($current['pricing'] ?? null) ? $current['pricing'] : []);
             $governanceByCategory = is_array($pricing['governance'] ?? null)
                 ? $pricing['governance']
@@ -812,6 +822,7 @@ class VendorCourierDashboardController extends Controller
 
             if ($section === 'pricing') {
                 $incomingSection = $this->normalizePricingSettings(array_replace_recursive($current['pricing'] ?? [], $incomingSection));
+                $incomingSection = $this->enforceApprovedPricingCategoryWriteScope($incomingSection, $current['pricing'] ?? [], $approvedPricingCategories);
                 $incomingSection = $this->appendPricingGovernanceLog($incomingSection, 'draft_saved', $actorId, [
                     'mode' => 'save_section',
                 ], $pricingCategory);
@@ -843,6 +854,7 @@ class VendorCourierDashboardController extends Controller
 
         if (is_array($next['pricing'] ?? null)) {
             $next['pricing'] = $this->normalizePricingSettings($next['pricing']);
+            $next['pricing'] = $this->enforceApprovedPricingCategoryWriteScope($next['pricing'], $current['pricing'] ?? [], $approvedPricingCategories);
             $next['pricing'] = $this->appendPricingGovernanceLog($next['pricing'], 'draft_saved', $actorId, [
                 'mode' => 'save_all',
             ], $pricingCategory);
@@ -1166,10 +1178,10 @@ class VendorCourierDashboardController extends Controller
 
     public function shipments(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request, 'shipments', 'view');
+        [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'shipments', 'view');
 
         return Inertia::render('Web/home/vendors/courierService/Unit', [
-            'courierShipments' => $this->buildShipmentsPayload($shipments, $filters),
+            'courierShipments' => $this->buildShipmentsPayload($shipments, $filters, $approvedCategories),
         ]);
     }
 
@@ -1295,6 +1307,7 @@ class VendorCourierDashboardController extends Controller
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
         $policy = $this->resolveTeamAccessPolicy($vendorId);
+        $approvedCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access this dashboard.');
@@ -1306,7 +1319,10 @@ class VendorCourierDashboardController extends Controller
             'q' => trim((string) $request->query('q', '')),
             'status' => trim((string) $request->query('status', '')),
             'service' => trim((string) $request->query('service', '')),
-            'category' => trim((string) $request->query('category', '')),
+            'category' => $this->sanitizeApprovedCategoryFilter(
+                trim((string) $request->query('category', '')),
+                $approvedCategories
+            ),
             'urgentType' => trim((string) $request->query('urgentType', '')),
             'bookingStatus' => trim((string) $request->query('bookingStatus', '')),
             'paymentStatus' => trim((string) $request->query('paymentStatus', '')),
@@ -1343,6 +1359,7 @@ class VendorCourierDashboardController extends Controller
             $this->resolveEffectiveDataScopeConstraints($request, $policy, $resource, $action),
             $vendorId
         );
+        $this->applyApprovedCategoryConstraints($query, $approvedCategories);
 
         $this->applyFilters($query, $filters);
 
@@ -1354,10 +1371,10 @@ class VendorCourierDashboardController extends Controller
                 ->values();
         }
 
-        return [$filters, $shipments];
+        return [$filters, $shipments, $approvedCategories];
     }
 
-    private function buildShipmentsPayload(Collection $shipments, array $filters): array
+    private function buildShipmentsPayload(Collection $shipments, array $filters, array $approvedCategories): array
     {
         $rows = $shipments->map(function (CourierShipment $shipment) {
             $latestEvent = $this->getLatestTrackingEvent($shipment);
@@ -1457,16 +1474,13 @@ class VendorCourierDashboardController extends Controller
                     ->unique()
                     ->sort()
                     ->values(),
-                'categories' => [
-                    ['value' => 'domestic', 'label' => 'Domestic'],
-                    ['value' => 'logistic', 'label' => 'Logistic'],
-                ],
+                'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
                 'perPageOptions' => [10, 20, 50],
             ],
         ];
     }
 
-    private function buildTrackingPayload(Collection $shipments, array $filters): array
+    private function buildTrackingPayload(Collection $shipments, array $filters, array $approvedCategories): array
     {
         $rows = $shipments->map(function (CourierShipment $shipment) {
             $latestEvent = $this->getLatestTrackingEvent($shipment);
@@ -1620,10 +1634,7 @@ class VendorCourierDashboardController extends Controller
                     ->map(fn ($status) => ['value' => $status, 'label' => $this->statusLabel($status)])
                     ->values(),
                 'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
-                'categories' => [
-                    ['value' => 'domestic', 'label' => 'Domestic'],
-                    ['value' => 'logistic', 'label' => 'Logistic'],
-                ],
+                'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
                 'slaStatuses' => [
                     ['value' => 'on_track', 'label' => 'On Track'],
                     ['value' => 'at_risk', 'label' => 'At Risk'],
@@ -1642,7 +1653,7 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildBookingsPayload(Collection $shipments, array $filters, bool $canViewRates): array
+    private function buildBookingsPayload(Collection $shipments, array $filters, bool $canViewRates, array $approvedCategories): array
     {
         $rows = $shipments->map(function (CourierShipment $shipment) {
             $bookingStatus = $this->resolveBookingStatus($shipment);
@@ -1755,10 +1766,7 @@ class VendorCourierDashboardController extends Controller
                     ['value' => 'pending', 'label' => 'Pending'],
                     ['value' => 'failed', 'label' => 'Failed'],
                 ],
-                'categories' => [
-                    ['value' => 'domestic', 'label' => 'Domestic'],
-                    ['value' => 'logistic', 'label' => 'Logistic'],
-                ],
+                'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
                 'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
                 'perPageOptions' => [10, 20, 50],
                 'actionOptions' => collect(array_keys(self::BOOKING_ACTION_META))
@@ -2082,6 +2090,7 @@ class VendorCourierDashboardController extends Controller
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
         $policy = $this->resolveTeamAccessPolicy($vendorId);
+        $approvedCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access clients.');
@@ -2091,7 +2100,10 @@ class VendorCourierDashboardController extends Controller
 
         $filters = [
             'q' => trim((string) $request->query('q', '')),
-            'category' => trim((string) $request->query('category', '')),
+            'category' => $this->sanitizeApprovedCategoryFilter(
+                trim((string) $request->query('category', '')),
+                $approvedCategories
+            ),
             'tier' => trim((string) $request->query('tier', '')),
             'risk' => trim((string) $request->query('risk', '')),
             'watchlist' => trim((string) $request->query('watchlist', '')),
@@ -2116,6 +2128,7 @@ class VendorCourierDashboardController extends Controller
             $this->resolveEffectiveDataScopeConstraints($request, $policy, 'clients', 'view'),
             $vendorId
         );
+        $this->applyApprovedCategoryConstraints($shipmentQuery, $approvedCategories);
         $shipments = $shipmentQuery->get();
 
         $clientGroups = $shipments
@@ -2267,10 +2280,7 @@ class VendorCourierDashboardController extends Controller
                     ['value' => 'at_risk', 'label' => 'At Risk'],
                     ['value' => 'stable', 'label' => 'Stable'],
                 ],
-                'categories' => [
-                    ['value' => 'domestic', 'label' => 'Domestic'],
-                    ['value' => 'logistic', 'label' => 'Logistic'],
-                ],
+                'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
                 'perPageOptions' => [10, 20, 50],
                 'priorityTags' => [
                     ['value' => 'vip', 'label' => 'VIP'],
@@ -2432,29 +2442,83 @@ class VendorCourierDashboardController extends Controller
         }
 
         if ($filters['category'] === 'domestic') {
-            $query
-                ->whereHas('senderAddress', function (Builder $sender) {
-                    $sender->whereRaw('UPPER(country) = ?', ['LK']);
-                })
-                ->whereHas('recipientAddress', function (Builder $recipient) {
-                    $recipient->whereRaw('UPPER(country) = ?', ['LK']);
-                });
+            $this->applyDomesticCategoryConstraint($query);
         }
 
         if ($filters['category'] === 'logistic') {
-            $query->where(function (Builder $nested) {
-                $nested
-                    ->whereHas('senderAddress', function (Builder $sender) {
-                        $sender->whereRaw('UPPER(country) <> ?', ['LK']);
-                    })
-                    ->orWhereHas('recipientAddress', function (Builder $recipient) {
-                        $recipient->whereRaw('UPPER(country) <> ?', ['LK']);
-                    });
-            });
+            $this->applyLogisticCategoryConstraint($query);
         }
     }
 
-    private function buildDashboardPayload(Collection $shipments, array $filters): array
+    private function buildApprovedCategoryFilterOptions(array $approvedCategories): array
+    {
+        return collect([
+            ['value' => 'domestic', 'label' => 'Domestic'],
+            ['value' => 'logistic', 'label' => 'Logistic'],
+        ])
+            ->filter(fn (array $option) => in_array($option['value'], $approvedCategories, true))
+            ->values()
+            ->all();
+    }
+
+    private function sanitizeApprovedCategoryFilter(string $category, array $approvedCategories): string
+    {
+        $normalized = strtolower(trim($category));
+
+        if (!in_array($normalized, ['domestic', 'logistic'], true)) {
+            return '';
+        }
+
+        return in_array($normalized, $approvedCategories, true) ? $normalized : '';
+    }
+
+    private function applyApprovedCategoryConstraints(Builder $query, array $approvedCategories): void
+    {
+        $allowDomestic = in_array('domestic', $approvedCategories, true);
+        $allowLogistic = in_array('logistic', $approvedCategories, true);
+
+        if ($allowDomestic && $allowLogistic) {
+            return;
+        }
+
+        if ($allowDomestic) {
+            $this->applyDomesticCategoryConstraint($query);
+            return;
+        }
+
+        if ($allowLogistic) {
+            $this->applyLogisticCategoryConstraint($query);
+            return;
+        }
+
+        $query->whereRaw('1 = 0');
+    }
+
+    private function applyDomesticCategoryConstraint(Builder $query): void
+    {
+        $query
+            ->whereHas('senderAddress', function (Builder $sender) {
+                $sender->whereRaw('UPPER(country) = ?', ['LK']);
+            })
+            ->whereHas('recipientAddress', function (Builder $recipient) {
+                $recipient->whereRaw('UPPER(country) = ?', ['LK']);
+            });
+    }
+
+    private function applyLogisticCategoryConstraint(Builder $query): void
+    {
+        $query->where(function (Builder $nested) {
+            $nested
+                ->whereHas('senderAddress', function (Builder $sender) {
+                    $sender->whereRaw('UPPER(country) <> ?', ['LK']);
+                })
+                ->orWhereHas('recipientAddress', function (Builder $recipient) {
+                    $recipient->whereRaw('UPPER(country) <> ?', ['LK']);
+                });
+        });
+    }
+
+    private function buildDashboardPayload(Collection $shipments, array $filters, array $approvedCategories): array
     {
         $timelineRows = $shipments
             ->map(function (CourierShipment $shipment) {
@@ -2697,10 +2761,7 @@ class VendorCourierDashboardController extends Controller
                     ->unique()
                     ->sort()
                     ->values(),
-                'categories' => [
-                    ['value' => 'domestic', 'label' => 'Domestic'],
-                    ['value' => 'logistic', 'label' => 'Logistic'],
-                ],
+                'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
                 'urgentTypes' => [
                     ['value' => '', 'label' => 'All Priorities'],
                     ['value' => 'delayed', 'label' => 'Delayed'],
@@ -5507,6 +5568,90 @@ class VendorCourierDashboardController extends Controller
                 $query->where('slug', 'courier-services');
             })
             ->exists();
+    }
+
+    private function resolveApprovedCourierPricingCategories(int $vendorId): array
+    {
+        if ($vendorId <= 0) {
+            return [];
+        }
+
+        $approvedSubCategorySlugs = VendorServiceRegistration::query()
+            ->where('user_id', $vendorId)
+            ->where('status', 'approved')
+            ->whereHas('serviceCategory', function (Builder $query) {
+                $query->where('slug', 'courier-services');
+            })
+            ->with('serviceSubCategory:id,slug')
+            ->get()
+            ->map(fn (VendorServiceRegistration $registration) => strtolower(trim((string) optional($registration->serviceSubCategory)->slug)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $categories = [];
+        foreach ($approvedSubCategorySlugs as $slug) {
+            if ($slug === 'domestic') {
+                $categories[] = 'domestic';
+                continue;
+            }
+
+            if ($slug === 'logistic') {
+                $categories[] = 'logistic';
+            }
+        }
+
+        return collect($categories)
+            ->filter(fn ($item) => in_array($item, ['domestic', 'logistic'], true))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function enforceApprovedPricingCategoryWriteScope(array $nextPricing, array $currentPricing, array $approvedCategories): array
+    {
+        $categories = ['domestic', 'logistic'];
+        $next = $nextPricing;
+
+        foreach ($categories as $category) {
+            if (in_array($category, $approvedCategories, true)) {
+                continue;
+            }
+
+            foreach (['localization', 'formula', 'serviceCatalog', 'zoneMaster', 'categories'] as $sectionKey) {
+                if (!is_array($next[$sectionKey] ?? null)) {
+                    $next[$sectionKey] = [];
+                }
+
+                $next[$sectionKey][$category] = $currentPricing[$sectionKey][$category] ?? ($next[$sectionKey][$category] ?? []);
+            }
+
+            if (!is_array($next['laneMatrix'] ?? null)) {
+                $next['laneMatrix'] = [];
+            }
+
+            $next['laneMatrix'][$category] = $currentPricing['laneMatrix'][$category] ?? ($next['laneMatrix'][$category] ?? []);
+            $enabledCurrent = $currentPricing['laneMatrix']['enabled'][$category]
+                ?? ($currentPricing['laneMatrix']['enabled'] ?? false);
+
+            if (!is_array($next['laneMatrix']['enabled'] ?? null)) {
+                $next['laneMatrix']['enabled'] = [
+                    'domestic' => (bool) ($next['laneMatrix']['enabled'] ?? false),
+                    'logistic' => (bool) ($next['laneMatrix']['enabled'] ?? false),
+                ];
+            }
+
+            $next['laneMatrix']['enabled'][$category] = (bool) $enabledCurrent;
+
+            if (!is_array($next['governance'] ?? null)) {
+                $next['governance'] = [];
+            }
+
+            $next['governance'][$category] = $currentPricing['governance'][$category] ?? ($next['governance'][$category] ?? []);
+        }
+
+        return $next;
     }
 
     private function isActiveCourierTeamMember(int $userId): bool

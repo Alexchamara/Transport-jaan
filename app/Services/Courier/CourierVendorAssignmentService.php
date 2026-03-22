@@ -12,7 +12,7 @@ class CourierVendorAssignmentService
         $shipment->loadMissing(['senderAddress', 'recipientAddress']);
 
         $category = $this->resolveCategory($shipment);
-        $allowedSubCategorySlugs = $category === 'domestic' ? ['domestic'] : ['international'];
+        $allowedSubCategorySlugs = $category === 'domestic' ? ['domestic'] : ['logistic'];
 
         $eligibleRegistrations = VendorServiceRegistration::query()
             ->where('status', 'approved')

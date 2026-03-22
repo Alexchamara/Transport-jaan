@@ -42,10 +42,7 @@ const EMPTY_DASHBOARD = {
     filterOptions: {
         statuses: [],
         services: [],
-        categories: [
-            { value: "domestic", label: "Domestic" },
-            { value: "logistic", label: "Logistic" },
-        ],
+        categories: [],
     },
     ops: {
         bookingFunnel: [],
@@ -195,7 +192,7 @@ const DashContent = ({ mode = "dashboard" }) => {
                 <div>
                     <h1 className="figtree text-[30px] lg:text-[34px] font-[700] text-[#111827]">{heading}</h1>
                     <p className="text-[14px] text-[#6B7280] mt-1">
-                        Operational courier overview for Domestic and Logistic shipments.
+                        Operational courier overview for approved shipment categories.
                     </p>
                     <p className="text-[12px] text-[#9CA3AF] mt-1">
                         Last refreshed: {dashboard.generatedAt || "-"}

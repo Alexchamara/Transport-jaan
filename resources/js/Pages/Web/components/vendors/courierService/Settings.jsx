@@ -541,6 +541,16 @@ const Settings = () => {
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
+    const approvedPricingCategories = Array.isArray(props.approvedCourierPricingCategories)
+        ? props.approvedCourierPricingCategories
+            .map((item) => String(item || "").toLowerCase())
+            .filter((item) => item === "domestic" || item === "logistic")
+        : ["domestic", "logistic"];
+    const visiblePricingCategoryOptions = [
+        { key: "domestic", label: "Domestic" },
+        { key: "logistic", label: "Logistic" },
+    ].filter((item) => approvedPricingCategories.includes(item.key));
+    const defaultPricingCategory = visiblePricingCategoryOptions[0]?.key || "domestic";
 
     const [activeTab] = useState(
         TAB_CONFIG.some((tab) => tab.key === initialSettingsModule) ? initialSettingsModule : "business",
@@ -891,7 +901,7 @@ const Settings = () => {
         currentPassword: "",
         otpCode: "",
     });
-    const [activePricingCategory, setActivePricingCategory] = useState("domestic");
+    const [activePricingCategory, setActivePricingCategory] = useState(defaultPricingCategory);
     const [pricingPreviewInput, setPricingPreviewInput] = useState({
         weightKg: 3,
         lengthCm: 30,
@@ -906,6 +916,12 @@ const Settings = () => {
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
     const stepUpGuidanceRef = useRef(null);
     const stepUpGuidanceTimerRef = useRef(null);
+
+    useEffect(() => {
+        if (!approvedPricingCategories.includes(activePricingCategory)) {
+            setActivePricingCategory(defaultPricingCategory);
+        }
+    }, [activePricingCategory, approvedPricingCategories, defaultPricingCategory]);
 
     const {
         feedback,
@@ -3276,6 +3292,7 @@ const Settings = () => {
             {
                 action: "save_section",
                 section: sectionKey,
+                pricingCategory: activePricingCategory,
                 settings: {
                     [sectionKey]: settings[sectionKey],
                 },
@@ -3302,6 +3319,7 @@ const Settings = () => {
                     route("courierService.settings.update"),
                     {
                         action: "save_all",
+                        pricingCategory: activePricingCategory,
                         settings,
                     },
                     {
@@ -3589,6 +3607,16 @@ const Settings = () => {
         }
 
         if (activeTab === "pricing") {
+            if (visiblePricingCategoryOptions.length === 0) {
+                return (
+                    <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards with category-based approvals.">
+                        <p className="text-[12px] text-[#B45309]">
+                            Pricing setup is locked because no courier pricing category is approved yet. Ask super admin to approve Domestic and/or Logistic courier registration.
+                        </p>
+                    </SectionCard>
+                );
+            }
+
             return (
                 <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards, localized currency display, and formula controls for correct quote calculations.">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -3899,10 +3927,7 @@ const Settings = () => {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-[13px] font-[700] text-[#111827]">Rate Cards</p>
                             <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
-                                {[
-                                    { key: "domestic", label: "Domestic" },
-                                    { key: "logistic", label: "Logistic" },
-                                ].map((item) => (
+                                {visiblePricingCategoryOptions.map((item) => (
                                     <button
                                         key={item.key}
                                         type="button"
@@ -3914,6 +3939,16 @@ const Settings = () => {
                                 ))}
                             </div>
                         </div>
+                        {visiblePricingCategoryOptions.length === 1 && (
+                            <p className="mt-2 text-[11px] text-[#64748B]">
+                                Pricing is currently available only for {titleCase(visiblePricingCategoryOptions[0].key)} based on super admin service approval.
+                            </p>
+                        )}
+                        {visiblePricingCategoryOptions.length === 0 && (
+                            <p className="mt-2 text-[11px] text-[#B45309]">
+                                No approved courier pricing category found. Ask super admin to approve Domestic and/or Logistic courier registration.
+                            </p>
+                        )}
                         <div className="mt-2 overflow-x-auto">
                             <table className="w-full min-w-[900px] text-[12px]">
                                 <thead>

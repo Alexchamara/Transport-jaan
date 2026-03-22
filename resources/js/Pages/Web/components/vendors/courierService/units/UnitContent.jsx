@@ -35,10 +35,7 @@ const EMPTY = {
         stages: [],
         statuses: [],
         services: [],
-        categories: [
-            { value: "domestic", label: "Domestic" },
-            { value: "logistic", label: "Logistic" },
-        ],
+        categories: [],
         perPageOptions: [10, 20, 50],
     },
 };
@@ -252,7 +249,7 @@ const UnitContent = () => {
                 <div>
                     <h1 className="figtree text-[34px] font-[700]">Courier Shipments</h1>
                     <p className="text-[14px] text-[#6B7280] mt-1">
-                        Operational queue for assigned Domestic and Logistic shipments.
+                        Operational queue for assigned shipments in approved categories.
                     </p>
                 </div>
             </div>
