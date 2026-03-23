@@ -40,6 +40,13 @@ const EMPTY = {
     activity: [],
 };
 
+const PROFILE_SECURITY_STATUS_EMPTY = {
+    trustedDevices: [],
+    stepUpVerifiedAt: "",
+    twoFactorVerifiedAt: "",
+    anomalyDetectedAt: "",
+};
+
 const statusBadge = (status) => {
     switch (status) {
         case "approved":
@@ -119,11 +126,19 @@ const ProfileContent = () => {
     const flash = props.flash || {};
     const errors = props.errors || {};
     const logoInputRef = useRef(null);
+    const stepUpGuidanceRef = useRef(null);
+    const stepUpGuidanceTimerRef = useRef(null);
     const [logoPreview, setLogoPreview] = useState(courierProfile.profile.logoUrl || null);
     const [logoFile, setLogoFile] = useState(null);
     const [clientErrors, setClientErrors] = useState({});
+    const initialProfileModule = String(props.initialProfileModule || "company");
+    const profileSecurityStatus = props.profileSecurityStatus && typeof props.profileSecurityStatus === "object"
+        ? props.profileSecurityStatus
+        : PROFILE_SECURITY_STATUS_EMPTY;
 
-    const [activeTab, setActiveTab] = useState("company");
+    const [activeTab, setActiveTab] = useState(
+        TAB_CONFIG.some((tab) => tab.key === initialProfileModule) ? initialProfileModule : "company",
+    );
     const initialForm = useMemo(() => ({
         companyName: courierProfile.profile.companyName || "",
         displayName: courierProfile.profile.displayName || "",
@@ -157,6 +172,12 @@ const ProfileContent = () => {
         next: false,
         confirm: false,
     });
+    const [sessionSecurityStatus, setSessionSecurityStatus] = useState(profileSecurityStatus);
+    const [stepUpForm, setStepUpForm] = useState({
+        currentPassword: "",
+        otpCode: "",
+    });
+    const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
 
     const {
         feedback,
@@ -177,18 +198,22 @@ const ProfileContent = () => {
     const isTabDirty = activeTab === "security"
         ? isSecurityDirty
         : (TAB_FIELDS[activeTab].some((field) => form[field] !== baselineForm[field]) || (activeTab === "company" && Boolean(logoFile)));
-    const hasSecurityOpenParam = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "security";
     const visibleTabs = isTeamUser
         ? TAB_CONFIG.filter((tab) => ["company", "security"].includes(tab.key))
         : TAB_CONFIG;
 
     useEffect(() => {
-        if (!hasSecurityOpenParam) {
+        if (!TAB_CONFIG.some((tab) => tab.key === initialProfileModule)) {
             return;
         }
 
-        setActiveTab("security");
-    }, [hasSecurityOpenParam]);
+        if (isTeamUser && !["company", "security"].includes(initialProfileModule)) {
+            setActiveTab("company");
+            return;
+        }
+
+        setActiveTab(initialProfileModule);
+    }, [initialProfileModule, isTeamUser]);
 
     const summaryCards = useMemo(
         () => isTeamUser
@@ -203,6 +228,135 @@ const ProfileContent = () => {
             ],
         [courierProfile.summary, isTeamUser],
     );
+
+    useEffect(() => {
+        setSessionSecurityStatus(profileSecurityStatus);
+    }, [profileSecurityStatus]);
+
+    const requestJson = async (method, url, body = null) => {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+        const response = await fetch(url, {
+            method,
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+            },
+            credentials: "same-origin",
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const error = new Error(payload?.message || "Request failed");
+            error.code = payload?.code || null;
+            error.status = response.status;
+            throw error;
+        }
+
+        return payload;
+    };
+
+    const isStepUpRequiredError = (error) => {
+        const code = String(error?.code || "").toLowerCase();
+        const message = String(error?.message || "").toLowerCase();
+
+        return code === "step_up_required" || message.includes("step-up authentication is required");
+    };
+
+    const highlightStepUpGuidance = () => {
+        if (stepUpGuidanceTimerRef.current) {
+            window.clearTimeout(stepUpGuidanceTimerRef.current);
+        }
+
+        window.requestAnimationFrame(() => {
+            window.setTimeout(() => {
+                if (!stepUpGuidanceRef.current) {
+                    return;
+                }
+
+                stepUpGuidanceRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+                setStepUpGuidanceHighlight(true);
+                stepUpGuidanceTimerRef.current = window.setTimeout(() => {
+                    setStepUpGuidanceHighlight(false);
+                }, 4200);
+            }, 80);
+        });
+    };
+
+    const openProfileStepUpGuidance = (message) => {
+        setActiveTab("security");
+        setFeedback({
+            type: "error",
+            message: message || "Step-up authentication is required before this action. Complete verification in Profile Security, then retry.",
+        });
+        highlightStepUpGuidance();
+    };
+
+    const requestStepUpCode = async () => {
+        try {
+            const payload = await requestJson("POST", route("courierService.security.step-up.request"));
+            setFeedback({ type: "success", message: payload?.message || "Step-up verification code sent." });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to request step-up code." });
+        }
+    };
+
+    const confirmRequestStepUpCode = () => {
+        openConfirm({
+            type: "info",
+            title: "Request OTP Code",
+            message: "Send a new OTP code to your registered email now?",
+            confirmText: "Send OTP",
+            onConfirm: requestStepUpCode,
+        });
+    };
+
+    const verifyStepUp = async () => {
+        if (!String(stepUpForm.currentPassword || "").trim() || !String(stepUpForm.otpCode || "").trim()) {
+            setFeedback({ type: "error", message: "Current password and OTP code are required." });
+            return;
+        }
+
+        try {
+            const payload = await requestJson("POST", route("courierService.security.step-up.verify"), {
+                currentPassword: stepUpForm.currentPassword,
+                otpCode: stepUpForm.otpCode,
+            });
+            setFeedback({ type: "success", message: payload?.message || "Step-up verification completed." });
+            const trustedDevices = Array.isArray(payload?.trustedDevices) ? payload.trustedDevices : [];
+            setSessionSecurityStatus((prev) => ({
+                ...prev,
+                trustedDevices,
+                stepUpVerifiedAt: payload?.stepUpVerifiedAt || prev.stepUpVerifiedAt,
+                twoFactorVerifiedAt: payload?.twoFactorVerifiedAt || prev.twoFactorVerifiedAt,
+                anomalyDetectedAt: payload?.anomalyDetectedAt || prev.anomalyDetectedAt,
+            }));
+            setStepUpForm({ currentPassword: "", otpCode: "" });
+            router.reload({ only: ["profileSecurityStatus"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            setFeedback({ type: "error", message: error.message || "Failed to complete step-up verification." });
+        }
+    };
+
+    const trustThisDevice = async () => {
+        try {
+            const payload = await requestJson("POST", route("courierService.security.device.trust"), {
+                label: "Current Browser",
+            });
+            setFeedback({ type: "success", message: payload?.message || "Current device trusted." });
+            const trustedDevices = Array.isArray(payload?.trustedDevices) ? payload.trustedDevices : [];
+            setSessionSecurityStatus((prev) => ({ ...prev, trustedDevices }));
+            router.reload({ only: ["profileSecurityStatus"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            if (isStepUpRequiredError(error)) {
+                openProfileStepUpGuidance(error?.message);
+                return;
+            }
+            setFeedback({ type: "error", message: error?.message || "Failed to trust current device." });
+        }
+    };
 
     const saveProfile = () => {
         if (!String(form.companyName || "").trim()) {
@@ -268,22 +422,64 @@ const ProfileContent = () => {
         });
     };
 
+    const navigateProfileTab = (nextTab) => {
+        const isValidTab = TAB_CONFIG.some((tab) => tab.key === nextTab);
+        if (!isValidTab) {
+            return;
+        }
+
+        const safeTab = isTeamUser && !["company", "security"].includes(nextTab)
+            ? "company"
+            : nextTab;
+
+        setActiveTab(safeTab);
+        router.get(route("courierService.profile.module", { module: safeTab }), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const handleTabChange = (nextTab) => {
         if (nextTab === activeTab) {
             return;
         }
 
         if (!isDirty) {
-            setActiveTab(nextTab);
+            navigateProfileTab(nextTab);
             return;
         }
 
         openConfirm({
             title: "Unsaved Changes",
             message: "You have unsaved profile changes. Switch tab without saving?",
-            onConfirm: () => setActiveTab(nextTab),
+            onConfirm: () => navigateProfileTab(nextTab),
         });
     };
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (window.sessionStorage.getItem("courier.profileStepUpGuidancePending") !== "1") {
+            return;
+        }
+
+        window.sessionStorage.removeItem("courier.profileStepUpGuidancePending");
+        setActiveTab("security");
+        setFeedback({
+            type: "error",
+            message: "Step-up authentication is required before this action. Complete verification in Profile Security, then retry.",
+        });
+        highlightStepUpGuidance();
+    }, [setFeedback]);
+
+    useEffect(() => () => {
+        if (stepUpGuidanceTimerRef.current) {
+            window.clearTimeout(stepUpGuidanceTimerRef.current);
+        }
+    }, []);
 
     const removeLogo = () => {
         openConfirm({
@@ -342,7 +538,7 @@ const ProfileContent = () => {
                 passwordChangeTargetUrl={feedback?.passwordChangeTargetUrl || ""}
                 onConfirm={
                     typeof feedback?.message === "string" && feedback.message.toLowerCase().includes("please update your password before continuing")
-                        ? () => { closeFeedback(); setActiveTab("security"); }
+                        ? () => { closeFeedback(); navigateProfileTab("security"); }
                         : undefined
                 }
                 onClose={closeFeedback}
@@ -462,7 +658,72 @@ const ProfileContent = () => {
 
                     {activeTab === "security" && (
                         <SectionCard title="Profile Security" description="Change your account password and keep your team access secure.">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div
+                                ref={stepUpGuidanceRef}
+                                className={`border rounded-[8px] p-3 transition-all duration-300 ${stepUpGuidanceHighlight
+                                    ? "border-[#0955AC] ring-2 ring-[#93C5FD] bg-[#EFF6FF]"
+                                    : "border-[#E5E7EB] bg-[#F8FAFC]"
+                                }`}
+                            >
+                                <p className="text-[13px] font-[700] text-[#111827] mb-1">Step-up Verification (Runtime)</p>
+                                <p className="text-[11px] text-[#6B7280] mb-2">Risky actions are blocked until step-up is verified with password + one-time code.</p>
+                                {stepUpGuidanceHighlight && (
+                                    <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                    <input
+                                        type="password"
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        placeholder="Current password"
+                                        value={stepUpForm.currentPassword}
+                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                                    />
+                                    <input
+                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                        placeholder="OTP code"
+                                        value={stepUpForm.otpCode}
+                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, otpCode: e.target.value }))}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="h-[34px] rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
+                                        onClick={confirmRequestStepUpCode}
+                                    >
+                                        Request OTP
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="h-[34px] rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700]"
+                                        onClick={verifyStepUp}
+                                    >
+                                        Verify Step-up
+                                    </button>
+                                </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[#475569]">
+                                    <span>Step-up: {sessionSecurityStatus?.stepUpVerifiedAt || "Not verified"}</span>
+                                    <span>2FA: {sessionSecurityStatus?.twoFactorVerifiedAt || "Not verified"}</span>
+                                    <span>Anomaly Flag: {sessionSecurityStatus?.anomalyDetectedAt || "None"}</span>
+                                    <button
+                                        type="button"
+                                        className="h-[28px] px-2 rounded-[6px] border border-[#D1D5DB] text-[10px] font-[700]"
+                                        onClick={trustThisDevice}
+                                    >
+                                        Trust This Device
+                                    </button>
+                                </div>
+                                <div className="mt-2 space-y-1">
+                                    {(sessionSecurityStatus?.trustedDevices || []).map((device) => (
+                                        <p key={`td-${device.id}`} className="text-[11px] text-[#6B7280]">
+                                            {(device.label || "Trusted Device")} • Last IP: {(device.lastIpAddress || "-")} • Expires: {(device.expiresAt || "-")}
+                                        </p>
+                                    ))}
+                                    {(!Array.isArray(sessionSecurityStatus?.trustedDevices) || sessionSecurityStatus.trustedDevices.length === 0) && (
+                                        <p className="text-[11px] text-[#6B7280]">No trusted devices recorded for current actor.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Field label="Current Password">
                                     <div className="relative">
                                         <input

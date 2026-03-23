@@ -1203,6 +1203,11 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile');
 
+    Route::get('/courierService/profile/{module}', [VendorCourierDashboardController::class, 'profile'])
+        ->where('module', 'company|security|compliance|services|activity')
+        ->middleware('service.permission:courier.profile.view')
+        ->name('courierService.profile.module');
+
     Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
         ->middleware('service.permission:courier.profile.update')
         ->name('courierService.profile.update');

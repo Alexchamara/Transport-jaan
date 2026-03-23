@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { BadgeDollarSign, BellRing, ChevronDown, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
@@ -749,7 +749,6 @@ const CURRENCY_OPTIONS = [
 
 const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "policy-controls", label: "Team Policy Controls" },
-    { key: "step-up-runtime", label: "Step-up Verification (Runtime)" },
     { key: "user-defaults", label: "Team User Creation Defaults" },
     { key: "api-access", label: "API and Service Access" },
     { key: "role-studio", label: "Role Studio" },
@@ -863,9 +862,6 @@ const Settings = () => {
     const teamApiCredentials = Array.isArray(props.teamApiCredentials) ? props.teamApiCredentials : [];
     const teamApiScopeOptions = Array.isArray(props.teamApiScopeOptions) ? props.teamApiScopeOptions : [];
     const teamWebhookScopeOptions = Array.isArray(props.teamWebhookScopeOptions) ? props.teamWebhookScopeOptions : [];
-    const teamSessionSecurityStatus = props.teamSessionSecurityStatus && typeof props.teamSessionSecurityStatus === "object"
-        ? props.teamSessionSecurityStatus
-        : {};
     const permissionModelMeta = props.permissionModelMeta && typeof props.permissionModelMeta === "object" ? props.permissionModelMeta : {};
     const permissionResources = Array.isArray(permissionModelMeta.resources) ? permissionModelMeta.resources : ["shipments", "bookings", "clients", "reports", "pricing", "payouts"];
     const permissionActions = Array.isArray(permissionModelMeta.actions) ? permissionModelMeta.actions : ["view", "create", "update", "cancel", "reassign", "export", "approve", "refund"];
@@ -1418,11 +1414,6 @@ const Settings = () => {
         ticketRef: "",
         reason: "",
     });
-    const [sessionSecurityStatus, setSessionSecurityStatus] = useState(teamSessionSecurityStatus);
-    const [stepUpForm, setStepUpForm] = useState({
-        currentPassword: "",
-        otpCode: "",
-    });
     const [activePricingCategory, setActivePricingCategory] = useState(defaultPricingCategory);
     const [pricingPreviewInput, setPricingPreviewInput] = useState({
         weightKg: 3,
@@ -1440,9 +1431,6 @@ const Settings = () => {
     const [addTierModalCategory, setAddTierModalCategory] = useState("domestic");
     const [addTierDraftKey, setAddTierDraftKey] = useState("");
     const [addTierDraftError, setAddTierDraftError] = useState("");
-    const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
-    const stepUpGuidanceRef = useRef(null);
-    const stepUpGuidanceTimerRef = useRef(null);
 
     useEffect(() => {
         if (!approvedPricingCategories.includes(activePricingCategory)) {
@@ -2295,47 +2283,25 @@ const Settings = () => {
         return firstMessage || fallbackMessage;
     };
 
-    const highlightStepUpGuidance = () => {
-        if (stepUpGuidanceTimerRef.current) {
-            window.clearTimeout(stepUpGuidanceTimerRef.current);
-        }
-
-        window.requestAnimationFrame(() => {
-            window.setTimeout(() => {
-                if (!stepUpGuidanceRef.current) {
-                    return;
-                }
-
-                stepUpGuidanceRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-                setStepUpGuidanceHighlight(true);
-                stepUpGuidanceTimerRef.current = window.setTimeout(() => {
-                    setStepUpGuidanceHighlight(false);
-                }, 4200);
-            }, 80);
-        });
-    };
-
     const openStepUpGuidance = (message, options = {}) => {
         const { preserveFeedback = false } = options;
-        const shouldRedirect = activeTab !== "team" || activeTeamAccessTopic !== "step-up-runtime";
 
-        if (shouldRedirect && typeof window !== "undefined") {
-            window.sessionStorage.setItem("courier.stepUpGuidancePending", "1");
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem("courier.profileStepUpGuidancePending", "1");
         }
 
-        navigateTeamAccessTopic("step-up-runtime", {
-            syncUrl: activeTeamAccessTopic !== "step-up-runtime" || activeTab !== "team",
-            preserveState: activeTab === "team",
+        router.get(route("courierService.profile.module", { module: "security" }), {}, {
+            preserveScroll: true,
+            preserveState: false,
+            replace: true,
         });
 
         if (!preserveFeedback) {
             setFeedback({
                 type: "error",
-                message: message || "Step-up authentication is required before this action. Complete Step-up Verification (Runtime), then try again.",
+                message: message || "Step-up authentication is required before this action. Complete verification in Profile Security, then try again.",
             });
         }
-
-        highlightStepUpGuidance();
     };
 
     const handleActionError = (error, fallbackMessage) => {
@@ -2357,25 +2323,6 @@ const Settings = () => {
 
         setFeedback({ type: "error", message });
     };
-
-    useEffect(() => () => {
-        if (stepUpGuidanceTimerRef.current) {
-            window.clearTimeout(stepUpGuidanceTimerRef.current);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === "undefined") {
-            return;
-        }
-
-        if (window.sessionStorage.getItem("courier.stepUpGuidancePending") !== "1") {
-            return;
-        }
-
-        window.sessionStorage.removeItem("courier.stepUpGuidancePending");
-        openStepUpGuidance("Step-up authentication is required before this action. Complete verification in this section, then retry.");
-    }, []);
 
     useEffect(() => {
         const feedbackMessage = String(feedback?.message || "");
@@ -2974,10 +2921,6 @@ const Settings = () => {
     }, [teamAccessReviewQueue]);
 
     useEffect(() => {
-        setSessionSecurityStatus(teamSessionSecurityStatus);
-    }, [teamSessionSecurityStatus]);
-
-    useEffect(() => {
         if (teamRoleOptions.length > 0 && !teamRoleOptions.includes(activeRoleForDefaults)) {
             setActiveRoleForDefaults(teamRoleOptions[0]);
         }
@@ -3365,123 +3308,6 @@ const Settings = () => {
             },
         }));
     };
-
-    const requestStepUpCode = async () => {
-        try {
-            const payload = await requestJson("POST", route("courierService.security.step-up.request"));
-            setFeedback({ type: "success", message: payload?.message || "Step-up verification code sent." });
-        } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to request step-up code." });
-        }
-    };
-
-    const confirmRequestStepUpCode = () => {
-        openConfirm({
-            type: "info",
-            title: "Request OTP Code",
-            message: "Send a new OTP code to your registered email now?",
-            confirmText: "Send OTP",
-            onConfirm: requestStepUpCode,
-        });
-    };
-
-    const verifyStepUp = async () => {
-        if (!String(stepUpForm.currentPassword || "").trim() || !String(stepUpForm.otpCode || "").trim()) {
-            setFeedback({ type: "error", message: "Current password and OTP code are required." });
-            return;
-        }
-
-        try {
-            const payload = await requestJson("POST", route("courierService.security.step-up.verify"), {
-                currentPassword: stepUpForm.currentPassword,
-                otpCode: stepUpForm.otpCode,
-            });
-            setFeedback({ type: "success", message: payload?.message || "Step-up verification completed." });
-            router.reload({ only: ["teamSessionSecurityStatus"], preserveScroll: true, preserveState: true });
-            setStepUpForm({ currentPassword: "", otpCode: "" });
-        } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to complete step-up verification." });
-        }
-    };
-
-    const trustThisDevice = async () => {
-        try {
-            const payload = await requestJson("POST", route("courierService.security.device.trust"), {
-                label: "Current Browser",
-            });
-            setFeedback({ type: "success", message: payload?.message || "Current device trusted." });
-            router.reload({ only: ["teamSessionSecurityStatus"], preserveScroll: true, preserveState: true });
-        } catch (error) {
-            handleActionError(error, "Failed to trust current device.");
-        }
-    };
-
-    const renderStepUpRuntimeSection = () => (
-        <div
-            ref={stepUpGuidanceRef}
-            className={`border rounded-[8px] p-3 transition-all duration-300 ${stepUpGuidanceHighlight
-                ? "border-[#0955AC] ring-2 ring-[#93C5FD] bg-[#EFF6FF]"
-                : "border-[#E5E7EB] bg-[#F8FAFC]"
-            }`}
-        >
-            <p className="text-[13px] font-[700] text-[#111827] mb-1">Step-up Verification (Runtime)</p>
-            <p className="text-[11px] text-[#6B7280] mb-2">Risky actions are blocked until step-up is verified with password + one-time code.</p>
-            {stepUpGuidanceHighlight && (
-                <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                <input
-                    type="password"
-                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                    placeholder="Current password"
-                    value={stepUpForm.currentPassword}
-                    onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                />
-                <input
-                    className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                    placeholder="OTP code"
-                    value={stepUpForm.otpCode}
-                    onChange={(e) => setStepUpForm((prev) => ({ ...prev, otpCode: e.target.value }))}
-                />
-                <button
-                    type="button"
-                    className="h-[34px] rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                    onClick={confirmRequestStepUpCode}
-                >
-                    Request OTP
-                </button>
-                <button
-                    type="button"
-                    className="h-[34px] rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700]"
-                    onClick={verifyStepUp}
-                >
-                    Verify Step-up
-                </button>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[#475569]">
-                <span>Step-up: {sessionSecurityStatus?.stepUpVerifiedAt || "Not verified"}</span>
-                <span>2FA: {sessionSecurityStatus?.twoFactorVerifiedAt || "Not verified"}</span>
-                <span>Anomaly Flag: {sessionSecurityStatus?.anomalyDetectedAt || "None"}</span>
-                <button
-                    type="button"
-                    className="h-[28px] px-2 rounded-[6px] border border-[#D1D5DB] text-[10px] font-[700]"
-                    onClick={trustThisDevice}
-                >
-                    Trust This Device
-                </button>
-            </div>
-            <div className="mt-2 space-y-1">
-                {(sessionSecurityStatus?.trustedDevices || []).map((device) => (
-                    <p key={`td-${device.id}`} className="text-[11px] text-[#6B7280]">
-                        {(device.label || "Trusted Device")} • Last IP: {(device.lastIpAddress || "-")} • Expires: {(device.expiresAt || "-")}
-                    </p>
-                ))}
-                {(!Array.isArray(sessionSecurityStatus?.trustedDevices) || sessionSecurityStatus.trustedDevices.length === 0) && (
-                    <p className="text-[11px] text-[#6B7280]">No trusted devices recorded for current actor.</p>
-                )}
-            </div>
-        </div>
-    );
 
     const certifyAccessReview = async (reviewId, keepAccess) => {
         setTemporaryAccessActionBusyId(`access_review_${reviewId}_${keepAccess ? "keep" : "revoke"}`);
@@ -6103,7 +5929,7 @@ const Settings = () => {
                                     activeTeamAccessTopic === topic.key
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F4F6] text-[#374151]"
-                                } ${topic.key === "step-up-runtime" && stepUpGuidanceHighlight ? "ring-2 ring-[#93C5FD]" : ""}`}
+                                }`}
                             >
                                 <span>{topic.label}</span>
                             </button>
@@ -6544,13 +6370,16 @@ const Settings = () => {
 
                                             <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
                                                 <p className="text-[12px] font-[700] text-[#111827]">Step-up Verification (Runtime)</p>
-                                                <p className="text-[11px] text-[#6B7280] mt-1">Runtime step-up challenge has moved to a dedicated Team Access Topic for clearer operator guidance.</p>
+                                                <p className="text-[11px] text-[#6B7280] mt-1">Runtime step-up challenge has moved to Profile Security for all account-level authentication checks.</p>
                                                 <button
                                                     type="button"
                                                     className="mt-2 h-[30px] px-3 rounded-[6px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                                                    onClick={() => navigateTeamAccessTopic("step-up-runtime")}
+                                                    onClick={() => router.get(route("courierService.profile.module", { module: "security" }), {}, {
+                                                        preserveScroll: true,
+                                                        preserveState: false,
+                                                    })}
                                                 >
-                                                    Open Step-up Verification Topic
+                                                    Open Profile Security
                                                 </button>
                                             </div>
 
@@ -7456,16 +7285,6 @@ const Settings = () => {
                                 </div>
                                 </>
                                 )}
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTeamAccessTopic === "step-up-runtime" && (
-                        <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
-                            <p className="text-[15px] font-[700] text-[#111827]">Step-up Verification (Runtime)</p>
-                            <p className="text-[12px] text-[#6B7280] mt-1">When you get a popup saying step-up is required, complete verification here and retry your previous action.</p>
-                            <div className="mt-3">
-                                {renderStepUpRuntimeSection()}
                             </div>
                         </div>
                     )}

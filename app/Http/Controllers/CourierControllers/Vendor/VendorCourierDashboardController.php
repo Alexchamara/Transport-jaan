@@ -523,7 +523,6 @@ class VendorCourierDashboardController extends Controller
 
         $allowedTeamTopics = [
             'policy-controls',
-            'step-up-runtime',
             'user-defaults',
             'api-access',
             'role-studio',
@@ -661,17 +660,15 @@ class VendorCourierDashboardController extends Controller
             'teamApiCredentials' => app(CourierApiServiceAccessService::class)->listCredentials($vendorId, $workspaceId),
             'teamApiScopeOptions' => app(CourierApiServiceAccessService::class)->apiScopeCatalog(),
             'teamWebhookScopeOptions' => app(CourierApiServiceAccessService::class)->resolvePolicyForVendor($vendorId)['webhookScopesCatalog'] ?? [],
-            'teamSessionSecurityStatus' => [
-                'trustedDevices' => app(CourierSessionSecurityService::class)->trustedDevicesForActor($vendorId, $workspaceId, (int) optional($request->user())->id),
-                'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
-                'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
-                'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
-            ],
         ]);
     }
 
     public function settingsTeamTopic(Request $request, string $topic)
     {
+        if ($topic === 'step-up-runtime') {
+            return redirect()->route('courierService.profile.module', ['module' => 'security']);
+        }
+
         return $this->settings($request, 'team', $topic);
     }
 
@@ -950,7 +947,7 @@ class VendorCourierDashboardController extends Controller
         return response()->json($payload);
     }
 
-    public function profile(Request $request)
+    public function profile(Request $request, ?string $module = null)
     {
         $actorUserId = (int) optional($request->user())->id;
 
@@ -958,8 +955,25 @@ class VendorCourierDashboardController extends Controller
             abort(403, 'Courier service registration approval is required to access profile.');
         }
 
+        $allowedModules = ['company', 'security', 'compliance', 'services', 'activity'];
+        $moduleFromQuery = (string) $request->query('tab', '');
+        $selectedModule = in_array((string) $module, $allowedModules, true)
+            ? (string) $module
+            : (in_array($moduleFromQuery, $allowedModules, true) ? $moduleFromQuery : 'company');
+
         return Inertia::render('Web/home/vendors/courierService/Profile', [
             'courierProfile' => $this->buildCourierProfilePayload($request, $actorUserId),
+            'initialProfileModule' => $selectedModule,
+            'profileSecurityStatus' => [
+                'trustedDevices' => app(CourierSessionSecurityService::class)->trustedDevicesForActor(
+                    (int) $request->attributes->get('vendor_user_id'),
+                    (int) $request->attributes->get('service_workspace_id'),
+                    $actorUserId
+                ),
+                'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
+                'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
+                'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
+            ],
         ]);
     }
 

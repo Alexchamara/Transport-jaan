@@ -18,7 +18,8 @@ const useCourierActionModal = (flash = {}, autoDismissMs = 3200) => {
         const currentTab = typeof window !== "undefined"
             ? new URLSearchParams(window.location.search).get("tab")
             : "";
-        const isOnCourierSecurityTab = currentPath === "/courierService/profile" && currentTab === "security";
+        const isOnCourierSecurityTab = (currentPath === "/courierService/profile" && currentTab === "security")
+            || currentPath === "/courierService/profile/security";
 
         if (flash.password_change_required) {
             if (isOnCourierSecurityTab) {

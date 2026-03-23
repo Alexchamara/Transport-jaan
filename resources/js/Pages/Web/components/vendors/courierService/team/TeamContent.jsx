@@ -103,10 +103,10 @@ const TeamContent = () => {
 
     const navigateToStepUpRuntime = () => {
         if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("courier.stepUpGuidancePending", "1");
+            window.sessionStorage.setItem("courier.profileStepUpGuidancePending", "1");
         }
 
-        router.get(route("courierService.settings.team.topic", { topic: "step-up-runtime" }), {}, {
+        router.get(route("courierService.profile.module", { module: "security" }), {}, {
             preserveScroll: false,
             preserveState: false,
         });
