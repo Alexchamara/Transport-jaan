@@ -1186,6 +1186,11 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.settings.view')
         ->name('courierService.settings.team.topic');
 
+    Route::get('/courierService/settingsPage/pricing/{topic}', [VendorCourierDashboardController::class, 'settingsPricingTopic'])
+        ->where('topic', 'currency-formula|policy-modules|contracts|service-catalog|governance|rate-cards|zone-master|lane-matrix|preview')
+        ->middleware('service.permission:courier.settings.view')
+        ->name('courierService.settings.pricing.topic');
+
     Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
         ->middleware('service.permission:courier.settings.update')
         ->name('courierService.settings.update');

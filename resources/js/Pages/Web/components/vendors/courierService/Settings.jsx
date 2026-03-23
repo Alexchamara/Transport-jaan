@@ -755,6 +755,18 @@ const TEAM_ACCESS_TOPIC_CONFIG = [
     { key: "role-studio", label: "Role Studio" },
 ];
 
+const PRICING_TOPIC_CONFIG = [
+    { key: "currency-formula", label: "Currency and Formula", sectionId: "pricing-topic-currency-formula" },
+    { key: "policy-modules", label: "Policy Modules", sectionId: "pricing-topic-policy-modules" },
+    { key: "contracts", label: "Customer Contracts", sectionId: "pricing-topic-contracts" },
+    { key: "service-catalog", label: "Service Catalog", sectionId: "pricing-topic-service-catalog" },
+    { key: "governance", label: "Pricing Governance", sectionId: "pricing-topic-governance" },
+    { key: "rate-cards", label: "Rate Cards", sectionId: "pricing-topic-rate-cards" },
+    { key: "zone-master", label: "Zone Master", sectionId: "pricing-topic-zone-master" },
+    { key: "lane-matrix", label: "Lane Matrix", sectionId: "pricing-topic-lane-matrix" },
+    { key: "preview", label: "Formula Preview", sectionId: "pricing-topic-preview" },
+];
+
 const DEFAULT_SPEED_ETA_TIER_TEMPLATE = {
     enabled: true,
     etaLabel: "Custom Tier",
@@ -900,6 +912,7 @@ const Settings = () => {
         .filter(Boolean);
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
+    const initialPricingTopic = String(props.initialPricingTopic || "currency-formula");
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
@@ -921,6 +934,11 @@ const Settings = () => {
         TEAM_ACCESS_TOPIC_CONFIG.some((topic) => topic.key === initialTeamAccessTopic)
             ? initialTeamAccessTopic
             : "policy-controls",
+    );
+    const [activePricingTopic, setActivePricingTopic] = useState(
+        PRICING_TOPIC_CONFIG.some((topic) => topic.key === initialPricingTopic)
+            ? initialPricingTopic
+            : "currency-formula",
     );
     const [settings, setSettings] = useState(() => {
         const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
@@ -3864,6 +3882,26 @@ const Settings = () => {
         });
     };
 
+    const navigatePricingTopic = (topicKey, options = {}) => {
+        const { syncUrl = true } = options;
+
+        if (!PRICING_TOPIC_CONFIG.some((topic) => topic.key === topicKey)) {
+            return;
+        }
+
+        setActivePricingTopic(topicKey);
+
+        if (!syncUrl) {
+            return;
+        }
+
+        router.get(route("courierService.settings.pricing.topic", { topic: topicKey }), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const createCustomRole = () => {
         if (!canAssignRole || !canAssignPermissions) {
             return;
@@ -4366,9 +4404,32 @@ const Settings = () => {
             }
 
             return (
-                <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards, localized currency display, and formula controls for correct quote calculations.">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
+                    <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                            <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
+                            <div className="space-y-2">
+                                {PRICING_TOPIC_CONFIG.map((topic) => (
+                                    <button
+                                        key={topic.key}
+                                        type="button"
+                                        onClick={() => navigatePricingTopic(topic.key)}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${
+                                            activePricingTopic === topic.key
+                                                ? "bg-[#0955AC] text-white"
+                                                : "bg-[#F3F4F6] text-[#374151]"
+                                        }`}
+                                    >
+                                        <span>{topic.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                    </div>
+
+                    <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards, localized currency display, and formula controls for correct quote calculations.">
+                        <div className="space-y-4">
+                            {activePricingTopic === "currency-formula" && (
+                                <div id="pricing-topic-currency-formula" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-24">
+                                    <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
                             <p className="text-[13px] font-[700] text-[#111827] mb-2">Currency Localization</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 <Field label="Base Currency">
@@ -4447,7 +4508,7 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                                    <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
                             <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Controls ({titleCase(activePricingCategory)})</p>
                             <div className="grid grid-cols-2 gap-2">
                                 <Field label="Volumetric Divisor">
@@ -4476,10 +4537,12 @@ const Settings = () => {
                                     <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula(activePricingCategory, "roundTo", Number(e.target.value || 2))} />
                                 </Field>
                             </div>
-                        </div>
-                    </div>
+                                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                            {activePricingTopic === "policy-modules" && (
+                                <div id="pricing-topic-policy-modules" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC] scroll-mt-24">
                         <p className="text-[13px] font-[700] text-[#111827] mb-2">Rule-Based Policy Modules ({titleCase(activePricingCategory)})</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
@@ -5077,9 +5140,11 @@ const Settings = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                            {activePricingTopic === "contracts" && (
+                                <div id="pricing-topic-contracts" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
                         <div className="flex items-center justify-between gap-2">
                             <div>
                                 <p className="text-[13px] font-[700] text-[#111827]">Customer Contract Pricing</p>
@@ -5443,9 +5508,11 @@ const Settings = () => {
                                 );
                             })}
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                            {activePricingTopic === "service-catalog" && (
+                                <div id="pricing-topic-service-catalog" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
                         <div className="flex items-center justify-between gap-2">
                             <p className="text-[13px] font-[700] text-[#111827]">Service Catalog</p>
                             <button
@@ -5507,9 +5574,11 @@ const Settings = () => {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                            {activePricingTopic === "governance" && (
+                                <div id="pricing-topic-governance" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC] scroll-mt-24">
                         <p className="text-[13px] font-[700] text-[#111827] mb-2">Pricing Governance</p>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
@@ -5664,9 +5733,11 @@ const Settings = () => {
                                 </p>
                             ))}
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                            {activePricingTopic === "rate-cards" && (
+                                <div id="pricing-topic-rate-cards" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-[13px] font-[700] text-[#111827]">Rate Cards</p>
                             <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
@@ -5741,9 +5812,11 @@ const Settings = () => {
                                 Add Tier
                             </button>
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                            {activePricingTopic === "zone-master" && (
+                                <div id="pricing-topic-zone-master" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <p className="text-[13px] font-[700] text-[#111827]">Zone Master ({titleCase(activePricingCategory)})</p>
@@ -5813,9 +5886,11 @@ const Settings = () => {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white">
+                            {activePricingTopic === "lane-matrix" && (
+                                <div id="pricing-topic-lane-matrix" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-[13px] font-[700] text-[#111827]">Lane Matrix Pricing</p>
                             <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
@@ -5922,9 +5997,11 @@ const Settings = () => {
                                 Add Lane Rule
                             </button>
                         </div>
-                    </div>
+                                </div>
+                            )}
 
-                    <div className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
+                            {activePricingTopic === "preview" && (
+                                <div id="pricing-topic-preview" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC] scroll-mt-24">
                         <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Validation Preview</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <Field label="Weight (kg)"><input type="number" min={0.1} step="0.1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.weightKg || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, weightKg: Number(e.target.value || 0) }))} /></Field>
@@ -5947,8 +6024,12 @@ const Settings = () => {
                                 <p className="text-[11px] text-[#6B7280]">No pricing tiers configured for this category.</p>
                             )}
                         </div>
-                    </div>
-                </SectionCard>
+                                </div>
+                            )}
+
+                        </div>
+                    </SectionCard>
+                </div>
             );
         }
 

@@ -501,7 +501,7 @@ class VendorCourierDashboardController extends Controller
         ]);
     }
 
-    public function settings(Request $request, ?string $module = null, ?string $teamTopic = null)
+    public function settings(Request $request, ?string $module = null, ?string $teamTopic = null, ?string $pricingTopic = null)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
@@ -532,6 +532,22 @@ class VendorCourierDashboardController extends Controller
         $selectedTeamTopic = in_array((string) $teamTopic, $allowedTeamTopics, true)
             ? (string) $teamTopic
             : 'policy-controls';
+
+        $allowedPricingTopics = [
+            'currency-formula',
+            'policy-modules',
+            'contracts',
+            'service-catalog',
+            'governance',
+            'rate-cards',
+            'zone-master',
+            'lane-matrix',
+            'preview',
+        ];
+
+        $selectedPricingTopic = in_array((string) $pricingTopic, $allowedPricingTopics, true)
+            ? (string) $pricingTopic
+            : 'currency-formula';
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
@@ -607,6 +623,7 @@ class VendorCourierDashboardController extends Controller
             'approvedCourierPricingCategories' => $approvedPricingCategories,
             'initialSettingsModule' => $selectedModule,
             'initialTeamAccessTopic' => $selectedTeamTopic,
+            'initialPricingTopic' => $selectedPricingTopic,
             'teamPermissionOptions' => Permission::query()
                 ->where('name', 'like', 'courier.%')
                 ->orderBy('name')
@@ -656,6 +673,11 @@ class VendorCourierDashboardController extends Controller
     public function settingsTeamTopic(Request $request, string $topic)
     {
         return $this->settings($request, 'team', $topic);
+    }
+
+    public function settingsPricingTopic(Request $request, string $topic)
+    {
+        return $this->settings($request, 'pricing', null, $topic);
     }
 
     public function updateSettings(Request $request)
