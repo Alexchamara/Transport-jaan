@@ -1732,7 +1732,7 @@ const Settings = () => {
                 preserveScroll: true,
                 preserveState: true,
                 onFinish: () => setPricingGovernanceActionBusy(false),
-                onError: () => setFeedback({ type: "error", message: "Pricing governance action failed." }),
+                onError: (errors) => handleInertiaActionError(errors, "Pricing governance action failed."),
             },
         );
     };
@@ -2273,6 +2273,28 @@ const Settings = () => {
         return code === "step_up_required" || message.includes("step-up authentication is required");
     };
 
+    const resolveInertiaErrorMessage = (errors, fallbackMessage) => {
+        if (!errors || typeof errors !== "object") {
+            return fallbackMessage;
+        }
+
+        if (typeof errors.message === "string" && errors.message.trim()) {
+            return errors.message.trim();
+        }
+
+        const firstMessage = Object.values(errors)
+            .flatMap((value) => {
+                if (Array.isArray(value)) {
+                    return value;
+                }
+
+                return [value];
+            })
+            .find((value) => typeof value === "string" && value.trim());
+
+        return firstMessage || fallbackMessage;
+    };
+
     const highlightStepUpGuidance = () => {
         if (stepUpGuidanceTimerRef.current) {
             window.clearTimeout(stepUpGuidanceTimerRef.current);
@@ -2293,12 +2315,25 @@ const Settings = () => {
         });
     };
 
-    const openStepUpGuidance = (message) => {
-        navigateTeamAccessTopic("step-up-runtime", { syncUrl: activeTeamAccessTopic !== "step-up-runtime" });
-        setFeedback({
-            type: "error",
-            message: message || "Step-up authentication is required before this action. Complete Step-up Verification (Runtime), then try again.",
+    const openStepUpGuidance = (message, options = {}) => {
+        const { preserveFeedback = false } = options;
+        const shouldRedirect = activeTab !== "team" || activeTeamAccessTopic !== "step-up-runtime";
+
+        if (shouldRedirect && typeof window !== "undefined") {
+            window.sessionStorage.setItem("courier.stepUpGuidancePending", "1");
+        }
+
+        navigateTeamAccessTopic("step-up-runtime", {
+            syncUrl: activeTeamAccessTopic !== "step-up-runtime" || activeTab !== "team",
+            preserveState: activeTab === "team",
         });
+
+        if (!preserveFeedback) {
+            setFeedback({
+                type: "error",
+                message: message || "Step-up authentication is required before this action. Complete Step-up Verification (Runtime), then try again.",
+            });
+        }
 
         highlightStepUpGuidance();
     };
@@ -2310,6 +2345,17 @@ const Settings = () => {
         }
 
         setFeedback({ type: "error", message: error?.message || fallbackMessage });
+    };
+
+    const handleInertiaActionError = (errors, fallbackMessage) => {
+        const message = resolveInertiaErrorMessage(errors, fallbackMessage);
+
+        if (isStepUpRequiredError({ message })) {
+            openStepUpGuidance(message);
+            return;
+        }
+
+        setFeedback({ type: "error", message });
     };
 
     useEffect(() => () => {
@@ -2330,6 +2376,19 @@ const Settings = () => {
         window.sessionStorage.removeItem("courier.stepUpGuidancePending");
         openStepUpGuidance("Step-up authentication is required before this action. Complete verification in this section, then retry.");
     }, []);
+
+    useEffect(() => {
+        const feedbackMessage = String(feedback?.message || "");
+        if (!feedback || feedback.type !== "error") {
+            return;
+        }
+
+        if (!isStepUpRequiredError({ message: feedbackMessage })) {
+            return;
+        }
+
+        openStepUpGuidance(feedbackMessage, { preserveFeedback: true });
+    }, [feedback?.type, feedback?.message]);
 
     const refreshRoleStudioRoles = async () => {
         try {
@@ -3863,7 +3922,7 @@ const Settings = () => {
     };
 
     const navigateTeamAccessTopic = (topicKey, options = {}) => {
-        const { syncUrl = true } = options;
+        const { syncUrl = true, preserveState = activeTab === "team" } = options;
 
         if (!TEAM_ACCESS_TOPIC_CONFIG.some((topic) => topic.key === topicKey)) {
             return;
@@ -3877,7 +3936,7 @@ const Settings = () => {
 
         router.get(route("courierService.settings.team.topic", { topic: topicKey }), {}, {
             preserveScroll: true,
-            preserveState: true,
+            preserveState,
             replace: true,
         });
     };
@@ -4053,11 +4112,8 @@ const Settings = () => {
             {
                 preserveScroll: true,
                 preserveState: true,
-                onError: () => {
-                    setFeedback({
-                        type: "error",
-                        message: "Failed to save section settings. Please review input and try again.",
-                    });
+                onError: (errors) => {
+                    handleInertiaActionError(errors, "Failed to save section settings. Please review input and try again.");
                 },
             },
         );
@@ -4078,8 +4134,8 @@ const Settings = () => {
                     {
                         preserveScroll: true,
                         preserveState: true,
-                        onError: () => {
-                            setFeedback({ type: "error", message: "Failed to save all settings." });
+                        onError: (errors) => {
+                            handleInertiaActionError(errors, "Failed to save all settings.");
                         },
                     },
                 );
@@ -4101,8 +4157,8 @@ const Settings = () => {
                     {
                         preserveScroll: true,
                         preserveState: true,
-                        onError: () => {
-                            setFeedback({ type: "error", message: "Failed to reset settings." });
+                        onError: (errors) => {
+                            handleInertiaActionError(errors, "Failed to reset settings.");
                         },
                     },
                 );
