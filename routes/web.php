@@ -41,6 +41,7 @@ use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
 use App\Http\Controllers\CourierControllers\Vendor\CourierTeamController;
+use App\Support\Courier\ClientCourierShipmentTransformer;
 
 /*
 |--------------------------------------------------------------------------
@@ -1971,50 +1972,12 @@ Route::get('/clientAllBookings', function () {
         });
 
     // Fetch courier shipments
+    $courierShipmentTransformer = app(ClientCourierShipmentTransformer::class);
+
     $courierShipments = \App\Models\Courier\CourierShipment::where('requested_by_user_id', $clientId)
         ->with(['requestedBy', 'sender', 'recipient', 'senderAddress', 'recipientAddress', 'packages'])
         ->get()
-        ->map(function($shipment) {
-            $senderAddr = $shipment->senderAddress;
-            $recipientAddr = $shipment->recipientAddress;
-            
-            return [
-                'id' => $shipment->id,
-                'booking_type' => 'courier',
-                'service_name' => 'Courier Service - ' . ucfirst($shipment->service_level ?? 'Standard'),
-                'status' => $shipment->status,
-                'total_amount' => $shipment->actual_cost ?? $shipment->estimated_cost ?? 0,
-                'amount' => $shipment->actual_cost ?? $shipment->estimated_cost ?? 0,
-                'booking_date' => $shipment->created_at->format('Y-m-d'),
-                'start_date' => $shipment->pickup_date ? $shipment->pickup_date->format('Y-m-d') : null,
-                'pickup_date' => $shipment->pickup_date ? $shipment->pickup_date->format('Y-m-d') : null,
-                'pickup_location' => $senderAddr ? trim(($senderAddr->address_line_1 ?? '') . ' ' . ($senderAddr->address_line_2 ?? '') . ', ' . ($senderAddr->city ?? '') . ', ' . ($senderAddr->state ?? '')) : 'Not specified',
-                'dropoff_location' => $recipientAddr ? trim(($recipientAddr->address_line_1 ?? '') . ' ' . ($recipientAddr->address_line_2 ?? '') . ', ' . ($recipientAddr->city ?? '') . ', ' . ($recipientAddr->state ?? '')) : 'Not specified',
-                'reference_number' => $shipment->reference,
-                'booking_code' => $shipment->reference,
-                'currency' => $shipment->currency_code ?? 'LKR',
-                'created_at' => $shipment->created_at,
-                'user' => $shipment->requestedBy ? [
-                    'name' => $shipment->requestedBy->name,
-                    'email' => $shipment->requestedBy->email,
-                    'phone' => $shipment->requestedBy->phone,
-                    'address' => $shipment->requestedBy->address,
-                ] : null,
-                'customer_name' => $shipment->sender?->name ?? $shipment->requestedBy?->name,
-                'customer_email' => $shipment->sender?->email ?? $shipment->requestedBy?->email,
-                'customer_phone' => $shipment->sender?->phone ?? $shipment->requestedBy?->phone,
-                'vendor_name' => 'Courier Service Provider',
-                'notes' => $shipment->delivery_notes,
-                'payment_method' => 'Courier Payment',
-                
-                // Additional courier-specific fields
-                'service_level' => ucfirst($shipment->service_level ?? 'Standard'),
-                'insurance_required' => $shipment->insurance_required ? 'Yes' : 'No',
-                'declared_value' => $shipment->declared_value,
-                'package_count' => $shipment->packages->count(),
-                'tracking_reference' => $shipment->reference,
-            ];
-        });
+        ->map(fn ($shipment) => $courierShipmentTransformer->forUnifiedBooking($shipment));
 
     // Fetch warehouse bookings
     $warehouseBookings = \App\Models\Warehouse\WarehouseBooking::where('user_id', $clientId)

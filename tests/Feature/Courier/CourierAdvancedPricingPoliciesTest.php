@@ -191,7 +191,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $csrfToken = 'advanced-policy-test-token-weight-block';
 
         $response = $this->actingAs($user)
-            ->withSession(['_token' => $csrfToken])
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
         $response->assertSessionHasErrors('packages');
@@ -293,7 +293,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $csrfToken = 'advanced-policy-test-token-logistic-unit-type';
 
         $response = $this->actingAs($user)
-            ->withSession(['_token' => $csrfToken])
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
         $response->assertSessionHasErrors('shipment.logisticDimensions.unitType');
@@ -332,7 +332,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $csrfToken = 'advanced-policy-test-token-runtime-lock';
 
         $response = $this->actingAs($user)
-            ->withSession(['_token' => $csrfToken])
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
         $response->assertSessionHasErrors('shipment.serviceLevel');
@@ -544,7 +544,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $csrfToken = 'advanced-policy-test-token';
 
         $response = $this->actingAs($user)
-            ->withSession(['_token' => $csrfToken])
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
         $response->assertRedirect(route('couriers.create'));
