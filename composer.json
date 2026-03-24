@@ -14,7 +14,7 @@
         "laravel/tinker": "^2.10.1",
         "propaganistas/laravel-phone": "^6.0",
         "simplesoftwareio/simple-qrcode": "*",
-        "spatie/laravel-permission": "*",
+        "spatie/laravel-permission": "^7.2",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
