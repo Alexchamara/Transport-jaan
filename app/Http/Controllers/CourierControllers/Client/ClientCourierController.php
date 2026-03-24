@@ -2652,7 +2652,11 @@ class ClientCourierController extends Controller
 
     public function downloadBill(Request $request, CourierShipment $shipment)
     {
-        if (Auth::check() && $shipment->requested_by_user_id && Auth::id() !== $shipment->requested_by_user_id) {
+        if (!Auth::check()) {
+            return redirect()->route('signin.signin');
+        }
+
+        if ((int) $shipment->requested_by_user_id !== (int) Auth::id()) {
             abort(403);
         }
 

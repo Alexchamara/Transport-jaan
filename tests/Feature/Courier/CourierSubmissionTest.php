@@ -11,11 +11,65 @@ class CourierSubmissionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_cannot_access_courier_create_route(): void
+    {
+        $this->get(route('couriers.create'))
+            ->assertRedirect(route('login'));
+    }
+
     public function test_client_can_submit_courier_request_and_download_bill(): void
     {
         $user = User::factory()->create();
 
-        $payload = [
+        $payload = $this->validSubmissionPayload();
+
+        $csrfToken = 'test-token';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('success')
+            ->assertSessionHas('courier_reference')
+            ->assertSessionHas('courier_bill_id');
+
+        $shipment = CourierShipment::with('packages')->first();
+        $this->assertNotNull($shipment);
+
+        $this->actingAs($user)
+            ->get(route('couriers.bill', $shipment))
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="courier-bill-' . $shipment->reference . '.html"')
+            ->assertSee('Courier Service Bill')
+            ->assertSee('Sender details')
+            ->assertSee('Recipient details')
+            ->assertSee('Shipment preferences')
+            ->assertSee('Package details');
+    }
+
+    public function test_non_owner_cannot_download_courier_bill(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $payload = $this->validSubmissionPayload();
+        $csrfToken = 'test-token-owner-only';
+
+        $this->actingAs($owner)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'));
+
+        $shipment = CourierShipment::query()->latest('id')->first();
+        $this->assertNotNull($shipment);
+
+        $this->actingAs($otherUser)
+            ->get(route('couriers.bill', $shipment))
+            ->assertForbidden();
+    }
+
+    private function validSubmissionPayload(): array
+    {
+        return [
             'sender' => [
                 'name' => 'Alex Sender',
                 'email' => 'alex.sender@example.com',
@@ -90,28 +144,5 @@ class CourierSubmissionTest extends TestCase
                 ],
             ],
         ];
-
-        $csrfToken = 'test-token';
-
-        $this->actingAs($user)
-            ->withSession(['_token' => $csrfToken])
-            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
-            ->assertRedirect(route('couriers.create'))
-            ->assertSessionHas('success')
-            ->assertSessionHas('courier_reference')
-            ->assertSessionHas('courier_bill_id');
-
-        $shipment = CourierShipment::with('packages')->first();
-        $this->assertNotNull($shipment);
-
-        $this->actingAs($user)
-            ->get(route('couriers.bill', $shipment))
-            ->assertOk()
-            ->assertHeader('Content-Disposition', 'attachment; filename="courier-bill-' . $shipment->reference . '.html"')
-            ->assertSee('Courier Service Bill')
-            ->assertSee('Sender details')
-            ->assertSee('Recipient details')
-            ->assertSee('Shipment preferences')
-            ->assertSee('Package details');
     }
 }

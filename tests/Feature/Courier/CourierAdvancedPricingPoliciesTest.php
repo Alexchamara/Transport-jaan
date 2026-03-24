@@ -73,6 +73,8 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
     public function test_peak_and_holiday_surcharges_are_applied_together(): void
     {
+        $holidayDate = now()->addDay()->toDateString();
+
         $this->createDomesticVendorWithPolicyModules([
             'peakHolidaySurcharge' => [
                 'enabled' => true,
@@ -81,7 +83,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 'daysOfWeek' => [1, 2, 3, 4, 5, 6, 7],
                 'peakPercent' => 20,
                 'peakFlatFee' => 3,
-                'holidayDates' => ['2026-03-23'],
+                'holidayDates' => [$holidayDate],
                 'holidayPercent' => 10,
                 'holidayFlatFee' => 5,
             ],
@@ -89,7 +91,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         $result = $this->submitShipment([
             'shipment' => [
-                'pickupDate' => '2026-03-23',
+                'pickupDate' => $holidayDate,
                 'pickupWindowStart' => '18:30',
             ],
             'reviewContext' => [

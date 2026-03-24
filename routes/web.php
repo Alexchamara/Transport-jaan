@@ -83,7 +83,7 @@ Route::get('/landingPage/privacy-policy', [WebController::class, 'privacyPolicy'
 Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])->name('landingPage.returnPolicy');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
-Route::prefix('couriers')->name('couriers.')->group(function () {
+Route::prefix('couriers')->middleware(['auth'])->name('couriers.')->group(function () {
     Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
     Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
     Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
