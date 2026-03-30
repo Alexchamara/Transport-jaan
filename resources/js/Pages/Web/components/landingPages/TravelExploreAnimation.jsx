@@ -11,7 +11,7 @@ import img5 from "../../assets/landingPages/hero/freight.jpg";
 import img6 from "../../assets/landingPages/hero/multimodel.jpg";
 import img7 from "../../assets/landingPages/hero/ticketbooking.jpg";
 import img8 from "../../assets/courierService/courier.jpg";
-import bg3 from "../../assets/multiModel/bg6.jpg";
+import bg from "../../assets/landingpages/indexbg.png";
 
 import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from "@inertiajs/react";
@@ -75,7 +75,9 @@ const IMAGES = [
 ];
 
 const SERVICES = [
+    { statusLabel: "AVAILABLE", title: "Courier Booking", subtitle: "Local & logistic parcels", href: "/couriers/create", img: img8 },
     {
+        statusLabel: "COMING SOON",
         title: "Vehicle Rental",
         subtitle: "Cars, vans & trucks",
         img: img1,
@@ -86,6 +88,7 @@ const SERVICES = [
         ],
     },
     {
+        statusLabel: "COMING SOON",
         title: "Ticket Booking",
         subtitle: "Land, air & sea tickets",
         img: img7,
@@ -95,16 +98,15 @@ const SERVICES = [
             { title: "Flight Ticket", subtitle: "Book air tickets", href: "/multiModel/plan-journey?tab=ticket&subTab=flight", img: img3 },
         ],
     },
-    { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey?tab=multimodal", img: img6 },
-    { title: "Courier Booking", subtitle: "Local & logistic parcels", href: "/couriers/create", img: img8 },
-    { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
-    { title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
+    { statusLabel: "COMING SOON", title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey?tab=multimodal", img: img6 },
+    { statusLabel: "COMING SOON", title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
+    { statusLabel: "COMING SOON", title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
 
 ];
 
 const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [hoveredCard, setHoveredCard] = useState(0);
+    const [hoveredCard, setHoveredCard] = useState(null);
     const [servicesOpen, setServicesOpen] = useState(false);
     const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
     const [hoveredService, setHoveredService] = useState(null);
@@ -156,11 +158,16 @@ const TravelExploreAnimation = ({ auth }) => {
             <div className="relative min-h-screen w-full flex flex-col justify-center items-center">
                 {/* Dynamic Background */}
                 <div className="absolute inset-0">
+                    <img
+                        src={bg}
+                        alt="Default background"
+                        className="w-full h-full object-cover"
+                    />
                     {IMAGES.map((item, i) => (
                         <motion.div
                             key={i}
                             className="absolute inset-0"
-                            initial={{ opacity: i === 0 ? 1 : 0 }}
+                            initial={{ opacity: 0 }}
                             animate={{ opacity: hoveredCard === i ? 1 : 0 }}
                             transition={{ duration: 0.5 }}
                         >
@@ -191,11 +198,11 @@ const TravelExploreAnimation = ({ auth }) => {
                     <div className="pointer-events-auto">
                         <div className="bg-transparent">
                             {/* Desktop */}
-                            <div className="xl:flex hidden justify-between items-center px-10 py-5">
+                            <div className="hidden xl:grid grid-cols-[1fr_auto_1fr] items-center px-10 py-5 gap-4">
                                 <div className="pb-[40px]">
                                     <CompanyLogo className="h-[50px] lg:h-[60px] xl:h-[80px] object-contain" />
                                 </div>
-                                <div className="uppercase leading-tight flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
+                                <div className="uppercase leading-tight flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white justify-self-center">
                                     <div
                                         className={desktopNavItemClass}
                                         onClick={() => handleScroll("home")}
@@ -246,28 +253,48 @@ const TravelExploreAnimation = ({ auth }) => {
                                                             onMouseEnter={() => setHoveredService(i)}
                                                             onMouseLeave={() => setHoveredService(null)}
                                                         >
-                                                            <a
-                                                                href={service.sub ? undefined : service.href}
-                                                                onClick={service.sub ? (e) => e.preventDefault() : undefined}
-                                                                className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/20 transition-all duration-200 border-b border-white/10 last:border-0 cursor-pointer"
-                                                            >
-                                                                <img
-                                                                    src={service.img}
-                                                                    alt={service.title}
-                                                                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                                                                />
-                                                                <div className="flex-1">
-                                                                    <p className="text-sm font-semibold leading-tight">{service.title}</p>
-                                                                    <p className="text-xs text-white/70 leading-tight mt-0.5">{service.subtitle}</p>
-                                                                </div>
-                                                                {service.sub && (
-                                                                    <svg className="w-3 h-3 text-white/70 flex-shrink-0 -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                                    </svg>
-                                                                )}
-                                                            </a>
+                                                            {(() => {
+                                                                const isServiceAvailable = service.statusLabel === "AVAILABLE";
+
+                                                                return (
+                                                                    <a
+                                                                        href={!isServiceAvailable || service.sub ? undefined : service.href}
+                                                                        onClick={(!isServiceAvailable || service.sub) ? (e) => e.preventDefault() : undefined}
+                                                                        className={`relative overflow-hidden flex items-center gap-3 px-4 py-3 text-white transition-all duration-200 border-b border-white/10 last:border-0 ${isServiceAvailable ? "hover:bg-white/20 cursor-pointer" : "cursor-not-allowed"}`}
+                                                                    >
+                                                                        <img
+                                                                            src={service.img}
+                                                                            alt={service.title}
+                                                                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                                                        />
+                                                                        <div className="flex-1">
+                                                                            <div className="flex items-center justify-between gap-2">
+                                                                                <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                                {service.statusLabel === "COMING SOON" && (
+                                                                                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] border border-white/25 bg-black/60 text-white/85">
+                                                                                        {service.statusLabel}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <p className="text-xs text-white/70 leading-tight mt-0.5">{service.subtitle}</p>
+                                                                        </div>
+                                                                        {service.sub && (
+                                                                            <svg className="w-3 h-3 text-white/70 flex-shrink-0 -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                            </svg>
+                                                                        )}
+                                                                        {!isServiceAvailable && (
+                                                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                                                <span className="px-3 py-1 rounded-full border border-white/30 bg-black/70 text-white text-[10px] font-semibold tracking-[0.16em]">
+                                                                                    COMING SOON
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </a>
+                                                                );
+                                                            })()}
                                                             {/* Sub-dropdown flyout */}
-                                                            {service.sub && hoveredService === i && (
+                                                            {service.sub && hoveredService === i && service.statusLabel === "AVAILABLE" && (
                                                                 <motion.div
                                                                     initial={{ opacity: 0, x: -6 }}
                                                                     animate={{ opacity: 1, x: 0 }}
@@ -315,7 +342,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
+                                <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700] justify-self-end">
                                     {user ? (
                                         <>
                                             {isVendor &&
@@ -447,11 +474,18 @@ const TravelExploreAnimation = ({ auth }) => {
                                                             {service.sub ? (
                                                                 <>
                                                                     <div
-                                                                        className="flex justify-between items-center px-3 py-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all duration-200 cursor-pointer"
-                                                                        onClick={() => setMobileSubService(mobileSubService === i ? null : i)}
+                                                                        className={`flex justify-between items-center px-3 py-2 rounded-xl transition-all duration-200 ${service.statusLabel === "AVAILABLE" ? "hover:bg-white/10 active:bg-white/20 cursor-pointer" : "cursor-not-allowed opacity-75"}`}
+                                                                        onClick={() => service.statusLabel === "AVAILABLE" && setMobileSubService(mobileSubService === i ? null : i)}
                                                                     >
                                                                         <div>
-                                                                            <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                                {service.statusLabel === "COMING SOON" && (
+                                                                                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] border border-white/25 bg-black/60 text-white/85">
+                                                                                        {service.statusLabel}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
                                                                             <p className="text-xs text-white/60 leading-tight mt-0.5">{service.subtitle}</p>
                                                                         </div>
                                                                         <svg
@@ -461,7 +495,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                                         </svg>
                                                                     </div>
-                                                                    {mobileSubService === i && (
+                                                                    {mobileSubService === i && service.statusLabel === "AVAILABLE" && (
                                                                         <div className="ml-4 mb-1 flex flex-col gap-0.5 border-l border-white/20 pl-3">
                                                                             {service.sub.map((sub, j) => (
                                                                                 <a
@@ -478,10 +512,18 @@ const TravelExploreAnimation = ({ auth }) => {
                                                                 </>
                                                             ) : (
                                                                 <a
-                                                                    href={service.href}
-                                                                    className="flex flex-col px-3 py-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all duration-200"
+                                                                    href={service.statusLabel === "AVAILABLE" ? service.href : undefined}
+                                                                    onClick={service.statusLabel !== "AVAILABLE" ? (e) => e.preventDefault() : undefined}
+                                                                    className={`flex flex-col px-3 py-2 rounded-xl transition-all duration-200 ${service.statusLabel === "AVAILABLE" ? "hover:bg-white/10 active:bg-white/20" : "cursor-not-allowed opacity-75"}`}
                                                                 >
-                                                                    <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                        {service.statusLabel === "COMING SOON" && (
+                                                                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] border border-white/25 bg-black/60 text-white/85">
+                                                                                {service.statusLabel}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                     <p className="text-xs text-white/60 leading-tight mt-0.5">{service.subtitle}</p>
                                                                 </a>
                                                             )}
@@ -578,9 +620,9 @@ const TravelExploreAnimation = ({ auth }) => {
                         </div>
                         <span className="h-px w-10 sm:w-16 bg-white" />
                     </div>
-                    <h1 className="uppercase leading-[0.95] font-extrabold text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl">
+                    <h1 className="uppercase leading-[0.95] font-extrabold text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl drop-shadow-[0_0_14px_rgba(255,112,3,2)]">
                         BEYOND
-                        <span className="text-[#FF7003] mt-1"> EVERYTHING</span>
+                        <span className="text-[#FF7003] mt-1 drop-shadow-[0_0_14px_rgba(255,112,3,0.1)]"> EVERYTHING</span>
                     </h1>
                 </div>
 
@@ -608,7 +650,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                         damping: 20,
                                     }}
                                     onMouseEnter={() => isAvailable && setHoveredCard(i)}
-                                    onMouseLeave={() => setHoveredCard(0)}
+                                    onMouseLeave={() => setHoveredCard(null)}
                                     onTouchStart={() => isAvailable && setHoveredCard(i)}
                                     onTouchEnd={() => setTimeout(() => setHoveredCard(0), 300)}
                                 >
