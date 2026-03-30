@@ -383,20 +383,20 @@ const Create = () => {
                     <form onSubmit={handleSubmit} className="space-y-10">
 
                         <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-6">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col items-center gap-3 text-center">
                                 <div>
                                     <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
                                     <p className="mt-1 text-sm text-[#5B6887]">
                                         Choose the route type first. Courier companies will be filtered to match your selection.
                                     </p>
                                 </div>
-                                <div className="flex w-full sm:w-auto rounded-lg border border-[#E8F0FE] bg-[#F4F7FB] p-0.5">
+                                <div className="inline-flex w-[300px] max-w-md justify-between rounded-xl border border-[#D6DEEB] bg-white p-1 shadow-sm">
                                     <button
                                         type="button"
                                         onClick={() => setData('shipment', { ...data.shipment, routeType: 'domestic' })}
-                                        className={`flex-1 sm:flex-none rounded-md px-4 py-2 text-xs font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
-                                            ? 'bg-white text-[#2563EB] shadow-sm'
-                                            : 'text-[#5B6887] hover:text-[#0B1739]'
+                                        className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
+                                            ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                            : 'border-transparent bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
                                             }`}
                                     >
                                         Domestic
@@ -404,9 +404,9 @@ const Create = () => {
                                     <button
                                         type="button"
                                         onClick={() => setData('shipment', { ...data.shipment, routeType: 'international' })}
-                                        className={`flex-1 sm:flex-none rounded-md px-4 py-2 text-xs font-semibold transition-all duration-150 ${selectedRouteType === 'international'
-                                            ? 'bg-white text-[#0955AC] shadow-sm'
-                                            : 'text-[#5B6887] hover:text-[#0B1739]'
+                                        className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'international'
+                                            ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                            : 'border-transparent bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
                                             }`}
                                     >
                                         International
