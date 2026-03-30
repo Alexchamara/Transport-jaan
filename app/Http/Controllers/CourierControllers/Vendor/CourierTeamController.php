@@ -558,7 +558,7 @@ class CourierTeamController extends Controller
             return back()->with('error', 'Owner cannot be blocked from Courier service.');
         }
 
-        DB::transaction(function () use ($validated, $workspaceId, $membership, $user, $request, $roleChanged, $permissionsChanged, $statusChanged, $blockedKeysChanged, $teamAccessControl, $requestedRole) {
+        DB::transaction(function () use ($validated, $workspaceId, $membership, $user, $request, $roleChanged, $permissionsChanged, $statusChanged, $blockedKeysChanged, $teamAccessControl, $requestedRole, $beforeSnapshot, $afterSnapshot, $resolvedDirectPermissions) {
             if ($blockedKeysChanged) {
                 $membership->blocked_service_keys = array_values(array_unique($validated['blockedServiceKeys'] ?? []));
             }

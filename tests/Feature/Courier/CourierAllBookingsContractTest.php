@@ -7,16 +7,35 @@ use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierPackage;
 use App\Models\Courier\CourierShipment;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class CourierAllBookingsContractTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+        Carbon::setTestNow(Carbon::create(2026, 3, 30, 10, 0, 0, 'UTC'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_client_all_bookings_exposes_canonical_courier_contract_fields(): void
     {
+        $reference = 'CR-PHASE3-' . Str::upper(Str::random(6));
+
         $user = User::factory()->create([
             'status' => 'verified',
             'role' => 'client',
@@ -65,7 +84,7 @@ class CourierAllBookingsContractTest extends TestCase
         ]);
 
         $shipment = CourierShipment::query()->create([
-            'reference' => 'CR-PHASE3-001',
+            'reference' => $reference,
             'requested_by_user_id' => $user->id,
             'sender_contact_id' => $sender->id,
             'recipient_contact_id' => $recipient->id,
@@ -110,9 +129,9 @@ class CourierAllBookingsContractTest extends TestCase
             ->has('allBookings', 1)
             ->where('allBookings.0.booking_type', 'courier')
             ->where('allBookings.0.type', 'courier')
-            ->where('allBookings.0.reference_number', 'CR-PHASE3-001')
-            ->where('allBookings.0.tracking_reference', 'CR-PHASE3-001')
-            ->where('allBookings.0.tracking_number', 'CR-PHASE3-001')
+            ->where('allBookings.0.reference_number', $reference)
+            ->where('allBookings.0.tracking_reference', $reference)
+            ->where('allBookings.0.tracking_number', $reference)
             ->where('allBookings.0.pickup_location', 'Colombo, Western, LK')
             ->where('allBookings.0.dropoff_location', 'Kandy, Central, LK')
             ->where('allBookings.0.pickup_address', '123 Main Street, Suite 5 | Colombo, Western, 10000 | LK')

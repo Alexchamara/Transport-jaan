@@ -31,3 +31,9 @@ Schedule::command('courier:publish-scheduled-pricing')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Monitor courier Phase 7 rollout health and evaluate fallback criteria.
+Schedule::command('courier:phase7-monitor --hours=24')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
