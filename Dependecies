@@ -7,4 +7,4 @@ icket generation system with PDF and QR codes
 RABC depencency:
     composer require spatie/laravel-permission
 
-    php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="permission-config" && php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="permission-migrations"
+    php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="permission-config" &&php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="permission-migrations"

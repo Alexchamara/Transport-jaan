@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 
 import { motion } from "framer-motion";
 import CompanyLogo from "../CompanyLogo";
@@ -18,16 +18,40 @@ import { Link } from "@inertiajs/react";
 
 const IMAGES = [
     {
-        title: "Vehicle Rental & Ticket Booking",
-        subtitle: "Complete Transportation",
+        statusLabel: "AVAILABLE",
+        title: "Courier",
+        subtitle: "Fast & Reliable Delivery",
         description:
-            "Book or rent vehicles across land, sea, and air. Including cars, buses, boats, helicopters, and flight tickets for personal or business travel needs.",
+            "Send packages, documents, and parcels through domestic or logistic routes with our trusted courier network. Real-time tracking and secure delivery options.",
+        ctaLabel: "Book Courier",
+        href: "/couriers/create",
+        url: img8,
+        tags: ["Courier", "Delivery", "Tracking"],
+    },
+    {
+        statusLabel: "COMING SOON",
+        title: "Vehicle Rental",
+        subtitle: "Cars, vans, boats and aircraft",
+        description:
+            "Rent vehicles across land, sea, and air for personal and business travel needs.",
         ctaLabel: "Book Vehicle",
         href: "/multiModel/plan-journey?tab=rental",
         url: img1,
-        tags: ["Vehicle Rental", "Booking"],
+        tags: ["Vehicle", "Rental", "Transport"],
     },
     {
+        statusLabel: "COMING SOON",
+        title: "Ticket Booking",
+        subtitle: "Bus, train and flight tickets",
+        description:
+            "Book tickets across land and air routes with reliable schedules and easy reservation flow.",
+        ctaLabel: "Book Ticket",
+        href: "/multiModel/plan-journey?tab=ticket",
+        url: img7,
+        tags: ["Train", "Bus", "Flight"],
+    },
+    {
+        statusLabel: "COMING SOON",
         title: "Warehousing",
         subtitle: "Storage & Fulfillment",
         description:
@@ -38,6 +62,7 @@ const IMAGES = [
         tags: ["Warehouse", "Storage", "Fulfillment"],
     },
     {
+        statusLabel: "COMING SOON",
         title: "Freight",
         subtitle: "Bulk Cargo Movement",
         description:
@@ -46,16 +71,6 @@ const IMAGES = [
         href: "/freight-home",
         url: img5,
         tags: ["Freight", "Shipping", "Logistics"],
-    },
-    {
-        title: "Courier Booking",
-        subtitle: "Fast & Reliable Delivery",
-        description:
-            "Send packages, documents, and parcels through domestic or logistic routes with our trusted courier network. Real-time tracking and secure delivery options.",
-        ctaLabel: "Book Courier",
-        href: "/couriers/create",
-        url: img8,
-        tags: ["Courier", "Delivery", "Tracking"],
     },
 ];
 
@@ -94,6 +109,28 @@ const TravelExploreAnimation = ({ auth }) => {
     const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
     const [hoveredService, setHoveredService] = useState(null);
     const [mobileSubService, setMobileSubService] = useState(null);
+    const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(max-width: 1279px)");
+        const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+        updateViewport();
+
+        if (mediaQuery.addEventListener) {
+            mediaQuery.addEventListener("change", updateViewport);
+            return () => mediaQuery.removeEventListener("change", updateViewport);
+        }
+
+        mediaQuery.addListener(updateViewport);
+        return () => mediaQuery.removeListener(updateViewport);
+    }, []);
+
+    useEffect(() => {
+        if (!isMobileViewport && menuOpen) {
+            setMenuOpen(false);
+        }
+    }, [isMobileViewport, menuOpen]);
 
     const user = auth?.user;
     const userRole = user?.role;
@@ -111,6 +148,8 @@ const TravelExploreAnimation = ({ auth }) => {
             setMenuOpen(false);
         }
     };
+
+    const desktopNavItemClass = "relative h-8 flex items-center justify-center cursor-pointer px-1 opacity-90 hover:opacity-100 transition-opacity after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1.5px] after:bg-white after:scale-x-0 hover:after:scale-x-100 after:origin-center after:transition-transform after:duration-200";
 
     return (
         <div className="bg-gray-900">
@@ -152,19 +191,19 @@ const TravelExploreAnimation = ({ auth }) => {
                     <div className="pointer-events-auto">
                         <div className="bg-transparent">
                             {/* Desktop */}
-                            <div className="md:flex hidden justify-between items-center px-10 py-5">
+                            <div className="xl:flex hidden justify-between items-center px-10 py-5">
                                 <div className="pb-[40px]">
-                                    <CompanyLogo className="h-[50px] md:h-[60px] lg:h-[90px] xl:h-[100px] object-contain" />
+                                    <CompanyLogo className="h-[50px] lg:h-[60px] xl:h-[80px] object-contain" />
                                 </div>
-                                <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
+                                <div className="uppercase leading-tight flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
                                     <div
-                                        className="xl:w-[101px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
+                                        className={desktopNavItemClass}
                                         onClick={() => handleScroll("home")}
                                     >
                                         Home
                                     </div>
                                     <div
-                                        className="xl:w-[121px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
+                                        className={desktopNavItemClass}
                                         onClick={() => handleScroll("about")}
                                     >
                                         About Us
@@ -175,10 +214,10 @@ const TravelExploreAnimation = ({ auth }) => {
                                         onMouseLeave={() => setServicesOpen(false)}
                                     >
                                         <div
-                                            className="xl:w-[114px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
+                                            className={desktopNavItemClass}
                                             onTouchStart={(e) => { e.preventDefault(); setServicesOpen(prev => !prev); }}
                                         >
-                                            <span className="flex items-center gap-1">
+                                            <span className="flex items-center gap-1.5">
                                                 Services
                                                 <svg
                                                     className={`w-3 h-3 transition-transform duration-200 ${servicesOpen ? "rotate-180" : ""}`}
@@ -197,7 +236,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                 initial={{ opacity: 0, y: -8 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ duration: 0.2 }}
-                                                className="absolute top-full -translate-x-1/2 w-64 z-[70] pt-3"
+                                                className="absolute left-1/2 top-full -translate-x-1/2 w-64 z-[70] pt-3"
                                             >
                                                 <div className="bg-white/15 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl">
                                                     {SERVICES.map((service, i) => (
@@ -263,13 +302,13 @@ const TravelExploreAnimation = ({ auth }) => {
                                         )}
                                     </div>
                                     <div
-                                        className="xl:w-[81px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
+                                        className={desktopNavItemClass}
                                         onClick={() => handleScroll("blog")}
                                     >
                                         Blog
                                     </div>
                                     <div
-                                        className="xl:w-[137px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
+                                        className={desktopNavItemClass}
                                         onClick={() => handleScroll("contact")}
                                     >
                                         Contact Us
@@ -283,14 +322,14 @@ const TravelExploreAnimation = ({ auth }) => {
                                                 (isVendorVerified ? (
                                                     <Link
                                                         href="/vendorAllBookings"
-                                                        className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                        className="h-[44px] px-6 rounded-[100px] bg-[#FF7003] hover:bg-[#ff7e1f] flex items-center text-white text-[16px] font-semibold"
                                                     >
                                                         Dashboard
                                                     </Link>
                                                 ) : (
                                                     <Link
                                                         href="/approval-pending"
-                                                        className="bg-orange-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                        className="h-[44px] px-6 rounded-[100px] bg-[#FF7003] hover:bg-[#ff7e1f] flex items-center text-white text-[16px] font-semibold"
                                                     >
                                                         Dashboard
                                                     </Link>
@@ -298,7 +337,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                             {isClient && (
                                                 <Link
                                                     href="/clientAllBookings"
-                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    className="h-[44px] px-6 rounded-[100px] bg-[#FF7003] hover:bg-[#ff7e1f] flex items-center text-white text-[16px] font-semibold"
                                                 >
                                                     Dashboard
                                                 </Link>
@@ -306,7 +345,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                             {isSuperAdmin && (
                                                 <Link
                                                     href="/superadmin/dashboard"
-                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    className="h-[44px] px-6 rounded-[100px] bg-[#FF7003] hover:bg-[#ff7e1f] flex items-center text-white text-[16px] font-semibold"
                                                 >
                                                     Dashboard
                                                 </Link>
@@ -315,7 +354,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                     ) : (
                                         <>
                                             <div
-                                                className="lg:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-[#FFFFFF]"
+                                                className="min-w-[150px] h-[44px] bg-[#FF7003] border border-[#FF7003] rounded-[100px] flex justify-center items-center px-6 cursor-pointer text-white"
                                                 onClick={() =>
                                                 (window.location.href =
                                                     "/signin")
@@ -324,7 +363,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                 Login
                                             </div>
                                             <div
-                                                className="lg:w-[137px] h-[38px] text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer bg-transparent px-4 py-2"
+                                                className="min-w-[170px] h-[44px] text-[#FF7003] border border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer bg-black/20 px-6"
                                                 onClick={() =>
                                                 (window.location.href =
                                                     "/signup")
@@ -338,23 +377,25 @@ const TravelExploreAnimation = ({ auth }) => {
                             </div>
 
                             {/* Mobile */}
-                            <div className="md:hidden px-4 py-3 flex justify-between items-center">
-                                <div className="text-white text-base order-2 uppercase font-[700]">
-                                    <CompanyLogo className="h-[40px] sm:h-[50px] object-contain" fallbackClassName="text-white text-base uppercase font-[700]" />
+                            {isMobileViewport && (
+                                <div className="xl:hidden px-4 py-3 flex justify-between items-center">
+                                    <div className="text-white text-base order-2 uppercase font-[700]">
+                                        <CompanyLogo className="h-[40px] sm:h-[50px] object-contain" fallbackClassName="text-white text-base uppercase font-[700]" />
+                                    </div>
+                                    <div
+                                        className="size-[30px] flex justify-center items-center cursor-pointer order-1"
+                                        onClick={() => setMenuOpen(true)}
+                                    >
+                                        <span className="text-white text-2xl">
+                                            ☰
+                                        </span>
+                                    </div>
                                 </div>
-                                <div
-                                    className="size-[30px] flex justify-center items-center cursor-pointer order-1"
-                                    onClick={() => setMenuOpen(true)}
-                                >
-                                    <span className="text-white text-2xl">
-                                        ☰
-                                    </span>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Mobile Sidebar */}
-                        {menuOpen && (
+                        {isMobileViewport && menuOpen && (
                             <>
                                 <div
                                     className="fixed inset-0 bg-black bg-opacity-40 z-40"
@@ -529,59 +570,104 @@ const TravelExploreAnimation = ({ auth }) => {
                     </div>
                 </div>
 
-                {/* Services Cards Grid */}
-                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 md:py-32 mt-16 sm:mt-20 md:mt-24">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                        {IMAGES.map((item, i) => (
-                            <motion.a
-                                key={i}
-                                href={item.href}
-                                className="group relative rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
-                                whileHover={{ scale: 1.08 }}
-                                whileTap={{ scale: 1.05 }}
-                                transition={{
-                                    type: "spring",
-                                    stiffness: 300,
-                                    damping: 20,
-                                }}
-                                onMouseEnter={() => setHoveredCard(i)}
-                                onMouseLeave={() => setHoveredCard(0)}
-                                onTouchStart={() => setHoveredCard(i)}
-                                onTouchEnd={() => setTimeout(() => setHoveredCard(0), 300)}
-                            >
-                                <div className="relative h-[400px] sm:h-[420px] md:h-[450px] w-full">
-                                    <img
-                                        src={item.url}
-                                        alt={item.title}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                        draggable={false}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                <div className="relative z-20 mt-20 sm:mt-[150px] text-center px-4">
+                    <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                        <span className="h-px w-10 sm:w-16 bg-white" />
+                        <div className="text-white text-[8px] sm:text-[15px] tracking-[0.5em] uppercase leading-none">
+                            Land. Sea. Air.
+                        </div>
+                        <span className="h-px w-10 sm:w-16 bg-white" />
+                    </div>
+                    <h1 className="uppercase leading-[0.95] font-extrabold text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl">
+                        BEYOND
+                        <span className="text-[#FF7003] mt-1"> EVERYTHING</span>
+                    </h1>
+                </div>
 
-                                    {/* Content */}
-                                    <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6">
-                                        <div className="bg-white/20 backdrop-blur-lg rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/30 transition-all duration-300 group-hover:bg-white/30 group-hover:border-white/50">
-                                            <h3 className="text-white font-bold text-lg sm:text-xl mb-1 sm:mb-2 uppercase tracking-wide">
-                                                {item.title}
-                                            </h3>
-                                            <p className="text-white/90 text-xs sm:text-sm mb-2 sm:mb-3">
-                                                {item.subtitle}
-                                            </p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {item.tags.slice(0, 3).map((tag, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className="px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/50"
-                                                    >
-                                                        {tag}
-                                                    </span>
-                                                ))}
+                {/* Services Cards Grid */}
+                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 sm:pt-8 sm:pb-24 md:pt-10 md:pb-32 mt-6 sm:mt-8 md:mt-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                        {IMAGES.map((item, i) => {
+                            const isAvailable = item.statusLabel === "AVAILABLE";
+
+                            return (
+                                <motion.a
+                                    key={i}
+                                    href={isAvailable ? item.href : undefined}
+                                    aria-disabled={!isAvailable}
+                                    onClick={!isAvailable ? (e) => e.preventDefault() : undefined}
+                                    className={`group relative w-full max-w-[270px] mx-auto rounded-2xl overflow-hidden shadow-2xl ${isAvailable
+                                        ? "cursor-pointer"
+                                        : "cursor-not-allowed pointer-events-none"
+                                        }`}
+                                    whileHover={isAvailable ? { scale: 1.08 } : undefined}
+                                    whileTap={isAvailable ? { scale: 1.05 } : undefined}
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 300,
+                                        damping: 20,
+                                    }}
+                                    onMouseEnter={() => isAvailable && setHoveredCard(i)}
+                                    onMouseLeave={() => setHoveredCard(0)}
+                                    onTouchStart={() => isAvailable && setHoveredCard(i)}
+                                    onTouchEnd={() => setTimeout(() => setHoveredCard(0), 300)}
+                                >
+                                    <div className="relative h-[320px] sm:h-[340px] md:h-[360px] w-full bg-[#0b0d10]">
+                                        <img
+                                            src={item.url}
+                                            alt={item.title}
+                                            className={`w-full h-full object-cover transition-transform duration-500 ${isAvailable
+                                                ? "group-hover:scale-110"
+                                                : "brightness-[0.65] saturate-[0.7]"
+                                                }`}
+                                            draggable={false}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                                        {!isAvailable && (
+                                            <div className="absolute inset-0 " />
+                                        )}
+
+                                        <div className="absolute left-3 top-3 z-10">
+                                            <span
+                                                className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] ${item.statusLabel === "AVAILABLE"
+                                                    ? "border border-[#FF7003]/70 bg-[#FF7003] text-white"
+                                                    : "border border-white/25 bg-black/70 text-white/90"
+                                                    }`}
+                                            >
+                                                {item.statusLabel}
+                                            </span>
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4">
+                                            <div
+                                                className={`rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 ${isAvailable
+                                                    ? "bg-white/20 backdrop-blur-lg border-white/30 group-hover:bg-white/30 group-hover:border-white/50"
+                                                    : "bg-black/55 border-white/20"
+                                                    }`}
+                                            >
+                                                <h3 className="text-white font-bold text-base sm:text-lg mb-1 sm:mb-1.5 uppercase tracking-wide">
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-white/90 text-xs mb-2 sm:mb-2.5">
+                                                    {item.subtitle}
+                                                </p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {item.tags.slice(0, 3).map((tag, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-white border border-white/50"
+                                                        >
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </motion.a>
-                        ))}
+                                </motion.a>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
