@@ -28,7 +28,6 @@ const Create = () => {
     const [activePackageIndex, setActivePackageIndex] = useState(0);
 
     const [isPlacing, setIsPlacing] = useState(false);
-    const [activeCategory, setActiveCategory] = useState('domestic');
 
     const scrollToTop = () => {
         if (typeof window !== "undefined") {
@@ -71,6 +70,7 @@ const Create = () => {
             pickupDate: "",
             pickupWindowStart: "",
             pickupWindowEnd: "",
+            routeType: "domestic",
             serviceLevel: serviceLevels[0] || "",
             courierProvider: "",
             currency: "LKR",
@@ -174,6 +174,7 @@ const Create = () => {
     };
 
     const quoteCurrency = data.shipment?.currency || "LKR";
+    const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -380,6 +381,39 @@ const Create = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-10">
+
+                        <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
+                                    <p className="mt-1 text-sm text-[#5B6887]">
+                                        Choose the route type first. Courier companies will be filtered to match your selection.
+                                    </p>
+                                </div>
+                                <div className="flex w-full sm:w-auto rounded-lg border border-[#E8F0FE] bg-[#F4F7FB] p-0.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setData('shipment', { ...data.shipment, routeType: 'domestic' })}
+                                        className={`flex-1 sm:flex-none rounded-md px-4 py-2 text-xs font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
+                                            ? 'bg-white text-[#2563EB] shadow-sm'
+                                            : 'text-[#5B6887] hover:text-[#0B1739]'
+                                            }`}
+                                    >
+                                        Domestic
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setData('shipment', { ...data.shipment, routeType: 'international' })}
+                                        className={`flex-1 sm:flex-none rounded-md px-4 py-2 text-xs font-semibold transition-all duration-150 ${selectedRouteType === 'international'
+                                            ? 'bg-white text-[#0955AC] shadow-sm'
+                                            : 'text-[#5B6887] hover:text-[#0B1739]'
+                                            }`}
+                                    >
+                                        International
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
 
                         <section className="space-y-6">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -670,8 +704,8 @@ const Create = () => {
                             {quoteMatrix.length === 0 ? (
                                 <div className="mt-6 rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
                                     {incompletePackages > 0
-                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available logistic courier services.`
-                                        : "Add package details to view available logistic courier services."}
+                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available ${selectedRouteType} courier services.`
+                                        : `Add package details to view available ${selectedRouteType} courier services.`}
                                 </div>
                             ) : (
                                 <div className="mt-8 space-y-8">
@@ -689,15 +723,15 @@ const Create = () => {
                                                             type="button"
                                                             onClick={() => setActivePackageIndex(packageQuotes.packageIndex)}
                                                             className={`flex items-center gap-3 whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${isActive
-                                                                    ? 'border-[#0955AC] text-[#0955AC]'
-                                                                    : 'border-transparent text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                                                ? 'border-[#0955AC] text-[#0955AC]'
+                                                                : 'border-transparent text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
                                                                 }`}
                                                         >
                                                             <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${isActive
-                                                                    ? 'bg-[#0955AC] text-white'
-                                                                    : hasSelection
-                                                                        ? 'bg-green-500 text-white'
-                                                                        : 'bg-[#E8F0FE] text-[#5B6887]'
+                                                                ? 'bg-[#0955AC] text-white'
+                                                                : hasSelection
+                                                                    ? 'bg-green-500 text-white'
+                                                                    : 'bg-[#E8F0FE] text-[#5B6887]'
                                                                 }`}>
                                                                 {hasSelection && !isActive ? (
                                                                     <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -793,10 +827,10 @@ const Create = () => {
                                                                                     setData('packages', updatedPackages);
                                                                                 }}
                                                                                 className={`flex w-full items-center px-3 py-2 text-left transition-colors ${isSelected
-                                                                                        ? 'bg-[#0955AC]'
-                                                                                        : isBest
-                                                                                            ? 'bg-emerald-50 active:bg-emerald-100'
-                                                                                            : 'bg-white active:bg-[#F0F7FF]'
+                                                                                    ? 'bg-[#0955AC]'
+                                                                                    : isBest
+                                                                                        ? 'bg-emerald-50 active:bg-emerald-100'
+                                                                                        : 'bg-white active:bg-[#F0F7FF]'
                                                                                     }`}
                                                                             >
                                                                                 {/* Tier label — fixed width */}
@@ -880,10 +914,10 @@ const Create = () => {
                                                                                             setData('packages', updatedPackages);
                                                                                         }}
                                                                                         className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${isSelected
-                                                                                                ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
-                                                                                                : isBest
-                                                                                                    ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
-                                                                                                    : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
+                                                                                            ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
+                                                                                            : isBest
+                                                                                                ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
+                                                                                                : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
                                                                                             }`}
                                                                                     >
                                                                                         <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
@@ -914,43 +948,19 @@ const Create = () => {
 
                                         const hasDomestic = domesticProviders.length > 0;
                                         const hasLogistic = logisticProviders.length > 0;
-                                        const currentCategory = (activeCategory === 'domestic' && hasDomestic) ? 'domestic'
-                                            : (activeCategory === 'logistic' && hasLogistic) ? 'logistic'
-                                                : hasDomestic ? 'domestic' : 'logistic';
+                                        const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
+                                        const currentCategory = preferredCategory === 'domestic'
+                                            ? (hasDomestic ? 'domestic' : null)
+                                            : (hasLogistic ? 'logistic' : null);
 
                                         return (
                                             <div className="space-y-3">
-                                                {/* Category switch + legend row */}
+                                                {/* Compact legend */}
                                                 <div className="flex flex-col md:flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                    {/* Switch buttons — full width on mobile */}
-                                                    <div className="flex w-full sm:w-auto rounded-lg border border-[#E8F0FE] bg-[#F4F7FB] p-0.5">
-                                                        {hasDomestic && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setActiveCategory('domestic')}
-                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${currentCategory === 'domestic'
-                                                                        ? 'bg-white text-[#2563EB] shadow-sm'
-                                                                        : 'text-[#5B6887] hover:text-[#0B1739]'
-                                                                    }`}
-                                                            >
-                                                                Domestic
-                                                            </button>
-                                                        )}
-                                                        {hasLogistic && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setActiveCategory('logistic')}
-                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${currentCategory === 'logistic'
-                                                                        ? 'bg-white text-[#0955AC] shadow-sm'
-                                                                        : 'text-[#5B6887] hover:text-[#0B1739]'
-                                                                    }`}
-                                                            >
-                                                                Logistic
-                                                            </button>
-                                                        )}
+                                                    <div className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">
+                                                        Showing {selectedRouteType} courier providers
                                                     </div>
 
-                                                    {/* Compact legend */}
                                                     <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px] text-[#6B7893]">
                                                         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>Best price</span>
                                                         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#0955AC]"></span>Selected</span>
@@ -959,7 +969,12 @@ const Create = () => {
                                                 </div>
 
                                                 {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
-                                                {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'Logistic', '#0955AC', '#F0F7FF')}
+                                                {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
+                                                {!currentCategory && (
+                                                    <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
+                                                        No {selectedRouteType} courier providers are currently available for this package.
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })()}
