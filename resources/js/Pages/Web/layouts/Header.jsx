@@ -10,7 +10,12 @@ import NotificationDropdown from "../components/vendors/warehouse/NotificationDr
 import { API_BASE_URL } from "../../../config/api";
 
 const Header = () => {
-    const { auth } = usePage().props;
+    const page = usePage();
+    const { auth } = page.props;
+    const currentUrl = String(page.url || "");
+    const shouldLoadVendorNotifications =
+        currentUrl.startsWith("/vendors/warehouse") ||
+        currentUrl.startsWith("/vendors");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -33,15 +38,22 @@ const Header = () => {
 
     // ---------- Fetch notifications ----------
     useEffect(() => {
-        if (auth?.user) {
+        if (auth?.user && shouldLoadVendorNotifications) {
             fetchNotifications();
             // Refresh notifications every 30 seconds
             const interval = setInterval(fetchNotifications, 30000);
             return () => clearInterval(interval);
         }
-    }, [auth?.user]);
+
+        setNotifications([]);
+        setUnreadCount(0);
+    }, [auth?.user, shouldLoadVendorNotifications]);
 
     const fetchNotifications = async () => {
+        if (!shouldLoadVendorNotifications) {
+            return;
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
             // 403 is expected for non-vendor users — skip silently
@@ -189,10 +201,12 @@ const Header = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <NotificationDropdown
-                        notifications={notifications}
-                        unreadCount={unreadCount}
-                    />
+                    {shouldLoadVendorNotifications && (
+                        <NotificationDropdown
+                            notifications={notifications}
+                            unreadCount={unreadCount}
+                        />
+                    )}
                     <div className="relative">
                         <button
                             onClick={() => setIsProfileOpen((prev) => !prev)}

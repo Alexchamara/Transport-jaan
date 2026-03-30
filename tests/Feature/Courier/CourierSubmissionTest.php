@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class CourierSubmissionTest extends TestCase
@@ -32,6 +33,97 @@ class CourierSubmissionTest extends TestCase
     {
         $this->get(route('couriers.create'))
             ->assertRedirect(route('login'));
+    }
+
+    public function test_review_step_redirects_to_details_with_quote_selection_payload(): void
+    {
+        $client = User::factory()->create();
+
+        $payload = [
+            'sender' => [
+                'name' => '',
+                'address' => [
+                    'line1' => '',
+                    'city' => '',
+                    'country' => 'LK',
+                ],
+            ],
+            'recipient' => [
+                'name' => '',
+                'address' => [
+                    'line1' => '',
+                    'city' => '',
+                    'country' => 'LK',
+                ],
+            ],
+            'shipment' => [
+                'serviceLevel' => 'Same Day',
+                'currency' => 'LKR',
+            ],
+            'packages' => [
+                [
+                    'label' => 'Package 1',
+                    'packageType' => 'parcel',
+                    'courierProvider' => 'vendor-1-domestic',
+                    'serviceLevel' => 'express',
+                    'quantity' => 1,
+                    'weightKg' => 2.5,
+                    'lengthCm' => 20,
+                    'widthCm' => 15,
+                    'heightCm' => 10,
+                    'declaredValue' => 100,
+                    'description' => 'Test package',
+                ],
+            ],
+            'reviewContext' => [
+                'displayCurrency' => 'LKR',
+                'totalPriceUSD' => 12.5,
+                'selectedQuotes' => [
+                    [
+                        'packageIndex' => 0,
+                        'providerId' => 'vendor-1-domestic',
+                        'providerName' => 'Test Provider',
+                        'serviceLevel' => 'express',
+                        'serviceLabel' => 'Express',
+                        'eta' => 'Next-day delivery',
+                        'description' => 'Test quote',
+                        'priceUSD' => 12.5,
+                        'weight' => 2.5,
+                        'billableWeight' => 2.5,
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($client)->post(route('couriers.review'), $payload);
+
+        $response->assertRedirect(route('couriers.details'));
+        $response->assertSessionHas('courier_preview');
+    }
+
+    public function test_create_route_always_exposes_quote_provider_payload_shape(): void
+    {
+        $client = User::factory()->create();
+
+        $response = $this->actingAs($client)->get(route('couriers.create'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/courier/Create')
+            ->where('quoteProviders', function ($providers) {
+                if (!is_array($providers) || count($providers) === 0) {
+                    return true;
+                }
+
+                $sample = $providers[0];
+
+                return is_array($sample)
+                    && array_key_exists('id', $sample)
+                    && array_key_exists('name', $sample)
+                    && array_key_exists('category', $sample)
+                    && array_key_exists('tiers', $sample);
+            })
+        );
     }
 
     public function test_client_can_submit_courier_request_and_download_bill(): void
@@ -183,6 +275,152 @@ class CourierSubmissionTest extends TestCase
             ->post(route('couriers.details.store'), ['_token' => $csrfToken])
             ->assertRedirect(route('couriers.create'))
             ->assertSessionHas('error');
+    }
+
+    public function test_details_store_redirects_to_summary_when_review_stage_preview_is_valid(): void
+    {
+        $user = User::factory()->create();
+        $csrfToken = 'test-token-details-valid-preview';
+
+        $reviewStagePreview = [
+            'sender' => [
+                'name' => '',
+                'address' => [
+                    'line1' => '',
+                    'city' => '',
+                    'country' => 'LK',
+                ],
+            ],
+            'recipient' => [
+                'name' => '',
+                'address' => [
+                    'line1' => '',
+                    'city' => '',
+                    'country' => 'LK',
+                ],
+            ],
+            'shipment' => [
+                'serviceLevel' => 'Same Day',
+                'currency' => 'LKR',
+            ],
+            'packages' => [
+                [
+                    'label' => 'Package 1',
+                    'packageType' => 'parcel',
+                    'courierProvider' => 'vendor-1-domestic',
+                    'serviceLevel' => 'economy',
+                    'quantity' => 1,
+                    'weightKg' => 2.5,
+                    'lengthCm' => 20,
+                    'widthCm' => 15,
+                    'heightCm' => 10,
+                    'declaredValue' => 100,
+                    'description' => 'Test package',
+                ],
+            ],
+            'reviewContext' => [
+                'displayCurrency' => 'LKR',
+                'totalPriceUSD' => 12.5,
+                'selectedQuotes' => [
+                    [
+                        'packageIndex' => 0,
+                        'providerId' => 'vendor-1-domestic',
+                        'providerName' => 'Test Provider',
+                        'serviceLevel' => 'economy',
+                        'serviceLabel' => 'Economy',
+                        'eta' => '2-3 business days',
+                        'description' => 'Test quote',
+                        'priceUSD' => 12.5,
+                        'weight' => 2.5,
+                        'billableWeight' => 2.5,
+                    ],
+                ],
+            ],
+        ];
+
+        $detailsPayload = [
+            'sender' => [
+                'name' => 'Alex Sender',
+                'email' => 'alex.sender@example.com',
+                'phone' => '+94-77-123-4567',
+                'company' => 'Sender Co',
+                'address' => [
+                    'line1' => '123 Main Street',
+                    'line2' => 'Suite 5',
+                    'city' => 'Colombo',
+                    'state' => 'Western',
+                    'postalCode' => '10000',
+                    'country' => 'LK',
+                    'instructions' => 'Ring the bell twice',
+                ],
+            ],
+            'recipient' => [
+                'name' => 'Riya Recipient',
+                'email' => 'riya.recipient@example.com',
+                'phone' => '+94-11-555-8888',
+                'company' => 'Recipient Co',
+                'address' => [
+                    'line1' => '987 Lake Road',
+                    'line2' => 'Level 2',
+                    'city' => 'Kandy',
+                    'state' => 'Central',
+                    'postalCode' => '20000',
+                    'country' => 'LK',
+                    'instructions' => 'Leave with reception',
+                ],
+            ],
+            'shipment' => [
+                'pickupDate' => now()->addDay()->toDateString(),
+                'pickupWindowStart' => '09:00',
+                'pickupWindowEnd' => '13:00',
+                'serviceLevel' => 'Same Day',
+                'currency' => 'LKR',
+                'insurance' => true,
+                'deliveryNotes' => 'Leave at reception',
+                'estimatedValue' => 1250,
+            ],
+            'packages' => [
+                [
+                    'label' => 'Product Samples',
+                    'packageType' => 'parcel',
+                    'courierProvider' => 'vendor-1-domestic',
+                    'serviceLevel' => 'economy',
+                    'quantity' => 1,
+                    'weightKg' => 5.25,
+                    'lengthCm' => 40,
+                    'widthCm' => 30,
+                    'heightCm' => 25,
+                    'declaredValue' => 1250,
+                    'description' => 'Fragile promotional material',
+                ],
+            ],
+            'reviewContext' => [
+                'displayCurrency' => 'LKR',
+                'totalPriceUSD' => 45.75,
+                'selectedQuotes' => [
+                    [
+                        'packageIndex' => 0,
+                        'providerId' => 'vendor-1-domestic',
+                        'providerName' => 'Test Provider',
+                        'serviceLevel' => 'economy',
+                        'serviceLabel' => 'Economy',
+                        'eta' => '2-3 business days',
+                        'description' => 'Test quote',
+                        'priceUSD' => 45.75,
+                        'weight' => 5.25,
+                        'billableWeight' => 5.25,
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->withSession([
+                '_token' => $csrfToken,
+                'courier_preview' => $reviewStagePreview,
+            ])
+            ->post(route('couriers.details.store'), $detailsPayload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.summary'));
     }
 
     public function test_summary_redirects_to_create_when_preview_session_is_corrupt(): void

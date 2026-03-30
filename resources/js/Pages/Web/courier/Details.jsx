@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
@@ -210,6 +210,7 @@ const Details = () => {
         processing,
         errors: formErrors,
     } = useForm(initialForm);
+    const [submitError, setSubmitError] = useState("");
 
     const scrollToTop = useCallback(() => {
         if (typeof window !== "undefined") {
@@ -263,10 +264,47 @@ const Details = () => {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+
+        const extractFirstErrorMessage = (errorBag) => {
+            const queue = Array.isArray(errorBag)
+                ? [...errorBag]
+                : Object.values(errorBag || {});
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+
+                if (typeof current === "string" && current.trim() !== "") {
+                    return current;
+                }
+
+                if (Array.isArray(current)) {
+                    queue.push(...current);
+                    continue;
+                }
+
+                if (current && typeof current === "object") {
+                    queue.push(...Object.values(current));
+                }
+            }
+
+            return "";
+        };
+
         post("/couriers/details", {
             preserveScroll: false,
-            onSuccess: scrollToTop,
-            onError: scrollToTop,
+            onStart: () => setSubmitError(""),
+            onSuccess: () => {
+                setSubmitError("");
+                scrollToTop();
+            },
+            onError: (validationErrors) => {
+                const firstError = extractFirstErrorMessage(validationErrors);
+                setSubmitError(
+                    firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                );
+                scrollToTop();
+            },
         });
     };
 
@@ -528,7 +566,7 @@ const Details = () => {
 
             <main className="container mx-auto px-4 mt-16 mb-16 flex-1">
                 <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
-                    <form onSubmit={handleSubmit} className="space-y-10">
+                    <form onSubmit={handleSubmit} noValidate className="space-y-10">
                         {governanceRuntimeErrors.length > 0 && (
                             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                                 <p className="text-sm font-semibold text-amber-900">Pricing governance blocked submission</p>
@@ -1400,6 +1438,9 @@ const Details = () => {
                             >
                                 {processing ? "Saving details..." : "Continue to summary"}
                             </button>
+                            {submitError && (
+                                <p className="text-xs text-[#D14343]">{submitError}</p>
+                            )}
                             <Link
                                 href="/couriers/create"
                                 className="text-xs text-[#5B6887] hover:text-[#0955AC] transition"
