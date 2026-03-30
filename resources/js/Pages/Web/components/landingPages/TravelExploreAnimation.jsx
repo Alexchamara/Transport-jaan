@@ -11,7 +11,7 @@ import img5 from "../../assets/landingPages/hero/freight.jpg";
 import img6 from "../../assets/landingPages/hero/multimodel.jpg";
 import img7 from "../../assets/landingPages/hero/ticketbooking.jpg";
 import img8 from "../../assets/courierService/courier.jpg";
-import bg from "../../assets/landingpages/indexbg.png";
+import bg from "../../assets/landingPages/indexbg.png";
 
 import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from "@inertiajs/react";
