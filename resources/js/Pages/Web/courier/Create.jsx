@@ -17,6 +17,7 @@ const Create = () => {
     const serviceLevels = props.serviceLevels || [];
     const { flash } = props;
     const recentShipmentId = props.recentShipmentId;
+    const recentPricingExplanation = props.recentPricingExplanation;
     const packageSectionDescription = "Add one entry per parcel or grouped items.";
 
     // Currency conversion state
@@ -76,6 +77,13 @@ const Create = () => {
             insurance: false,
             deliveryNotes: "",
             estimatedValue: "",
+            logisticDimensions: {
+                unitType: "",
+                unitCount: "",
+                routeClass: "",
+                handlingClass: "",
+                w2wMode: "",
+            },
         },
         packages: [
             {
@@ -93,6 +101,31 @@ const Create = () => {
             },
         ],
     });
+
+    const POLICY_ADJUSTMENT_LABELS = {
+        remote_area_surcharge: "Remote area surcharge",
+        overweight_surcharge: "Overweight surcharge",
+        oversize_surcharge: "Oversize surcharge",
+        holiday_surcharge: "Holiday surcharge",
+        peak_hour_surcharge: "Peak-hour surcharge",
+        cod_fee: "COD fee",
+        minimum_shipment_guardrail: "Minimum shipment guardrail",
+        speed_eta_tier_multiplier: "Speed/ETA tier multiplier",
+        logistic_dimensions_engine: "Logistic dimensions engine",
+        quote_runtime_discount_applied: "Quote runtime discount applied",
+        quote_runtime_discount_ceiling_guardrail: "Quote runtime discount ceiling guardrail",
+        quote_runtime_floor_price_guardrail: "Quote runtime floor-price guardrail",
+    };
+
+    const formatPolicyAdjustmentLabel = (key) => {
+        const normalizedKey = String(key || "").trim();
+        if (!normalizedKey) {
+            return "Policy adjustment";
+        }
+
+        return POLICY_ADJUSTMENT_LABELS[normalizedKey]
+            || normalizedKey.replaceAll("_", " ");
+    };
 
     const updatePackage = (index, field, value) => {
         const nextPackages = data.packages.map((item, idx) =>
@@ -294,6 +327,53 @@ const Create = () => {
                                     >
                                         Download bill
                                     </a>
+                                </div>
+                            )}
+                            {recentPricingExplanation && (
+                                <div className="rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-3 text-xs text-[#1E3A8A]">
+                                    <p className="font-semibold">Pricing enforcement summary</p>
+                                    <p className="mt-1">Mode: {recentPricingExplanation.mode === "lane_matrix" ? "Lane Matrix" : "Selected Quotes"}</p>
+                                    {recentPricingExplanation.reason && (
+                                        <p className="mt-1">Reason: {recentPricingExplanation.reason}</p>
+                                    )}
+                                    {recentPricingExplanation.distanceKm !== null && recentPricingExplanation.distanceKm !== undefined && (
+                                        <p className="mt-1">Distance: {Number(recentPricingExplanation.distanceKm).toFixed(1)} km</p>
+                                    )}
+                                    {recentPricingExplanation.matchedRule && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            <p>Lane: {recentPricingExplanation.matchedRule.originZone} → {recentPricingExplanation.matchedRule.destinationZone}</p>
+                                            <p>Service: {recentPricingExplanation.matchedRule.serviceLevelKey || "any"}</p>
+                                            <p>Band: {Number(recentPricingExplanation.matchedRule.distanceFromKm || 0).toFixed(1)} - {recentPricingExplanation.matchedRule.distanceToKm === null || recentPricingExplanation.matchedRule.distanceToKm === undefined ? "*" : Number(recentPricingExplanation.matchedRule.distanceToKm).toFixed(1)} km</p>
+                                            <p>Estimate (USD): {Number(recentPricingExplanation.totalEstimatedUsd || 0).toFixed(2)}</p>
+                                        </div>
+                                    )}
+                                    {recentPricingExplanation.speedEtaTier && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            <p>Speed/ETA Tier: {recentPricingExplanation.speedEtaTier.etaLabel || recentPricingExplanation.speedEtaTier.tierLabel || recentPricingExplanation.speedEtaTier.tierKey || "—"}</p>
+                                            <p>ETA Range: {Number(recentPricingExplanation.speedEtaTier.etaMinDays || 0)} - {recentPricingExplanation.speedEtaTier.etaMaxDays === null || recentPricingExplanation.speedEtaTier.etaMaxDays === undefined ? "*" : Number(recentPricingExplanation.speedEtaTier.etaMaxDays)} days</p>
+                                            <p>Projected Window: {recentPricingExplanation.speedEtaTier.etaStartDate || "—"} {recentPricingExplanation.speedEtaTier.etaEndDate ? `to ${recentPricingExplanation.speedEtaTier.etaEndDate}` : ""}</p>
+                                            <p>Tier Multiplier: x{Number(recentPricingExplanation.speedEtaTier.priceMultiplier || 1).toFixed(2)} {recentPricingExplanation.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
+                                        </div>
+                                    )}
+                                    {recentPricingExplanation.logisticDimensions && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            <p>Logistic Unit Type: {recentPricingExplanation.logisticDimensions.unitType || "—"}</p>
+                                            <p>Route Class: {recentPricingExplanation.logisticDimensions.routeClass || "—"}</p>
+                                            <p>Handling Class: {recentPricingExplanation.logisticDimensions.handlingClass || "—"}</p>
+                                            <p>W2W Mode: {recentPricingExplanation.logisticDimensions.w2wMode || "—"}</p>
+                                            <p>Unit Count: {recentPricingExplanation.logisticDimensions.unitCount || "—"}</p>
+                                            <p>Combined Multiplier: x{Number(recentPricingExplanation.logisticDimensions.totalMultiplier || 1).toFixed(2)}</p>
+                                        </div>
+                                    )}
+                                    {Array.isArray(recentPricingExplanation.policyAdjustments) && recentPricingExplanation.policyAdjustments.length > 0 && (
+                                        <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                            {recentPricingExplanation.policyAdjustments.map((item, idx) => (
+                                                <p key={`recent-pricing-adjustment-${idx}`}>
+                                                    {formatPolicyAdjustmentLabel(item?.key)}: {Number(item?.amount || 0) >= 0 ? "+" : "-"}{Math.abs(Number(item?.amount || 0)).toFixed(2)}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -590,8 +670,8 @@ const Create = () => {
                             {quoteMatrix.length === 0 ? (
                                 <div className="mt-6 rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
                                     {incompletePackages > 0
-                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available international courier services.`
-                                        : "Add package details to view available international courier services."}
+                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available logistic courier services.`
+                                        : "Add package details to view available logistic courier services."}
                                 </div>
                             ) : (
                                 <div className="mt-8 space-y-8">

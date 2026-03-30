@@ -122,6 +122,7 @@ const ServiceRegistrationsSection = ({ serviceRegistrations, vendorId }) => {
             {serviceRegistrations.map((reg) => {
                 const statusStyles = getServiceStatusStyles(reg.status);
                 const isExpanded = expandedService === reg.id;
+                const normalizedServiceName = reg.service_sub_category;
 
                 return (
                     <div key={reg.id} className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] overflow-hidden">
@@ -133,7 +134,7 @@ const ServiceRegistrationsSection = ({ serviceRegistrations, vendorId }) => {
                             <div className="flex items-center gap-3">
                                 <div className={`w-2 h-2 rounded-full ${statusStyles.dot}`} />
                                 <div>
-                                    <h3 className="text-white text-[14px] font-[600]">{reg.service_sub_category}</h3>
+                                    <h3 className="text-white text-[14px] font-[600]">{normalizedServiceName}</h3>
                                     <p className="text-[#AEB9E1] text-[11px]">{reg.service_category}</p>
                                 </div>
                                 {reg.pre_revision_field_values && reg.status === 'submitted' && (() => {
@@ -246,19 +247,19 @@ const ServiceRegistrationsSection = ({ serviceRegistrations, vendorId }) => {
                                         {reg.status === 'submitted' && (
                                             <div className="flex gap-2 pt-2 border-t border-[#343B4F]">
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ id: reg.id, action: 'approve', serviceName: reg.service_sub_category }); }}
+                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ id: reg.id, action: 'approve', serviceName: normalizedServiceName }); }}
                                                     className="bg-[#05C168] text-white text-[12px] px-4 py-1.5 rounded-[5px] hover:bg-[#05C168]/80 transition-colors"
                                                 >
                                                     Approve Service
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ id: reg.id, action: 'reject', serviceName: reg.service_sub_category }); }}
+                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ id: reg.id, action: 'reject', serviceName: normalizedServiceName }); }}
                                                     className="bg-[#FF4757] text-white text-[12px] px-4 py-1.5 rounded-[5px] hover:bg-[#FF4757]/80 transition-colors"
                                                 >
                                                     Reject Service
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ id: reg.id, action: 'revision', serviceName: reg.service_sub_category }); }}
+                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ id: reg.id, action: 'revision', serviceName: normalizedServiceName }); }}
                                                     className="border border-[#FDB52A] text-[#FDB52A] text-[12px] px-4 py-1.5 rounded-[5px] hover:bg-[#FDB52A20] transition-colors"
                                                 >
                                                     Request Revision

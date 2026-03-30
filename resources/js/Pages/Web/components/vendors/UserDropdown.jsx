@@ -9,6 +9,7 @@ import { ChevronDown } from "lucide-react";
 const UserDropdown = ({ settingsRoute }) => {
   const { auth } = usePage().props;
   const user = auth?.user;
+  const roleLabel = user?.display_role || user?.role || "User";
 
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
@@ -106,7 +107,7 @@ const UserDropdown = ({ settingsRoute }) => {
             {user?.name || "User"}
           </h1>
           <h1 className="text-[12px] sm:text-[14px] md:text-[16px] font-[600] text-[#7B7B7A] truncate">
-            {user?.role || "User"}
+            {roleLabel}
           </h1>
         </div>
 

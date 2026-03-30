@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const earningData = [
+const defaultEarningData = [
   { name: "Jan", value: 5000 },
   { name: "Feb", value: 7000 },
   { name: "Mar", value: 6000 },
@@ -15,15 +15,14 @@ const earningData = [
   { name: "Dec", value: 21000 },
 ];
 
-const maxValue = 24000;
 const chartHeight = 250;
 const chartWidth = 650;
 const padding = 40;
 
-function getX(index) {
+function getX(index, earningData) {
   return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
 }
-function getY(value) {
+function getY(value, maxValue) {
   return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
 }
 
@@ -45,7 +44,9 @@ function generateSmoothPath(points) {
   return path.join(" ");
 }
 
-const EarningSummaryChart = () => {
+const EarningSummaryChart = ({ data = defaultEarningData }) => {
+  const earningData = data.length > 0 ? data : defaultEarningData;
+  const maxValue = Math.max(24000, ...earningData.map((item) => Number(item.value) || 0));
   // Find the index of the highest value
   const highestIndex = earningData.reduce(
     (maxIdx, d, idx, arr) => d.value > arr[maxIdx].value ? idx : maxIdx,
@@ -54,16 +55,16 @@ const EarningSummaryChart = () => {
   const [hovered, setHovered] = useState(highestIndex);
 
   // Generate points for the paths
-  const points = earningData.map((d, i) => [getX(i), getY(d.value)]);
+  const points = earningData.map((d, i) => [getX(i, earningData), getY(d.value, maxValue)]);
   
   // Build the smooth line path
   const linePath = generateSmoothPath(points);
   
   // Build the smooth area path
   const areaPath = [
-    `M ${getX(0)} ${chartHeight - padding}`,
+    `M ${getX(0, earningData)} ${chartHeight - padding}`,
     generateSmoothPath(points).slice(1), // Remove the initial M command
-    `L ${getX(earningData.length - 1)} ${chartHeight - padding}`,
+    `L ${getX(earningData.length - 1, earningData)} ${chartHeight - padding}`,
     "Z",
   ].join(" ");
 
@@ -79,7 +80,7 @@ const EarningSummaryChart = () => {
         </defs>
         {/* Y axis grid lines and labels */}
         {[0, 6000, 12000, 18000, 24000].map((val, i) => {
-          const y = getY(val);
+          const y = getY(val, maxValue);
           return (
             <g key={i}>
               <line x1={padding} x2={chartWidth - padding} y1={y} y2={y} stroke="#E5E7EB" strokeWidth={1} />
@@ -98,8 +99,8 @@ const EarningSummaryChart = () => {
           <g key={i}>
             {/* Invisible larger circle for better click detection */}
             <circle
-              cx={getX(i)}
-              cy={getY(d.value)}
+              cx={getX(i, earningData)}
+              cy={getY(d.value, maxValue)}
               r={15}
               fill="transparent"
               className="cursor-pointer"
@@ -108,8 +109,8 @@ const EarningSummaryChart = () => {
             {/* Visible point only when selected */}
             {hovered === i && (
               <circle
-                cx={getX(i)}
-                cy={getY(d.value)}
+                cx={getX(i, earningData)}
+                cy={getY(d.value, maxValue)}
                 r={6}
                 fill="rgba(9, 85, 172, 1)"
                 strokeWidth={2}
@@ -121,8 +122,8 @@ const EarningSummaryChart = () => {
         {hovered !== null && (() => {
           const tooltipWidth = 108;
           const tooltipHeight = 55;
-          const pointX = getX(hovered);
-          const pointY = getY(earningData[hovered].value);
+          const pointX = getX(hovered, earningData);
+          const pointY = getY(earningData[hovered].value, maxValue);
           let tooltipX = pointX - tooltipWidth / 2;
           let tooltipY = pointY - tooltipHeight - 15; // 15px above the point
 
@@ -148,7 +149,7 @@ const EarningSummaryChart = () => {
         {earningData.map((d, i) => (
           <text
             key={i}
-            x={getX(i)}
+            x={getX(i, earningData)}
             y={chartHeight - padding + 20}
             className="fill-[#7B7B7A] text-[14px] font-[500]"
             textAnchor="middle"

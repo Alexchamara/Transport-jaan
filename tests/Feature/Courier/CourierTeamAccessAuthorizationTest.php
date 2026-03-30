@@ -1,0 +1,408 @@
+<?php
+
+namespace Tests\Feature\Courier;
+
+use App\Models\Courier\CourierAddress;
+use App\Models\Courier\CourierContact;
+use App\Models\Courier\CourierShipment;
+use App\Models\Courier\VendorCourierSetting;
+use App\Models\ServiceCategory;
+use App\Models\ServiceSubCategory;
+use App\Models\ServiceWorkspace;
+use App\Models\User;
+use App\Models\VendorServiceRegistration;
+use App\Models\VendorUserMembership;
+use Database\Seeders\CourierRbacSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\PermissionRegistrar;
+use Tests\TestCase;
+
+class CourierTeamAccessAuthorizationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(CourierRbacSeeder::class);
+    }
+
+    public function test_update_access_denies_role_change_without_assign_role_permission(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, ['courier.team.view']);
+        $target = $this->createMemberTarget($vendor, $workspace, 'courier_viewer');
+
+        $response = $this->actingAs($actor)->patch(
+            route('courierService.team.access.update', ['user' => $target->id]),
+            ['role' => 'courier_admin']
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_update_access_denies_direct_permissions_change_without_assign_permissions_permission(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.team.view',
+            'courier.team.manage_status',
+        ]);
+        $target = $this->createMemberTarget($vendor, $workspace, 'courier_viewer');
+
+        $response = $this->actingAs($actor)->patch(
+            route('courierService.team.access.update', ['user' => $target->id]),
+            ['directPermissions' => ['courier.clients.manage']]
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_update_access_allows_status_change_with_manage_status_permission_only(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.team.view',
+            'courier.team.manage_status',
+        ]);
+        $target = $this->createMemberTarget($vendor, $workspace, 'courier_viewer');
+
+        $response = $this->actingAs($actor)->patch(
+            route('courierService.team.access.update', ['user' => $target->id]),
+            ['status' => 'suspended']
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('team_user_memberships', [
+            'vendor_user_id' => $vendor->id,
+            'user_id' => $target->id,
+            'status' => 'suspended',
+        ]);
+    }
+
+    public function test_store_forces_viewer_role_and_ignores_direct_permissions_without_assign_permissions_or_assign_role_permissions(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, ['courier.team.create_user']);
+
+        $email = 'p0-1-new-member@example.com';
+
+        $response = $this->actingAs($actor)->post(route('courierService.team.store'), [
+            'name' => 'P0 User',
+            'email' => $email,
+            'password' => 'TempPass@123',
+            'role' => 'courier_admin',
+            'directPermissions' => ['courier.team.transfer_ownership'],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $created = User::query()->where('email', $email)->firstOrFail();
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+
+        $this->assertTrue($created->hasRole('courier_viewer'));
+        $this->assertCount(0, $created->permissions);
+    }
+
+    public function test_team_user_profile_update_rejects_duplicate_contact_email(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, ['courier.profile.update']);
+        $originalEmail = (string) $actor->email;
+
+        $existing = User::factory()->create([
+            'email' => 'already.used@example.com',
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        $response = $this->actingAs($actor)->post(route('courierService.profile.update'), [
+            'section' => 'company',
+            'companyName' => 'Team Member Name',
+            'displayName' => 'Team Display',
+            'contactEmail' => $existing->email,
+            'contactPhone' => '+94 77 123 4567',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['contactEmail']);
+
+        $this->assertSame($originalEmail, (string) $actor->fresh()->email);
+    }
+
+    public function test_units_url_is_forbidden_without_workspace_shipments_permission(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.dashboard.view',
+            'courier.tracking.view',
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.units'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_global_shipments_permission_does_not_bypass_workspace_units_route_protection(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.dashboard.view',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId(null);
+        $actor->syncPermissions(['courier.shipments.view']);
+
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncPermissions(['courier.dashboard.view']);
+
+        $response = $this->actingAs($actor)->get(route('courierService.units'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_dispatcher_cannot_cancel_when_team_policy_disables_dispatcher_cancellation(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.manage_lifecycle',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles(['courier_dispatcher']);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => ['team' => ['dispatcherCanCancel' => false]]],
+        );
+
+        $shipment = $this->createAssignedShipment($vendor);
+
+        $response = $this->actingAs($actor)->post(
+            route('courierService.bookings.lifecycle', ['shipment' => $shipment->id]),
+            ['action' => 'cancel_booking']
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertNotEquals(CourierShipment::STATUS_CANCELLED, $shipment->fresh()->status);
+    }
+
+    public function test_bookings_hide_quote_amount_when_finance_rate_visibility_is_disabled(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.view',
+        ]);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => ['team' => ['financeCanViewRates' => false]]],
+        );
+
+        $this->createAssignedShipment($vendor, [
+            'estimated_cost' => 12500,
+            'status' => CourierShipment::STATUS_CONFIRMED,
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.bookings'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('courierBookings.rows.0.quoteAmount', null)
+        );
+    }
+
+    public function test_staff_mutating_actions_are_blocked_when_security_policy_is_enabled_and_password_change_is_required(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.shipments.update_stage',
+        ]);
+
+        $actor->update(['must_change_password' => true]);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => ['team' => ['enforce2FA' => true]]],
+        );
+
+        $shipment = $this->createAssignedShipment($vendor, [
+            'status' => CourierShipment::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($actor)->post(
+            route('courierService.shipments.stage', ['shipment' => $shipment->id]),
+            ['action' => 'ready_for_pickup']
+        );
+
+        $response->assertForbidden();
+    }
+
+    private function createCourierVendorWorkspace(): array
+    {
+        $vendor = User::factory()->create([
+            'role' => 'vendor',
+            'status' => 'verified',
+        ]);
+
+        $category = ServiceCategory::query()->create([
+            'name' => 'Courier Services',
+            'slug' => 'courier-services',
+            'description' => 'Courier service category for tests',
+            'display_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $subCategory = ServiceSubCategory::query()->create([
+            'service_category_id' => $category->id,
+            'name' => 'Courier Domestic',
+            'slug' => 'courier-domestic',
+            'description' => 'Courier sub category for tests',
+            'required_fields' => [],
+            'display_order' => 1,
+            'is_active' => true,
+        ]);
+
+        VendorServiceRegistration::query()->create([
+            'user_id' => $vendor->id,
+            'service_category_id' => $category->id,
+            'service_sub_category_id' => $subCategory->id,
+            'field_values' => [],
+            'status' => 'approved',
+            'submitted_at' => now(),
+            'reviewed_at' => now(),
+        ]);
+
+        $workspace = ServiceWorkspace::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_key' => 'courier_service',
+            'name' => 'Courier Service Workspace',
+            'owner_user_id' => $vendor->id,
+            'status' => 'active',
+        ]);
+
+        VendorUserMembership::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'user_id' => $vendor->id,
+            'membership_role' => 'owner',
+            'status' => 'active',
+            'blocked_service_keys' => [],
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $vendor->syncRoles(['courier_owner']);
+
+        return [$vendor, $workspace];
+    }
+
+    private function createActorWithMembership(User $vendor, ServiceWorkspace $workspace, array $permissions): User
+    {
+        $actor = User::factory()->create([
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        VendorUserMembership::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'user_id' => $actor->id,
+            'membership_role' => 'admin',
+            'status' => 'active',
+            'blocked_service_keys' => [],
+            'invited_by_user_id' => $vendor->id,
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles([]);
+        $actor->syncPermissions($permissions);
+
+        return $actor;
+    }
+
+    private function createMemberTarget(User $vendor, ServiceWorkspace $workspace, string $role = 'courier_viewer'): User
+    {
+        $target = User::factory()->create([
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        VendorUserMembership::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'user_id' => $target->id,
+            'membership_role' => 'member',
+            'status' => 'active',
+            'blocked_service_keys' => [],
+            'invited_by_user_id' => $vendor->id,
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $target->syncRoles([$role]);
+        $target->syncPermissions([]);
+
+        return $target;
+    }
+
+    private function createAssignedShipment(User $vendor, array $overrides = []): CourierShipment
+    {
+        $sender = CourierContact::query()->create([
+            'name' => 'Sender Test',
+            'email' => 'sender@example.com',
+        ]);
+
+        $recipient = CourierContact::query()->create([
+            'name' => 'Recipient Test',
+            'email' => 'recipient@example.com',
+        ]);
+
+        $senderAddress = CourierAddress::query()->create([
+            'contact_id' => $sender->id,
+            'line1' => 'Sender Line 1',
+            'city' => 'Colombo',
+            'country' => 'LK',
+        ]);
+
+        $recipientAddress = CourierAddress::query()->create([
+            'contact_id' => $recipient->id,
+            'line1' => 'Recipient Line 1',
+            'city' => 'Kandy',
+            'country' => 'LK',
+        ]);
+
+        return CourierShipment::query()->create(array_merge([
+            'reference' => 'CR-TST-' . strtoupper(substr(sha1((string) microtime(true)), 0, 8)),
+            'assigned_vendor_user_id' => $vendor->id,
+            'sender_contact_id' => $sender->id,
+            'recipient_contact_id' => $recipient->id,
+            'sender_address_id' => $senderAddress->id,
+            'recipient_address_id' => $recipientAddress->id,
+            'service_level' => 'express',
+            'status' => CourierShipment::STATUS_CONFIRMED,
+            'assignment_status' => CourierShipment::ASSIGNMENT_STATUS_ASSIGNED,
+            'assignment_category' => 'domestic',
+            'assigned_at' => now(),
+            'estimated_cost' => 5000,
+            'currency_code' => 'LKR',
+        ], $overrides));
+    }
+}

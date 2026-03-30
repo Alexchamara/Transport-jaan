@@ -11,11 +11,245 @@ class CourierSubmissionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_cannot_access_courier_create_route(): void
+    {
+        $this->get(route('couriers.create'))
+            ->assertRedirect(route('login'));
+    }
+
     public function test_client_can_submit_courier_request_and_download_bill(): void
     {
         $user = User::factory()->create();
 
-        $payload = [
+        $payload = $this->validSubmissionPayload();
+
+        $csrfToken = 'test-token';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('success')
+            ->assertSessionHas('courier_reference')
+            ->assertSessionHas('courier_bill_id');
+
+        $shipment = CourierShipment::with('packages')->first();
+        $this->assertNotNull($shipment);
+
+        $this->actingAs($user)
+            ->get(route('couriers.bill', $shipment))
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="courier-bill-' . $shipment->reference . '.html"')
+            ->assertSee('Courier Service Bill')
+            ->assertSee('Sender details')
+            ->assertSee('Recipient details')
+            ->assertSee('Shipment preferences')
+            ->assertSee('Package details');
+    }
+
+    public function test_non_owner_cannot_download_courier_bill(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $payload = $this->validSubmissionPayload();
+        $csrfToken = 'test-token-owner-only';
+
+        $this->actingAs($owner)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'));
+
+        $shipment = CourierShipment::query()->latest('id')->first();
+        $this->assertNotNull($shipment);
+
+        $this->actingAs($otherUser)
+            ->get(route('couriers.bill', $shipment))
+            ->assertForbidden();
+    }
+
+    public function test_store_redirects_to_create_when_preview_session_missing(): void
+    {
+        $user = User::factory()->create();
+        $payload = $this->validSubmissionPayload();
+        $csrfToken = 'test-token-no-preview';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('error');
+
+        $this->assertNull(CourierShipment::query()->first());
+    }
+
+    public function test_store_redirects_to_summary_when_payload_is_tampered_after_review(): void
+    {
+        $user = User::factory()->create();
+        $previewPayload = $this->validSubmissionPayload();
+        $tamperedPayload = $this->validSubmissionPayload();
+        $tamperedPayload['shipment']['serviceLevel'] = 'Economy';
+        $csrfToken = 'test-token-tampered-preview';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $previewPayload])
+            ->post(route('couriers.store'), $tamperedPayload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.summary'))
+            ->assertSessionHas('error');
+
+        $this->assertNull(CourierShipment::query()->first());
+    }
+
+    public function test_details_redirects_to_create_when_preview_session_missing(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('couriers.details'))
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('error');
+    }
+
+    public function test_details_store_redirects_to_create_when_preview_session_is_corrupt(): void
+    {
+        $user = User::factory()->create();
+        $csrfToken = 'test-token-details-corrupt';
+
+        $this->actingAs($user)
+            ->withSession([
+                '_token' => $csrfToken,
+                'courier_preview' => [
+                    'sender' => ['name' => 'Sender Only'],
+                ],
+            ])
+            ->post(route('couriers.details.store'), ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('error');
+    }
+
+    public function test_summary_redirects_to_create_when_preview_session_is_corrupt(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->withSession([
+                'courier_preview' => [
+                    'sender' => [
+                        'name' => 'Alex Sender',
+                        'address' => ['line1' => '123 Main Street'],
+                    ],
+                ],
+            ])
+            ->get(route('couriers.summary'))
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('error');
+    }
+
+    public function test_update_status_rejects_invalid_transition_to_delivered_from_pending(): void
+    {
+        $user = User::factory()->create();
+        $shipment = $this->createShipmentForUser($user);
+        $csrfToken = 'test-token-invalid-transition';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('courier.shipment.updateStatus', ['id' => $shipment->id]), [
+                '_token' => $csrfToken,
+                'status' => CourierShipment::STATUS_DELIVERED,
+            ])
+            ->assertStatus(422)
+            ->assertJson([
+                'error' => 'Invalid shipment status transition.',
+            ]);
+
+        $this->assertSame(CourierShipment::STATUS_PENDING, $shipment->fresh()->status);
+    }
+
+    public function test_update_status_is_idempotent_when_same_status_is_requested(): void
+    {
+        $user = User::factory()->create();
+        $shipment = $this->createShipmentForUser($user);
+        $csrfToken = 'test-token-idempotent-status';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('courier.shipment.updateStatus', ['id' => $shipment->id]), [
+                '_token' => $csrfToken,
+                'status' => CourierShipment::STATUS_PENDING,
+                'create_tracking_event' => true,
+                'description' => 'No-op status update',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Shipment status is already up to date.',
+            ]);
+
+        $this->assertSame(CourierShipment::STATUS_PENDING, $shipment->fresh()->status);
+        $this->assertSame(0, $shipment->trackingEvents()->count());
+    }
+
+    public function test_cancel_shipment_is_idempotent_when_already_cancelled(): void
+    {
+        $user = User::factory()->create();
+        $shipment = $this->createShipmentForUser($user);
+        $csrfToken = 'test-token-idempotent-cancel';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('courier.shipment.cancel', ['id' => $shipment->id]), [
+                '_token' => $csrfToken,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Shipment cancelled successfully.');
+
+        $this->assertSame(CourierShipment::STATUS_CANCELLED, $shipment->fresh()->status);
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('courier.shipment.cancel', ['id' => $shipment->id]), [
+                '_token' => $csrfToken,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Shipment is already cancelled.');
+
+        $this->assertSame(CourierShipment::STATUS_CANCELLED, $shipment->fresh()->status);
+        $this->assertSame(1, $shipment->trackingEvents()->count());
+    }
+
+    public function test_cancel_shipment_is_blocked_after_delivery(): void
+    {
+        $user = User::factory()->create();
+        $shipment = $this->createShipmentForUser($user);
+        $shipment->update(['status' => CourierShipment::STATUS_DELIVERED]);
+        $csrfToken = 'test-token-cancel-delivered';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('courier.shipment.cancel', ['id' => $shipment->id]), [
+                '_token' => $csrfToken,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('error', 'Cannot cancel this shipment.');
+
+        $this->assertSame(CourierShipment::STATUS_DELIVERED, $shipment->fresh()->status);
+    }
+
+    private function createShipmentForUser(User $user): CourierShipment
+    {
+        $payload = $this->validSubmissionPayload();
+        $csrfToken = 'test-token-create-shipment';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'));
+
+        return CourierShipment::query()->latest('id')->firstOrFail();
+    }
+
+    private function validSubmissionPayload(): array
+    {
+        return [
             'sender' => [
                 'name' => 'Alex Sender',
                 'email' => 'alex.sender@example.com',
@@ -90,28 +324,5 @@ class CourierSubmissionTest extends TestCase
                 ],
             ],
         ];
-
-        $csrfToken = 'test-token';
-
-        $this->actingAs($user)
-            ->withSession(['_token' => $csrfToken])
-            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
-            ->assertRedirect(route('couriers.create'))
-            ->assertSessionHas('success')
-            ->assertSessionHas('courier_reference')
-            ->assertSessionHas('courier_bill_id');
-
-        $shipment = CourierShipment::with('packages')->first();
-        $this->assertNotNull($shipment);
-
-        $this->actingAs($user)
-            ->get(route('couriers.bill', $shipment))
-            ->assertOk()
-            ->assertHeader('Content-Disposition', 'attachment; filename="courier-bill-' . $shipment->reference . '.html"')
-            ->assertSee('Courier Service Bill')
-            ->assertSee('Sender details')
-            ->assertSee('Recipient details')
-            ->assertSee('Shipment preferences')
-            ->assertSee('Package details');
     }
 }

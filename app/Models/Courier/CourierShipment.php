@@ -17,15 +17,23 @@ class CourierShipment extends Model
     public const STATUS_DELIVERED = 'delivered';
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const ASSIGNMENT_STATUS_UNASSIGNED = 'unassigned';
+    public const ASSIGNMENT_STATUS_ASSIGNED = 'assigned';
+
     protected $fillable = [
         'reference',
         'requested_by_user_id',
+        'assigned_vendor_user_id',
+        'assigned_vendor_registration_id',
         'sender_contact_id',
         'recipient_contact_id',
         'sender_address_id',
         'recipient_address_id',
         'service_level',
         'status',
+        'assignment_category',
+        'assignment_status',
+        'assigned_at',
         'pickup_date',
         'pickup_window_start',
         'pickup_window_end',
@@ -42,6 +50,7 @@ class CourierShipment extends Model
         'pickup_date' => 'date',
         'pickup_window_start' => 'datetime:H:i',
         'pickup_window_end' => 'datetime:H:i',
+        'assigned_at' => 'datetime',
         'insurance_required' => 'boolean',
         'declared_value' => 'decimal:2',
         'estimated_cost' => 'decimal:2',
@@ -69,6 +78,16 @@ class CourierShipment extends Model
     public function requestedBy()
     {
         return $this->belongsTo(User::class, 'requested_by_user_id');
+    }
+
+    public function assignedVendor()
+    {
+        return $this->belongsTo(User::class, 'assigned_vendor_user_id');
+    }
+
+    public function assignedVendorRegistration()
+    {
+        return $this->belongsTo(\App\Models\VendorServiceRegistration::class, 'assigned_vendor_registration_id');
     }
 
     public function sender()

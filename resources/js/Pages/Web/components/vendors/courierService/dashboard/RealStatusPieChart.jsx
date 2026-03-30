@@ -5,7 +5,7 @@ import up from "../../../../assets/vendors/dashboard/icons/up.svg"
 import down from "../../../../assets/vendors/dashboard/icons/down.svg"
 
 
-const data = [
+const defaultData = [
   { name: "Hired", value: 46, color: "#3DD0FF", arrow: up, arrowAlt: "up", change: "up" },
   { name: "Pending", value: 27, color: "#0955AC", arrow: down, arrowAlt: "down", change: "down" },
   { name: "Cancelled", value: 14, color: "#C4C4C4", arrow: up, arrowAlt: "up", change: "up" },
@@ -16,12 +16,13 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   return null;
 };
 
-const RealStatusPieChart = () => {
+const RealStatusPieChart = ({ data = defaultData }) => {
+  const chartData = data.length > 0 ? data : defaultData;
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
       <PieChart width={172} height={171}>
         <Pie
-          data={data}
+          data={chartData}
           cx="50%"
           cy="50%"
           innerRadius={60}
@@ -35,13 +36,13 @@ const RealStatusPieChart = () => {
           strokeWidth={0}
           cornerRadius={6}
         >
-          {data.map((entry, index) => (
+          {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
       </PieChart>
       <div className="flex flex-col gap-2 mt-6 w-full">
-        {data.map((entry, idx) => (
+        {chartData.map((entry) => (
           <div key={entry.name} className="flex flex-row items-center justify-between w-full mb-1">
             <div className="flex flex-row items-center gap-2">
               <span className=" w-5 h-5 rounded bg-[#E8EBEF] flex items-center justify-center" style={{ backgroundColor: entry.color }}></span>

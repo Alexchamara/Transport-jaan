@@ -136,7 +136,7 @@ export const COURIER_SERVICES = [
         ],
     },
 
-    // ── LOGISTIC (INTERNATIONAL) SERVICES ─────────────────────────────────────
+    // ── LOGISTIC SERVICES ─────────────────────────────────────────────────────
     {
         id: "dhl",
         name: "DHL Express",
@@ -158,7 +158,7 @@ export const COURIER_SERVICES = [
                 perKg: 1.35,
                 eta: "3-6 business days",
                 description:
-                    "Cost-effective door-to-door international delivery.",
+                    "Cost-effective door-to-door logistic delivery.",
             },
             {
                 id: "express",
@@ -181,7 +181,7 @@ export const COURIER_SERVICES = [
     },
     {
         id: "fedex",
-        name: "FedEx International",
+        name: "FedEx Logistic",
         logo: fedexLogo,
         category: "logistic",
         brandColor: "#4D148C",
@@ -261,7 +261,7 @@ export const COURIER_SERVICES = [
     },
     {
         id: "aramex",
-        name: "Aramex International",
+        name: "Aramex Logistic",
         logo: aramexLogo,
         category: "logistic",
         brandColor: "#E7002A",
@@ -341,7 +341,7 @@ export const COURIER_SERVICES = [
     },
     {
         id: "dpd",
-        name: "DPDgroup International",
+        name: "DPDgroup Logistic",
         logo: dpdLogo,
         category: "logistic",
         brandColor: "#D70926",

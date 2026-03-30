@@ -532,6 +532,74 @@ const Hero = ({
         }
     };
 
+    const isCourierBooking = selectedBookingDetails?.booking_type === 'courier';
+    const courierSender = isCourierBooking ? (selectedBookingDetails?.sender || null) : null;
+    const courierRecipient = isCourierBooking ? (selectedBookingDetails?.recipient || null) : null;
+    const courierTrackingRef = isCourierBooking
+        ? (selectedBookingDetails?.tracking_number
+            || selectedBookingDetails?.tracking_reference
+            || selectedBookingDetails?.reference_number
+            || selectedBookingDetails?.booking_code
+            || 'N/A')
+        : null;
+    const courierSenderName = isCourierBooking
+        ? (courierSender?.name
+            || selectedBookingDetails?.sender_name
+            || selectedBookingDetails?.customer_name
+            || selectedBookingDetails?.user?.name
+            || 'N/A')
+        : null;
+    const courierSenderEmail = isCourierBooking
+        ? (courierSender?.email
+            || selectedBookingDetails?.sender_email
+            || selectedBookingDetails?.customer_email
+            || selectedBookingDetails?.user?.email
+            || 'N/A')
+        : null;
+    const courierSenderPhone = isCourierBooking
+        ? (courierSender?.phone
+            || selectedBookingDetails?.sender_phone
+            || selectedBookingDetails?.customer_phone
+            || selectedBookingDetails?.user?.phone
+            || 'N/A')
+        : null;
+    const courierPickupAddress = isCourierBooking
+        ? (selectedBookingDetails?.pickup_address
+            || courierSender?.address?.line1
+            || selectedBookingDetails?.pickup_location
+            || 'N/A')
+        : null;
+    const courierDeliveryAddress = isCourierBooking
+        ? (selectedBookingDetails?.delivery_address
+            || courierRecipient?.address?.line1
+            || selectedBookingDetails?.dropoff_location
+            || 'N/A')
+        : null;
+    const billToName = isCourierBooking
+        ? courierSenderName
+        : (selectedBookingDetails?.customer?.name
+            || selectedBookingDetails?.client?.name
+            || selectedBookingDetails?.passenger_name
+            || selectedBookingDetails?.sender_name
+            || selectedBookingDetails?.company_name
+            || 'Customer');
+    const billToEmail = isCourierBooking
+        ? courierSenderEmail
+        : (selectedBookingDetails?.customer?.email
+            || selectedBookingDetails?.client?.email
+            || selectedBookingDetails?.passenger_email
+            || selectedBookingDetails?.sender_email
+            || selectedBookingDetails?.company_email
+            || 'N/A');
+    const billToPhone = isCourierBooking
+        ? courierSenderPhone
+        : (selectedBookingDetails?.customer?.phone
+            || selectedBookingDetails?.client?.phone
+            || selectedBookingDetails?.passenger_phone
+            || selectedBookingDetails?.sender_phone
+            || selectedBookingDetails?.company_phone
+            || 'N/A');
+
     return (
         <div className="min-h-screen w-full bg-[#E5E5E5]">
             <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 md:pt-2 md:pb-20 poppins">
@@ -1578,7 +1646,7 @@ const Hero = ({
                                                 <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
                                                     <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Tracking Ref:</span>
-                                                        <span className="font-semibold text-slate-900 font-mono text-[12px]">{selectedBookingDetails.reference_number || selectedBookingDetails.tracking_reference || 'N/A'}</span>
+                                                        <span className="font-semibold text-slate-900 font-mono text-[12px]">{courierTrackingRef}</span>
                                                     </div>
                                                     {selectedBookingDetails.service_level && (
                                                         <div className="flex justify-between gap-2">
@@ -1610,38 +1678,38 @@ const Hero = ({
                                                 <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
                                                     <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Name:</span>
-                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || selectedBookingDetails.user?.name || 'N/A'}</span>
+                                                        <span className="font-semibold text-slate-900">{courierSenderName}</span>
                                                     </div>
                                                     <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Email:</span>
-                                                        <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.customer_email || selectedBookingDetails.user?.email || 'N/A'}</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px]">{courierSenderEmail}</span>
                                                     </div>
                                                     <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Phone:</span>
-                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_phone || selectedBookingDetails.user?.phone || 'N/A'}</span>
+                                                        <span className="font-semibold text-slate-900">{courierSenderPhone}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Pickup Location */}
-                                            {selectedBookingDetails.pickup_location && (
+                                            {/* Pickup Address */}
+                                            {courierPickupAddress && courierPickupAddress !== 'N/A' && (
                                                 <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
                                                     <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
                                                         <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
-                                                        Pickup Location
+                                                        Pickup Address
                                                     </h3>
-                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 font-semibold leading-relaxed">{selectedBookingDetails.pickup_location}</p>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 font-semibold leading-relaxed">{courierPickupAddress}</p>
                                                 </div>
                                             )}
 
-                                            {/* Delivery Location */}
-                                            {selectedBookingDetails.dropoff_location && (
+                                            {/* Delivery Address */}
+                                            {courierDeliveryAddress && courierDeliveryAddress !== 'N/A' && (
                                                 <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
                                                     <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
                                                         <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                                                        Delivery Location
+                                                        Delivery Address
                                                     </h3>
-                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 font-semibold leading-relaxed">{selectedBookingDetails.dropoff_location}</p>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 font-semibold leading-relaxed">{courierDeliveryAddress}</p>
                                                 </div>
                                             )}
 
@@ -2049,30 +2117,9 @@ const Hero = ({
                                     <div className="mb-6">
                                         <h3 className="text-lg font-bold text-slate-900 mb-3">Bill To:</h3>
                                         <div className="bg-slate-50 p-4 rounded-lg">
-                                            <p className="font-semibold text-slate-900">
-                                                {selectedBookingDetails.customer?.name || 
-                                                 selectedBookingDetails.client?.name ||
-                                                 selectedBookingDetails.passenger_name ||
-                                                 selectedBookingDetails.sender_name ||
-                                                 selectedBookingDetails.company_name ||
-                                                 'Customer'}
-                                            </p>
-                                            <p className="text-sm text-slate-600 mt-1">
-                                                {selectedBookingDetails.customer?.email || 
-                                                 selectedBookingDetails.client?.email ||
-                                                 selectedBookingDetails.passenger_email ||
-                                                 selectedBookingDetails.sender_email ||
-                                                 selectedBookingDetails.company_email ||
-                                                 'N/A'}
-                                            </p>
-                                            <p className="text-sm text-slate-600">
-                                                {selectedBookingDetails.customer?.phone || 
-                                                 selectedBookingDetails.client?.phone ||
-                                                 selectedBookingDetails.passenger_phone ||
-                                                 selectedBookingDetails.sender_phone ||
-                                                 selectedBookingDetails.company_phone ||
-                                                 'N/A'}
-                                            </p>
+                                            <p className="font-semibold text-slate-900">{billToName}</p>
+                                            <p className="text-sm text-slate-600 mt-1">{billToEmail}</p>
+                                            <p className="text-sm text-slate-600">{billToPhone}</p>
                                         </div>
                                     </div>
 
@@ -2274,7 +2321,7 @@ const Hero = ({
                                                         <tr>
                                                             <td className="p-3 text-slate-600">Tracking Number</td>
                                                             <td className="p-3 text-right font-medium text-slate-900">
-                                                                {selectedBookingDetails.tracking_number || selectedBookingDetails.reference_number || 'N/A'}
+                                                                {courierTrackingRef}
                                                             </td>
                                                         </tr>
                                                         <tr>
@@ -2294,13 +2341,13 @@ const Hero = ({
                                                         <tr>
                                                             <td className="p-3 text-slate-600">Pickup Address</td>
                                                             <td className="p-3 text-right font-medium text-slate-900 text-xs">
-                                                                {selectedBookingDetails.pickup_address || 'N/A'}
+                                                                {courierPickupAddress}
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td className="p-3 text-slate-600">Delivery Address</td>
                                                             <td className="p-3 text-right font-medium text-slate-900 text-xs">
-                                                                {selectedBookingDetails.delivery_address || 'N/A'}
+                                                                {courierDeliveryAddress}
                                                             </td>
                                                         </tr>
                                                         {selectedBookingDetails.pickup_date && (
