@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Header from '../../layouts/Header'
 import BackButton from "../../components/BackBtn";
-import InformationCard from '../../components/vendors/profile/informationCard';
+import InformationCard from '../../components/vendors/profile/InformationCard';
 import Btns from '../../components/vendors/profile/Btns';
 import ServiceContent from '../../components/vendors/profile/ServiceContent';
 
