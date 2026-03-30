@@ -10,19 +10,29 @@ use App\Models\User;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use Database\Seeders\CourierRbacSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class CourierPricingGovernanceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        Carbon::setTestNow(Carbon::create(2026, 3, 30, 10, 0, 0, 'UTC'));
+
         $this->seed(CourierRbacSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     public function test_publish_now_creates_pending_approval_when_required(): void
@@ -364,23 +374,29 @@ class CourierPricingGovernanceTest extends TestCase
             'status' => 'verified',
         ]);
 
-        $category = ServiceCategory::query()->create([
-            'name' => 'Courier Services',
-            'slug' => 'courier-services',
-            'description' => 'Courier service category for tests',
-            'display_order' => 1,
-            'is_active' => true,
-        ]);
+        $category = ServiceCategory::query()->firstOrCreate(
+            ['slug' => 'courier-services'],
+            [
+                'name' => 'Courier Services',
+                'description' => 'Courier service category for tests',
+                'display_order' => 1,
+                'is_active' => true,
+            ]
+        );
 
-        $subCategory = ServiceSubCategory::query()->create([
-            'service_category_id' => $category->id,
-            'name' => 'Courier Domestic',
-            'slug' => 'domestic',
-            'description' => 'Courier sub category for tests',
-            'required_fields' => [],
-            'display_order' => 1,
-            'is_active' => true,
-        ]);
+        $subCategory = ServiceSubCategory::query()->firstOrCreate(
+            [
+                'service_category_id' => $category->id,
+                'slug' => 'domestic',
+            ],
+            [
+                'name' => 'Courier Domestic',
+                'description' => 'Courier sub category for tests',
+                'required_fields' => [],
+                'display_order' => 1,
+                'is_active' => true,
+            ]
+        );
 
         VendorServiceRegistration::query()->create([
             'user_id' => $vendor->id,

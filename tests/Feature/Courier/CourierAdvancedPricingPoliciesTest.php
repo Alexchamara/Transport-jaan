@@ -8,12 +8,28 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\User;
 use App\Models\VendorServiceRegistration;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\Courier\CourierVendorAssignmentService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class CourierAdvancedPricingPoliciesTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Carbon::setTestNow(Carbon::create(2026, 3, 30, 10, 0, 0, 'UTC'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_remote_area_surcharge_is_applied(): void
     {
@@ -195,7 +211,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
         $response->assertSessionHasErrors('packages');
-        $this->assertNull(CourierShipment::query()->first());
+        $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
     public function test_logistic_dimensions_engine_applies_combined_multiplier(): void
@@ -297,7 +313,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
         $response->assertSessionHasErrors('shipment.logisticDimensions.unitType');
-        $this->assertNull(CourierShipment::query()->first());
+        $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
     public function test_quote_runtime_governance_field_lock_rejects_service_level_mismatch(): void
@@ -366,6 +382,116 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_discount_applied', -7.0);
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_discount_ceiling_guardrail', 28.0);
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'quote_runtime_floor_price_guardrail', 2.0);
+    }
+
+    public function test_pricing_output_is_deterministic_for_same_payload_and_policies(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'remoteAreaSurcharge' => [
+                'enabled' => true,
+                'flatFee' => 10,
+                'applyOnOrigin' => false,
+                'applyOnDestination' => true,
+                'postalCodePrefixes' => ['200'],
+            ],
+            'quoteRuntimeGovernance' => [
+                'enabled' => true,
+                'discountGuardrails' => [
+                    'enabled' => true,
+                    'maxDiscountPercent' => 10,
+                    'maxDiscountAmountUsd' => 2,
+                ],
+            ],
+        ]);
+
+        $overrides = [
+            'recipient' => [
+                'address' => [
+                    'postalCode' => '20011',
+                ],
+            ],
+            'reviewContext' => [
+                'discountPercent' => 30,
+                'discountAmountUSD' => 5,
+            ],
+        ];
+
+        $first = $this->submitShipment($overrides);
+        $second = $this->submitShipment($overrides);
+
+        $this->assertEqualsWithDelta($first['estimatedCost'], $second['estimatedCost'], 0.0001);
+        $this->assertEquals(
+            $this->pricingExplanationSnapshot($first['pricingExplanation']),
+            $this->pricingExplanationSnapshot($second['pricingExplanation'])
+        );
+    }
+
+    public function test_pricing_explanation_payload_snapshot_is_stable_for_remote_and_minimum_rules(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'remoteAreaSurcharge' => [
+                'enabled' => true,
+                'flatFee' => 10,
+                'applyOnOrigin' => false,
+                'applyOnDestination' => true,
+                'postalCodePrefixes' => ['200'],
+            ],
+            'minimumShipmentCharge' => [
+                'enabled' => true,
+                'minimumTotal' => 70,
+            ],
+        ]);
+
+        $result = $this->submitShipment([
+            'recipient' => [
+                'address' => [
+                    'postalCode' => '20010',
+                ],
+            ],
+        ]);
+
+        $this->assertSame([
+            'mode' => 'fallback_quotes',
+            'reason' => 'Lane matrix pricing is disabled for this category.',
+            'distanceKm' => null,
+            'matchedRule' => null,
+            'speedEtaTier' => null,
+            'logisticDimensions' => null,
+            'policyAdjustments' => [
+                ['key' => 'remote_area_surcharge', 'amount' => 10.0],
+                ['key' => 'minimum_shipment_guardrail', 'amount' => 10.0],
+            ],
+            'totalEstimatedUsd' => 70.0,
+        ], $this->pricingExplanationSnapshot($result['pricingExplanation']));
+    }
+
+    public function test_policy_conflict_between_contract_discount_and_minimum_guardrail_resolves_to_floor(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'customerContractPricing' => [
+                'enabled' => true,
+                'contracts' => [
+                    [
+                        'enabled' => true,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subDay()->toDateString(),
+                        'effectiveTo' => now()->addDay()->toDateString(),
+                        'negotiatedRateType' => 'percent_off',
+                        'negotiatedRateValue' => 80,
+                    ],
+                ],
+            ],
+            'minimumShipmentCharge' => [
+                'enabled' => true,
+                'minimumTotal' => 30,
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(30.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_negotiated_rate_discount', -40.0);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'minimum_shipment_guardrail', 20.0);
     }
 
     public function test_customer_contract_negotiated_rate_is_applied(): void
@@ -467,25 +593,31 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             'status' => 'verified',
         ]);
 
-        $category = ServiceCategory::query()->create([
-            'name' => 'Courier Services',
-            'slug' => 'courier-services',
-            'description' => 'Courier service category for tests',
-            'display_order' => 1,
-            'is_active' => true,
-        ]);
+        $category = ServiceCategory::query()->firstOrCreate(
+            ['slug' => 'courier-services'],
+            [
+                'name' => 'Courier Services',
+                'description' => 'Courier service category for tests',
+                'display_order' => 1,
+                'is_active' => true,
+            ]
+        );
 
-        $subCategory = ServiceSubCategory::query()->create([
-            'service_category_id' => $category->id,
-            'name' => $subCategoryName,
-            'slug' => $subCategorySlug,
-            'description' => sprintf('Courier %s category for tests', $subCategorySlug),
-            'required_fields' => [],
-            'display_order' => 1,
-            'is_active' => true,
-        ]);
+        $subCategory = ServiceSubCategory::query()->firstOrCreate(
+            [
+                'service_category_id' => $category->id,
+                'slug' => $subCategorySlug,
+            ],
+            [
+                'name' => $subCategoryName,
+                'description' => sprintf('Courier %s category for tests', $subCategorySlug),
+                'required_fields' => [],
+                'display_order' => 1,
+                'is_active' => true,
+            ]
+        );
 
-        VendorServiceRegistration::query()->create([
+        $registration = VendorServiceRegistration::query()->create([
             'user_id' => $vendor->id,
             'service_category_id' => $category->id,
             'service_sub_category_id' => $subCategory->id,
@@ -494,6 +626,33 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             'submitted_at' => now(),
             'reviewed_at' => now(),
         ]);
+
+        $this->app->bind(CourierVendorAssignmentService::class, function () use ($vendor, $registration, $subCategory) {
+            return new class($vendor->id, $registration->id, (string) $subCategory->slug) extends CourierVendorAssignmentService {
+                public function __construct(
+                    private int $vendorId,
+                    private int $registrationId,
+                    private string $subCategorySlug
+                ) {
+                }
+
+                public function determineAssignment(CourierShipment $shipment): array
+                {
+                    return [
+                        'assignment_category' => $this->subCategorySlug === 'logistic' ? 'logistic' : 'domestic',
+                        'assignment_status' => 'assigned',
+                        'assigned_vendor_user_id' => $this->vendorId,
+                        'assigned_vendor_registration_id' => $this->registrationId,
+                        'assigned_at' => now(),
+                    ];
+                }
+
+                public function assignShipment(CourierShipment $shipment): void
+                {
+                    $shipment->update($this->determineAssignment($shipment));
+                }
+            };
+        });
 
         VendorCourierSetting::query()->updateOrCreate(
             ['vendor_user_id' => $vendor->id],
@@ -551,7 +710,10 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $response->assertSessionHas('success');
         $response->assertSessionHas('courier_pricing_explanation');
 
-        $shipment = CourierShipment::query()->latest('id')->first();
+        $shipment = CourierShipment::query()
+            ->where('requested_by_user_id', $user->id)
+            ->latest('id')
+            ->first();
         $this->assertNotNull($shipment);
 
         $pricingExplanation = $response->baseResponse->getSession()->get('courier_pricing_explanation');
@@ -643,5 +805,27 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             ->first(fn ($item) => is_array($item) && ($item['key'] ?? null) === $key);
 
         $this->assertNull($adjustment, sprintf('Policy adjustment "%s" should not be present.', $key));
+    }
+
+    private function pricingExplanationSnapshot(array $pricingExplanation): array
+    {
+        return [
+            'mode' => (string) ($pricingExplanation['mode'] ?? ''),
+            'reason' => $pricingExplanation['reason'] ?? null,
+            'distanceKm' => $pricingExplanation['distanceKm'] ?? null,
+            'matchedRule' => $pricingExplanation['matchedRule'] ?? null,
+            'speedEtaTier' => $pricingExplanation['speedEtaTier'] ?? null,
+            'logisticDimensions' => $pricingExplanation['logisticDimensions'] ?? null,
+            'policyAdjustments' => collect($pricingExplanation['policyAdjustments'] ?? [])
+                ->map(function ($adjustment) {
+                    return [
+                        'key' => (string) ($adjustment['key'] ?? ''),
+                        'amount' => round((float) ($adjustment['amount'] ?? 0), 2),
+                    ];
+                })
+                ->values()
+                ->all(),
+            'totalEstimatedUsd' => round((float) ($pricingExplanation['totalEstimatedUsd'] ?? 0), 2),
+        ];
     }
 }

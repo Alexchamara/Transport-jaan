@@ -38,13 +38,13 @@ This master checklist is used before and during implementation of each phase so 
 - [ ] Add guardrail tests for min/max thresholds and policy conflicts.
 
 ## Phase 6 - Operational Hardening and Observability
-- [ ] Add structured logs for courier create/store/detail read paths.
-- [ ] Add alerts for ownership failures, repeated authorization denials, and pricing exceptions.
-- [ ] Document support runbooks for shipment reconciliation and bill issues.
-- [ ] Verify export/report paths do not expose unauthorized data.
+- [x] Add structured logs for courier create/store/detail read paths.
+- [x] Add alerts for ownership failures, repeated authorization denials, and pricing exceptions.
+- [x] Document support runbooks for shipment reconciliation and bill issues.
+- [x] Verify export/report paths do not expose unauthorized data.
 
 ## Phase 7 - Rollout, Monitoring, and Stabilization
-- [ ] Create release checklist with canary window and fallback criteria.
-- [ ] Monitor conversion, error rates, and support tickets post-release.
-- [ ] Patch residual edge cases from production telemetry.
-- [ ] Publish final phase completion and post-implementation summary.
+- [x] Create release checklist with canary window and fallback criteria.
+- [x] Monitor conversion, error rates, and support tickets post-release.
+- [x] Patch residual edge cases from production telemetry.
+- [x] Publish final phase completion and post-implementation summary.
