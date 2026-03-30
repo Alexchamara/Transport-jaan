@@ -3519,20 +3519,8 @@ class VendorCourierDashboardController extends Controller
     private function defaultPricingZoneMaster(): array
     {
         return [
-            'domestic' => [
-                ['key' => 'colombo', 'label' => 'Colombo', 'isActive' => true, 'sortOrder' => 1],
-                ['key' => 'gampaha', 'label' => 'Gampaha', 'isActive' => true, 'sortOrder' => 2],
-                ['key' => 'kalutara', 'label' => 'Kalutara', 'isActive' => true, 'sortOrder' => 3],
-                ['key' => 'kandy', 'label' => 'Kandy', 'isActive' => true, 'sortOrder' => 4],
-                ['key' => 'galle', 'label' => 'Galle', 'isActive' => true, 'sortOrder' => 5],
-            ],
-            'logistic' => [
-                ['key' => 'colombo', 'label' => 'Colombo', 'isActive' => true, 'sortOrder' => 1],
-                ['key' => 'gampaha', 'label' => 'Gampaha', 'isActive' => true, 'sortOrder' => 2],
-                ['key' => 'kandy', 'label' => 'Kandy', 'isActive' => true, 'sortOrder' => 3],
-                ['key' => 'kurunegala', 'label' => 'Kurunegala', 'isActive' => true, 'sortOrder' => 4],
-                ['key' => 'matara', 'label' => 'Matara', 'isActive' => true, 'sortOrder' => 5],
-            ],
+            'domestic' => [],
+            'logistic' => [],
         ];
     }
 
@@ -4083,18 +4071,17 @@ class VendorCourierDashboardController extends Controller
 
     private function normalizePricingZoneMaster(array $input): array
     {
-        $defaults = $this->defaultPricingZoneMaster();
         $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['logistic'] ?? null);
         $flatRows = $isCategoryShape ? [] : (array_values($input) === $input ? $input : []);
 
         $normalized = [];
         foreach (['domestic', 'logistic'] as $category) {
             $source = $isCategoryShape
-                ? (is_array($input[$category] ?? null) ? $input[$category] : ($defaults[$category] ?? []))
-                : (!empty($flatRows) ? $flatRows : ($defaults[$category] ?? []));
+                ? (is_array($input[$category] ?? null) ? $input[$category] : [])
+                : $flatRows;
 
             $rows = $this->normalizePricingZoneRows($source);
-            $normalized[$category] = !empty($rows) ? $rows : ($defaults[$category] ?? []);
+            $normalized[$category] = $rows;
         }
 
         return $normalized;
