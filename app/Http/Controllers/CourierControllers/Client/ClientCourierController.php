@@ -1863,6 +1863,17 @@ class ClientCourierController extends Controller
             }
         }
 
+        $total = $this->applyCustomerContractPricing(
+            $total,
+            $payload,
+            $policyModules,
+            $policyBreakdown,
+            (int) ($vendorId ?? 0),
+            $category,
+            $flatFeeFactor,
+            $percentBaseFactor
+        );
+
         $minimumPolicy = is_array($policyModules['minimumShipmentCharge'] ?? null) ? $policyModules['minimumShipmentCharge'] : [];
         if ((bool) ($minimumPolicy['enabled'] ?? true)) {
             $minimumTotal = max(0, (float) ($minimumPolicy['minimumTotal'] ?? 0)) * $flatFeeFactor;
@@ -1875,17 +1886,6 @@ class ClientCourierController extends Controller
                 ];
             }
         }
-
-        $total = $this->applyCustomerContractPricing(
-            $total,
-            $payload,
-            $policyModules,
-            $policyBreakdown,
-            (int) ($vendorId ?? 0),
-            $category,
-            $flatFeeFactor,
-            $percentBaseFactor
-        );
 
         $total = $this->applyQuoteRuntimeGovernanceGuardrails($total, $payload, $policyModules, $policyBreakdown);
 

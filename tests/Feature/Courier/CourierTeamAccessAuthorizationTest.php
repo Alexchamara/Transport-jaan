@@ -13,19 +13,30 @@ use App\Models\User;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use Database\Seeders\CourierRbacSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class CourierTeamAccessAuthorizationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->withoutVite();
+        Carbon::setTestNow(Carbon::create(2026, 3, 30, 10, 0, 0, 'UTC'));
         $this->seed(CourierRbacSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     public function test_update_access_denies_role_change_without_assign_role_permission(): void
@@ -92,7 +103,7 @@ class CourierTeamAccessAuthorizationTest extends TestCase
 
         $actor = $this->createActorWithMembership($vendor, $workspace, ['courier.team.create_user']);
 
-        $email = 'p0-1-new-member@example.com';
+        $email = 'p0-1-new-member+' . uniqid() . '@example.com';
 
         $response = $this->actingAs($actor)->post(route('courierService.team.store'), [
             'name' => 'P0 User',
@@ -121,8 +132,10 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $actor = $this->createActorWithMembership($vendor, $workspace, ['courier.profile.update']);
         $originalEmail = (string) $actor->email;
 
+        $existingEmail = 'already.used+' . uniqid() . '@example.com';
+
         $existing = User::factory()->create([
-            'email' => 'already.used@example.com',
+            'email' => $existingEmail,
             'role' => 'client',
             'status' => 'verified',
         ]);
@@ -150,7 +163,7 @@ class CourierTeamAccessAuthorizationTest extends TestCase
             'courier.tracking.view',
         ]);
 
-        $response = $this->actingAs($actor)->get(route('courierService.units'));
+        $response = $this->actingAs($actor)->getJson(route('courierService.units'));
 
         $response->assertForbidden();
     }
@@ -163,14 +176,15 @@ class CourierTeamAccessAuthorizationTest extends TestCase
             'courier.dashboard.view',
         ]);
 
+        [, $foreignWorkspace] = $this->createCourierVendorWorkspace();
+
         $registrar = app(PermissionRegistrar::class);
-        $registrar->setPermissionsTeamId(null);
-        $actor->syncPermissions(['courier.shipments.view']);
+        $registrar->setPermissionsTeamId($foreignWorkspace->id);
+        $actor->givePermissionTo('courier.shipments.view');
 
         $registrar->setPermissionsTeamId($workspace->id);
-        $actor->syncPermissions(['courier.dashboard.view']);
 
-        $response = $this->actingAs($actor)->get(route('courierService.units'));
+        $response = $this->actingAs($actor)->getJson(route('courierService.units'));
 
         $response->assertForbidden();
     }
@@ -189,7 +203,10 @@ class CourierTeamAccessAuthorizationTest extends TestCase
 
         VendorCourierSetting::query()->updateOrCreate(
             ['vendor_user_id' => $vendor->id],
-            ['settings' => ['team' => ['dispatcherCanCancel' => false]]],
+            ['settings' => ['team' => [
+                'dispatcherCanCancel' => false,
+                'permissionModel' => ['enabled' => false],
+            ]]],
         );
 
         $shipment = $this->createAssignedShipment($vendor);
@@ -214,7 +231,10 @@ class CourierTeamAccessAuthorizationTest extends TestCase
 
         VendorCourierSetting::query()->updateOrCreate(
             ['vendor_user_id' => $vendor->id],
-            ['settings' => ['team' => ['financeCanViewRates' => false]]],
+            ['settings' => ['team' => [
+                'financeCanViewRates' => false,
+                'permissionModel' => ['enabled' => false],
+            ]]],
         );
 
         $this->createAssignedShipment($vendor, [
@@ -264,23 +284,29 @@ class CourierTeamAccessAuthorizationTest extends TestCase
             'status' => 'verified',
         ]);
 
-        $category = ServiceCategory::query()->create([
-            'name' => 'Courier Services',
-            'slug' => 'courier-services',
-            'description' => 'Courier service category for tests',
-            'display_order' => 1,
-            'is_active' => true,
-        ]);
+        $category = ServiceCategory::query()->firstOrCreate(
+            ['slug' => 'courier-services'],
+            [
+                'name' => 'Courier Services',
+                'description' => 'Courier service category for tests',
+                'display_order' => 1,
+                'is_active' => true,
+            ]
+        );
 
-        $subCategory = ServiceSubCategory::query()->create([
-            'service_category_id' => $category->id,
-            'name' => 'Courier Domestic',
-            'slug' => 'courier-domestic',
-            'description' => 'Courier sub category for tests',
-            'required_fields' => [],
-            'display_order' => 1,
-            'is_active' => true,
-        ]);
+        $subCategory = ServiceSubCategory::query()->firstOrCreate(
+            [
+                'service_category_id' => $category->id,
+                'slug' => 'domestic',
+            ],
+            [
+                'name' => 'Courier Domestic',
+                'description' => 'Courier sub category for tests',
+                'required_fields' => [],
+                'display_order' => 1,
+                'is_active' => true,
+            ]
+        );
 
         VendorServiceRegistration::query()->create([
             'user_id' => $vendor->id,
@@ -311,6 +337,17 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $registrar = app(PermissionRegistrar::class);
         $registrar->setPermissionsTeamId($workspace->id);
         $vendor->syncRoles(['courier_owner']);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendor->id],
+            ['settings' => [
+                'team' => [
+                    'sessionSecurity' => [
+                        'enabled' => false,
+                    ],
+                ],
+            ]],
+        );
 
         return [$vendor, $workspace];
     }
@@ -365,14 +402,16 @@ class CourierTeamAccessAuthorizationTest extends TestCase
 
     private function createAssignedShipment(User $vendor, array $overrides = []): CourierShipment
     {
+        $emailSuffix = uniqid();
+
         $sender = CourierContact::query()->create([
             'name' => 'Sender Test',
-            'email' => 'sender@example.com',
+            'email' => 'sender+' . $emailSuffix . '@example.com',
         ]);
 
         $recipient = CourierContact::query()->create([
             'name' => 'Recipient Test',
-            'email' => 'recipient@example.com',
+            'email' => 'recipient+' . $emailSuffix . '@example.com',
         ]);
 
         $senderAddress = CourierAddress::query()->create([

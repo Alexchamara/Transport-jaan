@@ -4,12 +4,27 @@ namespace Tests\Feature\Courier;
 
 use App\Models\Courier\CourierShipment;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class CourierSubmissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Carbon::setTestNow(Carbon::create(2026, 3, 30, 10, 0, 0, 'UTC'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_guest_cannot_access_courier_create_route(): void
     {
@@ -33,7 +48,10 @@ class CourierSubmissionTest extends TestCase
             ->assertSessionHas('courier_reference')
             ->assertSessionHas('courier_bill_id');
 
-        $shipment = CourierShipment::with('packages')->first();
+        $shipment = CourierShipment::with('packages')
+            ->where('requested_by_user_id', $user->id)
+            ->latest('id')
+            ->first();
         $this->assertNotNull($shipment);
 
         $this->actingAs($user)
@@ -59,7 +77,10 @@ class CourierSubmissionTest extends TestCase
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
             ->assertRedirect(route('couriers.create'));
 
-        $shipment = CourierShipment::query()->latest('id')->first();
+        $shipment = CourierShipment::query()
+            ->where('requested_by_user_id', $owner->id)
+            ->latest('id')
+            ->first();
         $this->assertNotNull($shipment);
 
         $this->actingAs($otherUser)
@@ -79,7 +100,7 @@ class CourierSubmissionTest extends TestCase
             ->assertRedirect(route('couriers.create'))
             ->assertSessionHas('error');
 
-        $this->assertNull(CourierShipment::query()->first());
+        $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
     public function test_store_redirects_to_summary_when_payload_is_tampered_after_review(): void
@@ -96,7 +117,7 @@ class CourierSubmissionTest extends TestCase
             ->assertRedirect(route('couriers.summary'))
             ->assertSessionHas('error');
 
-        $this->assertNull(CourierShipment::query()->first());
+        $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
     public function test_details_redirects_to_create_when_preview_session_missing(): void
@@ -169,6 +190,7 @@ class CourierSubmissionTest extends TestCase
         $user = User::factory()->create();
         $shipment = $this->createShipmentForUser($user);
         $csrfToken = 'test-token-idempotent-status';
+        $initialTrackingCount = $shipment->trackingEvents()->count();
 
         $this->actingAs($user)
             ->withSession(['_token' => $csrfToken])
@@ -185,7 +207,7 @@ class CourierSubmissionTest extends TestCase
             ]);
 
         $this->assertSame(CourierShipment::STATUS_PENDING, $shipment->fresh()->status);
-        $this->assertSame(0, $shipment->trackingEvents()->count());
+        $this->assertSame($initialTrackingCount, $shipment->trackingEvents()->count());
     }
 
     public function test_cancel_shipment_is_idempotent_when_already_cancelled(): void
@@ -193,6 +215,7 @@ class CourierSubmissionTest extends TestCase
         $user = User::factory()->create();
         $shipment = $this->createShipmentForUser($user);
         $csrfToken = 'test-token-idempotent-cancel';
+        $beforeCancelTrackingCount = $shipment->trackingEvents()->count();
 
         $this->actingAs($user)
             ->withSession(['_token' => $csrfToken])
@@ -203,6 +226,8 @@ class CourierSubmissionTest extends TestCase
             ->assertSessionHas('success', 'Shipment cancelled successfully.');
 
         $this->assertSame(CourierShipment::STATUS_CANCELLED, $shipment->fresh()->status);
+        $afterFirstCancelTrackingCount = $shipment->trackingEvents()->count();
+        $this->assertSame($beforeCancelTrackingCount + 1, $afterFirstCancelTrackingCount);
 
         $this->actingAs($user)
             ->withSession(['_token' => $csrfToken])
@@ -213,7 +238,7 @@ class CourierSubmissionTest extends TestCase
             ->assertSessionHas('success', 'Shipment is already cancelled.');
 
         $this->assertSame(CourierShipment::STATUS_CANCELLED, $shipment->fresh()->status);
-        $this->assertSame(1, $shipment->trackingEvents()->count());
+        $this->assertSame($afterFirstCancelTrackingCount, $shipment->trackingEvents()->count());
     }
 
     public function test_cancel_shipment_is_blocked_after_delivery(): void
@@ -244,7 +269,10 @@ class CourierSubmissionTest extends TestCase
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
             ->assertRedirect(route('couriers.create'));
 
-        return CourierShipment::query()->latest('id')->firstOrFail();
+        return CourierShipment::query()
+            ->where('requested_by_user_id', $user->id)
+            ->latest('id')
+            ->firstOrFail();
     }
 
     private function validSubmissionPayload(): array
