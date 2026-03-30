@@ -396,7 +396,7 @@ const Create = () => {
                                         onClick={() => setData('shipment', { ...data.shipment, routeType: 'domestic' })}
                                         className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
                                             ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
-                                            : 'border-transparent bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                            : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
                                             }`}
                                     >
                                         Domestic
@@ -406,7 +406,7 @@ const Create = () => {
                                         onClick={() => setData('shipment', { ...data.shipment, routeType: 'international' })}
                                         className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'international'
                                             ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
-                                            : 'border-transparent bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                            : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
                                             }`}
                                     >
                                         International
