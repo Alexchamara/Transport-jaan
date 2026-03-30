@@ -6,6 +6,8 @@ use App\Models\Courier\CourierShipment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class CourierSubmissionTest extends TestCase
@@ -86,6 +88,42 @@ class CourierSubmissionTest extends TestCase
         $this->actingAs($otherUser)
             ->get(route('couriers.bill', $shipment))
             ->assertForbidden();
+    }
+
+    public function test_non_owner_cannot_view_shipment_detail_page(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $shipment = $this->createShipmentForUser($owner);
+
+        $this->actingAs($otherUser)
+            ->get(route('courier.shipment.show', ['id' => $shipment->id]))
+            ->assertNotFound();
+    }
+
+    public function test_repeated_unauthorized_bill_download_attempts_trigger_alert_log(): void
+    {
+        Cache::flush();
+        Log::spy();
+
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $shipment = $this->createShipmentForUser($owner);
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->actingAs($otherUser)
+                ->get(route('couriers.bill', $shipment))
+                ->assertForbidden();
+        }
+
+        Log::shouldHaveReceived('error')
+            ->withArgs(function ($message, $context) use ($shipment, $otherUser) {
+                return $message === 'COURIER CLIENT REPEATED AUTHORIZATION DENIALS'
+                    && ($context['reason'] ?? null) === 'ownership_failure'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $otherUser->id
+                    && (int) ($context['resource_id'] ?? 0) === (int) $shipment->id;
+            })
+            ->once();
     }
 
     public function test_store_redirects_to_create_when_preview_session_missing(): void

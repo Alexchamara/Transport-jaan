@@ -7,6 +7,7 @@ use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierSetting;
+use App\Services\Courier\CourierClientObservabilityService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Http\Request;
@@ -133,6 +134,10 @@ class ClientCourierController extends Controller
         $user = Auth::user();
 
         if (!$user) {
+            $this->observability()->recordAuthorizationDenial($request, 'unauthenticated_detail_read', [
+                'requested_shipment_id' => (int) $id,
+            ]);
+
             return redirect()->route('signin.signin');
         }
 
@@ -148,8 +153,21 @@ class ClientCourierController extends Controller
             }
         ])
             ->where('id', $id)
-            ->where('requested_by_user_id', $user->id)
             ->firstOrFail();
+
+        if ((int) $shipment->requested_by_user_id !== (int) $user->id) {
+            $this->observability()->recordOwnershipFailure($request, 'shipment_detail_read', (int) $shipment->id, [
+                'requested_shipment_id' => (int) $id,
+                'owner_user_id' => (int) $shipment->requested_by_user_id,
+            ]);
+
+            abort(404);
+        }
+
+        $this->observability()->logDetailRead($request, (int) $shipment->id, [
+            'mode' => 'detail_page',
+            'shipment_reference' => (string) $shipment->reference,
+        ]);
 
         $transformer = app(ClientCourierShipmentTransformer::class);
 
@@ -166,12 +184,23 @@ class ClientCourierController extends Controller
         $user = Auth::user();
 
         if (!$user) {
+            $this->observability()->recordAuthorizationDenial($request, 'unauthenticated_status_update', [
+                'requested_shipment_id' => (int) $id,
+            ]);
+
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $shipment = CourierShipment::where('id', $id)
-            ->where('requested_by_user_id', $user->id)
-            ->firstOrFail();
+        $shipment = CourierShipment::where('id', $id)->firstOrFail();
+
+        if ((int) $shipment->requested_by_user_id !== (int) $user->id) {
+            $this->observability()->recordOwnershipFailure($request, 'shipment_status_update', (int) $shipment->id, [
+                'requested_shipment_id' => (int) $id,
+                'owner_user_id' => (int) $shipment->requested_by_user_id,
+            ]);
+
+            abort(404);
+        }
 
         $validated = $request->validate([
             'status' => 'required|string|in:pending,confirmed,in_transit,delivered,cancelled',
@@ -226,12 +255,23 @@ class ClientCourierController extends Controller
         $user = Auth::user();
 
         if (!$user) {
+            $this->observability()->recordAuthorizationDenial($request, 'unauthenticated_cancel_request', [
+                'requested_shipment_id' => (int) $id,
+            ]);
+
             return redirect()->route('signin.signin');
         }
 
-        $shipment = CourierShipment::where('id', $id)
-            ->where('requested_by_user_id', $user->id)
-            ->firstOrFail();
+        $shipment = CourierShipment::where('id', $id)->firstOrFail();
+
+        if ((int) $shipment->requested_by_user_id !== (int) $user->id) {
+            $this->observability()->recordOwnershipFailure($request, 'shipment_cancel', (int) $shipment->id, [
+                'requested_shipment_id' => (int) $id,
+                'owner_user_id' => (int) $shipment->requested_by_user_id,
+            ]);
+
+            abort(404);
+        }
 
         if ($shipment->status === CourierShipment::STATUS_CANCELLED) {
             return back()->with('success', 'Shipment is already cancelled.');
@@ -262,6 +302,11 @@ class ClientCourierController extends Controller
 
     public function create(Request $request)
     {
+        $this->observability()->logCreateViewOpened($request, [
+            'has_recent_reference' => $request->session()->has('courier_reference'),
+            'has_recent_bill_id' => $request->session()->has('courier_bill_id'),
+        ]);
+
         $serviceLevels = $this->serviceLevelLabelsForCategory('domestic');
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
@@ -385,6 +430,10 @@ class ClientCourierController extends Controller
         $formData = $request->session()->get('courier_preview');
 
         if (!$this->hasValidCourierPreviewPayload($formData)) {
+            $this->observability()->logStoreFailed($request, 'details_view_without_valid_preview', [
+                'phase' => 'details',
+            ]);
+
             $request->session()->forget('courier_preview');
 
             return redirect()
@@ -397,6 +446,11 @@ class ClientCourierController extends Controller
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
         $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
+
+        $this->observability()->logDetailsViewOpened($request, [
+            'category' => $category,
+            'package_count' => count((array) ($formData['packages'] ?? [])),
+        ]);
 
         return Inertia::render('Web/courier/Details', [
             'formData' => $formData,
@@ -615,7 +669,7 @@ class ClientCourierController extends Controller
                 ->with('error', 'Your booking session expired. Please start again.');
         }
 
-        $pricingPreview = $this->buildSummaryPricingPreview((array) $formData);
+        $pricingPreview = $this->buildSummaryPricingPreview((array) $formData, $request);
 
         return Inertia::render('Web/courier/Summary', [
             'formData' => $formData,
@@ -623,7 +677,7 @@ class ClientCourierController extends Controller
         ]);
     }
 
-    private function buildSummaryPricingPreview(array $formData): array
+    private function buildSummaryPricingPreview(array $formData, ?Request $request = null): array
     {
         $selectedQuotes = collect($formData['reviewContext']['selectedQuotes'] ?? []);
         $fallbackEstimatedUsd = (float) ($formData['reviewContext']['totalPriceUSD'] ?? 0);
@@ -658,6 +712,19 @@ class ClientCourierController extends Controller
                 ->flatten()
                 ->first();
 
+            if ($request) {
+                $this->observability()->reportPricingException(
+                    $request,
+                    'summary_preview',
+                    $message !== '' ? $message : $exception->getMessage(),
+                    [
+                        'category' => (string) ($shipment->assignment_category ?: $this->resolvePayloadCategory($formData)),
+                        'assigned_vendor_user_id' => (int) ($shipment->assigned_vendor_user_id ?? 0),
+                        'package_count' => count((array) ($formData['packages'] ?? [])),
+                    ]
+                );
+            }
+
             return [
                 'mode' => 'lane_matrix_unmatched',
                 'reason' => $message !== '' ? $message : 'No active lane pricing rule found for the selected shipment details.',
@@ -688,7 +755,17 @@ class ClientCourierController extends Controller
         $payload = $request->validated();
         $preview = $request->session()->get('courier_preview');
 
+        $this->observability()->logStoreAttempt($request, [
+            'package_count' => count((array) ($payload['packages'] ?? [])),
+            'selected_quote_count' => count((array) ($payload['reviewContext']['selectedQuotes'] ?? [])),
+            'category' => $this->resolvePayloadCategory($payload),
+        ]);
+
         if (!$this->hasValidCourierPreviewPayload($preview)) {
+            $this->observability()->logStoreFailed($request, 'store_without_valid_preview', [
+                'phase' => 'store',
+            ]);
+
             $request->session()->forget('courier_preview');
 
             return redirect()
@@ -697,6 +774,10 @@ class ClientCourierController extends Controller
         }
 
         if (!$this->flowPayloadMatchesSessionPreview((array) $preview, $payload)) {
+            $this->observability()->logStoreFailed($request, 'store_preview_tamper_detected', [
+                'phase' => 'store',
+            ]);
+
             return redirect()
                 ->route('couriers.summary')
                 ->with('error', 'Your booking details changed. Please review and submit again.');
@@ -719,102 +800,136 @@ class ClientCourierController extends Controller
             return $carry + (float) ($quote['priceUSD'] ?? 0);
         }, 0.0);
 
-        $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService) {
-            $sender = CourierContact::create([
-                'user_id' => Auth::id(),
-                'role' => CourierContact::ROLE_SENDER,
-                'name' => $payload['sender']['name'],
-                'email' => $payload['sender']['email'] ?? null,
-                'phone' => $payload['sender']['phone'] ?? null,
-                'company_name' => $payload['sender']['company'] ?? null,
-            ]);
-
-            $senderAddressData = $payload['sender']['address'];
-            $senderAddress = $sender->addresses()->create([
-                'label' => 'pickup',
-                'line1' => $senderAddressData['line1'],
-                'line2' => $senderAddressData['line2'] ?? null,
-                'city' => $senderAddressData['city'],
-                'state' => $senderAddressData['state'] ?? null,
-                'postal_code' => $senderAddressData['postalCode'] ?? null,
-                'country' => strtoupper($senderAddressData['country']),
-                'instructions' => $senderAddressData['instructions'] ?? null,
-                'is_primary' => true,
-            ]);
-
-            $recipient = CourierContact::create([
-                'role' => CourierContact::ROLE_RECIPIENT,
-                'name' => $payload['recipient']['name'],
-                'email' => $payload['recipient']['email'] ?? null,
-                'phone' => $payload['recipient']['phone'] ?? null,
-                'company_name' => $payload['recipient']['company'] ?? null,
-            ]);
-
-            $recipientAddressData = $payload['recipient']['address'];
-            $recipientAddress = $recipient->addresses()->create([
-                'label' => 'dropoff',
-                'line1' => $recipientAddressData['line1'],
-                'line2' => $recipientAddressData['line2'] ?? null,
-                'city' => $recipientAddressData['city'],
-                'state' => $recipientAddressData['state'] ?? null,
-                'postal_code' => $recipientAddressData['postalCode'] ?? null,
-                'country' => strtoupper($recipientAddressData['country']),
-                'instructions' => $recipientAddressData['instructions'] ?? null,
-                'is_primary' => true,
-            ]);
-
-            $shipment = CourierShipment::create([
-                'requested_by_user_id' => Auth::id(),
-                'sender_contact_id' => $sender->id,
-                'recipient_contact_id' => $recipient->id,
-                'sender_address_id' => $senderAddress->id,
-                'recipient_address_id' => $recipientAddress->id,
-                'service_level' => $payload['shipment']['serviceLevel'],
-                'status' => CourierShipment::STATUS_PENDING,
-                'pickup_date' => $payload['shipment']['pickupDate'] ? $payload['shipment']['pickupDate'] : null,
-                'pickup_window_start' => $payload['shipment']['pickupWindowStart'] ? $payload['shipment']['pickupWindowStart'] : null,
-                'pickup_window_end' => $payload['shipment']['pickupWindowEnd'] ? $payload['shipment']['pickupWindowEnd'] : null,
-                'insurance_required' => (bool) ($payload['shipment']['insurance'] ?? false),
-                'declared_value' => isset($payload['shipment']['estimatedValue'])
-                    ? (float) $payload['shipment']['estimatedValue']
-                    : 0,
-                'currency_code' => strtoupper($payload['shipment']['currency'] ?? 'LKR'),
-                'delivery_notes' => $payload['shipment']['deliveryNotes'] ?? null,
-            ]);
-
-            foreach ($payload['packages'] as $index => $package) {
-                $quote = $selectedQuotes->get($index);
-
-                $shipment->packages()->create([
-                    'label' => $package['label'] ?? 'Package ' . ($index + 1),
-                    'package_type' => $package['packageType'] ?? null,
-                    'courier_provider_key' => $package['courierProvider'] ?? ($quote['providerId'] ?? null),
-                    'courier_provider_name' => $quote['providerName'] ?? null,
-                    'service_tier_key' => $package['serviceLevel'] ?? ($quote['serviceLevel'] ?? null),
-                    'service_tier_label' => $quote['serviceLabel'] ?? null,
-                    'service_eta' => $quote['eta'] ?? null,
-                    'quoted_price_usd' => $quote ? (float) ($quote['priceUSD'] ?? 0) : null,
-                    'quantity' => $package['quantity'],
-                    'weight_kg' => $package['weightKg'],
-                    'length_cm' => $package['lengthCm'] ?? null,
-                    'width_cm' => $package['widthCm'] ?? null,
-                    'height_cm' => $package['heightCm'] ?? null,
-                    'declared_value' => $package['declaredValue'] ?? null,
-                    'description' => $package['description'] ?? null,
+        try {
+            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService) {
+                $sender = CourierContact::create([
+                    'user_id' => Auth::id(),
+                    'role' => CourierContact::ROLE_SENDER,
+                    'name' => $payload['sender']['name'],
+                    'email' => $payload['sender']['email'] ?? null,
+                    'phone' => $payload['sender']['phone'] ?? null,
+                    'company_name' => $payload['sender']['company'] ?? null,
                 ]);
-            }
 
-            $assignmentService->assignShipment($shipment);
-            $this->assertShipmentServiceCatalogPolicy($shipment, $payload);
+                $senderAddressData = $payload['sender']['address'];
+                $senderAddress = $sender->addresses()->create([
+                    'label' => 'pickup',
+                    'line1' => $senderAddressData['line1'],
+                    'line2' => $senderAddressData['line2'] ?? null,
+                    'city' => $senderAddressData['city'],
+                    'state' => $senderAddressData['state'] ?? null,
+                    'postal_code' => $senderAddressData['postalCode'] ?? null,
+                    'country' => strtoupper($senderAddressData['country']),
+                    'instructions' => $senderAddressData['instructions'] ?? null,
+                    'is_primary' => true,
+                ]);
 
-            return $shipment;
-        });
+                $recipient = CourierContact::create([
+                    'role' => CourierContact::ROLE_RECIPIENT,
+                    'name' => $payload['recipient']['name'],
+                    'email' => $payload['recipient']['email'] ?? null,
+                    'phone' => $payload['recipient']['phone'] ?? null,
+                    'company_name' => $payload['recipient']['company'] ?? null,
+                ]);
 
-        $pricingExplanation = null;
-        $enforcedEstimatedCostUsd = $this->resolveEstimatedCostWithLaneMatrix($shipment, $payload, $estimatedCostUsd, $pricingExplanation);
+                $recipientAddressData = $payload['recipient']['address'];
+                $recipientAddress = $recipient->addresses()->create([
+                    'label' => 'dropoff',
+                    'line1' => $recipientAddressData['line1'],
+                    'line2' => $recipientAddressData['line2'] ?? null,
+                    'city' => $recipientAddressData['city'],
+                    'state' => $recipientAddressData['state'] ?? null,
+                    'postal_code' => $recipientAddressData['postalCode'] ?? null,
+                    'country' => strtoupper($recipientAddressData['country']),
+                    'instructions' => $recipientAddressData['instructions'] ?? null,
+                    'is_primary' => true,
+                ]);
+
+                $shipment = CourierShipment::create([
+                    'requested_by_user_id' => Auth::id(),
+                    'sender_contact_id' => $sender->id,
+                    'recipient_contact_id' => $recipient->id,
+                    'sender_address_id' => $senderAddress->id,
+                    'recipient_address_id' => $recipientAddress->id,
+                    'service_level' => $payload['shipment']['serviceLevel'],
+                    'status' => CourierShipment::STATUS_PENDING,
+                    'pickup_date' => $payload['shipment']['pickupDate'] ? $payload['shipment']['pickupDate'] : null,
+                    'pickup_window_start' => $payload['shipment']['pickupWindowStart'] ? $payload['shipment']['pickupWindowStart'] : null,
+                    'pickup_window_end' => $payload['shipment']['pickupWindowEnd'] ? $payload['shipment']['pickupWindowEnd'] : null,
+                    'insurance_required' => (bool) ($payload['shipment']['insurance'] ?? false),
+                    'declared_value' => isset($payload['shipment']['estimatedValue'])
+                        ? (float) $payload['shipment']['estimatedValue']
+                        : 0,
+                    'currency_code' => strtoupper($payload['shipment']['currency'] ?? 'LKR'),
+                    'delivery_notes' => $payload['shipment']['deliveryNotes'] ?? null,
+                ]);
+
+                foreach ($payload['packages'] as $index => $package) {
+                    $quote = $selectedQuotes->get($index);
+
+                    $shipment->packages()->create([
+                        'label' => $package['label'] ?? 'Package ' . ($index + 1),
+                        'package_type' => $package['packageType'] ?? null,
+                        'courier_provider_key' => $package['courierProvider'] ?? ($quote['providerId'] ?? null),
+                        'courier_provider_name' => $quote['providerName'] ?? null,
+                        'service_tier_key' => $package['serviceLevel'] ?? ($quote['serviceLevel'] ?? null),
+                        'service_tier_label' => $quote['serviceLabel'] ?? null,
+                        'service_eta' => $quote['eta'] ?? null,
+                        'quoted_price_usd' => $quote ? (float) ($quote['priceUSD'] ?? 0) : null,
+                        'quantity' => $package['quantity'],
+                        'weight_kg' => $package['weightKg'],
+                        'length_cm' => $package['lengthCm'] ?? null,
+                        'width_cm' => $package['widthCm'] ?? null,
+                        'height_cm' => $package['heightCm'] ?? null,
+                        'declared_value' => $package['declaredValue'] ?? null,
+                        'description' => $package['description'] ?? null,
+                    ]);
+                }
+
+                $assignmentService->assignShipment($shipment);
+                $this->assertShipmentServiceCatalogPolicy($shipment, $payload);
+
+                return $shipment;
+            });
+
+            $pricingExplanation = null;
+            $enforcedEstimatedCostUsd = $this->resolveEstimatedCostWithLaneMatrix($shipment, $payload, $estimatedCostUsd, $pricingExplanation);
+        } catch (ValidationException $exception) {
+            $firstError = (string) collect($exception->errors())->flatten()->first();
+
+            $this->observability()->reportPricingException(
+                $request,
+                'store_pricing_enforcement',
+                $firstError !== '' ? $firstError : $exception->getMessage(),
+                [
+                    'category' => $this->resolvePayloadCategory($payload),
+                    'package_count' => count((array) ($payload['packages'] ?? [])),
+                    'selected_quote_count' => count((array) ($payload['reviewContext']['selectedQuotes'] ?? [])),
+                ]
+            );
+
+            $this->observability()->logStoreFailed($request, 'pricing_validation_exception', [
+                'error' => $firstError !== '' ? $firstError : $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        } catch (\Throwable $exception) {
+            $this->observability()->logStoreFailed($request, 'store_runtime_exception', [
+                'exception_class' => get_class($exception),
+                'error' => mb_substr($exception->getMessage(), 0, 300),
+            ]);
+
+            throw $exception;
+        }
 
         $shipment->update([
             'estimated_cost' => $enforcedEstimatedCostUsd > 0 ? round($enforcedEstimatedCostUsd, 2) : null,
+        ]);
+
+        $this->observability()->logStoreSucceeded($request, (int) $shipment->id, [
+            'shipment_reference' => (string) $shipment->reference,
+            'assigned_vendor_user_id' => (int) ($shipment->assigned_vendor_user_id ?? 0),
+            'estimated_cost_usd' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
         ]);
 
         $request->session()->forget('courier_preview');
@@ -2710,10 +2825,18 @@ class ClientCourierController extends Controller
     public function downloadBill(Request $request, CourierShipment $shipment)
     {
         if (!Auth::check()) {
+            $this->observability()->recordAuthorizationDenial($request, 'unauthenticated_bill_download', [
+                'requested_shipment_id' => (int) ($shipment->id ?? 0),
+            ]);
+
             return redirect()->route('signin.signin');
         }
 
         if ((int) $shipment->requested_by_user_id !== (int) Auth::id()) {
+            $this->observability()->recordOwnershipFailure($request, 'shipment_bill_download', (int) $shipment->id, [
+                'owner_user_id' => (int) $shipment->requested_by_user_id,
+            ]);
+
             abort(403);
         }
 
@@ -2723,6 +2846,11 @@ class ClientCourierController extends Controller
             'senderAddress',
             'recipientAddress',
             'packages',
+        ]);
+
+        $this->observability()->logDetailRead($request, (int) $shipment->id, [
+            'mode' => 'bill_download',
+            'shipment_reference' => (string) $shipment->reference,
         ]);
 
         $escape = static function ($value) {
@@ -2824,5 +2952,10 @@ class ClientCourierController extends Controller
             'Content-Type' => 'text/html; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    private function observability(): CourierClientObservabilityService
+    {
+        return app(CourierClientObservabilityService::class);
     }
 }
