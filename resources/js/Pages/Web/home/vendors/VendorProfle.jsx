@@ -22,22 +22,22 @@ const VendorProfile = ({ vendor, vendorProfile, services, landVehicles, seaVehic
                     Profile Information
                 </div>
             </div>
-            
-            <InformationCard 
+
+            <InformationCard
                 vendor={vendor}
                 vendorProfile={vendorProfile}
                 stats={stats}
             />
-            
-            <Btns 
+
+            <Btns
                 services={services}
                 initialService={activeService}
                 initialMode={activeMode}
                 onServiceChange={setActiveService}
                 onModeChange={setActiveMode}
             />
-            
-            <ServiceContent 
+
+            <ServiceContent
                 activeService={activeService}
                 activeMode={activeMode}
                 services={services}
@@ -46,7 +46,7 @@ const VendorProfile = ({ vendor, vendorProfile, services, landVehicles, seaVehic
                 airVehicles={airVehicles}
                 warehouseUnits={warehouseUnits}
                 courierServices={courierServices}
-                flightSchedules={flightSchedules} 
+                flightSchedules={flightSchedules}
                 trainSchedules={trainSchedules}
                 authUser={authUser}
                 likedVehicleIds={likedVehicleIds}
