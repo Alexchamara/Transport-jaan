@@ -4274,7 +4274,7 @@ const Settings = () => {
             }
 
             return (
-                <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
+                <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-5">
                     <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
                             <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
                             <div className="space-y-2">
