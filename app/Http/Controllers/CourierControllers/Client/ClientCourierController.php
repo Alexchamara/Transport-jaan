@@ -429,7 +429,7 @@ class ClientCourierController extends Controller
     {
         $formData = $request->session()->get('courier_preview');
 
-        if (!$this->hasValidCourierPreviewPayload($formData)) {
+        if (!$this->hasCreateStepCourierPreviewPayload($formData)) {
             $this->observability()->logStoreFailed($request, 'details_view_without_valid_preview', [
                 'phase' => 'details',
             ]);
@@ -494,7 +494,7 @@ class ClientCourierController extends Controller
     {
         $existing = $request->session()->get('courier_preview');
 
-        if (!$this->hasValidCourierPreviewPayload($existing)) {
+        if (!$this->hasCreateStepCourierPreviewPayload($existing)) {
             $request->session()->forget('courier_preview');
 
             return redirect()
@@ -940,6 +940,36 @@ class ClientCourierController extends Controller
             ->with('success', 'Courier request submitted successfully.')
             ->with('courier_reference', $shipment->reference)
             ->with('courier_bill_id', $shipment->id);
+    }
+
+    private function hasCreateStepCourierPreviewPayload($payload): bool
+    {
+        if (!is_array($payload)) {
+            return false;
+        }
+
+        $packages = $payload['packages'] ?? [];
+        if (!is_array($packages) || count($packages) < 1) {
+            return false;
+        }
+
+        foreach ($packages as $package) {
+            if (!is_array($package)) {
+                return false;
+            }
+
+            if ((int) ($package['quantity'] ?? 0) < 1) {
+                return false;
+            }
+
+            if ((float) ($package['weightKg'] ?? 0) <= 0) {
+                return false;
+            }
+        }
+
+        $selectedQuotes = $payload['reviewContext']['selectedQuotes'] ?? [];
+
+        return is_array($selectedQuotes) && count($selectedQuotes) >= 1;
     }
 
     private function hasValidCourierPreviewPayload($payload): bool
