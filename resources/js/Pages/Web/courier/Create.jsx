@@ -62,6 +62,7 @@ const Create = () => {
     const [activePackageIndex, setActivePackageIndex] = useState(0);
 
     const [isPlacing, setIsPlacing] = useState(false);
+    const [submitError, setSubmitError] = useState("");
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
 
     const scrollToTop = () => {
