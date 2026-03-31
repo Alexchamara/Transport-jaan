@@ -68,7 +68,7 @@ const statusMap = {
     },
 };
 
-const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
+const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlot = null }) => {
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [sort, setSort] = useState("recent");
@@ -431,21 +431,20 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
 
                             {/* Action Buttons */}
                             <div className="flex gap-2 items-center flex-wrap">
-                                <button 
+                                <button
                                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                                    className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${
-                                        showAdvancedFilters 
-                                            ? "bg-[#0955AC] text-white border border-[#0955AC]" 
+                                    className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${showAdvancedFilters
+                                            ? "bg-[#0955AC] text-white border border-[#0955AC]"
                                             : "border border-slate-300 hover:bg-slate-50"
-                                    }`}>
+                                        }`}>
                                     <Filter className="mr-2 h-4 w-4" /> Filters
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleExport}
                                     className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
                                     <Download className="mr-2 h-4 w-4" /> Export
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleRefresh}
                                     className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition">
                                     <RefreshCw className="h-4 w-4" />
@@ -527,7 +526,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Showing count */}
                                     <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
                                         <Info className="h-4 w-4" />
@@ -636,6 +635,11 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                         </button>
                                     )}
                                 </div>
+                            </div>
+                        )}
+                        {leftColumnSlot && (
+                            <div className="mt-6">
+                                {leftColumnSlot}
                             </div>
                         )}
                     </div>

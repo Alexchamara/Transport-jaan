@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
+import { Star } from "lucide-react";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import {
@@ -23,6 +24,7 @@ const Details = () => {
         serviceLevels = [],
         packageTypes = [],
         logisticDimensionOptions = {},
+        favoriteRecipients = [],
         errors = {},
     } = props;
 
@@ -73,6 +75,7 @@ const Details = () => {
                     email: "",
                     phone: "",
                     company: "",
+                    saveToFavorites: false,
                     address: {
                         line1: "",
                         line2: "",
@@ -151,6 +154,7 @@ const Details = () => {
                 email: formData.recipient?.email ?? "",
                 phone: formData.recipient?.phone ?? "",
                 company: formData.recipient?.company ?? "",
+                saveToFavorites: Boolean(formData.recipient?.saveToFavorites),
                 address: {
                     line1: recipientAddress.line1 ?? "",
                     line2: recipientAddress.line2 ?? "",
@@ -210,6 +214,103 @@ const Details = () => {
         processing,
         errors: formErrors,
     } = useForm(initialForm);
+
+    const [showFavoritePicker, setShowFavoritePicker] = useState(false);
+    const [useSenderDetails, setUseSenderDetails] = useState(false);
+    const hasFavoriteRecipients = (favoriteRecipients || []).length > 0;
+
+    const formatRecipientAddress = (address) => {
+        if (!address) {
+            return "—";
+        }
+
+        const street = [address.line1, address.line2].filter(Boolean).join(", ");
+        const locality = [address.city, address.state, address.postalCode].filter(Boolean).join(", ");
+        const country = address.country;
+
+        return [street, locality, country].filter(Boolean).join(", ");
+    };
+
+    const buildRecipientFromSender = (sender, currentRecipient) => {
+        const senderAddress = sender?.address || {};
+        const previousRecipient = currentRecipient || {};
+        const previousAddress = previousRecipient.address || {};
+
+        return {
+            ...previousRecipient,
+            name: sender?.name ?? "",
+            email: sender?.email ?? "",
+            phone: sender?.phone ?? "",
+            company: sender?.company ?? "",
+            address: {
+                ...previousAddress,
+                line1: senderAddress.line1 ?? "",
+                line2: senderAddress.line2 ?? "",
+                city: senderAddress.city ?? "",
+                state: senderAddress.state ?? "",
+                postalCode: senderAddress.postalCode ?? "",
+                country: senderAddress.country ?? (countries[0] || "US"),
+                instructions: senderAddress.instructions ?? "",
+            },
+        };
+    };
+
+
+    const applyRecipientSelection = (recipient) => {
+        if (!recipient) {
+            return;
+        }
+
+        const selectedAddress = recipient.address || {};
+
+        setData((previous) => {
+            const previousRecipient = previous.recipient || {};
+            const previousAddress = previousRecipient.address || {};
+
+            return {
+                ...previous,
+                recipient: {
+                    ...previousRecipient,
+                    name: recipient.name ?? "",
+                    email: recipient.email ?? "",
+                    phone: recipient.phone ?? "",
+                    company: recipient.company ?? "",
+                    saveToFavorites: false,
+                    address: {
+                        ...previousAddress,
+                        line1: selectedAddress.line1 ?? "",
+                        line2: selectedAddress.line2 ?? "",
+                        city: selectedAddress.city ?? "",
+                        state: selectedAddress.state ?? "",
+                        postalCode: selectedAddress.postalCode ?? "",
+                        country: selectedAddress.country ?? previousAddress.country ?? (countries[0] || "US"),
+                        instructions: selectedAddress.instructions ?? "",
+                    },
+                },
+            };
+        });
+
+        setUseSenderDetails(false);
+    };
+
+    const handleUseSenderDetailsChange = (event) => {
+        const checked = event.target.checked;
+        setUseSenderDetails(checked);
+
+        if (!checked) {
+            return;
+        }
+
+        setData((previous) => {
+            const sender = previous.sender || {};
+            const previousRecipient = previous.recipient || {};
+            const nextRecipient = buildRecipientFromSender(sender, previousRecipient);
+            return {
+                ...previous,
+                recipient: nextRecipient,
+            };
+        });
+    };
 
     const scrollToTop = useCallback(() => {
         if (typeof window !== "undefined") {
@@ -461,6 +562,8 @@ const Details = () => {
         return Array.from(pool);
     }, [packageTypes, packages]);
 
+    const recipientFavorite = Boolean(data.recipient?.saveToFavorites);
+
     const handleCourierProviderChange = (index, providerId) => {
         setData((previous) => {
             const packagesDraft = Array.isArray(previous.packages) ? [...previous.packages] : [];
@@ -517,21 +620,21 @@ const Details = () => {
             <Header />
 
             <section className="bg-[#0B1739] text-white">
-                <div className="container mx-auto px-4 py-12">
+                <div className="container mx-auto px-4 py-6">
                     <p className="uppercase tracking-wide text-xs text-[#6FB3FF]">Courier Service</p>
-                    <h1 className="text-3xl md:text-4xl font-semibold mt-3">Enter shipment details</h1>
-                    <p className="mt-4 max-w-2xl text-sm md:text-base text-white/80">
+                    <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Enter shipment details</h1>
+                    <p className="mt-2 max-w-2xl text-xs text-white/80 md:text-sm">
                         Provide sender and recipient information along with shipment preferences. We'll use these details to prepare your booking summary.
                     </p>
                 </div>
             </section>
 
-            <main className="container mx-auto px-4 mt-16 mb-16 flex-1">
-                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
-                    <form onSubmit={handleSubmit} className="space-y-10">
+            <main className="container mx-auto mt-4 mb-8 flex-1 px-4">
+                <div className="poppins rounded-2xl bg-white px-4 py-5 shadow-xl md:px-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {governanceRuntimeErrors.length > 0 && (
-                            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                                <p className="text-sm font-semibold text-amber-900">Pricing governance blocked submission</p>
+                            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                                <p className="text-xs font-semibold text-amber-900">Pricing governance blocked submission</p>
                                 <p className="mt-1 text-xs text-amber-800">Review the locked quote fields and selected service/provider values before continuing.</p>
                                 <div className="mt-2 space-y-1">
                                     {governanceRuntimeErrors.map((message, index) => (
@@ -542,18 +645,18 @@ const Details = () => {
                         )}
 
                         {packages.length > 0 && (
-                            <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
+                            <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
-                                        <h2 className="text-lg font-semibold text-[#0B1739]">Package details</h2>
-                                        <p className="mt-1 text-sm text-[#5B6887]">Review the parcels included in this shipment.</p>
+                                        <h2 className="text-base font-semibold text-[#0B1739]">Package details</h2>
+                                        <p className="mt-1 text-xs text-[#5B6887]">Review the parcels included in this shipment.</p>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <div className="rounded-full bg-[#0955AC]/10 px-4 py-1 text-sm font-medium text-[#0955AC]">
+                                        <div className="rounded-full bg-[#0955AC]/10 px-3 py-1 text-xs font-medium text-[#0955AC]">
                                             Pieces: {packageMetrics.totalPackages || 0}
                                         </div>
                                         {packageMetrics.billableWeight > 0 && (
-                                            <div className="rounded-full bg-[#CAD6E7] px-4 py-1 text-sm font-medium text-[#0B1739]">
+                                            <div className="rounded-full bg-[#CAD6E7] px-3 py-1 text-xs font-medium text-[#0B1739]">
                                                 Billable: {packageMetrics.billableWeight.toFixed(2)} kg
                                             </div>
                                         )}
@@ -564,7 +667,7 @@ const Details = () => {
                                     Update parcel information below. Courier pricing recalculates automatically when weights or dimensions change.
                                 </p>
 
-                                <div className="mt-6 space-y-6">
+                                <div className="mt-4 space-y-4">
                                     {packages.map((pkg, index) => {
                                         const selection = selectedQuotesMap[index];
                                         const rawBillable = selection?.billableWeight ?? selection?.weight;
@@ -584,7 +687,7 @@ const Details = () => {
                                         const tierOptions = providerDetails?.tiers || [];
 
                                         return (
-                                            <div key={`details-package-${index}`} className="rounded-xl border border-[#D6DEEB] bg-white p-5 text-sm text-[#0B1739] shadow-sm">
+                                            <div key={`details-package-${index}`} className="rounded-xl border border-[#D6DEEB] bg-white p-4 text-xs text-[#0B1739] shadow-sm">
                                                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                                                     <div>
                                                         <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">Package {index + 1}</p>
@@ -601,13 +704,13 @@ const Details = () => {
                                                     )}
                                                 </div>
 
-                                                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Courier provider *</label>
+                                                        <label className="mb-1 block text-xs font-medium">Courier provider *</label>
                                                         <select
                                                             value={pkg.courierProvider || ""}
                                                             onChange={(event) => handleCourierProviderChange(index, event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         >
                                                             <option value="">Select provider</option>
                                                             {providerOptions.map((provider) => (
@@ -621,11 +724,11 @@ const Details = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Service level *</label>
+                                                        <label className="mb-1 block text-xs font-medium">Service level *</label>
                                                         <select
                                                             value={pkg.serviceLevel || ""}
                                                             onChange={(event) => handleServiceLevelChange(index, event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                             disabled={!pkg.courierProvider}
                                                         >
                                                             <option value="">Select service level</option>
@@ -641,14 +744,14 @@ const Details = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Label</label>
+                                                        <label className="mb-1 block text-xs font-medium">Label</label>
                                                         <input
                                                             type="text"
                                                             value={pkg.label}
                                                             onChange={(event) => updatePackageField(index, "label", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                             placeholder="Office documents"
                                                         />
                                                         {errorFor("label") && (
@@ -656,11 +759,11 @@ const Details = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Type</label>
+                                                        <label className="mb-1 block text-xs font-medium">Type</label>
                                                         <select
                                                             value={pkg.packageType}
                                                             onChange={(event) => updatePackageField(index, "packageType", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         >
                                                             {typeOptions.map((type) => (
                                                                 <option key={`package-type-${index}-${type || 'blank'}`} value={type}>
@@ -674,29 +777,29 @@ const Details = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Quantity *</label>
+                                                        <label className="mb-1 block text-xs font-medium">Quantity *</label>
                                                         <input
                                                             type="number"
                                                             min="1"
                                                             value={pkg.quantity}
                                                             onChange={(event) => updatePackageField(index, "quantity", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         />
                                                         {errorFor("quantity") && (
                                                             <p className="mt-2 text-xs text-red-500">{errorFor("quantity")}</p>
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Weight (kg) *</label>
+                                                        <label className="mb-1 block text-xs font-medium">Weight (kg) *</label>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             step="0.01"
                                                             value={pkg.weightKg}
                                                             onChange={(event) => updatePackageField(index, "weightKg", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                             placeholder="5.5"
                                                         />
                                                         {errorFor("weightKg") && (
@@ -704,14 +807,14 @@ const Details = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Declared value ({packageCurrency})</label>
+                                                        <label className="mb-1 block text-xs font-medium">Declared value ({packageCurrency})</label>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             step="0.01"
                                                             value={pkg.declaredValue}
                                                             onChange={(event) => updatePackageField(index, "declaredValue", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         />
                                                         {errorFor("declaredValue") && (
                                                             <p className="mt-2 text-xs text-red-500">{errorFor("declaredValue")}</p>
@@ -719,44 +822,44 @@ const Details = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Length (cm)</label>
+                                                        <label className="mb-1 block text-xs font-medium">Length (cm)</label>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             step="0.1"
                                                             value={pkg.lengthCm}
                                                             onChange={(event) => updatePackageField(index, "lengthCm", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         />
                                                         {errorFor("lengthCm") && (
                                                             <p className="mt-2 text-xs text-red-500">{errorFor("lengthCm")}</p>
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Width (cm)</label>
+                                                        <label className="mb-1 block text-xs font-medium">Width (cm)</label>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             step="0.1"
                                                             value={pkg.widthCm}
                                                             onChange={(event) => updatePackageField(index, "widthCm", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         />
                                                         {errorFor("widthCm") && (
                                                             <p className="mt-2 text-xs text-red-500">{errorFor("widthCm")}</p>
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium">Height (cm)</label>
+                                                        <label className="mb-1 block text-xs font-medium">Height (cm)</label>
                                                         <input
                                                             type="number"
                                                             min="0"
                                                             step="0.1"
                                                             value={pkg.heightCm}
                                                             onChange={(event) => updatePackageField(index, "heightCm", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         />
                                                         {errorFor("heightCm") && (
                                                             <p className="mt-2 text-xs text-red-500">{errorFor("heightCm")}</p>
@@ -764,13 +867,13 @@ const Details = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4">
-                                                    <label className="mb-2 block text-sm font-medium">Description</label>
+                                                <div className="mt-3">
+                                                    <label className="mb-1 block text-xs font-medium">Description</label>
                                                     <textarea
-                                                        rows="3"
+                                                        rows="2"
                                                         value={pkg.description}
                                                         onChange={(event) => updatePackageField(index, "description", event.target.value)}
-                                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                         placeholder="Fragile glassware, keep upright"
                                                     />
                                                     {errorFor("description") && (
@@ -784,348 +887,401 @@ const Details = () => {
                             </section>
                         )}
 
-                        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
-                                <h2 className="text-lg font-semibold text-[#0B1739]">Sender details</h2>
-                                <p className="mt-1 text-sm text-[#5B6887]">Pickup contact and address</p>
-                                <div className="mt-5 space-y-4">
-                                    <div>
-                                        <label className="mb-2 block text-sm font-medium">Name *</label>
-                                        <input
-                                            type="text"
-                                            value={data.sender.name}
-                                            onChange={(event) => updateNestedField("sender.name", event.target.value)}
-                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                            placeholder="Jane Smith"
-                                            required
-                                        />
-                                        {combinedErrors["sender.name"] && (
-                                            <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.name"]}</p>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                            <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
+                                <h2 className="text-base font-semibold text-[#0B1739]">Sender details</h2>
+                                <p className="mt-1 text-xs text-[#5B6887]">Pickup contact and address</p>
+
+                                <div className="mt-3 space-y-2">
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Email</label>
+                                            <label className="mb-1 block text-xs font-medium">Name *</label>
                                             <input
-                                                type="email"
-                                                value={data.sender.email}
-                                                onChange={(event) => updateNestedField("sender.email", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="jane@example.com"
+                                                type="text"
+                                                value={data.sender.name}
+                                                onChange={(event) => updateNestedField("sender.name", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Jane Smith"
+                                                required
                                             />
-                                            {combinedErrors["sender.email"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.email"]}</p>
+                                            {combinedErrors["sender.name"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.name"]}</p>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Phone</label>
+                                            <label className="mb-1 block text-xs font-medium">Phone</label>
                                             <input
                                                 type="text"
                                                 value={data.sender.phone}
                                                 onChange={(event) => updateNestedField("sender.phone", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                 placeholder="+1 202 555 0147"
                                             />
                                             {combinedErrors["sender.phone"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.phone"]}</p>
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.phone"]}</p>
                                             )}
                                         </div>
                                     </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">Email</label>
+                                            <input
+                                                type="email"
+                                                value={data.sender.email}
+                                                onChange={(event) => updateNestedField("sender.email", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="jane@example.com"
+                                            />
+                                            {combinedErrors["sender.email"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.email"]}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">Company</label>
+                                            <input
+                                                type="text"
+                                                value={data.sender.company}
+                                                onChange={(event) => updateNestedField("sender.company", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Acme Corp"
+                                            />
+                                            {combinedErrors["sender.company"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.company"]}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Company</label>
+                                        <label className="mb-1 block text-xs font-medium">Address line 1 *</label>
                                         <input
                                             type="text"
-                                            value={data.sender.company}
-                                            onChange={(event) => updateNestedField("sender.company", event.target.value)}
-                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                            placeholder="Acme Corp"
+                                            value={data.sender.address.line1}
+                                            onChange={(event) => updateNestedField("sender.address.line1", event.target.value)}
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="123 Main Street"
+                                            required
                                         />
-                                        {combinedErrors["sender.company"] && (
-                                            <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.company"]}</p>
+                                        {combinedErrors["sender.address.line1"] && (
+                                            <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.line1"]}</p>
                                         )}
                                     </div>
-                                    <div className="space-y-3">
+
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium">Address line 2</label>
+                                        <input
+                                            type="text"
+                                            value={data.sender.address.line2}
+                                            onChange={(event) => updateNestedField("sender.address.line2", event.target.value)}
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="Suite 400"
+                                        />
+                                        {combinedErrors["sender.address.line2"] && (
+                                            <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.line2"]}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Address line 1 *</label>
+                                            <label className="mb-1 block text-xs font-medium">City *</label>
                                             <input
                                                 type="text"
-                                                value={data.sender.address.line1}
-                                                onChange={(event) => updateNestedField("sender.address.line1", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="123 Main Street"
+                                                value={data.sender.address.city}
+                                                onChange={(event) => updateNestedField("sender.address.city", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Colombo"
                                                 required
                                             />
-                                            {combinedErrors["sender.address.line1"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.line1"]}</p>
+                                            {combinedErrors["sender.address.city"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.city"]}</p>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Address line 2</label>
+                                            <label className="mb-1 block text-xs font-medium">Country *</label>
+                                            <select
+                                                value={data.sender.address.country}
+                                                onChange={(event) => updateNestedField("sender.address.country", event.target.value.toUpperCase())}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                required
+                                            >
+                                                {countries.map((countryCode) => (
+                                                    <option key={`sender-country-${countryCode}`} value={countryCode}>
+                                                        {countryCode}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {combinedErrors["sender.address.country"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.country"]}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">State / Province</label>
                                             <input
                                                 type="text"
-                                                value={data.sender.address.line2}
-                                                onChange={(event) => updateNestedField("sender.address.line2", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Suite 400"
+                                                value={data.sender.address.state}
+                                                onChange={(event) => updateNestedField("sender.address.state", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Western"
                                             />
-                                            {combinedErrors["sender.address.line2"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.line2"]}</p>
+                                            {combinedErrors["sender.address.state"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.state"]}</p>
                                             )}
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">City *</label>
-                                                <input
-                                                    type="text"
-                                                    value={data.sender.address.city}
-                                                    onChange={(event) => updateNestedField("sender.address.city", event.target.value)}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                    placeholder="Colombo"
-                                                    required
-                                                />
-                                                {combinedErrors["sender.address.city"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.city"]}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">State / Province</label>
-                                                <input
-                                                    type="text"
-                                                    value={data.sender.address.state}
-                                                    onChange={(event) => updateNestedField("sender.address.state", event.target.value)}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                    placeholder="Western"
-                                                />
-                                                {combinedErrors["sender.address.state"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.state"]}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">Postal code</label>
-                                                <input
-                                                    type="text"
-                                                    value={data.sender.address.postalCode}
-                                                    onChange={(event) => updateNestedField("sender.address.postalCode", event.target.value)}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                />
-                                                {combinedErrors["sender.address.postalCode"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.postalCode"]}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">Country *</label>
-                                                <select
-                                                    value={data.sender.address.country}
-                                                    onChange={(event) => updateNestedField("sender.address.country", event.target.value.toUpperCase())}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                    required
-                                                >
-                                                    {countries.map((countryCode) => (
-                                                        <option key={`sender-country-${countryCode}`} value={countryCode}>
-                                                            {countryCode}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {combinedErrors["sender.address.country"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.country"]}</p>
-                                                )}
-                                            </div>
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Pickup instructions</label>
-                                            <textarea
-                                                rows="3"
-                                                value={data.sender.address.instructions}
-                                                onChange={(event) => updateNestedField("sender.address.instructions", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Gate access code, preferred pickup window, etc."
+                                            <label className="mb-1 block text-xs font-medium">Postal code</label>
+                                            <input
+                                                type="text"
+                                                value={data.sender.address.postalCode}
+                                                onChange={(event) => updateNestedField("sender.address.postalCode", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                             />
-                                            {combinedErrors["sender.address.instructions"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["sender.address.instructions"]}</p>
+                                            {combinedErrors["sender.address.postalCode"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.postalCode"]}</p>
                                             )}
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium">Pickup instructions</label>
+                                        <textarea
+                                            rows="2"
+                                            value={data.sender.address.instructions}
+                                            onChange={(event) => updateNestedField("sender.address.instructions", event.target.value)}
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="Gate access code, preferred pickup window, etc."
+                                        />
+                                        {combinedErrors["sender.address.instructions"] && (
+                                            <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.instructions"]}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
-                                <h2 className="text-lg font-semibold text-[#0B1739]">Recipient details</h2>
-                                <p className="mt-1 text-sm text-[#5B6887]">Delivery contact and address</p>
-                                <div className="mt-5 space-y-4">
+                            <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
+                                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Name *</label>
-                                        <input
-                                            type="text"
-                                            value={data.recipient.name}
-                                            onChange={(event) => updateNestedField("recipient.name", event.target.value)}
-                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                            placeholder="Michael Brown"
-                                            required
-                                        />
-                                        {combinedErrors["recipient.name"] && (
-                                            <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.name"]}</p>
-                                        )}
+                                        <h2 className="text-base font-semibold text-[#0B1739]">Recipient details</h2>
+                                        <p className="mt-1 text-xs text-[#5B6887]">Delivery contact and address</p>
                                     </div>
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                        <div>
-                                            <label className="mb-2 block text-sm font-medium">Email</label>
-                                            <input
-                                                type="email"
-                                                value={data.recipient.email}
-                                                onChange={(event) => updateNestedField("recipient.email", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="michael@example.com"
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowFavoritePicker(true)}
+                                            disabled={!hasFavoriteRecipients}
+                                            className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1 text-xs font-semibold transition ${hasFavoriteRecipients ? "border-[#0955AC] text-[#0955AC] hover:bg-[#0955AC]/10" : "cursor-not-allowed border-[#D6DEEB] text-[#A0AEC0]"}`}
+                                        >
+                                            Use saved recipient
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateNestedField("recipient.saveToFavorites", !recipientFavorite)}
+                                            className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1 text-xs font-semibold transition ${recipientFavorite ? "border-amber-300 bg-amber-50 text-amber-900" : "border-[#D6DEEB] bg-white text-[#0B1739] hover:border-[#0955AC]"}`}
+                                            aria-pressed={recipientFavorite}
+                                            title={recipientFavorite ? "Recipient saved" : "Add recipient to favorites"}
+                                        >
+                                            <Star
+                                                className={`h-4 w-4 ${recipientFavorite ? "text-amber-500" : "text-[#6B7893]"}`}
+                                                fill={recipientFavorite ? "currentColor" : "none"}
                                             />
-                                            {combinedErrors["recipient.email"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.email"]}</p>
+                                            <span>{recipientFavorite ? "Saved to favorites" : "Add to favorites"}</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 space-y-2">
+                                    <div className="flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-white px-3 py-2">
+                                        <input
+                                            id="recipient-same-as-sender"
+                                            type="checkbox"
+                                            checked={useSenderDetails}
+                                            onChange={handleUseSenderDetailsChange}
+                                            className="h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC]"
+                                        />
+                                        <label htmlFor="recipient-same-as-sender" className="text-xs text-[#0B1739]">
+                                            Recipient same as sender
+                                        </label>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">Name *</label>
+                                            <input
+                                                type="text"
+                                                value={data.recipient.name}
+                                                onChange={(event) => updateNestedField("recipient.name", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Michael Brown"
+                                                required
+                                            />
+                                            {combinedErrors["recipient.name"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.name"]}</p>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Phone</label>
+                                            <label className="mb-1 block text-xs font-medium">Phone</label>
                                             <input
                                                 type="text"
                                                 value={data.recipient.phone}
                                                 onChange={(event) => updateNestedField("recipient.phone", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                                 placeholder="+44 20 7946 0958"
                                             />
                                             {combinedErrors["recipient.phone"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.phone"]}</p>
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.phone"]}</p>
                                             )}
                                         </div>
                                     </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">Email</label>
+                                            <input
+                                                type="email"
+                                                value={data.recipient.email}
+                                                onChange={(event) => updateNestedField("recipient.email", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="michael@example.com"
+                                            />
+                                            {combinedErrors["recipient.email"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.email"]}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">Company</label>
+                                            <input
+                                                type="text"
+                                                value={data.recipient.company}
+                                                onChange={(event) => updateNestedField("recipient.company", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Recipient Inc."
+                                            />
+                                            {combinedErrors["recipient.company"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.company"]}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Company</label>
+                                        <label className="mb-1 block text-xs font-medium">Address line 1 *</label>
                                         <input
                                             type="text"
-                                            value={data.recipient.company}
-                                            onChange={(event) => updateNestedField("recipient.company", event.target.value)}
-                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                            placeholder="Recipient Inc."
+                                            value={data.recipient.address.line1}
+                                            onChange={(event) => updateNestedField("recipient.address.line1", event.target.value)}
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="45 Oxford Street"
+                                            required
                                         />
-                                        {combinedErrors["recipient.company"] && (
-                                            <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.company"]}</p>
+                                        {combinedErrors["recipient.address.line1"] && (
+                                            <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.line1"]}</p>
                                         )}
                                     </div>
-                                    <div className="space-y-3">
+
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium">Address line 2</label>
+                                        <input
+                                            type="text"
+                                            value={data.recipient.address.line2}
+                                            onChange={(event) => updateNestedField("recipient.address.line2", event.target.value)}
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="Floor 2"
+                                        />
+                                        {combinedErrors["recipient.address.line2"] && (
+                                            <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.line2"]}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Address line 1 *</label>
+                                            <label className="mb-1 block text-xs font-medium">City *</label>
                                             <input
                                                 type="text"
-                                                value={data.recipient.address.line1}
-                                                onChange={(event) => updateNestedField("recipient.address.line1", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="45 Oxford Street"
+                                                value={data.recipient.address.city}
+                                                onChange={(event) => updateNestedField("recipient.address.city", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="London"
                                                 required
                                             />
-                                            {combinedErrors["recipient.address.line1"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.line1"]}</p>
+                                            {combinedErrors["recipient.address.city"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.city"]}</p>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Address line 2</label>
+                                            <label className="mb-1 block text-xs font-medium">Country *</label>
+                                            <select
+                                                value={data.recipient.address.country}
+                                                onChange={(event) => updateNestedField("recipient.address.country", event.target.value.toUpperCase())}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                required
+                                            >
+                                                {countries.map((countryCode) => (
+                                                    <option key={`recipient-country-${countryCode}`} value={countryCode}>
+                                                        {countryCode}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {combinedErrors["recipient.address.country"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.country"]}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">State / Province</label>
                                             <input
                                                 type="text"
-                                                value={data.recipient.address.line2}
-                                                onChange={(event) => updateNestedField("recipient.address.line2", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Floor 2"
+                                                value={data.recipient.address.state}
+                                                onChange={(event) => updateNestedField("recipient.address.state", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="Greater London"
                                             />
-                                            {combinedErrors["recipient.address.line2"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.line2"]}</p>
+                                            {combinedErrors["recipient.address.state"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.state"]}</p>
                                             )}
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">City *</label>
-                                                <input
-                                                    type="text"
-                                                    value={data.recipient.address.city}
-                                                    onChange={(event) => updateNestedField("recipient.address.city", event.target.value)}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                    placeholder="London"
-                                                    required
-                                                />
-                                                {combinedErrors["recipient.address.city"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.city"]}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">State / Province</label>
-                                                <input
-                                                    type="text"
-                                                    value={data.recipient.address.state}
-                                                    onChange={(event) => updateNestedField("recipient.address.state", event.target.value)}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                    placeholder="Greater London"
-                                                />
-                                                {combinedErrors["recipient.address.state"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.state"]}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">Postal code</label>
-                                                <input
-                                                    type="text"
-                                                    value={data.recipient.address.postalCode}
-                                                    onChange={(event) => updateNestedField("recipient.address.postalCode", event.target.value)}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                />
-                                                {combinedErrors["recipient.address.postalCode"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.postalCode"]}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="mb-2 block text-sm font-medium">Country *</label>
-                                                <select
-                                                    value={data.recipient.address.country}
-                                                    onChange={(event) => updateNestedField("recipient.address.country", event.target.value.toUpperCase())}
-                                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                    required
-                                                >
-                                                    {countries.map((countryCode) => (
-                                                        <option key={`recipient-country-${countryCode}`} value={countryCode}>
-                                                            {countryCode}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {combinedErrors["recipient.address.country"] && (
-                                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.country"]}</p>
-                                                )}
-                                            </div>
                                         </div>
                                         <div>
-                                            <label className="mb-2 block text-sm font-medium">Delivery instructions</label>
-                                            <textarea
-                                                rows="3"
-                                                value={data.recipient.address.instructions}
-                                                onChange={(event) => updateNestedField("recipient.address.instructions", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Leave with reception, call on arrival, etc."
+                                            <label className="mb-1 block text-xs font-medium">Postal code</label>
+                                            <input
+                                                type="text"
+                                                value={data.recipient.address.postalCode}
+                                                onChange={(event) => updateNestedField("recipient.address.postalCode", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                             />
-                                            {combinedErrors["recipient.address.instructions"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["recipient.address.instructions"]}</p>
+                                            {combinedErrors["recipient.address.postalCode"] && (
+                                                <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.postalCode"]}</p>
                                             )}
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium">Delivery instructions</label>
+                                        <textarea
+                                            rows="2"
+                                            value={data.recipient.address.instructions}
+                                            onChange={(event) => updateNestedField("recipient.address.instructions", event.target.value)}
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            placeholder="Leave with reception, call on arrival, etc."
+                                        />
+                                        {combinedErrors["recipient.address.instructions"] && (
+                                            <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.instructions"]}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </section>
 
-                        <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
-                            <h2 className="text-lg font-semibold text-[#0B1739]">Shipment preferences</h2>
-                            <p className="mt-1 text-sm text-[#5B6887]">Service level and additional options</p>
-                            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+                        <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
+                            <h2 className="text-base font-semibold text-[#0B1739]">Shipment preferences</h2>
+                            <p className="mt-1 text-xs text-[#5B6887]">Service level and additional options</p>
+                            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Preferred service level *</label>
+                                    <label className="mb-1 block text-xs font-medium">Preferred service level *</label>
                                     <select
                                         value={data.shipment.serviceLevel}
                                         onChange={(event) => updateNestedField("shipment.serviceLevel", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         required
                                     >
                                         {serviceLevels.map((level) => (
@@ -1139,11 +1295,11 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Currency *</label>
+                                    <label className="mb-1 block text-xs font-medium">Currency *</label>
                                     <select
                                         value={data.shipment.currency}
                                         onChange={(event) => updateNestedField("shipment.currency", event.target.value.toUpperCase())}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         required
                                     >
                                         {CURRENCY_OPTIONS.map((currencyCode) => (
@@ -1157,44 +1313,44 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Pickup date</label>
+                                    <label className="mb-1 block text-xs font-medium">Pickup date</label>
                                     <input
                                         type="date"
                                         value={data.shipment.pickupDate}
                                         onChange={(event) => updateNestedField("shipment.pickupDate", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                     />
                                     {combinedErrors["shipment.pickupDate"] && (
                                         <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.pickupDate"]}</p>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:col-span-2">
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Pickup window start</label>
+                                        <label className="mb-1 block text-xs font-medium">Pickup window start</label>
                                         <input
                                             type="time"
                                             value={data.shipment.pickupWindowStart}
                                             onChange={(event) => updateNestedField("shipment.pickupWindowStart", event.target.value)}
-                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         />
                                         {combinedErrors["shipment.pickupWindowStart"] && (
                                             <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.pickupWindowStart"]}</p>
                                         )}
                                     </div>
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium">Pickup window end</label>
+                                        <label className="mb-1 block text-xs font-medium">Pickup window end</label>
                                         <input
                                             type="time"
                                             value={data.shipment.pickupWindowEnd}
                                             onChange={(event) => updateNestedField("shipment.pickupWindowEnd", event.target.value)}
-                                            className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         />
                                         {combinedErrors["shipment.pickupWindowEnd"] && (
                                             <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.pickupWindowEnd"]}</p>
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 rounded-lg border border-[#E3EAF5] bg-white px-4 py-3">
+                                <div className="flex items-center gap-2 rounded-lg border border-[#E3EAF5] bg-white px-3 py-2">
                                     <input
                                         id="shipment-insurance"
                                         type="checkbox"
@@ -1202,19 +1358,19 @@ const Details = () => {
                                         onChange={(event) => updateNestedField("shipment.insurance", event.target.checked)}
                                         className="h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC]"
                                     />
-                                    <label htmlFor="shipment-insurance" className="text-sm text-[#0B1739]">
+                                    <label htmlFor="shipment-insurance" className="text-xs text-[#0B1739]">
                                         Add insurance coverage for the declared value
                                     </label>
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Declared value ({data.shipment.currency})</label>
+                                    <label className="mb-1 block text-xs font-medium">Declared value ({data.shipment.currency})</label>
                                     <input
                                         type="number"
                                         min="0"
                                         step="0.01"
                                         value={data.shipment.estimatedValue}
                                         onChange={(event) => updateNestedField("shipment.estimatedValue", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         placeholder="500"
                                     />
                                     {combinedErrors["shipment.estimatedValue"] && (
@@ -1222,28 +1378,28 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Route distance (km)</label>
+                                    <label className="mb-1 block text-xs font-medium">Route distance (km)</label>
                                     <input
                                         type="number"
                                         min="0"
                                         step="0.1"
                                         value={data.shipment.distanceKm}
                                         onChange={(event) => updateNestedField("shipment.distanceKm", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         placeholder="Optional, e.g. 28.5"
                                     />
                                     {combinedErrors["shipment.distanceKm"] && (
                                         <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.distanceKm"]}</p>
                                     )}
-                                    <p className="mt-2 text-xs text-[#6B7893]">Provide route km to apply distance-band lane tariffs accurately.</p>
+                                    <p className="mt-1 text-xs text-[#6B7893]">Provide route km to apply distance-band lane tariffs accurately.</p>
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Logistic unit type</label>
+                                    <label className="mb-1 block text-xs font-medium">Logistic unit type</label>
                                     <select
                                         value={data.shipment.logisticDimensions?.unitType || ""}
                                         onChange={(event) => updateNestedField("shipment.logisticDimensions.unitType", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                     >
                                         <option value="">Select unit type</option>
                                         {unitTypeOptions.map((option) => (
@@ -1255,14 +1411,14 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Logistic unit count</label>
+                                    <label className="mb-1 block text-xs font-medium">Logistic unit count</label>
                                     <input
                                         type="number"
                                         min="1"
                                         step="1"
                                         value={data.shipment.logisticDimensions?.unitCount || ""}
                                         onChange={(event) => updateNestedField("shipment.logisticDimensions.unitCount", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                         placeholder="e.g. 3"
                                     />
                                     {combinedErrors["shipment.logisticDimensions.unitCount"] && (
@@ -1270,11 +1426,11 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Route class</label>
+                                    <label className="mb-1 block text-xs font-medium">Route class</label>
                                     <select
                                         value={data.shipment.logisticDimensions?.routeClass || ""}
                                         onChange={(event) => updateNestedField("shipment.logisticDimensions.routeClass", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                     >
                                         <option value="">Select route class</option>
                                         {routeClassOptions.map((option) => (
@@ -1286,11 +1442,11 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">Handling class</label>
+                                    <label className="mb-1 block text-xs font-medium">Handling class</label>
                                     <select
                                         value={data.shipment.logisticDimensions?.handlingClass || ""}
                                         onChange={(event) => updateNestedField("shipment.logisticDimensions.handlingClass", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                     >
                                         <option value="">Select handling class</option>
                                         {handlingClassOptions.map((option) => (
@@ -1302,11 +1458,11 @@ const Details = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">W2W mode</label>
+                                    <label className="mb-1 block text-xs font-medium">W2W mode</label>
                                     <select
                                         value={data.shipment.logisticDimensions?.w2wMode || ""}
                                         onChange={(event) => updateNestedField("shipment.logisticDimensions.w2wMode", event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                     >
                                         <option value="">Select W2W mode</option>
                                         {w2wModeOptions.map((option) => (
@@ -1319,12 +1475,12 @@ const Details = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-medium">Delivery notes</label>
+                                <label className="mb-1 block text-xs font-medium">Delivery notes</label>
                                 <textarea
-                                    rows="4"
+                                    rows="2"
                                     value={data.shipment.deliveryNotes}
                                     onChange={(event) => updateNestedField("shipment.deliveryNotes", event.target.value)}
-                                    className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
                                     placeholder="Any additional handling requests or customs information"
                                 />
                                 {combinedErrors["shipment.deliveryNotes"] && (
@@ -1334,17 +1490,17 @@ const Details = () => {
                         </section>
 
                         {selectedQuotes.length > 0 && (
-                            <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
+                            <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
-                                        <h3 className="text-lg font-semibold text-[#0B1739]">Selected courier services</h3>
-                                        <p className="text-sm text-[#5B6887]">Review the carriers chosen for each package.</p>
+                                        <h3 className="text-base font-semibold text-[#0B1739]">Selected courier services</h3>
+                                        <p className="text-xs text-[#5B6887]">Review the carriers chosen for each package.</p>
                                     </div>
-                                    <div className="rounded-full bg-[#0955AC]/10 px-4 py-1 text-sm font-medium text-[#0955AC]">
+                                    <div className="rounded-full bg-[#0955AC]/10 px-3 py-1 text-xs font-medium text-[#0955AC]">
                                         Estimated total: {formatCurrency(totalPriceUSD)}
                                     </div>
                                 </div>
-                                <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                     {selectedQuotes.map((quote) => {
                                         const packageRecord = packages[quote.packageIndex] || {};
                                         const packageLabel = packageRecord.label || quote.label || `Package ${quote.packageIndex + 1}`;
@@ -1357,7 +1513,7 @@ const Details = () => {
                                             : "";
 
                                         return (
-                                            <div key={`details-quote-${quote.packageIndex}`} className="rounded-xl border border-[#D6DEEB] bg-white p-4 text-sm">
+                                            <div key={`details-quote-${quote.packageIndex}`} className="rounded-xl border border-[#D6DEEB] bg-white p-3 text-xs">
                                                 <div className="flex items-center justify-between">
                                                     <div>
                                                         <p className="font-semibold text-[#0B1739]">{packageLabel}</p>
@@ -1370,7 +1526,7 @@ const Details = () => {
                                                         <p className="text-xs text-[#6B7893]">{quote.eta}</p>
                                                     </div>
                                                 </div>
-                                                <p className="mt-3 text-xs text-[#5B6887]">
+                                                <p className="mt-2 text-xs text-[#5B6887]">
                                                     Billable weight: {billableSummary || "—"}
                                                 </p>
                                             </div>
@@ -1394,9 +1550,8 @@ const Details = () => {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${
-                                    processing ? "cursor-not-allowed opacity-50" : "hover:bg-[#0a4b93]"
-                                }`}
+                                className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-2.5 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${processing ? "cursor-not-allowed opacity-50" : "hover:bg-[#0a4b93]"
+                                    }`}
                             >
                                 {processing ? "Saving details..." : "Continue to summary"}
                             </button>
@@ -1411,9 +1566,69 @@ const Details = () => {
                 </div>
             </main>
 
+            {showFavoritePicker && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8">
+                    <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-[#0B1739]">Saved recipients</h3>
+                                <p className="text-xs text-[#5B6887]">Select a recipient to fill the form.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowFavoritePicker(false)}
+                                className="rounded-[5px] border border-[#D6DEEB] px-3 py-1 text-xs font-semibold text-[#0B1739] hover:border-[#0955AC]"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        {hasFavoriteRecipients ? (
+                            <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                                {favoriteRecipients.map((recipient) => (
+                                    <div key={`favorite-recipient-${recipient.id}`} className="rounded-xl border border-[#E3EAF5] bg-[#F9FBFF] p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-[#0B1739]">{recipient.name || "Recipient"}</p>
+                                                {recipient.company && (
+                                                    <p className="text-xs text-[#6B7893]">{recipient.company}</p>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    applyRecipientSelection(recipient);
+                                                    setShowFavoritePicker(false);
+                                                }}
+                                                className="rounded-[5px] border border-[#0955AC] px-3 py-1 text-xs font-semibold text-[#0955AC] hover:bg-[#0955AC]/10"
+                                            >
+                                                Use
+                                            </button>
+                                        </div>
+                                        <div className="mt-2 space-y-1 text-xs text-[#5B6887]">
+                                            {recipient.email && <p>Email: {recipient.email}</p>}
+                                            {recipient.phone && <p>Phone: {recipient.phone}</p>}
+                                            {recipient.address && (
+                                                <p>Address: {formatRecipientAddress(recipient.address)}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="mt-4 rounded-lg bg-[#F9FBFF] p-3 text-xs text-[#5B6887]">
+                                No saved recipients yet.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </div>
     );
 };
 
 export default Details;
+
+
