@@ -1212,6 +1212,14 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware(['service.permission:courier.settings.view', 'throttle:20,1'])
         ->name('courierService.settings.pricing.exchange-rates');
 
+    Route::post('/courierService/settingsPage/pricing/import/preview', [VendorCourierDashboardController::class, 'pricingImportPreview'])
+        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.import.preview');
+
+    Route::post('/courierService/settingsPage/pricing/import/apply', [VendorCourierDashboardController::class, 'pricingImportApply'])
+        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.import.apply');
+
     Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile');

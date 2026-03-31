@@ -19,6 +19,7 @@ use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierApiServiceAccessService;
 use App\Services\Courier\CourierExchangeRateService;
+use App\Services\Courier\CourierPricingImportService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
@@ -61,7 +62,7 @@ class VendorCourierDashboardController extends Controller
         $this->middleware('service.permission:courier.calendar.view')->only(['calendar']);
 
         $this->middleware('service.permission:courier.settings.view')->only(['settings']);
-        $this->middleware('service.permission:courier.settings.update')->only(['updateSettings']);
+        $this->middleware('service.permission:courier.settings.update')->only(['updateSettings', 'pricingImportPreview', 'pricingImportApply']);
 
         $this->middleware('service.permission:courier.profile.view')->only(['profile']);
         $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'removeProfileLogo']);
@@ -945,6 +946,365 @@ class VendorCourierDashboardController extends Controller
         }
 
         return response()->json($payload);
+    }
+
+    public function pricingImportPreview(Request $request)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to import pricing.');
+        }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
+
+        $validated = $request->validate([
+            'pricingCategory' => ['required', 'string', 'in:domestic,logistic'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv,txt,json,pdf', 'max:15360'],
+        ]);
+
+        $pricingCategory = (string) ($validated['pricingCategory'] ?? 'domestic');
+        $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
+        if (!in_array($pricingCategory, $approvedPricingCategories, true)) {
+            abort(403, 'This pricing category is not approved for this vendor.');
+        }
+
+        $record = VendorCourierSetting::query()->firstOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $this->defaultCourierSettings()]
+        );
+
+        $current = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array($record->settings) ? $record->settings : []
+        );
+
+        $pricing = $this->normalizePricingSettings(is_array($current['pricing'] ?? null) ? $current['pricing'] : []);
+        $serviceCatalog = is_array($pricing['serviceCatalog'][$pricingCategory] ?? null)
+            ? $pricing['serviceCatalog'][$pricingCategory]
+            : [];
+
+        try {
+            $payload = app(CourierPricingImportService::class)->preview(
+                $request->file('file'),
+                $pricingCategory,
+                $serviceCatalog
+            );
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Unable to analyze pricing file right now. Please verify the file and try again.',
+                'code' => 'pricing_import_preview_failed',
+            ], 422);
+        }
+
+        $detectedFormat = strtolower((string) ($payload['detectedFormat'] ?? 'unknown'));
+        $requiresManualReviewConfirmation = (bool) ($payload['requiresManualReview'] ?? false);
+        $recommendedResolutionStrategy = $detectedFormat === 'pdf'
+            || count(is_array($payload['conflicts'] ?? null) ? $payload['conflicts'] : []) > 0
+            ? 'manual'
+            : 'prefer_most_frequent';
+
+        $warnings = is_array($payload['warnings'] ?? null) ? $payload['warnings'] : [];
+        if ($detectedFormat === 'pdf') {
+            $warnings[] = 'Best accuracy: verify parsed rows, then correct in XLSX/CSV and re-import before final apply.';
+        }
+
+        $encodedPatch = json_encode(is_array($payload['patch'] ?? null) ? $payload['patch'] : [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $patchChecksum = hash('sha256', is_string($encodedPatch) ? $encodedPatch : '{}');
+
+        $previewToken = (string) Str::uuid();
+        $previewStore = is_array($request->session()->get('courier.pricing_import_previews'))
+            ? $request->session()->get('courier.pricing_import_previews')
+            : [];
+
+        $previewStore[$previewToken] = [
+            'vendorId' => $vendorId,
+            'pricingCategory' => $pricingCategory,
+            'detectedFormat' => $detectedFormat,
+            'requiresManualReviewConfirmation' => $requiresManualReviewConfirmation,
+            'patchChecksum' => $patchChecksum,
+            'createdAt' => now()->timestamp,
+        ];
+
+        if (count($previewStore) > 20) {
+            uasort($previewStore, fn ($left, $right) => (int) ($left['createdAt'] ?? 0) <=> (int) ($right['createdAt'] ?? 0));
+            $previewStore = array_slice($previewStore, -20, null, true);
+        }
+
+        $request->session()->put('courier.pricing_import_previews', $previewStore);
+
+        $payload['warnings'] = array_values(array_unique(array_filter($warnings)));
+        $payload['previewToken'] = $previewToken;
+        $payload['accuracyPolicy'] = [
+            'requiresManualReviewConfirmation' => $requiresManualReviewConfirmation,
+            'recommendedResolutionStrategy' => $recommendedResolutionStrategy,
+            'recommendedSourceFormat' => $detectedFormat === 'pdf' ? 'xlsx_or_csv' : $detectedFormat,
+        ];
+
+        return response()->json($payload);
+    }
+
+    public function pricingImportApply(Request $request)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+        $actorId = (int) optional($request->user())->id ?: null;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to import pricing.');
+        }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
+
+        $validated = $request->validate([
+            'pricingCategory' => ['required', 'string', 'in:domestic,logistic'],
+            'mode' => ['nullable', 'string', Rule::in(['replace', 'merge'])],
+            'previewToken' => ['required', 'string', 'max:120'],
+            'manualReviewConfirmed' => ['nullable', 'boolean'],
+            'resolutionStrategy' => ['nullable', 'string', Rule::in(['prefer_existing', 'prefer_most_frequent', 'manual'])],
+            'manualResolutions' => ['nullable', 'array'],
+            'manualResolutions.*' => ['nullable', 'string', 'max:120'],
+            'importPayload' => ['required', 'array'],
+        ]);
+
+        $pricingCategory = (string) ($validated['pricingCategory'] ?? 'domestic');
+        $mode = (string) ($validated['mode'] ?? 'replace');
+        $previewToken = (string) ($validated['previewToken'] ?? '');
+        $manualReviewConfirmed = (bool) ($validated['manualReviewConfirmed'] ?? false);
+        $resolutionStrategy = (string) ($validated['resolutionStrategy'] ?? 'prefer_most_frequent');
+        $manualResolutions = is_array($validated['manualResolutions'] ?? null) ? $validated['manualResolutions'] : [];
+        $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
+        if (!in_array($pricingCategory, $approvedPricingCategories, true)) {
+            abort(403, 'This pricing category is not approved for this vendor.');
+        }
+
+        $previewStore = is_array($request->session()->get('courier.pricing_import_previews'))
+            ? $request->session()->get('courier.pricing_import_previews')
+            : [];
+        $previewContext = is_array($previewStore[$previewToken] ?? null) ? $previewStore[$previewToken] : null;
+
+        if (!$previewContext) {
+            return response()->json([
+                'message' => 'Import preview has expired. Analyze the file again before applying.',
+                'code' => 'pricing_import_preview_expired',
+            ], 422);
+        }
+
+        if (
+            (int) ($previewContext['vendorId'] ?? 0) !== $vendorId
+            || (string) ($previewContext['pricingCategory'] ?? '') !== $pricingCategory
+        ) {
+            return response()->json([
+                'message' => 'Import preview does not match this vendor/category. Analyze the file again before applying.',
+                'code' => 'pricing_import_preview_mismatch',
+            ], 422);
+        }
+
+        $previewCreatedAt = (int) ($previewContext['createdAt'] ?? 0);
+        if ($previewCreatedAt <= 0 || (now()->timestamp - $previewCreatedAt) > 3600) {
+            unset($previewStore[$previewToken]);
+            $request->session()->put('courier.pricing_import_previews', $previewStore);
+
+            return response()->json([
+                'message' => 'Import preview has expired. Analyze the file again before applying.',
+                'code' => 'pricing_import_preview_expired',
+            ], 422);
+        }
+
+        $previewDetectedFormat = strtolower((string) ($previewContext['detectedFormat'] ?? 'unknown'));
+        $requiresManualReviewConfirmation = (bool) ($previewContext['requiresManualReviewConfirmation'] ?? false);
+
+        $record = VendorCourierSetting::query()->firstOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $this->defaultCourierSettings()]
+        );
+
+        $current = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array($record->settings) ? $record->settings : []
+        );
+
+        $pricing = $this->normalizePricingSettings(is_array($current['pricing'] ?? null) ? $current['pricing'] : []);
+        $serviceCatalog = is_array($pricing['serviceCatalog'][$pricingCategory] ?? null)
+            ? $pricing['serviceCatalog'][$pricingCategory]
+            : [];
+
+        $patch = app(CourierPricingImportService::class)->sanitizePatch(
+            is_array($validated['importPayload'] ?? null) ? $validated['importPayload'] : [],
+            $pricingCategory,
+            $serviceCatalog
+        );
+
+        $encodedPatch = json_encode($patch, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $patchChecksum = hash('sha256', is_string($encodedPatch) ? $encodedPatch : '{}');
+        if (!hash_equals((string) ($previewContext['patchChecksum'] ?? ''), $patchChecksum)) {
+            return response()->json([
+                'message' => 'Import payload changed since preview. Analyze the file again before applying.',
+                'code' => 'pricing_import_preview_mismatch',
+            ], 422);
+        }
+
+        if ($requiresManualReviewConfirmation && !$manualReviewConfirmed) {
+            return response()->json([
+                'message' => 'Manual review confirmation is required before applying this import.',
+                'code' => 'pricing_import_manual_review_confirmation_required',
+            ], 422);
+        }
+
+        $incomingZoneRows = is_array($patch['zoneMaster'] ?? null) ? $patch['zoneMaster'] : [];
+        $incomingCategoryRows = is_array($patch['categories'] ?? null) ? $patch['categories'] : [];
+        $incomingLaneRows = is_array($patch['laneMatrix']['rows'] ?? null) ? $patch['laneMatrix']['rows'] : [];
+        $incomingLaneEnabled = (bool) ($patch['laneMatrix']['enabled'] ?? count($incomingLaneRows) > 0);
+        $incomingCityZoneMapRows = is_array($patch['cityZoneMap'] ?? null) ? $patch['cityZoneMap'] : [];
+        $pdfHasConflicts = collect($incomingCityZoneMapRows)->contains(function ($row) {
+            $item = is_array($row) ? $row : [];
+            $zoneVotes = is_array($item['zones'] ?? null) ? $item['zones'] : [];
+
+            return (bool) ($item['isConflict'] ?? false) || count($zoneVotes) > 1;
+        });
+
+        if ($previewDetectedFormat === 'pdf' && $pdfHasConflicts && $resolutionStrategy !== 'manual') {
+            return response()->json([
+                'message' => 'PDF import conflicts require Manual City Mapping for best accuracy.',
+                'code' => 'pricing_import_pdf_manual_strategy_required',
+            ], 422);
+        }
+
+        $existingCityZoneMapRows = is_array($pricing['cityZoneMap'][$pricingCategory] ?? null)
+            ? $pricing['cityZoneMap'][$pricingCategory]
+            : [];
+
+        $resolvedCityZoneMap = $this->resolveImportedCityZoneMapConflicts(
+            $incomingCityZoneMapRows,
+            $existingCityZoneMapRows,
+            $resolutionStrategy,
+            $manualResolutions
+        );
+
+        if ($resolutionStrategy === 'manual' && count($resolvedCityZoneMap['missingManual'] ?? []) > 0) {
+            return response()->json([
+                'message' => 'Manual conflict resolution is incomplete. Select a zone for each conflicting city and retry.',
+                'code' => 'pricing_import_manual_resolution_required',
+                'missingCities' => $resolvedCityZoneMap['missingManual'],
+            ], 422);
+        }
+
+        $incomingCityZoneMapRows = is_array($resolvedCityZoneMap['rows'] ?? null)
+            ? $resolvedCityZoneMap['rows']
+            : [];
+        $incomingLaneRows = $this->applyCityZoneResolutionToLaneRows($incomingLaneRows, $incomingCityZoneMapRows);
+
+        $currentZoneLabelMap = collect(is_array($pricing['zoneMaster'][$pricingCategory] ?? null) ? $pricing['zoneMaster'][$pricingCategory] : [])
+            ->mapWithKeys(function ($row) {
+                $zoneKey = $this->normalizeZoneKey((string) ($row['key'] ?? ''));
+                if ($zoneKey === '*' || $zoneKey === '') {
+                    return [];
+                }
+
+                return [$zoneKey => trim((string) ($row['label'] ?? $zoneKey)) ?: $zoneKey];
+            })
+            ->all();
+
+        $derivedZoneRows = collect($incomingCityZoneMapRows)
+            ->map(function ($row) use ($currentZoneLabelMap) {
+                $item = is_array($row) ? $row : [];
+                $zoneKey = $this->normalizeZoneKey((string) ($item['zone'] ?? ''));
+                if ($zoneKey === '*' || $zoneKey === '') {
+                    return null;
+                }
+
+                return [
+                    'key' => $zoneKey,
+                    'label' => $currentZoneLabelMap[$zoneKey] ?? ucwords(str_replace('_', ' ', $zoneKey)),
+                    'isActive' => true,
+                ];
+            })
+            ->filter(fn ($row) => is_array($row))
+            ->values()
+            ->all();
+
+        $incomingZoneRows = $this->mergePricingImportZoneRows($incomingZoneRows, $derivedZoneRows);
+
+        if (!is_array($pricing['laneMatrix']['enabled'] ?? null)) {
+            $pricing['laneMatrix']['enabled'] = [
+                'domestic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
+                'logistic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
+            ];
+        }
+
+        if ($mode === 'merge') {
+            $pricing['zoneMaster'][$pricingCategory] = $this->mergePricingImportZoneRows(
+                is_array($pricing['zoneMaster'][$pricingCategory] ?? null) ? $pricing['zoneMaster'][$pricingCategory] : [],
+                $incomingZoneRows
+            );
+
+            $pricing['categories'][$pricingCategory] = $this->mergePricingImportCategoryRows(
+                is_array($pricing['categories'][$pricingCategory] ?? null) ? $pricing['categories'][$pricingCategory] : [],
+                $incomingCategoryRows
+            );
+
+            $pricing['laneMatrix'][$pricingCategory] = $this->mergePricingImportLaneRows(
+                is_array($pricing['laneMatrix'][$pricingCategory] ?? null) ? $pricing['laneMatrix'][$pricingCategory] : [],
+                $incomingLaneRows
+            );
+
+            $pricing['cityZoneMap'][$pricingCategory] = $this->mergePricingImportCityZoneMapRows(
+                is_array($pricing['cityZoneMap'][$pricingCategory] ?? null) ? $pricing['cityZoneMap'][$pricingCategory] : [],
+                $incomingCityZoneMapRows
+            );
+
+            $pricing['laneMatrix']['enabled'][$pricingCategory] =
+                (bool) ($pricing['laneMatrix']['enabled'][$pricingCategory] ?? false)
+                || $incomingLaneEnabled
+                || count($incomingLaneRows) > 0;
+        } else {
+            $pricing['zoneMaster'][$pricingCategory] = $incomingZoneRows;
+            $pricing['categories'][$pricingCategory] = $incomingCategoryRows;
+            $pricing['laneMatrix'][$pricingCategory] = $incomingLaneRows;
+            $pricing['cityZoneMap'][$pricingCategory] = $incomingCityZoneMapRows;
+            $pricing['laneMatrix']['enabled'][$pricingCategory] = $incomingLaneEnabled;
+        }
+
+        $pricing = $this->normalizePricingSettings($pricing);
+        $pricing = $this->enforceApprovedPricingCategoryWriteScope(
+            $pricing,
+            is_array($current['pricing'] ?? null) ? $current['pricing'] : [],
+            $approvedPricingCategories
+        );
+        $pricing = $this->appendPricingGovernanceLog($pricing, 'draft_saved', $actorId, [
+            'mode' => 'pricing_import_' . $mode,
+            'detectedFormat' => $previewDetectedFormat,
+            'manualReviewConfirmed' => $manualReviewConfirmed,
+            'resolutionStrategy' => $resolutionStrategy,
+            'resolvedConflictCount' => (int) ($resolvedCityZoneMap['resolvedConflictCount'] ?? 0),
+            'zoneCount' => count($incomingZoneRows),
+            'categoryCount' => count($incomingCategoryRows),
+            'laneCount' => count($incomingLaneRows),
+        ], $pricingCategory);
+
+        $current['pricing'] = $pricing;
+        $record->update(['settings' => $current]);
+
+        unset($previewStore[$previewToken]);
+        $request->session()->put('courier.pricing_import_previews', $previewStore);
+
+        return response()->json([
+            'message' => 'Imported pricing was applied to your draft settings.',
+            'pricing' => $pricing,
+            'summary' => [
+                'zoneCount' => count($incomingZoneRows),
+                'categoryCount' => count($incomingCategoryRows),
+                'laneCount' => count($incomingLaneRows),
+                'mode' => $mode,
+                'detectedFormat' => $previewDetectedFormat,
+                'manualReviewConfirmed' => $manualReviewConfirmed,
+                'resolutionStrategy' => $resolutionStrategy,
+                'resolvedConflictCount' => (int) ($resolvedCityZoneMap['resolvedConflictCount'] ?? 0),
+            ],
+        ]);
     }
 
     public function profile(Request $request, ?string $module = null)
@@ -3180,6 +3540,10 @@ class VendorCourierDashboardController extends Controller
             ],
             'serviceCatalog' => $this->defaultPricingServiceCatalog(),
             'zoneMaster' => $this->defaultPricingZoneMaster(),
+            'cityZoneMap' => [
+                'domestic' => [],
+                'logistic' => [],
+            ],
             'laneMatrix' => [
                 'enabled' => [
                     'domestic' => false,
@@ -3600,6 +3964,9 @@ class VendorCourierDashboardController extends Controller
         $pricing['zoneMaster'] = $this->normalizePricingZoneMaster(
             is_array($pricing['zoneMaster'] ?? null) ? $pricing['zoneMaster'] : []
         );
+        $pricing['cityZoneMap'] = $this->normalizePricingCityZoneMap(
+            is_array($pricing['cityZoneMap'] ?? null) ? $pricing['cityZoneMap'] : []
+        );
         $pricing['laneMatrix'] = $this->normalizePricingLaneMatrix(
             is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : [],
             $pricing['serviceCatalog'],
@@ -4008,6 +4375,7 @@ class VendorCourierDashboardController extends Controller
                 'formula' => is_array($pricing['formula'][$category] ?? null) ? $pricing['formula'][$category] : [],
                 'serviceCatalog' => is_array($pricing['serviceCatalog'][$category] ?? null) ? $pricing['serviceCatalog'][$category] : [],
                 'zoneMaster' => is_array($pricing['zoneMaster'][$category] ?? null) ? $pricing['zoneMaster'][$category] : [],
+                'cityZoneMap' => is_array($pricing['cityZoneMap'][$category] ?? null) ? $pricing['cityZoneMap'][$category] : [],
                 'laneMatrix' => [
                     'enabled' => (bool) ((is_array($pricing['laneMatrix']['enabled'] ?? null)
                         ? ($pricing['laneMatrix']['enabled'][$category] ?? false)
@@ -4024,6 +4392,7 @@ class VendorCourierDashboardController extends Controller
             'formula' => is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [],
             'serviceCatalog' => is_array($pricing['serviceCatalog'] ?? null) ? $pricing['serviceCatalog'] : [],
             'zoneMaster' => is_array($pricing['zoneMaster'] ?? null) ? $pricing['zoneMaster'] : [],
+            'cityZoneMap' => is_array($pricing['cityZoneMap'] ?? null) ? $pricing['cityZoneMap'] : [],
             'laneMatrix' => is_array($pricing['laneMatrix'] ?? null) ? $pricing['laneMatrix'] : [],
             'policyModules' => is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : [],
             'categories' => is_array($pricing['categories'] ?? null) ? $pricing['categories'] : [],
@@ -4042,6 +4411,9 @@ class VendorCourierDashboardController extends Controller
             $pricing['formula'][$category] = is_array($snapshot['formula'] ?? null) ? $snapshot['formula'] : ($pricing['formula'][$category] ?? []);
             $pricing['serviceCatalog'][$category] = is_array($snapshot['serviceCatalog'] ?? null) ? $snapshot['serviceCatalog'] : ($pricing['serviceCatalog'][$category] ?? []);
             $pricing['zoneMaster'][$category] = is_array($snapshot['zoneMaster'] ?? null) ? $snapshot['zoneMaster'] : ($pricing['zoneMaster'][$category] ?? []);
+            $pricing['cityZoneMap'][$category] = is_array($snapshot['cityZoneMap'] ?? null)
+                ? $snapshot['cityZoneMap']
+                : ($pricing['cityZoneMap'][$category] ?? []);
             $pricing['laneMatrix']['enabled'] = is_array($pricing['laneMatrix']['enabled'] ?? null) ? $pricing['laneMatrix']['enabled'] : [
                 'domestic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
                 'logistic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
@@ -4062,6 +4434,7 @@ class VendorCourierDashboardController extends Controller
         $pricing['formula'] = is_array($snapshot['formula'] ?? null) ? $snapshot['formula'] : ($pricing['formula'] ?? []);
         $pricing['serviceCatalog'] = is_array($snapshot['serviceCatalog'] ?? null) ? $snapshot['serviceCatalog'] : ($pricing['serviceCatalog'] ?? []);
         $pricing['zoneMaster'] = is_array($snapshot['zoneMaster'] ?? null) ? $snapshot['zoneMaster'] : ($pricing['zoneMaster'] ?? []);
+        $pricing['cityZoneMap'] = is_array($snapshot['cityZoneMap'] ?? null) ? $snapshot['cityZoneMap'] : ($pricing['cityZoneMap'] ?? []);
         $pricing['laneMatrix'] = is_array($snapshot['laneMatrix'] ?? null) ? $snapshot['laneMatrix'] : ($pricing['laneMatrix'] ?? []);
         $pricing['policyModules'] = is_array($snapshot['policyModules'] ?? null) ? $snapshot['policyModules'] : ($pricing['policyModules'] ?? []);
         $pricing['categories'] = is_array($snapshot['categories'] ?? null) ? $snapshot['categories'] : ($pricing['categories'] ?? []);
@@ -4107,6 +4480,76 @@ class VendorCourierDashboardController extends Controller
             ->sortBy('sortOrder')
             ->values()
             ->all();
+    }
+
+    private function normalizePricingCityZoneMap(array $input): array
+    {
+        $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['logistic'] ?? null);
+        $flatRows = $isCategoryShape ? [] : (array_values($input) === $input ? $input : []);
+
+        $normalized = [];
+        foreach (['domestic', 'logistic'] as $category) {
+            $source = $isCategoryShape
+                ? (is_array($input[$category] ?? null) ? $input[$category] : [])
+                : $flatRows;
+
+            $rows = collect($source)
+                ->map(function ($item) {
+                    $row = is_array($item) ? $item : [];
+                    $city = trim((string) ($row['city'] ?? ''));
+                    $cityKey = strtolower(trim((string) ($row['cityKey'] ?? '')));
+                    $cityKey = preg_replace('/[^a-z0-9]+/i', '_', $cityKey) ?? '';
+                    $cityKey = trim((string) $cityKey, '_');
+
+                    if ($cityKey === '' && $city !== '') {
+                        $cityKey = strtolower($city);
+                        $cityKey = preg_replace('/[^a-z0-9]+/i', '_', $cityKey) ?? '';
+                        $cityKey = trim((string) $cityKey, '_');
+                    }
+
+                    $zone = $this->normalizeZoneKey((string) ($row['zone'] ?? ''));
+                    if ($cityKey === '' || $zone === '*' || $zone === '') {
+                        return null;
+                    }
+
+                    $zonesInput = is_array($row['zones'] ?? null) ? $row['zones'] : [];
+                    $zones = [];
+                    foreach ($zonesInput as $zoneKey => $votes) {
+                        $normalizedZone = $this->normalizeZoneKey((string) $zoneKey);
+                        if ($normalizedZone === '*' || $normalizedZone === '') {
+                            continue;
+                        }
+
+                        $zones[$normalizedZone] = max(0, (int) $votes);
+                    }
+
+                    if (!isset($zones[$zone])) {
+                        $zones[$zone] = max(1, (int) ($row['votes'] ?? 1));
+                    }
+
+                    arsort($zones);
+                    $recommendedZone = (string) array_key_first($zones);
+                    $topVotes = (int) ($zones[$recommendedZone] ?? 0);
+                    $totalVotes = max(1, array_sum($zones));
+
+                    return [
+                        'cityKey' => $cityKey,
+                        'city' => $city !== '' ? $city : ucwords(str_replace('_', ' ', $cityKey)),
+                        'zone' => $recommendedZone,
+                        'zones' => $zones,
+                        'isConflict' => count($zones) > 1,
+                        'recommendedConfidence' => round($topVotes / $totalVotes, 2),
+                    ];
+                })
+                ->filter(fn ($row) => is_array($row))
+                ->keyBy(fn ($row) => (string) ($row['cityKey'] ?? ''))
+                ->values()
+                ->all();
+
+            $normalized[$category] = $rows;
+        }
+
+        return $normalized;
     }
 
     private function normalizePricingServiceCatalog(array $input): array
@@ -6199,6 +6642,320 @@ class VendorCourierDashboardController extends Controller
         }
     }
 
+    private function mergePricingImportZoneRows(array $existing, array $incoming): array
+    {
+        $merged = [];
+
+        foreach (array_merge($existing, $incoming) as $index => $item) {
+            $row = is_array($item) ? $item : [];
+            $key = $this->normalizeZoneKey((string) ($row['key'] ?? $row['label'] ?? ''));
+            if ($key === '*' || $key === '') {
+                continue;
+            }
+
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($label === '') {
+                $label = ucwords(str_replace('_', ' ', $key));
+            }
+
+            $merged[$key] = [
+                'key' => $key,
+                'label' => $label,
+                'isActive' => (bool) ($row['isActive'] ?? true),
+                'sortOrder' => max(1, (int) ($row['sortOrder'] ?? ($index + 1))),
+            ];
+        }
+
+        $rows = array_values($merged);
+        usort($rows, fn ($a, $b) => (int) $a['sortOrder'] <=> (int) $b['sortOrder']);
+
+        foreach ($rows as $index => $row) {
+            $rows[$index]['sortOrder'] = $index + 1;
+        }
+
+        return $rows;
+    }
+
+    private function mergePricingImportCategoryRows(array $existing, array $incoming): array
+    {
+        $merged = [];
+
+        foreach (array_merge($existing, $incoming) as $index => $item) {
+            $row = is_array($item) ? $item : [];
+            $serviceLevelKey = $this->normalizeServiceLevelKey((string) ($row['serviceLevelKey'] ?? ''));
+            $label = trim((string) ($row['label'] ?? ''));
+            $city = trim((string) ($row['city'] ?? ''));
+
+            if ($serviceLevelKey === '' && $label === '') {
+                continue;
+            }
+
+            $signature = strtolower($serviceLevelKey . '|' . $label . '|' . $city);
+
+            $merged[$signature] = [
+                'id' => trim((string) ($row['id'] ?? '')) ?: 'import_tier_' . $index,
+                'label' => $label !== '' ? $label : 'Imported Tier',
+                'serviceLevelKey' => $serviceLevelKey !== '' ? $serviceLevelKey : 'economy',
+                'slaDays' => max(1, (int) ($row['slaDays'] ?? 1)),
+                'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
+                'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
+                'minPrice' => max(0, (float) ($row['minPrice'] ?? 0)),
+                'priorityMultiplier' => max(0.1, (float) ($row['priorityMultiplier'] ?? 1)),
+                'city' => $city,
+            ];
+        }
+
+        return array_values($merged);
+    }
+
+    private function mergePricingImportLaneRows(array $existing, array $incoming): array
+    {
+        $merged = [];
+
+        foreach (array_merge($existing, $incoming) as $index => $item) {
+            $row = is_array($item) ? $item : [];
+
+            $originZone = $this->normalizeZoneKey((string) ($row['originZone'] ?? '*'));
+            $destinationZone = $this->normalizeZoneKey((string) ($row['destinationZone'] ?? '*'));
+            $serviceLevelKey = $this->normalizeServiceLevelKey((string) ($row['serviceLevelKey'] ?? ''));
+            $distanceFrom = max(0, (float) ($row['distanceFromKm'] ?? 0));
+            $distanceTo = isset($row['distanceToKm']) && $row['distanceToKm'] !== '' && $row['distanceToKm'] !== null
+                ? max($distanceFrom, (float) $row['distanceToKm'])
+                : null;
+
+            $signature = implode('|', [
+                $originZone,
+                $destinationZone,
+                $serviceLevelKey,
+                (string) $distanceFrom,
+                $distanceTo === null ? '' : (string) $distanceTo,
+            ]);
+
+            $merged[$signature] = [
+                'id' => trim((string) ($row['id'] ?? '')) ?: 'import_lane_' . $index,
+                'originZone' => $originZone,
+                'destinationZone' => $destinationZone,
+                'serviceLevelKey' => $serviceLevelKey !== '' ? $serviceLevelKey : 'economy',
+                'distanceFromKm' => $distanceFrom,
+                'distanceToKm' => $distanceTo,
+                'distanceBaseKm' => max(0, (float) ($row['distanceBaseKm'] ?? 0)),
+                'perKmPrice' => max(0, (float) ($row['perKmPrice'] ?? 0)),
+                'distanceSurcharge' => max(0, (float) ($row['distanceSurcharge'] ?? 0)),
+                'distanceMultiplier' => max(0.1, (float) ($row['distanceMultiplier'] ?? 1)),
+                'basePrice' => max(0, (float) ($row['basePrice'] ?? 0)),
+                'perKgPrice' => max(0, (float) ($row['perKgPrice'] ?? 0)),
+                'minPrice' => max(0, (float) ($row['minPrice'] ?? 0)),
+                'priorityMultiplier' => max(0.1, (float) ($row['priorityMultiplier'] ?? 1)),
+                'isActive' => (bool) ($row['isActive'] ?? true),
+                'city' => trim((string) ($row['city'] ?? '')),
+            ];
+        }
+
+        return array_values($merged);
+    }
+
+    private function normalizeImportCityKey(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', $normalized) ?? '';
+
+        return trim((string) $normalized, '_');
+    }
+
+    private function resolveImportedCityZoneMapConflicts(
+        array $incomingRows,
+        array $existingRows,
+        string $resolutionStrategy,
+        array $manualResolutions
+    ): array {
+        $existingByCity = collect($existingRows)
+            ->mapWithKeys(function ($item) {
+                $row = is_array($item) ? $item : [];
+                $cityKey = $this->normalizeImportCityKey((string) ($row['cityKey'] ?? $row['city'] ?? ''));
+                $zone = $this->normalizeZoneKey((string) ($row['zone'] ?? ''));
+
+                if ($cityKey === '' || $zone === '*' || $zone === '') {
+                    return [];
+                }
+
+                return [$cityKey => $zone];
+            })
+            ->all();
+
+        $manualByCity = collect($manualResolutions)
+            ->mapWithKeys(function ($zone, $cityRef) {
+                $cityKey = $this->normalizeImportCityKey((string) $cityRef);
+                $zoneKey = $this->normalizeZoneKey((string) $zone);
+
+                if ($cityKey === '' || $zoneKey === '*' || $zoneKey === '') {
+                    return [];
+                }
+
+                return [$cityKey => $zoneKey];
+            })
+            ->all();
+
+        $resolvedRows = [];
+        $missingManual = [];
+        $resolvedConflictCount = 0;
+
+        foreach ($incomingRows as $item) {
+            $row = is_array($item) ? $item : [];
+            $cityLabel = trim((string) ($row['city'] ?? ''));
+            $cityKey = $this->normalizeImportCityKey((string) ($row['cityKey'] ?? $cityLabel));
+            if ($cityKey === '') {
+                continue;
+            }
+
+            $zones = [];
+            $zonesInput = is_array($row['zones'] ?? null) ? $row['zones'] : [];
+            foreach ($zonesInput as $zoneKey => $votes) {
+                $normalizedZone = $this->normalizeZoneKey((string) $zoneKey);
+                if ($normalizedZone === '*' || $normalizedZone === '') {
+                    continue;
+                }
+
+                $zones[$normalizedZone] = max(0, (int) $votes);
+            }
+
+            $zoneFromRow = $this->normalizeZoneKey((string) ($row['zone'] ?? ''));
+            if ($zoneFromRow !== '*' && $zoneFromRow !== '' && !isset($zones[$zoneFromRow])) {
+                $zones[$zoneFromRow] = max(1, (int) ($row['votes'] ?? 1));
+            }
+
+            if (count($zones) === 0) {
+                continue;
+            }
+
+            arsort($zones);
+            $zoneKeys = array_keys($zones);
+            $defaultZone = (string) ($zoneKeys[0] ?? '');
+            $isConflict = count($zones) > 1;
+            $resolvedZone = $defaultZone;
+            $resolvedBy = $isConflict ? 'most_frequent' : 'single_zone';
+
+            if ($resolutionStrategy === 'prefer_existing' && isset($existingByCity[$cityKey])) {
+                $resolvedZone = (string) $existingByCity[$cityKey];
+                $resolvedBy = 'existing';
+            } elseif ($resolutionStrategy === 'manual') {
+                if (isset($manualByCity[$cityKey])) {
+                    $resolvedZone = (string) $manualByCity[$cityKey];
+                    $resolvedBy = 'manual';
+                } elseif ($isConflict) {
+                    $missingManual[] = [
+                        'cityKey' => $cityKey,
+                        'city' => $cityLabel !== '' ? $cityLabel : ucwords(str_replace('_', ' ', $cityKey)),
+                        'zones' => $zoneKeys,
+                    ];
+                }
+            }
+
+            if ($isConflict) {
+                $resolvedConflictCount++;
+            }
+
+            $topVotes = (int) ($zones[$defaultZone] ?? 0);
+            $totalVotes = max(1, array_sum($zones));
+
+            $resolvedRows[] = [
+                'cityKey' => $cityKey,
+                'city' => $cityLabel !== '' ? $cityLabel : ucwords(str_replace('_', ' ', $cityKey)),
+                'zone' => $resolvedZone,
+                'zones' => $zones,
+                'isConflict' => $isConflict,
+                'recommendedConfidence' => round($topVotes / $totalVotes, 2),
+                'resolvedBy' => $resolvedBy,
+            ];
+        }
+
+        $resolvedRows = collect($resolvedRows)
+            ->keyBy(fn ($row) => (string) ($row['cityKey'] ?? ''))
+            ->values()
+            ->all();
+
+        return [
+            'rows' => $resolvedRows,
+            'missingManual' => $missingManual,
+            'resolvedConflictCount' => $resolvedConflictCount,
+        ];
+    }
+
+    private function applyCityZoneResolutionToLaneRows(array $laneRows, array $cityZoneRows): array
+    {
+        $cityZoneByKey = collect($cityZoneRows)
+            ->mapWithKeys(function ($item) {
+                $row = is_array($item) ? $item : [];
+                $cityKey = $this->normalizeImportCityKey((string) ($row['cityKey'] ?? $row['city'] ?? ''));
+                $zone = $this->normalizeZoneKey((string) ($row['zone'] ?? ''));
+
+                if ($cityKey === '' || $zone === '*' || $zone === '') {
+                    return [];
+                }
+
+                return [$cityKey => $zone];
+            })
+            ->all();
+
+        return collect($laneRows)
+            ->map(function ($item) use ($cityZoneByKey) {
+                $row = is_array($item) ? $item : [];
+                $cityKey = $this->normalizeImportCityKey((string) ($row['city'] ?? ''));
+
+                if ($cityKey !== '' && isset($cityZoneByKey[$cityKey])) {
+                    $row['destinationZone'] = $cityZoneByKey[$cityKey];
+                }
+
+                return $row;
+            })
+            ->values()
+            ->all();
+    }
+
+    private function mergePricingImportCityZoneMapRows(array $existing, array $incoming): array
+    {
+        $merged = [];
+
+        foreach (array_merge($existing, $incoming) as $item) {
+            $row = is_array($item) ? $item : [];
+            $cityKey = $this->normalizeImportCityKey((string) ($row['cityKey'] ?? $row['city'] ?? ''));
+            $zone = $this->normalizeZoneKey((string) ($row['zone'] ?? ''));
+            if ($cityKey === '' || $zone === '*' || $zone === '') {
+                continue;
+            }
+
+            $zones = [];
+            $zonesInput = is_array($row['zones'] ?? null) ? $row['zones'] : [];
+            foreach ($zonesInput as $zoneKey => $votes) {
+                $normalizedZone = $this->normalizeZoneKey((string) $zoneKey);
+                if ($normalizedZone === '*' || $normalizedZone === '') {
+                    continue;
+                }
+
+                $zones[$normalizedZone] = max(0, (int) $votes);
+            }
+
+            if (!isset($zones[$zone])) {
+                $zones[$zone] = max(1, (int) ($row['votes'] ?? 1));
+            }
+
+            arsort($zones);
+            $recommendedZone = (string) array_key_first($zones);
+            $topVotes = (int) ($zones[$recommendedZone] ?? 0);
+            $totalVotes = max(1, array_sum($zones));
+
+            $merged[$cityKey] = [
+                'cityKey' => $cityKey,
+                'city' => trim((string) ($row['city'] ?? '')) ?: ucwords(str_replace('_', ' ', $cityKey)),
+                'zone' => $zone,
+                'zones' => $zones,
+                'isConflict' => count($zones) > 1,
+                'recommendedConfidence' => round($topVotes / $totalVotes, 2),
+            ];
+        }
+
+        return array_values($merged);
+    }
+
     private function hasApprovedCourierRegistration(int $vendorId): bool
     {
         if ($vendorId <= 0) {
@@ -6263,7 +7020,7 @@ class VendorCourierDashboardController extends Controller
                 continue;
             }
 
-            foreach (['localization', 'formula', 'serviceCatalog', 'zoneMaster', 'policyModules', 'categories'] as $sectionKey) {
+            foreach (['localization', 'formula', 'serviceCatalog', 'zoneMaster', 'cityZoneMap', 'policyModules', 'categories'] as $sectionKey) {
                 if (!is_array($next[$sectionKey] ?? null)) {
                     $next[$sectionKey] = [];
                 }

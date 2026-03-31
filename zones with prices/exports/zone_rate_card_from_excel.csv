@@ -1,5 +1,0 @@
-company_code,service_category,country,zone_code,first_kg,extra_kg,currency,city_count_for_rate,total_cities_in_zone,source_file
-#CR0001,domestic,Sri Lanka,A,350,80,LKR,16,16,Copy of courier (1).xlsx
-#CR0001,domestic,Sri Lanka,B,350,80,LKR,64,64,Copy of courier (1).xlsx
-#CR0001,domestic,Sri Lanka,C,350,80,LKR,1625,1625,Copy of courier (1).xlsx
-#CR0001,domestic,Sri Lanka,D,400,80,LKR,283,283,Copy of courier (1).xlsx

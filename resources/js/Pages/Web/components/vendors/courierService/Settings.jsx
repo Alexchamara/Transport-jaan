@@ -1419,12 +1419,30 @@ const Settings = () => {
     const [addTierModalCategory, setAddTierModalCategory] = useState("domestic");
     const [addTierDraftKey, setAddTierDraftKey] = useState("");
     const [addTierDraftError, setAddTierDraftError] = useState("");
+    const [pricingImportFile, setPricingImportFile] = useState(null);
+    const [pricingImportMode, setPricingImportMode] = useState("replace");
+    const [pricingImportResolutionStrategy, setPricingImportResolutionStrategy] = useState("prefer_most_frequent");
+    const [pricingImportManualResolutions, setPricingImportManualResolutions] = useState({});
+    const [pricingImportPreviewBusy, setPricingImportPreviewBusy] = useState(false);
+    const [pricingImportApplyBusy, setPricingImportApplyBusy] = useState(false);
+    const [pricingImportPreviewToken, setPricingImportPreviewToken] = useState("");
+    const [pricingImportManualReviewConfirmed, setPricingImportManualReviewConfirmed] = useState(false);
+    const [pricingImportResult, setPricingImportResult] = useState(null);
 
     useEffect(() => {
         if (!approvedPricingCategories.includes(activePricingCategory)) {
             setActivePricingCategory(defaultPricingCategory);
         }
     }, [activePricingCategory, approvedPricingCategories, defaultPricingCategory]);
+
+    useEffect(() => {
+        setPricingImportResult(null);
+        setPricingImportFile(null);
+        setPricingImportPreviewToken("");
+        setPricingImportManualReviewConfirmed(false);
+        setPricingImportResolutionStrategy("prefer_most_frequent");
+        setPricingImportManualResolutions({});
+    }, [activePricingCategory]);
 
     const {
         feedback,
@@ -2165,6 +2183,159 @@ const Settings = () => {
         }
 
         return payload;
+    };
+
+    const requestFormDataJson = async (url, formData) => {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+            },
+            credentials: "same-origin",
+            body: formData,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const error = new Error(payload?.message || "Request failed");
+            error.code = payload?.code || null;
+            error.status = response.status;
+            throw error;
+        }
+
+        return payload;
+    };
+
+    const normalizeImportCityKey = (value) => String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+    const previewPricingImport = async () => {
+        if (!pricingImportFile) {
+            setFeedback({ type: "error", message: "Select an import file first." });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", pricingImportFile);
+        formData.append("pricingCategory", activePricingCategory);
+
+        setPricingImportPreviewBusy(true);
+        try {
+            const payload = await requestFormDataJson(route("courierService.settings.pricing.import.preview"), formData);
+            setPricingImportResult(payload);
+            setPricingImportPreviewToken(String(payload?.previewToken || ""));
+            setPricingImportManualReviewConfirmed(false);
+
+            const recommendedResolutionStrategy = String(payload?.accuracyPolicy?.recommendedResolutionStrategy || "");
+            if (["prefer_existing", "prefer_most_frequent", "manual"].includes(recommendedResolutionStrategy)) {
+                setPricingImportResolutionStrategy(recommendedResolutionStrategy);
+            }
+
+            const nextManualResolutions = {};
+            (Array.isArray(payload?.conflicts) ? payload.conflicts : []).forEach((conflict) => {
+                const cityKey = normalizeImportCityKey(conflict?.cityKey || conflict?.city || "");
+                const defaultZone = String(conflict?.recommendedZone || (Array.isArray(conflict?.zones) ? conflict.zones[0] : "") || "");
+                if (cityKey && defaultZone) {
+                    nextManualResolutions[cityKey] = defaultZone;
+                }
+            });
+            setPricingImportManualResolutions(nextManualResolutions);
+            setFeedback({ type: "success", message: "Import file analyzed. Review confidence and conflicts before applying." });
+        } catch (error) {
+            setPricingImportResult(null);
+            setPricingImportPreviewToken("");
+            setPricingImportManualReviewConfirmed(false);
+            setPricingImportManualResolutions({});
+            setFeedback({ type: "error", message: error?.message || "Unable to analyze pricing import file." });
+        } finally {
+            setPricingImportPreviewBusy(false);
+        }
+    };
+
+    const applyPricingImportToDraft = async () => {
+        if (!pricingImportResult?.patch) {
+            setFeedback({ type: "error", message: "Run import analysis before applying changes." });
+            return;
+        }
+
+        if (!pricingImportPreviewToken) {
+            setFeedback({ type: "error", message: "Preview token is missing. Analyze the import file again before applying." });
+            return;
+        }
+
+        if (pricingImportResult?.requiresManualReview && !pricingImportManualReviewConfirmed) {
+            setFeedback({ type: "error", message: "Confirm manual review before applying this import." });
+            return;
+        }
+
+        const detectedFormat = String(pricingImportResult?.detectedFormat || "").toLowerCase();
+        if (detectedFormat === "pdf" && (pricingImportResult?.conflicts || []).length > 0 && pricingImportResolutionStrategy !== "manual") {
+            setFeedback({ type: "error", message: "PDF conflicts should use Manual City Mapping for best accuracy." });
+            return;
+        }
+
+        if (pricingImportResolutionStrategy === "manual") {
+            const conflicts = Array.isArray(pricingImportResult?.conflicts) ? pricingImportResult.conflicts : [];
+            const missingCities = conflicts
+                .map((conflict) => ({
+                    cityKey: normalizeImportCityKey(conflict?.cityKey || conflict?.city || ""),
+                    city: String(conflict?.city || conflict?.cityKey || "city"),
+                }))
+                .filter((item) => item.cityKey && !pricingImportManualResolutions[item.cityKey])
+                .map((item) => item.city);
+
+            if (missingCities.length > 0) {
+                setFeedback({
+                    type: "error",
+                    message: `Manual conflict resolution is incomplete for: ${missingCities.slice(0, 4).join(", ")}${missingCities.length > 4 ? "..." : ""}`,
+                });
+                return;
+            }
+        }
+
+        setPricingImportApplyBusy(true);
+        try {
+            const payload = await requestJson("POST", route("courierService.settings.pricing.import.apply"), {
+                pricingCategory: activePricingCategory,
+                mode: pricingImportMode,
+                previewToken: pricingImportPreviewToken,
+                manualReviewConfirmed: pricingImportManualReviewConfirmed,
+                resolutionStrategy: pricingImportResolutionStrategy,
+                manualResolutions: pricingImportManualResolutions,
+                importPayload: pricingImportResult.patch,
+            });
+
+            if (payload?.pricing && typeof payload.pricing === "object") {
+                setSettings((prev) => ({
+                    ...prev,
+                    pricing: payload.pricing,
+                }));
+            }
+
+            if (payload?.summary && typeof payload.summary === "object") {
+                setPricingImportResult((prev) => (prev && typeof prev === "object"
+                    ? {
+                        ...prev,
+                        appliedSummary: payload.summary,
+                    }
+                    : prev));
+            }
+
+            setFeedback({ type: "success", message: payload?.message || "Imported pricing applied to draft." });
+        } catch (error) {
+            if (error?.code === "pricing_import_pdf_manual_strategy_required") {
+                setPricingImportResolutionStrategy("manual");
+            }
+            setFeedback({ type: "error", message: error?.message || "Unable to apply imported pricing." });
+        } finally {
+            setPricingImportApplyBusy(false);
+        }
     };
 
     const resolveExchangeRate = (localization) => {
@@ -5681,6 +5852,207 @@ const Settings = () => {
                             <button type="button" className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]" onClick={() => addPricingTier(activePricingCategory)}>
                                 Add Tier
                             </button>
+                        </div>
+
+                        <div className="mt-4 border border-[#E2E8F0] rounded-[10px] p-3 bg-[#F8FAFC]">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p className="text-[13px] font-[700] text-[#111827]">Bulk Import (Advanced)</p>
+                                    <p className="text-[11px] text-[#64748B] mt-1">Upload XLSX, CSV, JSON, or PDF pricing files. System auto-detects structure, scores confidence, and flags mapping conflicts.</p>
+                                </div>
+                                <div className="inline-flex items-center gap-2">
+                                    <select
+                                        className="h-[30px] rounded-[8px] border border-[#CBD5E1] px-2 text-[11px]"
+                                        value={pricingImportMode}
+                                        onChange={(e) => setPricingImportMode(e.target.value)}
+                                    >
+                                        <option value="replace">Replace {titleCase(activePricingCategory)} Draft</option>
+                                        <option value="merge">Merge Into {titleCase(activePricingCategory)} Draft</option>
+                                    </select>
+                                    <select
+                                        className="h-[30px] rounded-[8px] border border-[#CBD5E1] px-2 text-[11px]"
+                                        value={pricingImportResolutionStrategy}
+                                        onChange={(e) => setPricingImportResolutionStrategy(e.target.value)}
+                                    >
+                                        <option value="prefer_most_frequent">Conflicts: Prefer Most Frequent Zone</option>
+                                        <option value="prefer_existing">Conflicts: Prefer Existing City Mapping</option>
+                                        <option value="manual">Conflicts: Manual City Mapping</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        disabled={pricingImportPreviewBusy || pricingImportApplyBusy}
+                                        className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700] disabled:opacity-50"
+                                        onClick={previewPricingImport}
+                                    >
+                                        {pricingImportPreviewBusy ? "Analyzing..." : "Analyze Import"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={pricingImportApplyBusy || !pricingImportResult?.patch || !pricingImportPreviewToken || (pricingImportResult?.requiresManualReview && !pricingImportManualReviewConfirmed)}
+                                        className="h-[30px] px-3 rounded-[8px] bg-[#0F766E] text-white text-[11px] font-[700] disabled:opacity-50"
+                                        onClick={applyPricingImportToDraft}
+                                    >
+                                        {pricingImportApplyBusy ? "Applying..." : "Apply To Draft"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <input
+                                    key={`pricing-import-file-${activePricingCategory}`}
+                                    type="file"
+                                    accept=".xlsx,.xls,.csv,.txt,.json,.pdf"
+                                    className="block w-full md:w-[420px] text-[11px] text-[#334155] file:mr-2 file:rounded-[6px] file:border file:border-[#CBD5E1] file:bg-white file:px-2 file:py-1 file:text-[11px] file:font-[600] file:text-[#334155]"
+                                    onChange={(e) => {
+                                        const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                                        setPricingImportFile(file);
+                                        setPricingImportResult(null);
+                                        setPricingImportPreviewToken("");
+                                        setPricingImportManualReviewConfirmed(false);
+                                        setPricingImportManualResolutions({});
+                                    }}
+                                />
+                                {pricingImportFile && (
+                                    <span className="inline-flex items-center rounded-[999px] bg-white border border-[#CBD5E1] px-2 py-1 text-[11px] font-[700] text-[#334155]">
+                                        {pricingImportFile.name}
+                                    </span>
+                                )}
+                            </div>
+
+                            {pricingImportResult && (
+                                <div className="mt-3 border border-[#E2E8F0] rounded-[8px] p-3 bg-white">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                        <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
+                                            <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Detected</p>
+                                            <p className="text-[12px] font-[700] text-[#0F172A] mt-1">{String(pricingImportResult?.detectedFormat || "unknown").toUpperCase()}</p>
+                                        </div>
+                                        <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
+                                            <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Confidence</p>
+                                            <p className="text-[12px] font-[700] text-[#0F172A] mt-1">{Math.round(Number(pricingImportResult?.confidence || 0) * 100)}%</p>
+                                        </div>
+                                        <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
+                                            <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Rows Parsed</p>
+                                            <p className="text-[12px] font-[700] text-[#0F172A] mt-1">{Number(pricingImportResult?.rowsParsed || 0)} / {Number(pricingImportResult?.rowsScanned || 0)}</p>
+                                        </div>
+                                        <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
+                                            <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Patch Size</p>
+                                            <p className="text-[12px] font-[700] text-[#0F172A] mt-1">
+                                                {Number(pricingImportResult?.summary?.zoneCount || 0)} zones, {Number(pricingImportResult?.summary?.categoryCount || 0)} tiers, {Number(pricingImportResult?.summary?.laneCount || 0)} lanes
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {pricingImportResult?.requiresManualReview && (
+                                        <div className="mt-2 rounded-[8px] border border-[#FCD34D] bg-[#FFFBEB] px-2 py-2">
+                                            <p className="text-[11px] text-[#92400E] font-[700]">Manual review required before apply</p>
+                                            <p className="mt-1 text-[11px] text-[#92400E]">Low confidence or conflicts were detected. Confirm review after checking sample rows, warnings, and conflict mappings.</p>
+                                            {String(pricingImportResult?.detectedFormat || "").toLowerCase() === "pdf" && (
+                                                <p className="mt-1 text-[11px] text-[#92400E]">Best practice for PDF: correct extracted rows in XLSX/CSV and re-import before final apply.</p>
+                                            )}
+                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] text-[#78350F] font-[700]">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-3.5 w-3.5 rounded border border-[#D97706]"
+                                                    checked={pricingImportManualReviewConfirmed}
+                                                    onChange={(e) => setPricingImportManualReviewConfirmed(Boolean(e.target.checked))}
+                                                />
+                                                I reviewed conflicts/warnings and confirm this import is ready to apply.
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {(pricingImportResult?.conflicts || []).length > 0 && (
+                                        <div className="mt-2 rounded-[8px] border border-[#FCA5A5] bg-[#FEF2F2] p-2">
+                                            <p className="text-[11px] font-[700] text-[#991B1B]">Conflicts</p>
+                                            <p className="text-[11px] text-[#7F1D1D] mt-1">
+                                                Strategy: {pricingImportResolutionStrategy === "manual"
+                                                    ? "Manual city mapping"
+                                                    : pricingImportResolutionStrategy === "prefer_existing"
+                                                        ? "Prefer existing saved city mapping"
+                                                        : "Prefer most frequent imported zone"}
+                                            </p>
+                                            {(pricingImportResult?.conflicts || []).slice(0, 8).map((conflict, idx) => {
+                                                const cityKey = normalizeImportCityKey(conflict?.cityKey || conflict?.city || "");
+                                                const selectedZone = pricingImportManualResolutions[cityKey] || "";
+
+                                                return (
+                                                    <div key={`import-conflict-${idx}`} className="mt-2 rounded-[6px] border border-[#FECACA] bg-white px-2 py-2">
+                                                        <p className="text-[11px] text-[#7F1D1D] font-[700]">
+                                                            {String(conflict?.city || conflict?.cityKey || "City")}
+                                                        </p>
+                                                        <p className="text-[11px] text-[#7F1D1D] mt-1">
+                                                            {Array.isArray(conflict?.zones) ? `Zones: ${conflict.zones.join(", ")}` : "Multiple zones detected"}
+                                                        </p>
+                                                        {conflict?.zoneVotes && typeof conflict.zoneVotes === "object" && (
+                                                            <p className="text-[11px] text-[#7F1D1D] mt-1">
+                                                                Votes: {Object.entries(conflict.zoneVotes)
+                                                                    .map(([zoneKey, count]) => `${zoneKey}=${Number(count || 0)}`)
+                                                                    .join(", ")}
+                                                            </p>
+                                                        )}
+                                                        {pricingImportResolutionStrategy === "manual" && (
+                                                            <div className="mt-2 inline-flex items-center gap-2">
+                                                                <span className="text-[11px] font-[700] text-[#7F1D1D]">Select zone</span>
+                                                                <select
+                                                                    className="h-[28px] rounded-[6px] border border-[#FCA5A5] bg-white px-2 text-[11px]"
+                                                                    value={selectedZone}
+                                                                    onChange={(e) => {
+                                                                        const value = String(e.target.value || "");
+                                                                        if (!cityKey) {
+                                                                            return;
+                                                                        }
+
+                                                                        setPricingImportManualResolutions((prev) => ({
+                                                                            ...prev,
+                                                                            [cityKey]: value,
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    <option value="">Select zone</option>
+                                                                    {(Array.isArray(conflict?.zones) ? conflict.zones : []).map((zoneOption) => (
+                                                                        <option key={`conflict-zone-option-${cityKey}-${zoneOption}`} value={String(zoneOption)}>{String(zoneOption)}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {(pricingImportResult?.warnings || []).length > 0 && (
+                                        <div className="mt-2 rounded-[8px] border border-[#FCD34D] bg-[#FFFBEB] p-2">
+                                            <p className="text-[11px] font-[700] text-[#92400E]">Warnings</p>
+                                            {(pricingImportResult?.warnings || []).slice(0, 4).map((warning, idx) => (
+                                                <p key={`import-warning-${idx}`} className="text-[11px] text-[#92400E] mt-1">{String(warning || "")}</p>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {(pricingImportResult?.sampleRows || []).length > 0 && (
+                                        <div className="mt-2 rounded-[8px] border border-[#E2E8F0] p-2">
+                                            <p className="text-[11px] font-[700] text-[#111827]">Parsed Row Sample</p>
+                                            <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {(pricingImportResult?.sampleRows || []).slice(0, 4).map((sample, idx) => (
+                                                    <div key={`import-sample-${idx}`} className="rounded-[6px] bg-[#F8FAFC] px-2 py-1 border border-[#E2E8F0]">
+                                                        <p className="text-[11px] text-[#334155]">City: {String(sample?.city || "-")}</p>
+                                                        <p className="text-[11px] text-[#334155]">Zone: {String(sample?.zone || "-")}</p>
+                                                        <p className="text-[11px] text-[#334155]">Service: {String(sample?.serviceLevelKey || "-")}</p>
+                                                        <p className="text-[11px] text-[#334155]">Base: {sample?.basePrice ?? "-"} • Per Kg: {sample?.perKgPrice ?? "-"}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {pricingImportResult?.appliedSummary && (
+                                        <p className="mt-2 text-[11px] text-[#0F766E] font-[700]">
+                                            Applied in {String(pricingImportResult.appliedSummary.mode || pricingImportMode)} mode: {Number(pricingImportResult.appliedSummary.zoneCount || 0)} zones, {Number(pricingImportResult.appliedSummary.categoryCount || 0)} tiers, {Number(pricingImportResult.appliedSummary.laneCount || 0)} lanes.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                                 </div>
                             )}
