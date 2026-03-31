@@ -10,6 +10,7 @@ use App\Models\Courier\CourierTeamSecurityAudit;
 use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\VendorCourierLabel;
 use App\Models\Courier\VendorCourierClientProfile;
 use App\Models\VendorActivityLog;
 use App\Models\VendorProfile;
@@ -25,6 +26,7 @@ use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
+use App\Support\CourierLabelDefaults;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -514,6 +516,7 @@ class VendorCourierDashboardController extends Controller
             'tracking',
             'notifications',
             'integrations',
+            'labels',
             'pricing',
             'team',
         ];
@@ -691,7 +694,7 @@ class VendorCourierDashboardController extends Controller
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults,pricing_publish_now,pricing_schedule_publish,pricing_approve_publish,pricing_reject_publish,pricing_rollback_version'],
-            'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,pricing,team'],
+            'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,labels,pricing,team'],
             'settings' => ['nullable', 'array'],
             'effectiveAt' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:400'],
@@ -882,6 +885,10 @@ class VendorCourierDashboardController extends Controller
                 ], $pricingCategory);
             }
 
+            if ($section === 'labels') {
+                $incomingSection = $this->normalizeLabelSettings(array_replace_recursive($current['labels'] ?? [], $incomingSection));
+            }
+
             $current[$section] = array_replace($current[$section], $incomingSection);
             $record->update(['settings' => $current]);
 
@@ -912,6 +919,10 @@ class VendorCourierDashboardController extends Controller
             $next['pricing'] = $this->appendPricingGovernanceLog($next['pricing'], 'draft_saved', $actorId, [
                 'mode' => 'save_all',
             ], $pricingCategory);
+        }
+
+        if (is_array($next['labels'] ?? null)) {
+            $next['labels'] = $this->normalizeLabelSettings($next['labels']);
         }
 
         $record->update(['settings' => $next]);
@@ -1778,6 +1789,7 @@ class VendorCourierDashboardController extends Controller
                 'recipientAddress:id,country,city,state',
                 'packages:id,shipment_id,service_tier_label,service_tier_key,service_eta,courier_provider_name',
                 'trackingEvents:id,shipment_id,status,location,description,recorded_at',
+                'labels:id,shipment_id',
             ])
             ->where('assigned_vendor_user_id', $vendorId)
             ->orderByDesc('created_at');
@@ -3606,26 +3618,32 @@ class VendorCourierDashboardController extends Controller
 
     private function defaultCourierLabelSettings(): array
     {
-        return [
-            'defaults' => [
-                'domestic' => [
-                    'templateId' => null,
-                    'sizeId' => null,
-                ],
-                'logistic' => [
-                    'templateId' => null,
-                    'sizeId' => null,
-                ],
-            ],
-            'printPolicy' => [
-                'bulkAsyncThreshold' => 50,
-                'bulkHardLimit' => 200,
-                'allowCustomSizes' => true,
-                'allowTemplateUpload' => true,
-                'allowHtmlTemplates' => true,
-                'allowPdfBackground' => true,
-            ],
-        ];
+        return CourierLabelDefaults::settings();
+    }
+
+    private function normalizeLabelSettings(array $input): array
+    {
+        $defaults = CourierLabelDefaults::settings();
+        $normalized = array_replace_recursive($defaults, $input);
+
+        $policy = is_array($normalized['printPolicy'] ?? null) ? $normalized['printPolicy'] : [];
+        $policy['bulkAsyncThreshold'] = max(1, (int) ($policy['bulkAsyncThreshold'] ?? 50));
+        $policy['bulkHardLimit'] = max($policy['bulkAsyncThreshold'], (int) ($policy['bulkHardLimit'] ?? 200));
+        $policy['allowCustomSizes'] = (bool) ($policy['allowCustomSizes'] ?? true);
+        $policy['allowTemplateUpload'] = (bool) ($policy['allowTemplateUpload'] ?? true);
+        $policy['allowHtmlTemplates'] = (bool) ($policy['allowHtmlTemplates'] ?? true);
+        $policy['allowPdfBackground'] = (bool) ($policy['allowPdfBackground'] ?? true);
+        $normalized['printPolicy'] = $policy;
+
+        foreach (['domestic', 'logistic'] as $category) {
+            $defaultRow = is_array($normalized['defaults'][$category] ?? null) ? $normalized['defaults'][$category] : [];
+            $normalized['defaults'][$category] = [
+                'templateId' => isset($defaultRow['templateId']) ? (int) $defaultRow['templateId'] : null,
+                'sizeId' => isset($defaultRow['sizeId']) ? (int) $defaultRow['sizeId'] : null,
+            ];
+        }
+
+        return $normalized;
     }
 
     private function defaultPricingPolicyModules(): array
@@ -5674,8 +5692,13 @@ class VendorCourierDashboardController extends Controller
 
     private function isLabelCreated(CourierShipment $shipment): bool
     {
-        $status = strtolower((string) $shipment->status);
-        return in_array($status, [CourierShipment::STATUS_PENDING, CourierShipment::STATUS_CONFIRMED, CourierShipment::STATUS_IN_TRANSIT], true);
+        if ($shipment->relationLoaded('labels')) {
+            return $shipment->labels->isNotEmpty();
+        }
+
+        return VendorCourierLabel::query()
+            ->where('shipment_id', $shipment->id)
+            ->exists();
     }
 
     private function resolveTeamAccessPolicy(int $vendorId): array
