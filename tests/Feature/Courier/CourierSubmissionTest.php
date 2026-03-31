@@ -29,10 +29,10 @@ class CourierSubmissionTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_guest_cannot_access_courier_create_route(): void
+    public function test_guest_can_access_courier_create_route(): void
     {
         $this->get(route('couriers.create'))
-            ->assertRedirect(route('login'));
+            ->assertOk();
     }
 
     public function test_review_step_redirects_to_details_with_quote_selection_payload(): void
@@ -124,6 +124,31 @@ class CourierSubmissionTest extends TestCase
                     && array_key_exists('tiers', $sample);
             })
         );
+    }
+
+    public function test_guest_can_submit_courier_request_and_download_bill(): void
+    {
+        $payload = $this->validSubmissionPayload();
+        $csrfToken = 'test-token-guest';
+
+        $this->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('success')
+            ->assertSessionHas('courier_reference')
+            ->assertSessionHas('courier_bill_id');
+
+        $shipment = CourierShipment::query()
+            ->whereNull('requested_by_user_id')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($shipment);
+
+        $this->get(route('couriers.bill', $shipment))
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="courier-bill-' . $shipment->reference . '.html"')
+            ->assertSee('Courier Service Bill');
     }
 
     public function test_client_can_submit_courier_request_and_download_bill(): void

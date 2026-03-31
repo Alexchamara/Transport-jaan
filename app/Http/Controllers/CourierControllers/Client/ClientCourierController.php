@@ -937,6 +937,7 @@ class ClientCourierController extends Controller
 
         $request->session()->forget('courier_preview');
         $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
+        $this->rememberGuestBillAccess($request, (int) $shipment->id);
 
         return redirect()
             ->route('couriers.create')
@@ -3182,20 +3183,30 @@ class ClientCourierController extends Controller
 
     public function downloadBill(Request $request, CourierShipment $shipment)
     {
-        if (!Auth::check()) {
-            $this->observability()->recordAuthorizationDenial($request, 'unauthenticated_bill_download', [
+        $shipmentOwnerId = (int) ($shipment->requested_by_user_id ?? 0);
+        $authenticatedUserId = (int) (Auth::id() ?? 0);
+        $isAuthenticatedOwner = $authenticatedUserId > 0
+            && $shipmentOwnerId > 0
+            && $shipmentOwnerId === $authenticatedUserId;
+        $hasGuestSessionAccess = $shipmentOwnerId === 0
+            && $this->hasGuestBillAccess($request, (int) $shipment->id);
+
+        if (!$isAuthenticatedOwner && !$hasGuestSessionAccess) {
+            if ($authenticatedUserId > 0) {
+                $this->observability()->recordOwnershipFailure($request, 'shipment_bill_download', (int) $shipment->id, [
+                    'owner_user_id' => (int) $shipment->requested_by_user_id,
+                ]);
+
+                abort(403);
+            }
+
+            $this->observability()->recordAuthorizationDenial($request, 'guest_bill_download_without_session_access', [
                 'requested_shipment_id' => (int) ($shipment->id ?? 0),
             ]);
 
-            return redirect()->route('signin.signin');
-        }
-
-        if ((int) $shipment->requested_by_user_id !== (int) Auth::id()) {
-            $this->observability()->recordOwnershipFailure($request, 'shipment_bill_download', (int) $shipment->id, [
-                'owner_user_id' => (int) $shipment->requested_by_user_id,
-            ]);
-
-            abort(403);
+            return redirect()
+                ->route('couriers.create')
+                ->with('error', 'Unable to download that bill from this session.');
         }
 
         $shipment->loadMissing([
@@ -3310,6 +3321,42 @@ class ClientCourierController extends Controller
             'Content-Type' => 'text/html; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    private function rememberGuestBillAccess(Request $request, int $shipmentId): void
+    {
+        if ($shipmentId <= 0) {
+            return;
+        }
+
+        $existingIds = collect((array) $request->session()->get('courier_guest_bill_access_ids', []))
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0);
+
+        $request->session()->put(
+            'courier_guest_bill_access_ids',
+            $existingIds
+                ->push($shipmentId)
+                ->unique()
+                ->values()
+                ->slice(-25)
+                ->values()
+                ->all()
+        );
+    }
+
+    private function hasGuestBillAccess(Request $request, int $shipmentId): bool
+    {
+        if ($shipmentId <= 0) {
+            return false;
+        }
+
+        $allowedIds = collect((array) $request->session()->get('courier_guest_bill_access_ids', []))
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0)
+            ->values();
+
+        return $allowedIds->contains($shipmentId);
     }
 
     private function observability(): CourierClientObservabilityService
