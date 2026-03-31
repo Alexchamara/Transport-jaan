@@ -3467,6 +3467,7 @@ class VendorCourierDashboardController extends Controller
                 'retryWindowMinutes' => 15,
                 'rotateKeysEveryDays' => 90,
             ],
+            'labels' => $this->defaultCourierLabelSettings(),
             'pricing' => $this->defaultPricingSettings(),
             'team' => [
                 'dispatcherCanCancel' => false,
@@ -3600,6 +3601,30 @@ class VendorCourierDashboardController extends Controller
                 ],
             ],
             'governance' => $this->defaultPricingGovernance(),
+        ];
+    }
+
+    private function defaultCourierLabelSettings(): array
+    {
+        return [
+            'defaults' => [
+                'domestic' => [
+                    'templateId' => null,
+                    'sizeId' => null,
+                ],
+                'logistic' => [
+                    'templateId' => null,
+                    'sizeId' => null,
+                ],
+            ],
+            'printPolicy' => [
+                'bulkAsyncThreshold' => 50,
+                'bulkHardLimit' => 200,
+                'allowCustomSizes' => true,
+                'allowTemplateUpload' => true,
+                'allowHtmlTemplates' => true,
+                'allowPdfBackground' => true,
+            ],
         ];
     }
 

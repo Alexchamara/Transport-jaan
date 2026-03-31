@@ -119,4 +119,9 @@ class CourierShipment extends Model
     {
         return $this->hasMany(CourierTrackingEvent::class, 'shipment_id');
     }
+
+    public function labels()
+    {
+        return $this->hasMany(VendorCourierLabel::class, 'shipment_id');
+    }
 }
