@@ -81,6 +81,7 @@ const SERVICE_CONFIG = {
             { key: "tracking", label: "Tracking", route: () => route("courierService.settings.module", { module: "tracking" }) },
             { key: "notifications", label: "Notifications", route: () => route("courierService.settings.module", { module: "notifications" }) },
             { key: "integrations", label: "Integrations", route: () => route("courierService.settings.module", { module: "integrations" }) },
+            { key: "labels", label: "Labels", route: () => route("courierService.settings.module", { module: "labels" }) },
             { key: "pricing", label: "Pricing", route: () => route("courierService.settings.module", { module: "pricing" }) },
             { key: "team", label: "Team Access", route: () => route("courierService.settings.team.topic", { topic: "policy-controls" }) },
         ],

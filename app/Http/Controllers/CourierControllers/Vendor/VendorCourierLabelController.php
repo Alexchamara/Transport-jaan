@@ -53,8 +53,9 @@ class VendorCourierLabelController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'widthMm' => ['required', 'numeric', 'min:10', 'max:500'],
-            'heightMm' => ['required', 'numeric', 'min:10', 'max:500'],
+            'widthMm' => ['required', 'numeric', 'min:1', 'max:500'],
+            'heightMm' => ['required', 'numeric', 'min:1', 'max:500'],
+            'unit' => ['nullable', 'string', Rule::in(CourierLabelService::SIZE_UNITS)],
         ]);
 
         $size = VendorCourierLabelSize::create([
@@ -62,7 +63,7 @@ class VendorCourierLabelController extends Controller
             'name' => (string) $validated['name'],
             'width_mm' => (float) $validated['widthMm'],
             'height_mm' => (float) $validated['heightMm'],
-            'unit' => 'mm',
+            'unit' => (string) ($validated['unit'] ?? 'mm'),
             'is_active' => true,
             'is_system' => false,
             'created_by_user_id' => optional($request->user())->id,
@@ -95,8 +96,9 @@ class VendorCourierLabelController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'widthMm' => ['required', 'numeric', 'min:10', 'max:500'],
-            'heightMm' => ['required', 'numeric', 'min:10', 'max:500'],
+            'widthMm' => ['required', 'numeric', 'min:1', 'max:500'],
+            'heightMm' => ['required', 'numeric', 'min:1', 'max:500'],
+            'unit' => ['nullable', 'string', Rule::in(CourierLabelService::SIZE_UNITS)],
             'isActive' => ['nullable', 'boolean'],
         ]);
 
@@ -104,6 +106,7 @@ class VendorCourierLabelController extends Controller
             'name' => (string) $validated['name'],
             'width_mm' => (float) $validated['widthMm'],
             'height_mm' => (float) $validated['heightMm'],
+            'unit' => (string) ($validated['unit'] ?? $size->unit ?? 'mm'),
             'is_active' => (bool) ($validated['isActive'] ?? $size->is_active),
             'updated_by_user_id' => optional($request->user())->id,
         ]);

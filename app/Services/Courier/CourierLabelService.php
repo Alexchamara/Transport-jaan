@@ -21,6 +21,8 @@ class CourierLabelService
 
     public const TEMPLATE_TYPES = ['builder', 'html', 'upload'];
 
+    public const SIZE_UNITS = ['mm', 'cm', 'in'];
+
     public const CATEGORY_DOMESTIC = 'domestic';
 
     public const CATEGORY_LOGISTIC = 'logistic';
@@ -160,10 +162,7 @@ class CourierLabelService
 
     public function renderLabelHtml(?VendorCourierLabelTemplate $template, array $payload): string
     {
-        $backgroundUrl = null;
-        if ($template && $template->background_path) {
-            $backgroundUrl = Storage::disk('public')->url($template->background_path);
-        }
+        $backgroundUrl = $this->resolveBackgroundDataUri($template);
 
         $renderPayload = array_merge($payload, [
             'backgroundUrl' => $backgroundUrl,
@@ -260,12 +259,50 @@ class CourierLabelService
 
     private function generateQrCode(string $data): string
     {
-        $qrCode = QrCode::format('svg')
-            ->size(200)
-            ->errorCorrection('H')
-            ->generate($data);
+        try {
+            $qrCode = QrCode::format('png')
+                ->size(200)
+                ->errorCorrection('H')
+                ->generate($data);
 
-        return 'data:image/svg+xml;base64,' . base64_encode($qrCode);
+            return 'data:image/png;base64,' . base64_encode($qrCode);
+        } catch (\Throwable $exception) {
+            $qrCode = QrCode::format('svg')
+                ->size(200)
+                ->errorCorrection('H')
+                ->generate($data);
+
+            return 'data:image/svg+xml;base64,' . base64_encode($qrCode);
+        }
+    }
+
+    private function resolveBackgroundDataUri(?VendorCourierLabelTemplate $template): ?string
+    {
+        if (!$template || !$template->background_path) {
+            return null;
+        }
+
+        $path = (string) $template->background_path;
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mimeMap = [
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+        ];
+
+        if (!array_key_exists($extension, $mimeMap)) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+        if (!$disk->exists($path)) {
+            return null;
+        }
+
+        $contents = $disk->get($path);
+
+        return 'data:' . $mimeMap[$extension] . ';base64,' . base64_encode($contents);
     }
 
     private function renderTemplateString(string $template, array $payload): string
@@ -304,6 +341,7 @@ class CourierLabelService
 
     private function buildPaperSize(VendorCourierLabelSize $size, ?string $orientation): array
     {
+        $unit = strtolower((string) ($size->unit ?? 'mm'));
         $width = (float) $size->width_mm;
         $height = (float) $size->height_mm;
 
@@ -311,17 +349,27 @@ class CourierLabelService
             [$width, $height] = [$height, $width];
         }
 
-        $widthPoints = $this->mmToPoints($width);
-        $heightPoints = $this->mmToPoints($height);
+        $widthPoints = $this->unitToPoints($width, $unit);
+        $heightPoints = $this->unitToPoints($height, $unit);
 
         return [
-            'size' => [$widthPoints, $heightPoints],
+            'size' => [0, 0, $widthPoints, $heightPoints],
             'orientation' => 'portrait',
         ];
     }
 
-    private function mmToPoints(float $mm): float
+    private function unitToPoints(float $value, ?string $unit): float
     {
-        return $mm * 72 / 25.4;
+        $normalized = strtolower((string) $unit);
+
+        if ($normalized === 'in') {
+            return $value * 72;
+        }
+
+        if ($normalized === 'cm') {
+            return $value * 72 / 2.54;
+        }
+
+        return $value * 72 / 25.4;
     }
 }
