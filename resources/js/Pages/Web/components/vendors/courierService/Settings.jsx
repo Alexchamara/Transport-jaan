@@ -5305,8 +5305,8 @@ const Settings = () => {
                                                 {tiers.map((tier, tierIndex) => {
                                                     const tierRow = tier && typeof tier === "object" ? tier : {};
                                                     return (
-                                                        <div key={`tier-${contractIndex}-${tierIndex}`} className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                        <div key={`tier-${contractIndex}-${tierIndex}`} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155] pb-1">
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={Boolean(tierRow.enabled ?? true)}
@@ -5320,14 +5320,14 @@ const Settings = () => {
                                                                 />
                                                                 Active
                                                             </label>
-                                                            <Field label="Min Volume"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.minVolume || 0)} onChange={(e) => {
+                                                            <Field label="Min Volume"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.minVolume || 0)} onChange={(e) => {
                                                                 const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                 const nextTiers = [...tiers];
                                                                 nextTiers[tierIndex] = { ...tierRow, minVolume: Number(e.target.value || 0) };
                                                                 nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
                                                                 updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
                                                             }} /></Field>
-                                                            <Field label="Max Volume"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={tierRow.maxVolume === null || tierRow.maxVolume === undefined ? "" : Number(tierRow.maxVolume || 0)} onChange={(e) => {
+                                                            <Field label="Max Volume"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={tierRow.maxVolume === null || tierRow.maxVolume === undefined ? "" : Number(tierRow.maxVolume || 0)} onChange={(e) => {
                                                                 const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                 const nextTiers = [...tiers];
                                                                 nextTiers[tierIndex] = { ...tierRow, maxVolume: e.target.value === "" ? null : Number(e.target.value || 0) };
@@ -5335,7 +5335,7 @@ const Settings = () => {
                                                                 updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
                                                             }} /></Field>
                                                             <Field label="Adjustment Type">
-                                                                <select className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(tierRow.adjustmentType || "percent_off")} onChange={(e) => {
+                                                                <select className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(tierRow.adjustmentType || "percent_off")} onChange={(e) => {
                                                                     const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                     const nextTiers = [...tiers];
                                                                     nextTiers[tierIndex] = { ...tierRow, adjustmentType: e.target.value };
@@ -5348,7 +5348,7 @@ const Settings = () => {
                                                                     <option value="multiplier">Multiplier</option>
                                                                 </select>
                                                             </Field>
-                                                            <Field label="Adjustment Value"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.adjustmentValue || 0)} onChange={(e) => {
+                                                            <Field label="Adjustment Value"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.adjustmentValue || 0)} onChange={(e) => {
                                                                 const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                 const nextTiers = [...tiers];
                                                                 nextTiers[tierIndex] = { ...tierRow, adjustmentValue: Number(e.target.value || 0) };
@@ -5358,7 +5358,7 @@ const Settings = () => {
                                                             <div className="flex items-end">
                                                                 <button
                                                                     type="button"
-                                                                    className="h-[26px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700]"
+                                                                    className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700]"
                                                                     onClick={() => {
                                                                         const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                         const nextTiers = tiers.filter((_, idx) => idx !== tierIndex);
@@ -5634,26 +5634,26 @@ const Settings = () => {
                             </p>
                         )}
                         <div className="mt-2 overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-[12px]">
+                            <table className="w-max min-w-[1100px] text-[11px]">
                                 <thead>
                                     <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                        <th className="px-2 py-2">Label</th>
-                                        <th className="px-2 py-2">Service Level</th>
-                                        <th className="px-2 py-2">SLA Days</th>
-                                        <th className="px-2 py-2">Base Price</th>
-                                        <th className="px-2 py-2">Per Kg</th>
-                                        <th className="px-2 py-2">Min Price</th>
-                                        <th className="px-2 py-2">Priority Mult.</th>
-                                        <th className="px-2 py-2">Action</th>
+                                        <th className="px-2 py-2 min-w-[140px]">Label</th>
+                                        <th className="px-2 py-2 min-w-[180px]">Service Level</th>
+                                        <th className="px-2 py-2 min-w-[90px]">SLA Days</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Base Price</th>
+                                        <th className="px-2 py-2 min-w-[90px]">Per Kg</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Min Price</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Priority Mult.</th>
+                                        <th className="px-2 py-2 min-w-[80px]">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {activePricingRows.map((row, index) => (
                                         <tr key={`${activePricingCategory}-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                            <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
-                                            <td className="px-2 py-2">
+                                            <td className="px-2 py-3"><input className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
+                                            <td className="px-2 py-3 min-w-[180px]">
                                                 <select
-                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    className="h-[44px] w-full min-w-[160px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                     value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
                                                     onChange={(e) => updatePricingTier(activePricingCategory, index, "serviceLevelKey", e.target.value)}
                                                 >
@@ -5662,13 +5662,13 @@ const Settings = () => {
                                                     ))}
                                                 </select>
                                             </td>
-                                            <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
-                                            <td className="px-2 py-2">
-                                                <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
+                                            <td className="px-2 py-3"><input type="number" min={1} className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-3">
+                                                <button type="button" className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
                                                     Remove
                                                 </button>
                                             </td>
@@ -5775,32 +5775,32 @@ const Settings = () => {
                         <p className="text-[11px] text-[#64748B] mt-1">When enabled, booking runtime requires a matching lane rule by origin zone, destination zone, service level, and distance band (if configured).</p>
 
                         <div className="mt-2 overflow-x-auto">
-                            <table className="w-full min-w-[1700px] text-[12px]">
+                            <table className="w-max min-w-[2100px] text-[11px]">
                                 <thead>
                                     <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                        <th className="px-2 py-2">Origin Zone</th>
-                                        <th className="px-2 py-2">Destination Zone</th>
-                                        <th className="px-2 py-2">Service Level</th>
-                                        <th className="px-2 py-2">Distance From (km)</th>
-                                        <th className="px-2 py-2">Distance To (km)</th>
-                                        <th className="px-2 py-2">Included Km</th>
-                                        <th className="px-2 py-2">Per Km</th>
-                                        <th className="px-2 py-2">Distance Fee</th>
-                                        <th className="px-2 py-2">Distance Mult.</th>
-                                        <th className="px-2 py-2">Base Price</th>
-                                        <th className="px-2 py-2">Per Kg</th>
-                                        <th className="px-2 py-2">Min Price</th>
-                                        <th className="px-2 py-2">Priority Mult.</th>
-                                        <th className="px-2 py-2">Active</th>
-                                        <th className="px-2 py-2">Action</th>
+                                        <th className="px-2 py-2 min-w-[160px]">Origin Zone</th>
+                                        <th className="px-2 py-2 min-w-[160px]">Destination Zone</th>
+                                        <th className="px-2 py-2 min-w-[160px]">Service Level</th>
+                                        <th className="px-2 py-2 min-w-[130px]">Distance From (km)</th>
+                                        <th className="px-2 py-2 min-w-[130px]">Distance To (km)</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Included Km</th>
+                                        <th className="px-2 py-2 min-w-[90px]">Per Km</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Distance Fee</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Distance Mult.</th>
+                                        <th className="px-2 py-2 min-w-[100px]">Base Price</th>
+                                        <th className="px-2 py-2 min-w-[90px]">Per Kg</th>
+                                        <th className="px-2 py-2 min-w-[100px]">Min Price</th>
+                                        <th className="px-2 py-2 min-w-[110px]">Priority Mult.</th>
+                                        <th className="px-2 py-2 min-w-[70px]">Active</th>
+                                        <th className="px-2 py-2 min-w-[80px]">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {activeLaneRows.map((row, index) => (
                                         <tr key={`${activePricingCategory}-lane-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                            <td className="px-2 py-2">
+                                            <td className="px-2 py-3 min-w-[160px]">
                                                 <select
-                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                     value={String(row?.originZone || "*")}
                                                     onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "originZone", String(e.target.value || "*"))}
                                                 >
@@ -5809,9 +5809,9 @@ const Settings = () => {
                                                     ))}
                                                 </select>
                                             </td>
-                                            <td className="px-2 py-2">
+                                            <td className="px-2 py-3 min-w-[160px]">
                                                 <select
-                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                     value={String(row?.destinationZone || "*")}
                                                     onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "destinationZone", String(e.target.value || "*"))}
                                                 >
@@ -5820,9 +5820,9 @@ const Settings = () => {
                                                     ))}
                                                 </select>
                                             </td>
-                                            <td className="px-2 py-2">
+                                            <td className="px-2 py-3 min-w-[160px]">
                                                 <select
-                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                    className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                     value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
                                                     onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "serviceLevelKey", e.target.value)}
                                                 >
@@ -5831,17 +5831,17 @@ const Settings = () => {
                                                     ))}
                                                 </select>
                                             </td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceFromKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceFromKm", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={row?.distanceToKm === null || row?.distanceToKm === undefined || row?.distanceToKm === "" ? "" : Number(row?.distanceToKm || 0)} placeholder="No limit" onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceToKm", e.target.value === "" ? null : Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceBaseKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceBaseKm", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKmPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKmPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceSurcharge || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceSurcharge", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceMultiplier", Number(e.target.value || 1))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                            <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
-                                            <td className="px-2 py-2">
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceFromKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceFromKm", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={row?.distanceToKm === null || row?.distanceToKm === undefined || row?.distanceToKm === "" ? "" : Number(row?.distanceToKm || 0)} placeholder="No limit" onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceToKm", e.target.value === "" ? null : Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceBaseKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceBaseKm", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKmPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKmPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceSurcharge || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceSurcharge", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceMultiplier", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                            <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                            <td className="px-2 py-3">
                                                 <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                                     <input
                                                         type="checkbox"
@@ -5851,8 +5851,8 @@ const Settings = () => {
                                                     Active
                                                 </label>
                                             </td>
-                                            <td className="px-2 py-2">
-                                                <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingLaneRule(activePricingCategory, index)}>
+                                            <td className="px-2 py-3">
+                                                <button type="button" className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingLaneRule(activePricingCategory, index)}>
                                                     Remove
                                                 </button>
                                             </td>
