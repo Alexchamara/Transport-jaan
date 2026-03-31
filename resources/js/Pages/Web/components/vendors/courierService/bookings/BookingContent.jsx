@@ -356,7 +356,7 @@ const BookingContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-[13px]">
+                    <table className="w-max min-w-full text-left text-[13px] whitespace-nowrap">
                         <thead className="bg-[#D8E4F2] sticky top-0 z-10">
                             <tr>
                                 <th className="px-3 py-3 font-[700]"><input type="checkbox" checked={bookings.rows.length > 0 && selectedIds.length === bookings.rows.length} onChange={(e) => setSelectedIds(e.target.checked ? bookings.rows.map((row) => row.id) : [])} /></th>
@@ -388,7 +388,7 @@ const BookingContent = () => {
                                     <td className="px-3 py-3"><span className={`px-2 py-1 rounded-full text-[11px] font-[700] ${bookingBadge(row.bookingStatus)}`}>{row.bookingStatusLabel}</span></td>
                                     <td className="px-3 py-3">{row.confirmHours !== null ? `${row.confirmHours} h` : "-"}</td>
                                     <td className="px-3 py-3">
-                                        <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             {(row.allowedActions || []).map((action) => (
                                                 <button key={action} type="button" onClick={() => runAction(row.id, action)} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
                                             ))}
