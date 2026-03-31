@@ -76,9 +76,11 @@ const Register = ({ role = "client" }) => {
         // Validate phone number before submission
         const phoneValidation = validatePhone(data.phone);
         if (!phoneValidation.valid) {
-            alert(phoneValidation.message);
+            setPhoneValidationError(phoneValidation.message);
             return;
         }
+
+        setPhoneValidationError('');
         
         post(route("register.store"), {
             preserveScroll: true,
