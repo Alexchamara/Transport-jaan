@@ -665,9 +665,6 @@ const Create = () => {
                                                     <label className="mb-2 block text-sm font-medium text-[#0B1739]">
                                                         Pick up &amp; Delivery locations*
                                                     </label>
-                                                    <p className="text-sm text-[#5B6887]">
-                                                        Select your location where you want to deliver
-                                                    </p>
 
                                                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                         <select
@@ -743,7 +740,6 @@ const Create = () => {
                                                     <label className="mb-2 block text-sm font-medium text-[#0B1739]">
                                                         Package weight*
                                                     </label>
-                                                    <p className="text-sm text-[#5B6887]">In Kilo or ounces</p>
 
                                                     <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
                                                         <input
@@ -762,8 +758,8 @@ const Create = () => {
                                                             onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
                                                             className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                         >
-                                                            <option value="kg">Kg</option>
-                                                            <option value="oz">Oz</option>
+                                                            <option value="kg">kg</option>
+                                                            <option value="oz">lb</option>
                                                         </select>
                                                     </div>
                                                     {errors[`packages.${index}.weightKg`] && (
@@ -777,7 +773,6 @@ const Create = () => {
                                                     <label className="mb-2 block text-sm font-medium text-[#0B1739]">
                                                         Dimensions *
                                                     </label>
-                                                    <p className="text-sm text-[#5B6887]">In centimeters or yards</p>
 
                                                     <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
                                                         <input

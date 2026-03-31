@@ -25,6 +25,8 @@ const Details = () => {
         packageTypes = [],
         logisticDimensionOptions = {},
         favoriteRecipients = [],
+        favoriteSenders = [],
+        senderProfile = null,
         errors = {},
     } = props;
 
@@ -60,6 +62,7 @@ const Details = () => {
                     email: "",
                     phone: "",
                     company: "",
+                    saveToFavorites: false,
                     address: {
                         line1: "",
                         line2: "",
@@ -139,6 +142,7 @@ const Details = () => {
                 email: formData.sender?.email ?? "",
                 phone: formData.sender?.phone ?? "",
                 company: formData.sender?.company ?? "",
+                saveToFavorites: Boolean(formData.sender?.saveToFavorites),
                 address: {
                     line1: senderAddress.line1 ?? "",
                     line2: senderAddress.line2 ?? "",
@@ -216,10 +220,12 @@ const Details = () => {
     } = useForm(initialForm);
 
     const [showFavoritePicker, setShowFavoritePicker] = useState(false);
+    const [showSenderFavoritePicker, setShowSenderFavoritePicker] = useState(false);
     const [useSenderDetails, setUseSenderDetails] = useState(false);
     const hasFavoriteRecipients = (favoriteRecipients || []).length > 0;
+    const hasFavoriteSenders = (favoriteSenders || []).length > 0;
 
-    const formatRecipientAddress = (address) => {
+    const formatContactAddress = (address) => {
         if (!address) {
             return "—";
         }
@@ -254,6 +260,10 @@ const Details = () => {
             },
         };
     };
+
+    const senderProfileData = senderProfile?.sender || null;
+    const senderProfileLabel = senderProfile?.label || "Same as profile";
+    const canUseSenderProfile = Boolean(senderProfileData);
 
 
     const applyRecipientSelection = (recipient) => {
@@ -293,6 +303,41 @@ const Details = () => {
         setUseSenderDetails(false);
     };
 
+    const applySenderSelection = (sender) => {
+        if (!sender) {
+            return;
+        }
+
+        const selectedAddress = sender.address || {};
+
+        setData((previous) => {
+            const previousSender = previous.sender || {};
+            const previousAddress = previousSender.address || {};
+
+            return {
+                ...previous,
+                sender: {
+                    ...previousSender,
+                    name: sender.name ?? "",
+                    email: sender.email ?? "",
+                    phone: sender.phone ?? "",
+                    company: sender.company ?? "",
+                    saveToFavorites: false,
+                    address: {
+                        ...previousAddress,
+                        line1: selectedAddress.line1 ?? "",
+                        line2: selectedAddress.line2 ?? "",
+                        city: selectedAddress.city ?? "",
+                        state: selectedAddress.state ?? "",
+                        postalCode: selectedAddress.postalCode ?? "",
+                        country: selectedAddress.country ?? previousAddress.country ?? (countries[0] || "US"),
+                        instructions: selectedAddress.instructions ?? "",
+                    },
+                },
+            };
+        });
+    };
+
     const handleUseSenderDetailsChange = (event) => {
         const checked = event.target.checked;
         setUseSenderDetails(checked);
@@ -308,6 +353,39 @@ const Details = () => {
             return {
                 ...previous,
                 recipient: nextRecipient,
+            };
+        });
+    };
+
+    const handleUseSenderProfile = () => {
+        if (!senderProfileData) {
+            return;
+        }
+
+        setData((previous) => {
+            const previousSender = previous.sender || {};
+            const previousAddress = previousSender.address || {};
+            const profileAddress = senderProfileData.address || {};
+
+            return {
+                ...previous,
+                sender: {
+                    ...previousSender,
+                    name: senderProfileData.name ?? previousSender.name ?? "",
+                    email: senderProfileData.email ?? previousSender.email ?? "",
+                    phone: senderProfileData.phone ?? previousSender.phone ?? "",
+                    company: senderProfileData.company ?? previousSender.company ?? "",
+                    address: {
+                        ...previousAddress,
+                        line1: profileAddress.line1 ?? previousAddress.line1 ?? "",
+                        line2: profileAddress.line2 ?? previousAddress.line2 ?? "",
+                        city: profileAddress.city ?? previousAddress.city ?? "",
+                        state: profileAddress.state ?? previousAddress.state ?? "",
+                        postalCode: profileAddress.postalCode ?? previousAddress.postalCode ?? "",
+                        country: profileAddress.country ?? previousAddress.country ?? (countries[0] || "US"),
+                        instructions: profileAddress.instructions ?? previousAddress.instructions ?? "",
+                    },
+                },
             };
         });
     };
@@ -562,6 +640,7 @@ const Details = () => {
         return Array.from(pool);
     }, [packageTypes, packages]);
 
+    const senderFavorite = Boolean(data.sender?.saveToFavorites);
     const recipientFavorite = Boolean(data.recipient?.saveToFavorites);
 
     const handleCourierProviderChange = (index, providerId) => {
@@ -889,8 +968,46 @@ const Details = () => {
 
                         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                             <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
-                                <h2 className="text-base font-semibold text-[#0B1739]">Sender details</h2>
-                                <p className="mt-1 text-xs text-[#5B6887]">Pickup contact and address</p>
+                                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                        <h2 className="text-base font-semibold text-[#0B1739]">Sender details</h2>
+                                        <p className="mt-1 text-xs text-[#5B6887]">Pickup contact and address</p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {canUseSenderProfile && (
+                                            <button
+                                                type="button"
+                                                onClick={handleUseSenderProfile}
+                                                className="inline-flex items-center gap-2 rounded-[5px] border border-[#0955AC] px-3 py-1 text-xs font-semibold text-[#0955AC] hover:bg-[#0955AC]/10"
+                                            >
+                                                {senderProfileLabel}
+                                            </button>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSenderFavoritePicker(true)}
+                                            disabled={!hasFavoriteSenders}
+                                            className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1 text-xs font-semibold transition ${hasFavoriteSenders ? "border-[#0955AC] text-[#0955AC] hover:bg-[#0955AC]/10" : "cursor-not-allowed border-[#D6DEEB] text-[#A0AEC0]"}`}
+                                        >
+                                            Use saved sender
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => updateNestedField("sender.saveToFavorites", !senderFavorite)}
+                                            className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1 text-xs font-semibold transition ${senderFavorite ? "border-amber-300 bg-amber-50 text-amber-900" : "border-[#D6DEEB] bg-white text-[#0B1739] hover:border-[#0955AC]"}`}
+                                            aria-pressed={senderFavorite}
+                                            title={senderFavorite ? "Sender saved" : "Add sender to favorites"}
+                                        >
+                                            <Star
+                                                className={`h-4 w-4 ${senderFavorite ? "text-amber-500" : "text-[#6B7893]"}`}
+                                                fill={senderFavorite ? "currentColor" : "none"}
+                                            />
+                                            <span>{senderFavorite ? "Saved to favorites" : "Add to favorites"}</span>
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <div className="mt-3 space-y-2">
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1092,18 +1209,7 @@ const Details = () => {
                                 </div>
 
                                 <div className="mt-3 space-y-2">
-                                    <div className="flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-white px-3 py-2">
-                                        <input
-                                            id="recipient-same-as-sender"
-                                            type="checkbox"
-                                            checked={useSenderDetails}
-                                            onChange={handleUseSenderDetailsChange}
-                                            className="h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC]"
-                                        />
-                                        <label htmlFor="recipient-same-as-sender" className="text-xs text-[#0B1739]">
-                                            Recipient same as sender
-                                        </label>
-                                    </div>
+                                    
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">Name *</label>
@@ -1609,7 +1715,7 @@ const Details = () => {
                                             {recipient.email && <p>Email: {recipient.email}</p>}
                                             {recipient.phone && <p>Phone: {recipient.phone}</p>}
                                             {recipient.address && (
-                                                <p>Address: {formatRecipientAddress(recipient.address)}</p>
+                                                <p>Address: {formatContactAddress(recipient.address)}</p>
                                             )}
                                         </div>
                                     </div>
@@ -1618,6 +1724,64 @@ const Details = () => {
                         ) : (
                             <div className="mt-4 rounded-lg bg-[#F9FBFF] p-3 text-xs text-[#5B6887]">
                                 No saved recipients yet.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {showSenderFavoritePicker && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8">
+                    <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-[#0B1739]">Saved senders</h3>
+                                <p className="text-xs text-[#5B6887]">Select a sender to fill the form.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowSenderFavoritePicker(false)}
+                                className="rounded-[5px] border border-[#D6DEEB] px-3 py-1 text-xs font-semibold text-[#0B1739] hover:border-[#0955AC]"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        {hasFavoriteSenders ? (
+                            <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                                {favoriteSenders.map((sender) => (
+                                    <div key={`favorite-sender-${sender.id}`} className="rounded-xl border border-[#E3EAF5] bg-[#F9FBFF] p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-[#0B1739]">{sender.name || "Sender"}</p>
+                                                {sender.company && (
+                                                    <p className="text-xs text-[#6B7893]">{sender.company}</p>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    applySenderSelection(sender);
+                                                    setShowSenderFavoritePicker(false);
+                                                }}
+                                                className="rounded-[5px] border border-[#0955AC] px-3 py-1 text-xs font-semibold text-[#0955AC] hover:bg-[#0955AC]/10"
+                                            >
+                                                Use
+                                            </button>
+                                        </div>
+                                        <div className="mt-2 space-y-1 text-xs text-[#5B6887]">
+                                            {sender.email && <p>Email: {sender.email}</p>}
+                                            {sender.phone && <p>Phone: {sender.phone}</p>}
+                                            {sender.address && (
+                                                <p>Address: {formatContactAddress(sender.address)}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="mt-4 rounded-lg bg-[#F9FBFF] p-3 text-xs text-[#5B6887]">
+                                No saved senders yet.
                             </div>
                         )}
                     </div>

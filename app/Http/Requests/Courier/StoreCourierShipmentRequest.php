@@ -18,6 +18,7 @@ class StoreCourierShipmentRequest extends FormRequest
             'sender.email' => ['nullable', 'email', 'max:150'],
             'sender.phone' => ['nullable', 'string', 'max:40'],
             'sender.company' => ['nullable', 'string', 'max:120'],
+            'sender.saveToFavorites' => ['nullable', 'boolean'],
             'sender.address.line1' => ['required', 'string', 'max:180'],
             'sender.address.line2' => ['nullable', 'string', 'max:180'],
             'sender.address.city' => ['required', 'string', 'max:120'],

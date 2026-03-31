@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Services\Courier\CourierClientObservabilityService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
@@ -486,6 +487,7 @@ class ClientCourierController extends Controller
                 'email' => null,
                 'phone' => null,
                 'company' => null,
+                'saveToFavorites' => false,
                 'address' => [
                     'line1' => null,
                     'line2' => null,
@@ -562,9 +564,42 @@ class ClientCourierController extends Controller
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
         $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
         $favoriteRecipients = [];
+        $favoriteSenders = [];
+        $senderProfile = null;
 
         $user = Auth::user();
         if ($user) {
+            $senderProfile = $this->buildSenderProfilePayload($user, $countries);
+            $favoriteSenders = CourierContact::query()
+                ->with(['addresses' => function ($query) {
+                    $query->orderByDesc('is_primary')->orderBy('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('role', CourierContact::ROLE_SENDER)
+                ->where('is_favorite', true)
+                ->orderBy('updated_at', 'desc')
+                ->get()
+                ->map(function (CourierContact $contact) {
+                    $address = $contact->addresses->first();
+
+                    return [
+                        'id' => $contact->id,
+                        'name' => $contact->name,
+                        'email' => $contact->email,
+                        'phone' => $contact->phone,
+                        'company' => $contact->company_name,
+                        'address' => $address ? [
+                            'line1' => $address->line1,
+                            'line2' => $address->line2,
+                            'city' => $address->city,
+                            'state' => $address->state,
+                            'postalCode' => $address->postal_code,
+                            'country' => $address->country,
+                            'instructions' => $address->instructions,
+                        ] : null,
+                    ];
+                })
+                ->values();
             $favoriteRecipients = CourierContact::query()
                 ->with(['addresses' => function ($query) {
                     $query->orderByDesc('is_primary')->orderBy('id');
@@ -609,7 +644,60 @@ class ClientCourierController extends Controller
             'countries' => $countries,
             'logisticDimensionOptions' => $logisticDimensionOptions,
             'favoriteRecipients' => $favoriteRecipients,
+            'favoriteSenders' => $favoriteSenders,
+            'senderProfile' => $senderProfile,
         ]);
+    }
+
+    private function buildSenderProfilePayload(User $user, array $countries): array
+    {
+        $user->loadMissing('vendorProfile');
+
+        $isBusiness = $user->vendor_type === 'business';
+        $vendorProfile = $isBusiness ? $user->vendorProfile : null;
+
+        $nameParts = array_filter([$user->first_name, $user->last_name]);
+        $fallbackName = $nameParts ? trim(implode(' ', $nameParts)) : (string) $user->name;
+
+        $name = $isBusiness
+            ? (string) ($vendorProfile?->contact_person ?: $fallbackName)
+            : $fallbackName;
+        $email = $isBusiness
+            ? (string) ($vendorProfile?->contact_email ?: $user->email)
+            : (string) $user->email;
+        $phone = $isBusiness
+            ? (string) ($vendorProfile?->contact_phone ?: $user->phone)
+            : (string) $user->phone;
+        $company = $isBusiness
+            ? (string) ($vendorProfile?->company_name ?: $user->name)
+            : '';
+
+        $addressLine1 = $vendorProfile?->address_line1 ?: $user->address_line1;
+        $addressLine2 = $vendorProfile?->address_line2 ?: $user->address_line2;
+        $city = $vendorProfile?->city ?: $user->city;
+        $state = $vendorProfile?->state ?: $user->state;
+        $postalCode = $vendorProfile?->postal_code ?: $user->postal_code;
+        $country = strtoupper((string) ($vendorProfile?->country ?: $user->country ?: ($countries[0] ?? 'US')));
+
+        return [
+            'label' => $isBusiness ? 'Same as company profile' : 'Same as profile',
+            'isBusiness' => $isBusiness,
+            'sender' => [
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'company' => $company,
+                'address' => [
+                    'line1' => (string) ($addressLine1 ?? ''),
+                    'line2' => (string) ($addressLine2 ?? ''),
+                    'city' => (string) ($city ?? ''),
+                    'state' => (string) ($state ?? ''),
+                    'postalCode' => (string) ($postalCode ?? ''),
+                    'country' => $country,
+                    'instructions' => null,
+                ],
+            ],
+        ];
     }
 
     private function resolveLogisticDimensionOptionsForPayload(array $payload, string $category): array
@@ -663,6 +751,7 @@ class ClientCourierController extends Controller
                 'sender.email' => ['nullable', 'email', 'max:150'],
                 'sender.phone' => ['nullable', 'string', 'max:40'],
                 'sender.company' => ['nullable', 'string', 'max:120'],
+                'sender.saveToFavorites' => ['nullable', 'boolean'],
                 'sender.address.line1' => ['required', 'string', 'max:180'],
                 'sender.address.line2' => ['nullable', 'string', 'max:180'],
                 'sender.address.city' => ['required', 'string', 'max:120'],
@@ -757,6 +846,7 @@ class ClientCourierController extends Controller
         $normalized['recipient']['address']['country'] = strtoupper($normalized['recipient']['address']['country'] ?? '');
         $normalized['shipment']['currency'] = strtoupper($normalized['shipment']['currency'] ?? 'LKR');
         $normalized['shipment']['insurance'] = (bool) ($normalized['shipment']['insurance'] ?? false);
+        $normalized['sender']['saveToFavorites'] = (bool) ($normalized['sender']['saveToFavorites'] ?? false);
         $normalized['recipient']['saveToFavorites'] = (bool) ($normalized['recipient']['saveToFavorites'] ?? false);
 
         if ($reviewContextInput !== null) {
@@ -952,10 +1042,11 @@ class ClientCourierController extends Controller
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
         }, 0.0);
+        $saveSenderFavorite = (bool) ($payload['sender']['saveToFavorites'] ?? false);
         $saveRecipientFavorite = (bool) ($payload['recipient']['saveToFavorites'] ?? false);
 
         try {
-            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService, $saveRecipientFavorite) {
+            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService, $saveSenderFavorite, $saveRecipientFavorite) {
                 $sender = CourierContact::create([
                     'user_id' => Auth::id(),
                     'role' => CourierContact::ROLE_SENDER,
@@ -963,6 +1054,7 @@ class ClientCourierController extends Controller
                     'email' => $payload['sender']['email'] ?? null,
                     'phone' => $payload['sender']['phone'] ?? null,
                     'company_name' => $payload['sender']['company'] ?? null,
+                    'is_favorite' => $saveSenderFavorite,
                 ]);
 
                 $senderAddressData = $payload['sender']['address'];
