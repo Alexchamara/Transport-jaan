@@ -651,16 +651,11 @@ class NormalizeCourierPricingCategoryConfig extends Command
         $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
         $flatRows = $hasCategoryShape ? [] : (array_values($source) === $source ? $source : []);
 
-        $defaults = [
-            ['key' => 'colombo', 'label' => 'Colombo', 'isActive' => true, 'sortOrder' => 1],
-            ['key' => 'gampaha', 'label' => 'Gampaha', 'isActive' => true, 'sortOrder' => 2],
-        ];
-
         $normalized = [];
         foreach (['domestic', 'logistic'] as $category) {
             $rows = $hasCategoryShape
-                ? (is_array($source[$category] ?? null) ? $source[$category] : $defaults)
-                : (!empty($flatRows) ? $flatRows : $defaults);
+                ? (is_array($source[$category] ?? null) ? $source[$category] : [])
+                : $flatRows;
 
             $normalized[$category] = collect($rows)
                 ->map(function ($item, $index) {

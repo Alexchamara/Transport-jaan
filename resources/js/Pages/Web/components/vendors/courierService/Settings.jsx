@@ -107,20 +107,8 @@ const DEFAULT_SETTINGS = {
             ],
         },
         zoneMaster: {
-            domestic: [
-                { key: "colombo", label: "Colombo", isActive: true, sortOrder: 1 },
-                { key: "gampaha", label: "Gampaha", isActive: true, sortOrder: 2 },
-                { key: "kalutara", label: "Kalutara", isActive: true, sortOrder: 3 },
-                { key: "kandy", label: "Kandy", isActive: true, sortOrder: 4 },
-                { key: "galle", label: "Galle", isActive: true, sortOrder: 5 },
-            ],
-            logistic: [
-                { key: "colombo", label: "Colombo", isActive: true, sortOrder: 1 },
-                { key: "gampaha", label: "Gampaha", isActive: true, sortOrder: 2 },
-                { key: "kandy", label: "Kandy", isActive: true, sortOrder: 3 },
-                { key: "kurunegala", label: "Kurunegala", isActive: true, sortOrder: 4 },
-                { key: "matara", label: "Matara", isActive: true, sortOrder: 5 },
-            ],
+            domestic: [],
+            logistic: [],
         },
         laneMatrix: {
             enabled: {

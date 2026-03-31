@@ -7,6 +7,7 @@ use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierSetting;
+use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 use App\Services\Courier\CourierVendorAssignmentService;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -315,6 +317,7 @@ class ClientCourierController extends Controller
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
             'countries' => $countries,
+            'quoteProviders' => $this->resolveCreateQuoteProviders(),
             'recentReference' => $request->session()->pull('courier_reference'),
             'recentShipmentId' => $request->session()->pull('courier_bill_id'),
             'recentPricingExplanation' => $request->session()->pull('courier_pricing_explanation'),
@@ -429,7 +432,7 @@ class ClientCourierController extends Controller
     {
         $formData = $request->session()->get('courier_preview');
 
-        if (!$this->hasValidCourierPreviewPayload($formData)) {
+        if (!$this->hasReviewStagePreviewPayload($formData)) {
             $this->observability()->logStoreFailed($request, 'details_view_without_valid_preview', [
                 'phase' => 'details',
             ]);
@@ -494,7 +497,7 @@ class ClientCourierController extends Controller
     {
         $existing = $request->session()->get('courier_preview');
 
-        if (!$this->hasValidCourierPreviewPayload($existing)) {
+        if (!$this->hasReviewStagePreviewPayload($existing)) {
             $request->session()->forget('courier_preview');
 
             return redirect()
@@ -934,12 +937,47 @@ class ClientCourierController extends Controller
 
         $request->session()->forget('courier_preview');
         $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
+        $this->rememberGuestBillAccess($request, (int) $shipment->id);
 
         return redirect()
             ->route('couriers.create')
             ->with('success', 'Courier request submitted successfully.')
             ->with('courier_reference', $shipment->reference)
             ->with('courier_bill_id', $shipment->id);
+    }
+
+    private function hasReviewStagePreviewPayload($payload): bool
+    {
+        if (!is_array($payload)) {
+            return false;
+        }
+
+        $packages = $payload['packages'] ?? [];
+        if (!is_array($packages) || count($packages) < 1) {
+            return false;
+        }
+
+        foreach ($packages as $package) {
+            if (!is_array($package)) {
+                return false;
+            }
+
+            if ((int) ($package['quantity'] ?? 0) < 1) {
+                return false;
+            }
+
+            if ((float) ($package['weightKg'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if (empty($package['courierProvider'] ?? null) || empty($package['serviceLevel'] ?? null)) {
+                return false;
+            }
+        }
+
+        $selectedQuotes = $payload['reviewContext']['selectedQuotes'] ?? [];
+
+        return is_array($selectedQuotes) && count($selectedQuotes) >= 1;
     }
 
     private function hasValidCourierPreviewPayload($payload): bool
@@ -2822,22 +2860,353 @@ class ClientCourierController extends Controller
         }
     }
 
+    private function resolveCreateQuoteProviders(): array
+    {
+        $registrations = VendorServiceRegistration::query()
+            ->where('status', 'approved')
+            ->whereHas('serviceCategory', function ($query) {
+                $query->where('slug', 'courier-services');
+            })
+            ->whereHas('serviceSubCategory', function ($query) {
+                $query->whereIn('slug', ['domestic', 'logistic', 'international']);
+            })
+            ->with([
+                'user:id,name',
+                'user.vendorProfile:id,user_id,company_name,logo,city,country',
+                'serviceSubCategory:id,slug,name',
+            ])
+            ->get();
+
+        if ($registrations->isEmpty()) {
+            return [];
+        }
+
+        $settingsByVendor = VendorCourierSetting::query()
+            ->whereIn('vendor_user_id', $registrations->pluck('user_id')->unique()->values())
+            ->pluck('settings', 'vendor_user_id')
+            ->all();
+
+        return $registrations
+            ->map(function (VendorServiceRegistration $registration) use ($settingsByVendor) {
+                $vendorId = (int) $registration->user_id;
+                $vendorSettings = $settingsByVendor[$vendorId] ?? [];
+
+                return $this->mapRegistrationToCreateQuoteProvider(
+                    $registration,
+                    is_array($vendorSettings) ? $vendorSettings : []
+                );
+            })
+            ->filter()
+            ->sort(function (array $left, array $right) {
+                $leftCategoryOrder = ($left['category'] ?? 'logistic') === 'domestic' ? 0 : 1;
+                $rightCategoryOrder = ($right['category'] ?? 'logistic') === 'domestic' ? 0 : 1;
+
+                if ($leftCategoryOrder !== $rightCategoryOrder) {
+                    return $leftCategoryOrder <=> $rightCategoryOrder;
+                }
+
+                return strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+            })
+            ->values()
+            ->all();
+    }
+
+    private function mapRegistrationToCreateQuoteProvider(VendorServiceRegistration $registration, array $settings): ?array
+    {
+        $category = $this->normalizeQuoteProviderCategory((string) optional($registration->serviceSubCategory)->slug);
+        $vendor = $registration->user;
+
+        if (!$vendor || $category === null) {
+            return null;
+        }
+
+        $profile = $vendor->vendorProfile;
+        $providerName = trim((string) ($profile?->company_name ?? $vendor->name ?? 'Courier Vendor'));
+        if ($providerName === '') {
+            $providerName = 'Courier Vendor';
+        }
+
+        $theme = $this->resolveQuoteProviderTheme((int) $vendor->id, $category);
+        $pricing = $this->resolveQuoteProviderPricing($category, $settings);
+
+        return [
+            'id' => sprintf('vendor-%d-%s', (int) $vendor->id, $category),
+            'name' => $providerName,
+            'logo' => $this->resolveVendorProfileLogoUrl((string) ($profile?->logo ?? '')),
+            'category' => $category,
+            'brandColor' => $theme['brandColor'],
+            'badgeColor' => $theme['badgeColor'],
+            'rateMultiplier' => $pricing['rateMultiplier'],
+            'fuelSurcharge' => $pricing['fuelSurcharge'],
+            'customsBuffer' => $pricing['customsBuffer'],
+            'coverage' => $this->resolveQuoteProviderCoverage($category, $profile?->city, $profile?->country),
+            'cutoff' => $this->resolveQuoteProviderCutoff($category, $settings),
+            'badges' => $this->resolveQuoteProviderBadges($category),
+            'tiers' => $this->resolveQuoteProviderTiers($category),
+        ];
+    }
+
+    private function normalizeQuoteProviderCategory(string $serviceSubCategorySlug): ?string
+    {
+        $normalized = strtolower(trim($serviceSubCategorySlug));
+
+        if ($normalized === 'domestic') {
+            return 'domestic';
+        }
+
+        if ($normalized === 'logistic' || $normalized === 'international') {
+            return 'logistic';
+        }
+
+        return null;
+    }
+
+    private function resolveQuoteProviderTheme(int $vendorId, string $category): array
+    {
+        $palettes = [
+            'domestic' => [
+                ['brandColor' => '#0055A4', 'badgeColor' => '#CCE5FF'],
+                ['brandColor' => '#E84B1C', 'badgeColor' => '#FFE8E0'],
+                ['brandColor' => '#0D9488', 'badgeColor' => '#CCFBF1'],
+                ['brandColor' => '#7C3AED', 'badgeColor' => '#EDE9FE'],
+            ],
+            'logistic' => [
+                ['brandColor' => '#FFB800', 'badgeColor' => '#FFF4CC'],
+                ['brandColor' => '#4D148C', 'badgeColor' => '#EFE6FB'],
+                ['brandColor' => '#3B2419', 'badgeColor' => '#F4EDE5'],
+                ['brandColor' => '#E7002A', 'badgeColor' => '#FFE0E6'],
+            ],
+        ];
+
+        $palette = $palettes[$category] ?? $palettes['domestic'];
+        $index = count($palette) > 0 ? abs($vendorId) % count($palette) : 0;
+
+        return $palette[$index] ?? ['brandColor' => '#0955AC', 'badgeColor' => '#E8F0FE'];
+    }
+
+    private function resolveQuoteProviderPricing(string $category, array $settings): array
+    {
+        $defaults = $category === 'logistic'
+            ? ['rateMultiplier' => 1.05, 'fuelSurcharge' => 0.05, 'customsBuffer' => 3.5]
+            : ['rateMultiplier' => 1.015, 'fuelSurcharge' => 0.03, 'customsBuffer' => 0.0];
+
+        $formulaConfig = is_array($settings['pricing']['formula'] ?? null) ? $settings['pricing']['formula'] : [];
+        $scopedFormula = is_array($formulaConfig[$category] ?? null)
+            ? $formulaConfig[$category]
+            : (is_array($formulaConfig) ? $formulaConfig : []);
+
+        $fuelSurcharge = $defaults['fuelSurcharge'];
+        if (isset($scopedFormula['fuelSurchargePercent'])) {
+            $fuelSurcharge = round(max(0, (float) $scopedFormula['fuelSurchargePercent']) / 100, 3);
+        }
+
+        $taxRate = isset($scopedFormula['taxPercent'])
+            ? max(0, (float) $scopedFormula['taxPercent']) / 100
+            : 0.0;
+        $rateMultiplier = round(min(1.35, max(0.85, $defaults['rateMultiplier'] + $taxRate)), 3);
+
+        $customsBuffer = $defaults['customsBuffer'];
+        if ($category === 'logistic' && isset($scopedFormula['handlingFee'])) {
+            $customsBuffer = round(max($customsBuffer, min(12, (float) $scopedFormula['handlingFee'] / 10)), 2);
+        }
+
+        return [
+            'rateMultiplier' => $rateMultiplier,
+            'fuelSurcharge' => $fuelSurcharge,
+            'customsBuffer' => $customsBuffer,
+        ];
+    }
+
+    private function resolveQuoteProviderCoverage(string $category, ?string $city, ?string $country): string
+    {
+        $city = trim((string) $city);
+        $country = strtoupper(trim((string) $country));
+
+        if ($category === 'domestic') {
+            return $city !== ''
+                ? sprintf('Island-wide delivery from %s', $city)
+                : 'Island-wide domestic delivery';
+        }
+
+        return $country !== ''
+            ? sprintf('Cross-border logistics from %s', $country)
+            : 'Cross-border logistics support';
+    }
+
+    private function resolveQuoteProviderCutoff(string $category, array $settings): string
+    {
+        $default = $category === 'logistic' ? 'Pickup by 3:30 PM' : 'Pickup by 5:00 PM';
+
+        $serviceCatalogConfig = is_array($settings['pricing']['serviceCatalog'] ?? null)
+            ? $settings['pricing']['serviceCatalog']
+            : [];
+        $serviceCatalog = is_array($serviceCatalogConfig[$category] ?? null)
+            ? $serviceCatalogConfig[$category]
+            : [];
+
+        foreach ($serviceCatalog as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            if (isset($item['isActive']) && !(bool) $item['isActive']) {
+                continue;
+            }
+
+            $formattedCutoff = $this->formatQuoteProviderCutoff((string) ($item['cutoffTime'] ?? ''));
+            if ($formattedCutoff !== null) {
+                return 'Pickup by ' . $formattedCutoff;
+            }
+        }
+
+        return $default;
+    }
+
+    private function formatQuoteProviderCutoff(string $value): ?string
+    {
+        $candidate = trim($value);
+        if ($candidate === '') {
+            return null;
+        }
+
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $candidate) === 1) {
+            try {
+                return Carbon::createFromFormat('H:i', $candidate)->format('g:i A');
+            } catch (\Throwable $exception) {
+                return null;
+            }
+        }
+
+        if (preg_match('/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $candidate) === 1) {
+            try {
+                return Carbon::createFromFormat('H:i:s', $candidate)->format('g:i A');
+            } catch (\Throwable $exception) {
+                return null;
+            }
+        }
+
+        if (preg_match('/^([1-9]|1[0-2]):[0-5]\d\s?(AM|PM)$/i', $candidate) === 1) {
+            try {
+                return Carbon::createFromFormat('g:i A', strtoupper($candidate))->format('g:i A');
+            } catch (\Throwable $exception) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveQuoteProviderBadges(string $category): array
+    {
+        return $category === 'logistic'
+            ? ['Approved vendor', 'Customs support']
+            : ['Approved vendor', 'Door-to-door'];
+    }
+
+    private function resolveQuoteProviderTiers(string $category): array
+    {
+        if ($category === 'logistic') {
+            return [
+                [
+                    'id' => 'economy',
+                    'label' => 'Economy',
+                    'base' => 16,
+                    'perKg' => 1.2,
+                    'eta' => '4-7 business days',
+                    'description' => 'Economical cross-border courier service.',
+                ],
+                [
+                    'id' => 'express',
+                    'label' => 'Express',
+                    'base' => 29,
+                    'perKg' => 1.85,
+                    'eta' => '2-4 business days',
+                    'description' => 'Faster global shipping with customs assistance.',
+                ],
+                [
+                    'id' => 'priority',
+                    'label' => 'Priority',
+                    'base' => 52,
+                    'perKg' => 2.6,
+                    'eta' => '1-2 business days',
+                    'description' => 'Priority international shipping for urgent cargo.',
+                ],
+            ];
+        }
+
+        return [
+            [
+                'id' => 'economy',
+                'label' => 'Economy',
+                'base' => 2.9,
+                'perKg' => 0.38,
+                'eta' => '2-4 business days',
+                'description' => 'Affordable island-wide domestic delivery.',
+            ],
+            [
+                'id' => 'express',
+                'label' => 'Express',
+                'base' => 5.8,
+                'perKg' => 0.68,
+                'eta' => 'Next-day delivery',
+                'description' => 'Fast domestic service with dependable tracking.',
+            ],
+            [
+                'id' => 'priority',
+                'label' => 'Priority',
+                'base' => 9.7,
+                'perKg' => 0.98,
+                'eta' => 'Same-day delivery',
+                'description' => 'Rapid same-day pickup and door-to-door fulfillment.',
+            ],
+        ];
+    }
+
+    private function resolveVendorProfileLogoUrl(string $logoPath): ?string
+    {
+        $logoPath = trim($logoPath);
+        if ($logoPath === '') {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $logoPath) === 1) {
+            return $logoPath;
+        }
+
+        $normalized = ltrim($logoPath, '/');
+        if (str_starts_with($normalized, 'storage/')) {
+            $normalized = substr($normalized, strlen('storage/'));
+        }
+
+        return Storage::url($normalized);
+    }
+
     public function downloadBill(Request $request, CourierShipment $shipment)
     {
-        if (!Auth::check()) {
-            $this->observability()->recordAuthorizationDenial($request, 'unauthenticated_bill_download', [
+        $shipmentOwnerId = (int) ($shipment->requested_by_user_id ?? 0);
+        $authenticatedUserId = (int) (Auth::id() ?? 0);
+        $isAuthenticatedOwner = $authenticatedUserId > 0
+            && $shipmentOwnerId > 0
+            && $shipmentOwnerId === $authenticatedUserId;
+        $hasGuestSessionAccess = $shipmentOwnerId === 0
+            && $this->hasGuestBillAccess($request, (int) $shipment->id);
+
+        if (!$isAuthenticatedOwner && !$hasGuestSessionAccess) {
+            if ($authenticatedUserId > 0) {
+                $this->observability()->recordOwnershipFailure($request, 'shipment_bill_download', (int) $shipment->id, [
+                    'owner_user_id' => (int) $shipment->requested_by_user_id,
+                ]);
+
+                abort(403);
+            }
+
+            $this->observability()->recordAuthorizationDenial($request, 'guest_bill_download_without_session_access', [
                 'requested_shipment_id' => (int) ($shipment->id ?? 0),
             ]);
 
-            return redirect()->route('signin.signin');
-        }
-
-        if ((int) $shipment->requested_by_user_id !== (int) Auth::id()) {
-            $this->observability()->recordOwnershipFailure($request, 'shipment_bill_download', (int) $shipment->id, [
-                'owner_user_id' => (int) $shipment->requested_by_user_id,
-            ]);
-
-            abort(403);
+            return redirect()
+                ->route('couriers.create')
+                ->with('error', 'Unable to download that bill from this session.');
         }
 
         $shipment->loadMissing([
@@ -2952,6 +3321,42 @@ class ClientCourierController extends Controller
             'Content-Type' => 'text/html; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    private function rememberGuestBillAccess(Request $request, int $shipmentId): void
+    {
+        if ($shipmentId <= 0) {
+            return;
+        }
+
+        $existingIds = collect((array) $request->session()->get('courier_guest_bill_access_ids', []))
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0);
+
+        $request->session()->put(
+            'courier_guest_bill_access_ids',
+            $existingIds
+                ->push($shipmentId)
+                ->unique()
+                ->values()
+                ->slice(-25)
+                ->values()
+                ->all()
+        );
+    }
+
+    private function hasGuestBillAccess(Request $request, int $shipmentId): bool
+    {
+        if ($shipmentId <= 0) {
+            return false;
+        }
+
+        $allowedIds = collect((array) $request->session()->get('courier_guest_bill_access_ids', []))
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0)
+            ->values();
+
+        return $allowedIds->contains($shipmentId);
     }
 
     private function observability(): CourierClientObservabilityService

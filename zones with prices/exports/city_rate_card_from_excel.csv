@@ -1,0 +1,1989 @@
+company_code,service_category,country,province,district,city,zone_code,first_kg,extra_kg,currency,source_file
+#CR0001,domestic,Sri Lanka,Central,Kandy,Akurana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Alawatugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Aludeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ambagahapelessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ambatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ankumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Atabage,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Balana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Bambaragahaela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Barawardhana Oya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Batagolladeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Batugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Batumulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Bawlana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Bopana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Danture,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Dedunupitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Dekinda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Deltota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Dolapihilla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Dolosbage,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Doluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Doragamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Dunuwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ekiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Elamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Etulgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Galaboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Galagedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Galaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Galhinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gallellagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gelioya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Godamunna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gomagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gonagantenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gonawalapatana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gunnepana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Gurudeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Halloluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Handaganawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Handawalapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Handessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hanguranketha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Harankahawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hasalaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hataraliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hewaheta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hindagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hondiyadeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Hunnasgiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Jambugahapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kadugannawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kahataliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kalugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kandy,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kapuliyadde,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Karandagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Katugastota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kengalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ketakumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ketawala Leula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kiribathkumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kobonila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kolabissa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kolongoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kulugammana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kumbukkandura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kumburegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Kundasale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Leemagahakotuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,lhala Kobbekaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,lllagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Lunuketiya Maditta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Madawala Bazaar,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Madugalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Madulkele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mahadoraliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mahamedagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mailapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Makkanigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Makuldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mandaram Nuwara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mapakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Marassana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Marymount Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Maturata,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mawatura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Medamahanuwara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Medawala Harispattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Meetalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Megoda Kalugamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Menikdiwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Menikhinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Mimure,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Minigamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Minipe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Murutalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Muruthagahamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Naranpanawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Nattarampotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Nawalapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Nillambe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Nugaliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Nugawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pallebowala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pallekotuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Panvila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Panwilatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Paradeka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pasbage,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pattitalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pattiya Watta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Penideniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Peradeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pilawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pilimatalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Poholiyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Polgolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pujapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pupuressa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Pussellawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Putuhapuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rajawella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rambukpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rambukwella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rangala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rantembe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rathukohodigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Rikillagaskada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Sangarajapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Senarathwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Talatuoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Tawalantenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Teldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Tennekumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Uda Peradeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Udahentenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Udahingulwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Udatalawinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Udawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Udispattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ududumbara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Uduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Uduwahinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Uduwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ulapane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Ulpothagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Unuwinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Velamboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Watagoda Harispattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Wattappola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Wattegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Weligalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Weligampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Wendaruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Weragantota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Werapitya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Werellagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Wettawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Wilanagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Yahalatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Kandy,Yatihalagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Akuramboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Alwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Ambana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Ataragallewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Bambaragaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Beligamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Dambulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Dankanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Devagiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Dewahuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Dullewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Dunkolawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Dunuwilapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Elkaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Erawula Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Etanawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Galewela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Gammaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Gangala Puwakpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Handungamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Hattota Amuna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Imbulgolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Inamaluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kaikawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kalundawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kandalama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Karagahinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Katudeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kavudupelella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kibissa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kiwula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Kongahawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Laggala Pallegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Leliambe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Lenadora,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,lllukkumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Madawala Ulpotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Madipola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Mahawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Mananwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Maraka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Matale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Melipitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Metihakka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Millawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Muwandeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Nalanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Naula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Nugagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Opalgala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Ovilikanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Palapathwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Pallepola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Perakanatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Pubbiliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Ranamuregama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Rattota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Selagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Sigiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Talagoda Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Talakiriyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Udasgiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Udatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Ukuwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Wahacotte,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Walawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Wehigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Welangahawatte,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Wewalawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Wilgamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Matale,Yatawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Agarapathana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ambagamuwa Udabulathgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ambatalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ambewela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Bogawantalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Bopattalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Dagampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Dayagama Bazaar,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Dikoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Doragala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Dunukedeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ginigathena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Gonakele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Haggala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Halgranoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Hangarapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Hapugastalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Harangalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Harasbedda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Hatton,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Hedunuwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Hitigegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kalaganwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kandapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Katukitula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Keerthi Bandarapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kelanigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ketaboola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kotagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kotmale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kottellena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kumbalgamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kumbukwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Kurupanawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Labukele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Laxapana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Lindula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Madulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Maldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Maskeliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Maswela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Mipanawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Mipilimana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Morahenagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Munwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Nanuoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Nawathispane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Nayapana Janapadaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Nildandahinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Nissanka Uyana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Norwood,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Nuwara Eliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Padiyapelella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Patana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Pitawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Pundaluoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ramboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Rozella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Rupaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Ruwaneliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Santhipura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Talawakele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Teripeha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Udamadura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Udapussallawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Walapane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Watagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Watawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Widulipura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Central,Nuwara Eliya,Wijebahukanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Andiyagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Angamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Anuradhapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Awukana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Bogahawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Dematawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Dunumadalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Dutuwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Elayapattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Eppawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Etawatunuwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Etaweeragollewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Galadivulwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Galenbindunuwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Galkadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Galkiriyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Galkulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Galnewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Gambirigaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Ganewalpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Gemunupura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Getalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Gnanikulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Gonahaddenawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Habarana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Halmillawa Dambulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Halmillawetiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Hidogama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Horawpatana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Horiwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Hurigaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Hurulunikawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kahatagasdigiliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kahatagollewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kalakarambewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kalankuttiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kalaoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kalawedi Ulpotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kallanchiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kapugallawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Karagahawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Katiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kebithigollewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kekirawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kendewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kiralogama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kirigalwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kitulhitiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Kurundankulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Labunoruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,lhala Halmillewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,lhalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,lpologama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Madatugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Maha Elagamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mahabulankulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mahailluppallama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mahakanadarawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mahapothana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mahasenpura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mahawilachchiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mailagaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Malwanagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Maneruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Maradankadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Maradankalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Medawachchiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Megodawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mihintale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Morakewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Mulkiriyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Muriyakadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Nachchaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Namalpura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Negampaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Nochchiyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Padavi Maithripura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Padavi Parakramapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Padavi Sripura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Padavi Sritissapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Padaviya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Padikaramaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pahala Halmillewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pahala Maragahawe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pahalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Palagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Palugaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pandukabayapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pandulagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Parakumpura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Parangiyawadiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Parasangahawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pemaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Perimiyankulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pihimbiyagolewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pubbogama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Pulmoddai,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Punewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Rajanganaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Rambewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Rampathwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Ranorawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Rathmalgahawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Saliyapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Seeppukulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Senapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Sivalakulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Siyambalewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Sravasthipura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Talawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Tambuttegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Tammennawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Tantirimale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Telhiriyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Tennamarawadiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Tirappane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Tittagonewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Udunuwara Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Upuldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Uttimaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Viharapalugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Vijithapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Wahalkada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Wahamalgollewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Walagambahuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Walahaviddawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Welimuwapotana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Anuradhapura,Welioya Project,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Alutwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Aralaganwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Aselapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Attanakadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Bakamuna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Dalukana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Damminna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Dewagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Dimbulagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Divulankadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Divuldamana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Diyabeduma,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Diyasenpura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Elahera,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Ellewewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Galamuna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Galoya Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Giritale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Hansayapalama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Hingurakdamana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Hingurakgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Jayanthipura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Jayasiripura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kalingaela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kalukele Badanagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kashyapapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kawudulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kawuduluwewa Stagell,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kottapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Kumaragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Lakshauyana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Maduruoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Maha Ambagaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Mahatalakolawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Mahawela Sinhapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Mampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Medirigiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Meegaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Minneriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Mutugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Nawasenapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Nelumwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Nuwaragala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Onegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Orubendi Siyambalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Palugasdamana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Parakramasamudraya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Pelatiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Pimburattewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Polonnaruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Pulastigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Sevanapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Sinhagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Sungavila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Talpotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Tamankaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Tambala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Unagalavehera,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Welikanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Wijayabapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Yodaela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Central,Polonnaruwa,Yudaganawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Alahengama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Alahitiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Alawatuwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Alawwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ambakote,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ambanpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Anhandiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Anukkane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Aragoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ataragalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Awulegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Balalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Bamunukotuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Bandara Koswatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Bingiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Bogamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Bopitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Boraluwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Boyagane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Bujjomuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Buluwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Dambadeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Daraluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Deegalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Delwite,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Demataluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Diddeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Digannewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Divullegoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Dodangaslanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Doratiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Dummalasuriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ehetuwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Elibichchiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Embogama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Etungahakotuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Galgamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Gallewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Girathalana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Giriulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Gokaralla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Gonawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Halmillawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hengamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hettipola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hilogama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hindagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hiriyala Lenawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hiruwalpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Horambawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hulogedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hulugalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Hunupola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ihala Gomugomuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ihala Katugampala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Indulgodakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Inguruwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Iriyagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ithanawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kadigawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kahapathwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kalugamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kanadeniyawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kanattewewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Karagahagedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Karambe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Katupota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kekunagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Keppitiwalana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kimbulwanaoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kirimetiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kirindawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kirindigalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kithalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kobeigane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kohilagedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Konwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kosdeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kosgolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kotawehera,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kudagalgamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kudakatnoruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kuliyapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kumbukgeta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kumbukwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kuratihena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Kurunegala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Labbala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,lbbagamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,lhala Kadigamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,llukhena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Lonahettiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Madahapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Madakumburumulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Maduragoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Maeliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Magulagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mahagalkadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mahagirilla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mahamukalanyaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mahananneriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Maharachchimulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Maho,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Makulewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Makulpotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Makulwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Malagane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mandapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Maspotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mawathagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Medivawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Meegalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Meetanwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Meewellawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Melsiripura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Metikumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Metiyagane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Minhettiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Minuwangete,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Mirihanagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Monnekulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Moragane,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Moragollagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Morathiha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Munamaldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Muruthenge,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nabadewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nagollagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nagollagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nakkawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Narammala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Narangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nawatalwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nelliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nikadalupotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Nikaweratiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Padeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Padiwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pahalagiribawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pahamune,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Palukadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Panadaragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Panagamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Panaliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Panliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pannala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pansiyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Periyakadneluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pihimbiya Ratmale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pihimbuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pilessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Polgahawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Polpitigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Pothuhera,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Puswelitenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ridibendiella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ridigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Saliya Asokapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Sandalankawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Sirisetagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Siyambalangamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Solepura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Solewewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Sunandapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Talawattegedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Tambutta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Thalahitimulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Thalakolawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Thalwita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Thambagalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Tharana Udawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Thimbiriyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Tisogama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Torayaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Tuttiripitigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Udubaddawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Uhumiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Ulpotha Pallekele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Usgala Siyabmalangamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wadakada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wadumunnegedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Walakumburumulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wannigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wannikudawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wannilhalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wannirasnayakapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Warawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wariyapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Watuwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Weerapokuna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Welawa Juncton,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Welipennagahamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wellagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wellarawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wellawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Welpalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wennoruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Weuda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Wewagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Yakwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Kurunegala,Yatigaloluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Adippala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Ambakandawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Anamaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Andigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Angunawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Attawilluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Bangadeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Baranankattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Battuluoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Bujjampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Chilaw,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Dankotuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Dunkannawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Eluwankulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Ettale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Galmuruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Ihala Kottaramulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Ihala Puliyankulama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Ilippadeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Inginimitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Ismailpuram,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kakkapalliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kalladiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kalpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kandakuliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Karativponparappi,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Karawitagara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Karuwalagaswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Katuneriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kirimundalama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Koswatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kottantivu,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kottukachchiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kudawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kumarakattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kurinjanpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Kuruketiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Lihiriyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Lunuwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Madampe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Madurankuliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mahakumbukkadawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mahauswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mahawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mampuri,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mangalaeliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Marawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mudalakkuliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mugunuwatawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mukkutoduwawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Mundel,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Muttibendiwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Nainamadama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Nalladarankattuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Nattandiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Nawagattegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Norachcholai,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Palaviya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Pallama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Palliwasalturai,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Panirendawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Pothuwatawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Puttalam,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Puttalam Cement Factory,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Rajakadaluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Saliyawewa Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Serukele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Sirambiadiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Siyambalagashene,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Tabbowa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Talawila Church,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Toduwawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Udappuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Uridyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Vanathawilluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Waikkal,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Watugahamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Wennappuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Wijeyakatupotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Wilpotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,North Western,Puttalam,Yogiyana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Alawatura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Algama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Alutnuwara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Ambalakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Ambulugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Amitirigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Ampagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Anhettigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Aranayaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Aruggammana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Atale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Batuwita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Berannawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Boralankada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Bossella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Bulathkohupitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Damunupola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Debathgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dedugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Deewala Pallegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dehiowita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Deldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Deloluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Deraniyagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dewalegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dewanagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dombemada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dorawaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Dunumala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Galapitamada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Galatara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Galigamuwa Town,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Gantuna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Gonagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hakahinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hakbellawaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Helamada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hemmatagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hettimulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hewadiwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hingula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hinguralakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Hiriwadunna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Imbulana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Imbulgasdeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kabagamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kannattota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kegalle,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kehelpannala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kitulgala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kondeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Kotiyakumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Lewangama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Mahabage,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Mahapallegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Maharangalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Makehelwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Malalpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Maliboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Malmaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Mawanella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Migastenna Sabara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Miyanawita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Molagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Morontota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Nelundeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Niyadurupola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Noori,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Parape,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Pattampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Pitagaldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Pothukoladeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Rambukkana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Ruwanwella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Seaforth Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Talgaspitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Teligama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Tholangamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Thotawella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Tulhiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Tuntota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Udagaldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Udapotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Udumulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Undugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Ussapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Wahakula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Waharaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Warakapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Watura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Weeoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Wegalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Welihelatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Weragala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Yatagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Yatapana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Yatiyantota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Kegalle,Yattogoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Akarella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Atakalanpanna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ayagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Balangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Batatota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Belihuloya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Bolthumbe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Bomluwageaina,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Bulutota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Dambuluwana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Daugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Dela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Delwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Demuwatha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Dodampe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Doloswalakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Dumbara Manana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Eheliyagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Elapatha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ellagawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ellaulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ellawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Embilipitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Eratna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Erepola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Gabbela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Gallella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Gangeyaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Gawaragiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Getahetta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Gillimale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Godagampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Godakawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Gurubewilagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Halpe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Halwinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Handagiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Hapugastenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Hatangala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Hatarabage,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Hidellana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Hiramadagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ihalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ittakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kahangama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kahawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kalawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kaltota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Karandana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Karangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kella Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kiriella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kolambageara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kolombugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kolonna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kudawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Kuruwita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Lellopitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,lmbulpe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Madalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Mahawalatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Makandura Sabara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Malwala Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Marapana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Matuwagalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Medagalatur,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Meddekanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Minipura Dumbara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Mitipola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Morahela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Mulendiyawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Mulgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Nawalakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,NawinnaPinnakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Niralagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Nivitigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Omalpe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Opanayaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Padalangala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pallebedda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pambagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Panamura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Panapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Panapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Panawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Parakaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pebotuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pelmadulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pimbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pinnawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Pothupitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Rajawaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Rakwana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ranwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Rassagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ratna Hangamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ratnapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Samanalawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Sri Palabaddala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Sudagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Talakolahinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Tanjantenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Teppanawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Tunkama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Udaha Hawupe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Udakarawita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Udaniriella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Udawalawe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Ullinduwawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Veddagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Vijeriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Waleboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Watapotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Waturawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Weligepola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Welipathayaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Wewelwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Sabaragamuwa,Ratnapura,Wikiliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Agaliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ahangama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ahungalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Akmeemana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Aluthwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ambalangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ampegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Amugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Anangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Angulugaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ankokkawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Baddegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Balapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Banagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Batapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Bentota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Boossa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Dikkumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Dodanduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ella Tanabaddegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Elpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ethkandura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Galle,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ganegoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ginimellagaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Gintota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Godahena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Gonagalpura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Gonamulla Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Gonapinuwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Habaraduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Haburugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Halvitigala Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Hawpe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Hikkaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Hiniduma,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Hiyare,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ihala Walpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Kahaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Kahawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Kananke Bazaar,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Karagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Karandeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Kosgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Kottawagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Kuleegoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,lhalahewessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,lmaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,lnduruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Magedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Malgalla Talangalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Mapalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Mapalagama Central,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Mattaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Meda-Keembiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Meetiyagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Miriswatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Nagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Nakiyadeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Nawadagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Neluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Nindana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Opatha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Panangala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Pannimulla Panagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Parana ThanaYamgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Pitigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Poddala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Porawagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Rantotuwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Ratgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Talagampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Talgaspe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Talgaswela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Talpe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Tawalama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Tiranagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Udalamatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Udugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Uluvitike,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Unawatuna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Unenwitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Uragaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Uragasmanhandiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Wakwella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Walahanduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Wanchawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Wanduramba,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Warukandeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Watugedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Weihena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Yakkalamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Galle,Yatalamatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ambalantota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Angunakolapelessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Bandagiriya Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Barawakumbuka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Beliatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Beragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Beralihela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Bowalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Bundala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ellagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Gangulandeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Getamanna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Goda Koggalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Gonagamuwa Uduwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Gonnoruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Hakuruwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Hambantota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Horewelagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Hungama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ihala Beligalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ittademaliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Julampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Kahandamodara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Kariyamaditta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Katuwana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Kawantissapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Kirama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Kirinda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Lunama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Lunugamwehera,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Magama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Mahagalwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Mamadala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Medamulana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Middeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Migahajandur,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Modarawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Mulkirigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Nakulugamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Netolpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Nihiluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Padawkema,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Pahala Andarawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Pallekanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Rammalawarapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ranakeliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ranmuduwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ranna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Ratmalwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,RU/Ridiyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Sooriyawewa Town,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Tangalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Tissamaharama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Uda Gomadiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Udamattala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Uswewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Vitharandeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Walasmulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Weeraketiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Weerawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Weerawila NewTown,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Wekandawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Weligatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Hambantota,Yatigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Akuressa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Alapaladeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Aparekka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Athuraliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Bengamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Beralapanathara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Bopagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Dampahala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Deegala Lenama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Deiyandara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Dellawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Denagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Denipitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Deniyaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Derangala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Dikwella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Diyagaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Diyalape,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Gandara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Godapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Gomilamawarala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Hakmana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Handugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Horapawita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kalubowitiyana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kamburugamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kamburupitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Karagoda Uyangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Karaputugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Karatota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kekanadurra,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kiriweldola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kiriwelkele,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kolawenigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kotapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Kottegoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Lankagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Makandura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Maliduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Maramba,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Matara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Mediripitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Miella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Mirissa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Moragala Kirillapone,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Morawaka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Mulatiyana Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Nadugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Naimana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Narawelpita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Pahala Millawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Palatuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Paragala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Parapamulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Pasgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Penetiyana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Pitabeddara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Pothdeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Puhulwella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Radawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Ransegoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Ratmale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Rotumba,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Siyambalagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Sultanagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Telijjawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Thihagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Urubokka,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Urugamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Urumutta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Viharahena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Walakanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Walasgala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Waralla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Weligama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Wilpita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Southern,Matara,Yatiyana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Akkarasiyaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Aluketiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Aluttaramma,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ambadandegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ambagahawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ambagasdowa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Amunumulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Arawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Arawakumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Arawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Atakiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Badulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Baduluoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ballaketuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Bambarapana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Bandarawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Beramada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Bibilegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Bogahakumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Boragas,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Boralanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Bowela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Dambana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Demodara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Diganatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Dikkapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Dimbulana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Divulapelessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Diyatalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Dulgolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Egodawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ettampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Galauda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Galedanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Galporuyaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Gamewela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Gawarawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Girandurukotte,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Godunna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Gurutalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Haldummulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Hali Ela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Hangunnawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Haputale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Hebarawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Heeloya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Helahalpe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Helapupula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Hewanakumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Hingurukaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Hopton,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Idalgashinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Jangulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kahataruppa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kalubululanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kalugahakandura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kalupahana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kandaketya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kandegedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kandepuhulpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kebillawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kendagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Keppetipola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Keselpotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ketawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kiriwanagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Koslanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kotamuduna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kuruwitenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Kuttiyagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Landewela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Liyangahawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Lunugala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Lunuwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Madulsima,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Mahiyanganaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Makulella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Malgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Maliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Mapakadawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Maspanna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Maussagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Medawela Udukinda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Medawelagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Meegahakiula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Metigahatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Mirahawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Miriyabedda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Miyanakandura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Namunukula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Narangala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Nelumgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Nikapotha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Nugatalawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ohiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pahalarathkinda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pallekiruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Passara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pathanewatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pattiyagedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pelagahatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Perawella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pitamaruwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Pitapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Puhulpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ratkarawwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Ridimaliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Rilpola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Silmiyapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Sirimalgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Sorabora Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Soragune,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Soranatota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Spring Valley,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Taldena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Tennepanguwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Timbirigaspitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uduhawara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uraniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uva Deegalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uva Karandagolla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uva Mawelagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uva Tenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uva Tissapura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uva Uduwara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Uvaparanagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Welimada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Wewatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Wineethagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Yalagamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Badulla,Yalwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Angunakolawewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Ayiwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Badalkumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Baduluwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Bakinigahawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Balaharuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Bibile,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Buddama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Buttala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Dambagalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Diyakobala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Dombagahawela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Ekamutugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Ekiriyankumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Ethimalewewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Ettiliwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Galabedda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Hambegamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Hulandawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Inginiyagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kandaudapanguwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kandawinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kataragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kiriibbanwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kotagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kotawehera Mankada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kotiyagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Kumbukkana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Mahagama Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Marawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Mariarawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Medagana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Monaragala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Moretuwegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Nakkala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Nannapurawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Nelliyadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Nilgala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Obbegoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Okkampitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Pangura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Pitakumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Randeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Ruwalwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Sella Kataragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Sewanagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Siyambalagune,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Siyambalanduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Suriara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Tanamalwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Uva Gangodagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Uva Kudaoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Uva Pelwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Warunagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Wedikumbura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Weherayaya Handapanagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Wellawaya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Uva,Monaragala,Wilaoya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Akarawita,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Angoda,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Arangala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Athurugiriya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Avissawella,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Bambalapitiya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Batawala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Battaramulla,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Batugampola,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Bope,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Boralesgamuwa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Borella,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 01,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 02,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 03,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 04,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 05,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 06,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 07,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 08,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 09,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 10,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 11,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 12,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 13,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 14,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Colombo 15,A,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Dedigamuwa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Dehiwala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Deltara,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Embuldeniya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Gongodawila,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Habarakada,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Handapangoda,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Hanwella,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Hewainna,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Hiripitya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Hokandara,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Homagama,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Horagala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kaduwela,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kahawala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kalatuwawa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kalubowila,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kiriwattuduwa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kohuwala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kolonnawa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kosgama,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kotahena,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kotikawatta,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Kottawa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Madapatha,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Maharagama,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Malabe,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Meegoda,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Moratuwa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Mount Lavinia,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Mullegama,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Mulleriyawa,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Mutwal,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Napawela,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Narahenpita,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Nugegoda,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Padukka,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Pannipitiya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Piliyandala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Pita Kotte,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Pitipana Homagama,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Polgasowita,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Puwakpitiya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Rajagiriya,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Ranala,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Ratmalana,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Siddamulla,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Sri Jayewardenepura,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Talawatugoda,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Tummodara,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Waga,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Watareka,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Colombo,Wijerama,B,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Akaragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Alawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ambagaspitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ambepussa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Andiambalama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Attanagalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Badalgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Banduragoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Batuwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Bemmulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Biyagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Biyagama IPZ,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Bokalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Bopagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Buthpitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Dagonna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Danowita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Debahera,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Dekatana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Delgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Delwagura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Demalagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Demanhandiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Dewalapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Divulapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Divuldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Dompe,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Dunagaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ekala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ellakkala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Essella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Gampaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ganemulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,GonawalaWP,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Heiyanthuduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Hendala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Henegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Hinatiyana Madawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Hiswella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Horampella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Hunumulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ihala Madampella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Imbulgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ja-Ela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kadawatha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kahatowita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kalagedihena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kaleliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kaluaggala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kandana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kapugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kapuwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Katana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Katunayake,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Katunayake Air Force Camp,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Katuwellegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kelaniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kimbulapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kiribathgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kirindiwela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kitalawalana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kitulwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kochchikade,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kotadeniyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kotugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Kumbaloluwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Loluwagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Lunugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Mabodale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Madelgamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Makewita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Makola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Malwana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Mandawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Marandagahamula,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Mellawagedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Minuwangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Mirigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Mithirigala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Muddaragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Mudungoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Naranwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Nawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Nedungamuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Negombo,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Nikahetikanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Nittambuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Niwandama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pallewela,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pamunugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pamunuwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pasyala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Peliyagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pepiliyawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pethiyagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Polpithimukulana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Pugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Radawadunna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Radawana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Raddolugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Ruggahawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Rukmale,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Seeduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Siyambalape,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Talahena,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Thimbirigaskatuwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Tittapattara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Udathuthiripitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Udugampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Uggalboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Urapola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Uswetakeiyawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Veyangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Walgammulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Walpita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Wanaluwewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Wathurugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Watinapaha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Wattala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Weboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Wegowwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Weliveriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Weweldeniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Gampaha,Yakkala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Agalawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Alubomulla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Alutgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Anguruwatota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Baduraliya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Bandaragama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Bellana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Beruwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Bolossagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Bombuwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Boralugoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Bulathsinhala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Danawala Thiniyawala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Delmella,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Dharga Town,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Diwalakada,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Dodangoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Dombagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Galpatha,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Gamagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Gonapola Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Govinna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Gurulubadda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Halkandawila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Haltota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Halwala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Halwatura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Hedigalla Colony,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Horana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Ittapana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kalawila Kiranthidiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kalutara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kananwila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kandanagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kehelwatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kelinkanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kitulgoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Koholana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Kuda Uduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,lngiriya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Maggona,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Mahagama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Mahakalupahana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Matugama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Meegahatenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Meegama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Millaniya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Millewa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Miwanapalana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Molkawa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Morapitiya,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Morontuduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Nawattuduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Neboda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Padagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Pahalahewessa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Paiyagala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Panadura,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Pannila,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Paragastota,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Paragoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Paraigama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Pelanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Pelawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Pokunuwita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Polgampola,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Poruwedanda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Remunagoda,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Tebuwana,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Uduwara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Utumgama,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Veyangalla,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Wadduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Walagedara,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Walallawita,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Waskaduwa,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Welipenna,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Welmilla Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Yagirala,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Yatadolawatta,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Western,Kalutara,Yatawara Junction,C,350,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Addalaichenai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Akkaraipattu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Ampara,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Bakmitiyawa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Central Camp,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Dadayamtalawa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Damana,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Damanewela,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Deegawapiya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Dehiattakandiya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Devalahinda,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Digamadulla Weeragoda,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Dorakumbura,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Galapitagala,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Gonagolla,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Hingurana,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Hulannuge,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Kalmunai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Kannakipuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Karativu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Kekirihena,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Koknahara,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Kolamanthalawa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Komari,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Lahugala,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,lmkkamam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Madawalalanda,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Mahanagapura,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Mahaoya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Malwatta,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Mangalagama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Marathamune,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Mawanagama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Moragahapallama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Namaloya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Navithanveli,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Nawamedagama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Nintavur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Oluvil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Padiyatalawa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Pahalalanda,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Palamunai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Panama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Pannalagama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Paragahakele,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Periyaneelavanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Polwaga Janapadaya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Pottuvil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Rajagalatenna,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Sainthamaruthu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Samanthurai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Serankada,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Siripura,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Siyambalawewa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Tempitiya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Thambiluvil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Tirukovil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Uhana,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Wadinagala,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Wanagamuwa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Ampara,Werunketagoda,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Ampilanthurai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Araipattai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Ayithiyamalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Bakiella,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Batticaloa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Cheddipalayam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Chenkaladi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Eravur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kalkudah,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kallar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kaluwanchikudi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kaluwankemy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kannankudah,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Karadiyanaru,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kathiraveli,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kattankudi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kiran,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kirankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Koddaikallar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kokkaddichcholai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Kurukkalmadam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Mandur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Mankemi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Miravodai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Murakottanchanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Navagirinagar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Navatkadu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Oddamavadi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Panichankemi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Pankudavely,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Periyaporativu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Periyapullumalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Pillaiyaradi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Punanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Puthukudiyiruppu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Thannamunai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Thettativu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Thikkodai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Thirupalugamam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Thuraineelavanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Unnichchai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Vakaneri,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Vakarai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Valaichenai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Vantharumoolai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Batticaloa,Vellavely,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Agbopura,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Buckmigama,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Chinabay,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Dehiwatte,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Echchilampattai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Galmetiyawa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Gomarankadawala,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kaddaiparichchan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kanniya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kantalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kantalai Sugar Factory,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kiliveddy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kinniya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kuchchaveli,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kumburupiddy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Kurinchakemy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Lankapatuna,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Mahadivulwewa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Maharugiramam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Mallikativu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Mawadichenai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Mullipothana,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Mutur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Neelapola,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Nilaveli,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Pankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Rottawewa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Sampaltivu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Sampur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Serunuwara,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Seruwila,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Sirajnagar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Somapura,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Tampalakamam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Tiriyayi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Toppur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Trincomalee,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Vellamanal,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Eastern,Trincomalee,Wanela,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Allaipiddi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Allaveddi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Alvai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Anaicoddai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Analaitivu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Atchuveli,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Chankanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Chavakachcheri,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Chullipuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Chundikuli,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Chunnakam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Delft,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,DelftWest,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Eluvaitivu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Erlalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Jaffna,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kaitadi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kankesanthurai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Karainagar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Karaveddi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kayts,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kodikamam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kokuvil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kondavil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kopay,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Kudatanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,llavalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Mallakam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Manipay,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Mathagal,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Meesalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Mirusuvil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Nagar Kovil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Nainathivu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Neervely,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Pandaterippu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Point Pedro,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Pungudutivu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Putur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Sandilipay,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Sithankemy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Tellippallai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Thondamanaru,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Urumpirai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Vaddukoddai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Valvettithurai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Vannarponnai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Varany,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Vasavilan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Jaffna,Velanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Kilinochchi,Kilinochchi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Adampan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Arippu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Athimottai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Chilavathurai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Erukkalampiddy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,llluppaikadavai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Madhu Church,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Madhu Road,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Mannar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Marichchi Kaddi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Murunkan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Nanattan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,P.P.Potkemy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Palampiddy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Periyakunchikulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Periyamadhu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Pesalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Talaimannar,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Temple,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Tharapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Thiruketheeswaram Temple,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Uyilankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Vaddakandal,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Vankalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Vellan Kulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mannar,Vidataltivu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Alampil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Karuppaddamurippu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Kokkilai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Kokkuthuoduvai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Mankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Mullativu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Mullivaikkal,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Mulliyawalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Muthauyan Kaddakulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Naddan Kandal,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Odduchudan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Puthuvedduvan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Thunukkai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Udayarkaddu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Vavunakkulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Visvamadukulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Mullaitivu,Yogapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Akkarayankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Cheddikulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Chemamadukkulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Elephant Pass,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Eluthumadduval,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Iranai lluppaikulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Iranaitiv,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Kanagarayankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Kanavil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Kandavalai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Kavutharimunai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Kilinochchi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,lyakachchi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Mahakachchakodiya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Mamaduwa,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Maraiyadithakulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Mulliyan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Murasumoddai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Nedunkemy,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Neriyakulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Omanthai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Palamoddai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Pallai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Pallavarayankaddu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Pampaimadu,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Paranthan,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Pavaikulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Periyathambanai,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Periyaulukkulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Purakari Nallur,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Ramanathapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Sasthrikulankulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Sivapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Skanthapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Thalayadi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Tharmapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Uruthirapuram,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Vaddakachchi,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Vannerikkulam,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Varikkuttiyoor,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Vavuniya,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Veravil,D,400,80,LKR,Copy of courier (1).xlsx
+#CR0001,domestic,Sri Lanka,Nothern,Vavuniya,Vinayagapuram,D,400,80,LKR,Copy of courier (1).xlsx

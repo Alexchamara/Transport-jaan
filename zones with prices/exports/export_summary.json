@@ -1,0 +1,17 @@
+{
+  "company_code": "#CR0001",
+  "excel_row_count": 1988,
+  "excel_zone_count": 4,
+  "pdf_zone_count": 4,
+  "pdf_city_count": 564,
+  "merged_city_zone_rows": 2552,
+  "conflict_count": 80,
+  "output_files": [
+    "city_rate_card_from_excel.csv",
+    "zone_rate_card_from_excel.csv",
+    "city_zone_map_from_pdf.csv",
+    "zone_master_from_pdf.csv",
+    "city_zone_map_merged.csv",
+    "zone_conflicts.csv"
+  ]
+}
