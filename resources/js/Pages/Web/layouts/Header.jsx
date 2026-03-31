@@ -51,7 +51,7 @@ const Header = () => {
 
     useEffect(() => {
         setIsProfileOpen(false);
-    }, [url]);
+    }, [currentUrl]);
 
     const fetchNotifications = async () => {
         if (!shouldLoadVendorNotifications) {
