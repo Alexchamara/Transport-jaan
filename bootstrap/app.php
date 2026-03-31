@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 // Override PHP settings for file uploads
 ini_set('upload_max_filesize', '50M');
@@ -18,11 +19,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust Cloudflare/edge proxy headers so asset URLs keep the original HTTPS scheme.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_AWS_ELB,
+        );
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\RefreshSessionOnAuth::class,
             \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
+            \App\Http\Middleware\RequirePasswordChange::class,
         ]);
 
         // Exclude specific URIs from CSRF verification
@@ -41,6 +53,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'vendor.verified' => \App\Http\Middleware\VendorVerificationCheck::class,
             'vendor.service.approved' => \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
+            'service.workspace' => \App\Http\Middleware\SetServiceWorkspaceContext::class,
+            'service.permission' => \App\Http\Middleware\EnsureServicePermission::class,
+            'courier.session.security' => \App\Http\Middleware\CourierSessionSecurityMiddleware::class,
+            'courier.access.review.lifecycle' => \App\Http\Middleware\CourierAccessReviewLifecycle::class,
+            'courier.api.key' => \App\Http\Middleware\CourierServiceApiKeyAuth::class,
         ]);
 
         //

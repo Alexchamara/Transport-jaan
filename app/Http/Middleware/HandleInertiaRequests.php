@@ -2,9 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ServiceWorkspace;
 use App\Models\VendorServiceRegistration;
+use App\Models\VendorUserMembership;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Spatie\Permission\PermissionRegistrar;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -20,22 +23,70 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
-   public function share(Request $request): array
+    public function share(Request $request): array
     {
         $user = $request->user();
 
         $approvedServiceSlugs = [];
-        if ($user && $user->role === 'vendor') {
-            $approvedServiceSlugs = VendorServiceRegistration::query()
+        $courierPermissions = [];
+        $displayRole = null;
+        $teamMembershipRole = null;
+        $courierRole = null;
+        if ($user) {
+            $displayRole = $this->formatRoleLabel((string) $user->role);
+
+            $membership = VendorUserMembership::query()
                 ->where('user_id', $user->id)
-                ->where('status', 'approved')
-                ->with('serviceCategory:id,slug')
-                ->get()
-                ->pluck('serviceCategory.slug')
-                ->filter()
-                ->unique()
-                ->values()
-                ->toArray();
+                ->where('status', 'active')
+                ->first();
+
+            $teamMembershipRole = $membership?->membership_role;
+
+            $vendorUserId = $user->role === 'vendor'
+                ? $user->id
+                : $membership?->vendor_user_id;
+
+            if ($vendorUserId) {
+                $approvedServiceSlugs = VendorServiceRegistration::query()
+                    ->where('user_id', $vendorUserId)
+                    ->where('status', 'approved')
+                    ->with('serviceCategory:id,slug')
+                    ->get()
+                    ->pluck('serviceCategory.slug')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $courierWorkspaceId = ServiceWorkspace::query()
+                    ->where('vendor_user_id', $vendorUserId)
+                    ->where('service_key', 'courier_service')
+                    ->value('id');
+
+                if ($courierWorkspaceId) {
+                    $registrar = app(PermissionRegistrar::class);
+                    $registrar->setPermissionsTeamId($courierWorkspaceId);
+
+                    $courierPermissions = $user->getAllPermissions()
+                        ->pluck('name')
+                        ->filter(fn ($name) => str_starts_with((string) $name, 'courier.'))
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    $courierRoleName = $user->getRoleNames()
+                        ->first(fn ($name) => str_starts_with((string) $name, 'courier_'));
+
+                    if ($courierRoleName) {
+                        $courierRole = (string) $courierRoleName;
+                        $displayRole = $this->formatRoleLabel($courierRole);
+                    } elseif ($teamMembershipRole) {
+                        $displayRole = $this->formatRoleLabel((string) $teamMembershipRole);
+                    }
+                } elseif ($teamMembershipRole) {
+                    $displayRole = $this->formatRoleLabel((string) $teamMembershipRole);
+                }
+            }
         }
 
         return array_merge(parent::share($request), [
@@ -45,9 +96,13 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'display_role' => $displayRole,
+                    'team_membership_role' => $teamMembershipRole,
+                    'courier_role' => $courierRole,
                     'vendor_type' => $user->vendor_type,
                     'status' => $user->status,
                     'approved_service_slugs' => $approvedServiceSlugs,
+                    'courier_permissions' => $courierPermissions,
                     // Only include these when needed - reduces data size
                     'phone' => $user->phone,
                     'image' => $user->image ? asset('storage/' . $user->image) : null,
@@ -57,9 +112,17 @@ class HandleInertiaRequests extends Middleware
             ],
             // expose Laravel flash messages to the front end
             'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error'   => fn () => $request->session()->get('error'),
+                'success' => fn () => $request->session()->pull('success'),
+                'error'   => fn () => $request->session()->pull('error'),
+                'password_change_required' => fn () => (bool) $request->session()->pull('password_change_required', false),
+                'password_change_target' => fn () => $request->session()->pull('password_change_target'),
             ],
         ]);
+    }
+
+    private function formatRoleLabel(string $role): string
+    {
+        $clean = str_replace('courier_', '', strtolower($role));
+        return ucwords(str_replace('_', ' ', $clean));
     }
 }

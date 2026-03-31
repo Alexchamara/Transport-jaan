@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'courier' => [
+        'break_glass_alert_emails_csv' => env('COURIER_BREAK_GLASS_ALERT_EMAILS', ''),
+        'break_glass_webhook_url' => env('COURIER_BREAK_GLASS_WEBHOOK_URL', ''),
+    ],
+
 ];

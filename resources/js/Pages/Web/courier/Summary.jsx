@@ -26,10 +26,42 @@ const PROGRESS_STEPS = [
     },
 ];
 
+const POLICY_ADJUSTMENT_LABELS = {
+    remote_area_surcharge: "Remote area surcharge",
+    overweight_surcharge: "Overweight surcharge",
+    oversize_surcharge: "Oversize surcharge",
+    holiday_surcharge: "Holiday surcharge",
+    peak_hour_surcharge: "Peak-hour surcharge",
+    cod_fee: "COD fee",
+    minimum_shipment_guardrail: "Minimum shipment guardrail",
+    speed_eta_tier_multiplier: "Speed/ETA tier multiplier",
+    logistic_dimensions_engine: "Logistic dimensions engine",
+    quote_runtime_discount_applied: "Quote runtime discount applied",
+    quote_runtime_discount_ceiling_guardrail: "Quote runtime discount ceiling guardrail",
+    quote_runtime_floor_price_guardrail: "Quote runtime floor-price guardrail",
+};
+
+const formatPolicyAdjustmentLabel = (key) => {
+    const normalizedKey = String(key || "").trim();
+    if (!normalizedKey) {
+        return "Policy adjustment";
+    }
+
+    return POLICY_ADJUSTMENT_LABELS[normalizedKey]
+        || normalizedKey.replaceAll("_", " ");
+};
+
+const GOVERNANCE_POLICY_KEYS = [
+    "quote_runtime_discount_applied",
+    "quote_runtime_discount_ceiling_guardrail",
+    "quote_runtime_floor_price_guardrail",
+];
+
 const Summary = () => {
     const { props } = usePage();
     const {
         formData,
+        pricingPreview = null,
         errors = {},
         countries = [],
         serviceLevels = [],
@@ -167,6 +199,22 @@ const Summary = () => {
 
     const insuranceLabel = formState.shipment?.insurance ? "Yes" : "No";
     const totalEstimateDisplay = formatCurrency(totalPriceUSD);
+    const governanceAdjustments = useMemo(() => {
+        if (!Array.isArray(pricingPreview?.policyAdjustments)) {
+            return [];
+        }
+
+        return pricingPreview.policyAdjustments.filter((item) => {
+            const key = String(item?.key || "");
+            return GOVERNANCE_POLICY_KEYS.includes(key);
+        });
+    }, [pricingPreview]);
+    const governanceNetImpact = governanceAdjustments.reduce(
+        (carry, item) => carry + Number(item?.amount || 0),
+        0,
+    );
+    const pricingPreviewFinalTotal = Number(pricingPreview?.totalEstimatedUsd || 0);
+    const pricingPreviewBeforeGovernance = pricingPreviewFinalTotal - governanceNetImpact;
 
     const handleConfirm = () => {
         if (!formState || isSubmitting) {
@@ -299,6 +347,88 @@ const Summary = () => {
                         </div>
                     </section>
 
+                    {pricingPreview && (
+                        <section className="mt-8 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-6">
+                            <h3 className="text-lg font-semibold text-[#1E3A8A]">Pricing enforcement preview</h3>
+                            <p className="mt-2 text-sm text-[#1E40AF]">
+                                This is the estimated pricing rule match that will be used at final submission.
+                            </p>
+                            <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-[#1E3A8A] md:grid-cols-2">
+                                <p><span className="font-semibold">Mode:</span> {pricingPreview.mode === "lane_matrix" ? "Lane Matrix" : "Selected Quotes"}</p>
+                                <p><span className="font-semibold">Category:</span> {pricingPreview.assignment?.category || "—"}</p>
+                                <p><span className="font-semibold">Assignment:</span> {pricingPreview.assignment?.status || "—"}</p>
+                                <p><span className="font-semibold">Distance:</span> {pricingPreview.distanceKm !== null && pricingPreview.distanceKm !== undefined && pricingPreview.distanceKm !== "" ? `${pricingPreview.distanceKm} km` : "—"}</p>
+                                <p><span className="font-semibold">Estimated USD:</span> {Number(pricingPreview.totalEstimatedUsd || 0).toFixed(2)}</p>
+                                {pricingPreview.assignment?.vendorUserId && (
+                                    <p><span className="font-semibold">Assigned Vendor ID:</span> {pricingPreview.assignment.vendorUserId}</p>
+                                )}
+                            </div>
+                            {pricingPreview.reason && (
+                                <p className="mt-3 text-sm text-[#1E40AF]"><span className="font-semibold">Reason:</span> {pricingPreview.reason}</p>
+                            )}
+                            {pricingPreview.speedEtaTier && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">Speed/ETA Tier Projection</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        <p><span className="font-semibold">Tier:</span> {pricingPreview.speedEtaTier.etaLabel || pricingPreview.speedEtaTier.tierLabel || pricingPreview.speedEtaTier.tierKey || "—"}</p>
+                                        <p><span className="font-semibold">ETA Range:</span> {Number(pricingPreview.speedEtaTier.etaMinDays || 0)} - {pricingPreview.speedEtaTier.etaMaxDays === null || pricingPreview.speedEtaTier.etaMaxDays === undefined ? "*" : Number(pricingPreview.speedEtaTier.etaMaxDays)} days</p>
+                                        <p><span className="font-semibold">Projected Delivery Window:</span> {pricingPreview.speedEtaTier.etaStartDate || "—"} {pricingPreview.speedEtaTier.etaEndDate ? `to ${pricingPreview.speedEtaTier.etaEndDate}` : ""}</p>
+                                        <p><span className="font-semibold">Tier Multiplier:</span> x{Number(pricingPreview.speedEtaTier.priceMultiplier || 1).toFixed(2)} {pricingPreview.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {pricingPreview.logisticDimensions && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">Logistic Dimensions Projection</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        <p><span className="font-semibold">Unit Type:</span> {pricingPreview.logisticDimensions.unitType || "—"}</p>
+                                        <p><span className="font-semibold">Route Class:</span> {pricingPreview.logisticDimensions.routeClass || "—"}</p>
+                                        <p><span className="font-semibold">Handling Class:</span> {pricingPreview.logisticDimensions.handlingClass || "—"}</p>
+                                        <p><span className="font-semibold">W2W Mode:</span> {pricingPreview.logisticDimensions.w2wMode || "—"}</p>
+                                        <p><span className="font-semibold">Unit Count:</span> {pricingPreview.logisticDimensions.unitCount || "—"}</p>
+                                        <p><span className="font-semibold">Combined Multiplier:</span> x{Number(pricingPreview.logisticDimensions.totalMultiplier || 1).toFixed(2)}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {Array.isArray(pricingPreview.policyAdjustments) && pricingPreview.policyAdjustments.length > 0 && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">Applied Policy Adjustments</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        {pricingPreview.policyAdjustments.map((item, idx) => (
+                                            <p key={`pricing-adjustment-${idx}`}>
+                                                {formatPolicyAdjustmentLabel(item?.key)}: {Number(item?.amount || 0) >= 0 ? "+" : "-"}{Math.abs(Number(item?.amount || 0)).toFixed(2)}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {governanceAdjustments.length > 0 && (
+                                <div className="mt-3 rounded-lg border border-[#FCD34D] bg-[#FFFBEB] p-4 text-sm text-[#78350F]">
+                                    <p className="font-semibold">Governance Impact</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-3">
+                                        <p><span className="font-semibold">Before Governance:</span> {pricingPreviewBeforeGovernance.toFixed(2)} USD</p>
+                                        <p><span className="font-semibold">Governance Delta:</span> {governanceNetImpact >= 0 ? "+" : "-"}{Math.abs(governanceNetImpact).toFixed(2)} USD</p>
+                                        <p><span className="font-semibold">Final After Governance:</span> {pricingPreviewFinalTotal.toFixed(2)} USD</p>
+                                    </div>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        {governanceAdjustments.map((item, idx) => (
+                                            <p key={`governance-adjustment-${idx}`}>
+                                                {formatPolicyAdjustmentLabel(item?.key)}: {Number(item?.amount || 0) >= 0 ? "+" : "-"}{Math.abs(Number(item?.amount || 0)).toFixed(2)}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {pricingPreview.matchedRule && (
+                                <div className="mt-4 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p><span className="font-semibold">Lane:</span> {pricingPreview.matchedRule.originZone} → {pricingPreview.matchedRule.destinationZone}</p>
+                                    <p className="mt-1"><span className="font-semibold">Service:</span> {pricingPreview.matchedRule.serviceLevelKey || "any"}</p>
+                                    <p className="mt-1"><span className="font-semibold">Distance Band:</span> {Number(pricingPreview.matchedRule.distanceFromKm || 0).toFixed(1)} - {pricingPreview.matchedRule.distanceToKm === null || pricingPreview.matchedRule.distanceToKm === undefined ? "*" : Number(pricingPreview.matchedRule.distanceToKm).toFixed(1)} km</p>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
                     <section className="mt-8 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
                         <h3 className="text-lg font-semibold text-[#0B1739]">Shipment preferences</h3>
                         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 text-sm text-[#5B6887]">
@@ -307,7 +437,13 @@ const Summary = () => {
                             <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
                             <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatCurrency(Number(formState.shipment.estimatedValue)) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Route distance:</span> {formState.shipment?.distanceKm ? `${formState.shipment.distanceKm} km` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Currency:</span> {displayCurrency}</p>
+                            <p><span className="font-medium text-[#0B1739]">Logistic unit type:</span> {formState.shipment?.logisticDimensions?.unitType || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Logistic unit count:</span> {formState.shipment?.logisticDimensions?.unitCount || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Route class:</span> {formState.shipment?.logisticDimensions?.routeClass || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Handling class:</span> {formState.shipment?.logisticDimensions?.handlingClass || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">W2W mode:</span> {formState.shipment?.logisticDimensions?.w2wMode || "—"}</p>
                         </div>
                         {formState.shipment?.deliveryNotes && (
                             <div className="mt-4 rounded-lg bg-white p-4 text-sm text-[#5B6887]">

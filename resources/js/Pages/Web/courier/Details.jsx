@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
@@ -11,6 +11,9 @@ import {
 
 const CURRENCY_OPTIONS = ["LKR", "USD"];
 const USD_TO_LKR_RATE = 325;
+const humanizeDimensionKey = (value) => String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 const Details = () => {
     const { props } = usePage();
@@ -19,8 +22,33 @@ const Details = () => {
         countries = [],
         serviceLevels = [],
         packageTypes = [],
+        logisticDimensionOptions = {},
         errors = {},
     } = props;
+
+    const unitTypeOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.unitTypes) ? logisticDimensionOptions.unitTypes : [];
+        const current = String(formData?.shipment?.logisticDimensions?.unitType || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
+
+    const routeClassOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.routeClasses) ? logisticDimensionOptions.routeClasses : [];
+        const current = String(formData?.shipment?.logisticDimensions?.routeClass || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
+
+    const handlingClassOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.handlingClasses) ? logisticDimensionOptions.handlingClasses : [];
+        const current = String(formData?.shipment?.logisticDimensions?.handlingClass || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
+
+    const w2wModeOptions = useMemo(() => {
+        const configured = Array.isArray(logisticDimensionOptions?.w2wModes) ? logisticDimensionOptions.w2wModes : [];
+        const current = String(formData?.shipment?.logisticDimensions?.w2wMode || "").trim();
+        return Array.from(new Set([...configured, ...(current ? [current] : [])])).filter(Boolean);
+    }, [logisticDimensionOptions, formData]);
 
     const initialForm = useMemo(() => {
         if (!formData) {
@@ -64,6 +92,14 @@ const Details = () => {
                     insurance: false,
                     deliveryNotes: "",
                     estimatedValue: "",
+                    distanceKm: "",
+                    logisticDimensions: {
+                        unitType: "",
+                        unitCount: "",
+                        routeClass: "",
+                        handlingClass: "",
+                        w2wMode: "",
+                    },
                 },
                 packages: [
                     {
@@ -91,6 +127,7 @@ const Details = () => {
         const senderAddress = formData.sender?.address ?? {};
         const recipientAddress = formData.recipient?.address ?? {};
         const shipment = formData.shipment ?? {};
+        const logisticDimensions = shipment.logisticDimensions ?? {};
         const preferredCurrency = shipment.currency || formData.reviewContext?.displayCurrency || "LKR";
 
         return {
@@ -133,6 +170,14 @@ const Details = () => {
                 insurance: Boolean(shipment.insurance),
                 deliveryNotes: shipment.deliveryNotes ?? "",
                 estimatedValue: shipment.estimatedValue ?? "",
+                distanceKm: shipment.distanceKm ?? "",
+                logisticDimensions: {
+                    unitType: logisticDimensions.unitType ?? "",
+                    unitCount: logisticDimensions.unitCount ?? "",
+                    routeClass: logisticDimensions.routeClass ?? "",
+                    handlingClass: logisticDimensions.handlingClass ?? "",
+                    w2wMode: logisticDimensions.w2wMode ?? "",
+                },
             },
             packages: (formData.packages ?? []).map((pkg) => ({
                 ...pkg,
@@ -165,6 +210,7 @@ const Details = () => {
         processing,
         errors: formErrors,
     } = useForm(initialForm);
+    const [submitError, setSubmitError] = useState("");
 
     const scrollToTop = useCallback(() => {
         if (typeof window !== "undefined") {
@@ -218,10 +264,47 @@ const Details = () => {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+
+        const extractFirstErrorMessage = (errorBag) => {
+            const queue = Array.isArray(errorBag)
+                ? [...errorBag]
+                : Object.values(errorBag || {});
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+
+                if (typeof current === "string" && current.trim() !== "") {
+                    return current;
+                }
+
+                if (Array.isArray(current)) {
+                    queue.push(...current);
+                    continue;
+                }
+
+                if (current && typeof current === "object") {
+                    queue.push(...Object.values(current));
+                }
+            }
+
+            return "";
+        };
+
         post("/couriers/details", {
             preserveScroll: false,
-            onSuccess: scrollToTop,
-            onError: scrollToTop,
+            onStart: () => setSubmitError(""),
+            onSuccess: () => {
+                setSubmitError("");
+                scrollToTop();
+            },
+            onError: (validationErrors) => {
+                const firstError = extractFirstErrorMessage(validationErrors);
+                setSubmitError(
+                    firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                );
+                scrollToTop();
+            },
         });
     };
 
@@ -250,6 +333,23 @@ const Details = () => {
     }
     const combinedErrors = { ...errors, ...formErrors };
     const packages = data.packages || [];
+    const governanceRuntimeErrors = useMemo(
+        () => Object.entries(combinedErrors)
+            .filter(([field]) => {
+                if (field === "reviewContext.totalPriceUSD") {
+                    return true;
+                }
+
+                if (field === "shipment.serviceLevel") {
+                    return true;
+                }
+
+                return (field.startsWith("packages.") && (field.endsWith(".serviceLevel") || field.endsWith(".courierProvider")));
+            })
+            .map(([, message]) => String(message || "").trim())
+            .filter(Boolean),
+        [combinedErrors],
+    );
 
     const fallbackReviewContext = useMemo(() => {
         const context = formData.reviewContext || {};
@@ -466,7 +566,19 @@ const Details = () => {
 
             <main className="container mx-auto px-4 mt-16 mb-16 flex-1">
                 <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
-                    <form onSubmit={handleSubmit} className="space-y-10">
+                    <form onSubmit={handleSubmit} noValidate className="space-y-10">
+                        {governanceRuntimeErrors.length > 0 && (
+                            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                <p className="text-sm font-semibold text-amber-900">Pricing governance blocked submission</p>
+                                <p className="mt-1 text-xs text-amber-800">Review the locked quote fields and selected service/provider values before continuing.</p>
+                                <div className="mt-2 space-y-1">
+                                    {governanceRuntimeErrors.map((message, index) => (
+                                        <p key={`governance-runtime-error-${index}`} className="text-xs text-amber-900">• {message}</p>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
                         {packages.length > 0 && (
                             <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1147,6 +1259,102 @@ const Details = () => {
                                         <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.estimatedValue"]}</p>
                                     )}
                                 </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Route distance (km)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={data.shipment.distanceKm}
+                                        onChange={(event) => updateNestedField("shipment.distanceKm", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        placeholder="Optional, e.g. 28.5"
+                                    />
+                                    {combinedErrors["shipment.distanceKm"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.distanceKm"]}</p>
+                                    )}
+                                    <p className="mt-2 text-xs text-[#6B7893]">Provide route km to apply distance-band lane tariffs accurately.</p>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Logistic unit type</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.unitType || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.unitType", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select unit type</option>
+                                        {unitTypeOptions.map((option) => (
+                                            <option key={`logistic-unit-type-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.unitType"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.unitType"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Logistic unit count</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={data.shipment.logisticDimensions?.unitCount || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.unitCount", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                        placeholder="e.g. 3"
+                                    />
+                                    {combinedErrors["shipment.logisticDimensions.unitCount"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.unitCount"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Route class</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.routeClass || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.routeClass", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select route class</option>
+                                        {routeClassOptions.map((option) => (
+                                            <option key={`logistic-route-class-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.routeClass"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.routeClass"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">Handling class</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.handlingClass || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.handlingClass", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select handling class</option>
+                                        {handlingClassOptions.map((option) => (
+                                            <option key={`logistic-handling-class-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.handlingClass"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.handlingClass"]}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium">W2W mode</label>
+                                    <select
+                                        value={data.shipment.logisticDimensions?.w2wMode || ""}
+                                        onChange={(event) => updateNestedField("shipment.logisticDimensions.w2wMode", event.target.value)}
+                                        className="w-full rounded-lg border border-[#D6DEEB] px-4 py-3 focus:border-[#0955AC] focus:outline-none"
+                                    >
+                                        <option value="">Select W2W mode</option>
+                                        {w2wModeOptions.map((option) => (
+                                            <option key={`logistic-w2w-mode-${option}`} value={option}>{humanizeDimensionKey(option)}</option>
+                                        ))}
+                                    </select>
+                                    {combinedErrors["shipment.logisticDimensions.w2wMode"] && (
+                                        <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.logisticDimensions.w2wMode"]}</p>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="mb-2 block text-sm font-medium">Delivery notes</label>
@@ -1230,6 +1438,9 @@ const Details = () => {
                             >
                                 {processing ? "Saving details..." : "Continue to summary"}
                             </button>
+                            {submitError && (
+                                <p className="text-xs text-[#D14343]">{submitError}</p>
+                            )}
                             <Link
                                 href="/couriers/create"
                                 className="text-xs text-[#5B6887] hover:text-[#0955AC] transition"

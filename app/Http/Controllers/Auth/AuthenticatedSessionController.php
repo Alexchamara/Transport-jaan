@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\VendorUserMembership;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,15 @@ class AuthenticatedSessionController extends Controller
         // Proceed with role-based redirection (both verified and unverified users)
         $role = $user->role;
         $status = $user->status;
+
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership) {
+            return redirect()->intended(route('courierService.dashboard'));
+        }
 
         $redirectTo = match($role) {
             'SuperAdmin' => route('superadmin.dashboard'),

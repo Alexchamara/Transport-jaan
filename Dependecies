@@ -1,5 +1,0 @@
-Warehouse booking
-    - npm install react-toastify
-
-icket generation system with PDF and QR codes
-    composer require barryvdh/laravel-dompdf simplesoftwareio/simple-qrcode

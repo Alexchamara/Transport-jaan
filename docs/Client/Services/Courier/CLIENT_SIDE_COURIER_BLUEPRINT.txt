@@ -1,0 +1,270 @@
+CLIENT SIDE COURIER BLUEPRINT
+Transport-jaan
+Date: 23 March 2026
+Version: 1.0 (Pre-Implementation Design)
+
+1. PURPOSE
+This document defines the client-side courier blueprint for discovery, booking, management, and analytics, and must be settled before implementation changes.
+
+2. GOALS
+- Provide a complete client journey: discover -> quote -> book -> track -> manage.
+- Keep pricing and policy behavior transparent before final confirmation.
+- Ensure secure access for shipment management, cancellation, and bill download.
+- Align courier dashboard and all-bookings dashboard behavior.
+
+3. SCOPE
+In Scope:
+- Public courier discovery page and CTA path.
+- Client booking wizard (Create, Details, Summary).
+- Submission, shipment creation, and bill generation flow.
+- Courier dashboard, shipment detail page, tracking timeline, cancellation.
+- All-bookings integration and courier deep links.
+
+Out of Scope (for this phase):
+- Vendor-side courier operations UI redesign.
+- Third-party carrier API runtime integration changes.
+- New payment gateway implementation.
+
+4. PRIMARY USER PERSONAS
+4.1 Casual Sender
+- Small number of shipments.
+- Needs speed and clarity.
+
+4.2 Frequent Small Business Sender
+- Repeat lanes and regular shipments.
+- Needs templates, export, and reliable history.
+
+4.3 Enterprise Coordinator
+- Governance-sensitive workflows.
+- Needs auditability and strict policy behavior.
+
+5. TARGET USER JOURNEY
+5.1 Entry
+- User enters from Client Dashboard card, All Bookings dashboard, or public Courier Service page.
+- User clicks Send a package.
+
+5.2 Booking Wizard
+- Step A: Create package lines and select providers/services.
+- Step B: Enter sender and recipient details.
+- Step C: Review summary and policy adjustments.
+- Step D: Confirm submission.
+
+5.3 Post Submission
+- User receives shipment reference and bill availability.
+- User opens courier dashboard for management.
+- User views detailed shipment timeline and metadata.
+
+5.4 Repeat Usage
+- User returns to courier dashboard or all-bookings dashboard.
+- User filters, searches, exports, and rebooks.
+
+6. INFORMATION ARCHITECTURE
+6.1 Public Layer
+- Courier Service marketing page.
+- Send package CTA.
+
+6.2 Authenticated Booking Layer
+- Create page.
+- Details page.
+- Summary page.
+
+6.3 Authenticated Management Layer
+- Courier Booking Dashboard.
+- Shipment Detail.
+- Cancel Shipment action.
+- Download Bill action.
+
+6.4 Aggregation Layer
+- All Bookings dashboard includes courier records and deep-link to courier detail.
+
+7. ROUTE CONTRACT (TO FREEZE)
+7.1 Booking Wizard
+- GET /couriers/create
+- POST /couriers/review
+- GET /couriers/details
+- POST /couriers/details
+- GET /couriers/summary
+- POST /couriers
+
+7.2 Shipment Management
+- GET /courierBookingDashboard
+- GET /courier-shipment/{id}
+- POST /courier-shipment/{id}/update-status
+- POST /courier-shipment/{id}/cancel
+- GET /couriers/{shipment}/bill
+
+7.3 Navigation Rules
+- Every courier list card opens courier detail.
+- Courier detail has back path to courier dashboard.
+- All-bookings courier row deep-links to courier detail.
+
+8. CLIENT BOOKING STATE MACHINE
+States:
+- draft
+- quoted
+- reviewed
+- submitted
+- confirmed
+- in_transit
+- delivered
+- cancelled
+
+Allowed transitions:
+- draft -> quoted -> reviewed -> submitted
+- submitted -> confirmed OR cancelled
+- confirmed -> in_transit OR cancelled
+- in_transit -> delivered
+- delivered = terminal
+- cancelled = terminal
+
+9. ROLE AND ACTION PERMISSIONS
+Client Actions:
+- Create booking request.
+- Update draft/review context before submission.
+- Cancel shipment only when policy allows.
+- View detail and download own bill.
+
+System Actions:
+- Assign vendor.
+- Apply pricing and policy enforcement.
+- Persist final cost and metadata.
+- Record tracking events.
+
+10. PRICING AND PROVIDER BEHAVIOR
+10.1 Source of Truth
+- Backend is final authority for enforceable price.
+- Frontend quote matrix can be indicative but must remain consistent with selected quote metadata.
+
+10.2 Provider Assignment Decision
+Choose one and freeze:
+- Option A: Displayed provider MUST match assigned operational vendor.
+- Option B: Displayed provider is indicative; final assigned vendor may differ.
+
+Recommended:
+- Prefer Option A for user trust.
+- If Option B is needed, show explicit notice before submission and final assigned vendor in summary/detail.
+
+10.3 Governance Transparency
+Summary page must show:
+- Pricing mode (lane matrix vs selected quotes).
+- Rule match context.
+- Policy adjustments.
+- Final enforceable estimate.
+
+11. DATA CONTRACTS
+11.1 Dashboard List DTO
+- id, code/reference, status, service level.
+- pickup date/time window.
+- origin and destination summary.
+- package count/types, total weight.
+- total/estimated/actual cost, currency.
+- latest tracking event.
+- createdAt, updatedAt.
+
+11.2 Shipment Detail DTO
+- Sender and recipient full contact details.
+- Sender and recipient address details.
+- Package line items and quote details.
+- Tracking events with timestamps and locations.
+- Cost summary and insurance indicators.
+- Notes and metadata.
+
+11.3 Summary DTO
+- reviewContext.selectedQuotes
+- reviewContext.totalPriceUSD
+- pricingPreview mode/rule/adjustments/final total
+
+11.4 Bill Document Contract
+- Reference and generation timestamp.
+- Sender and recipient sections.
+- Shipment preferences section.
+- Package line table with totals.
+- Stored estimated cost and quoted total.
+
+12. SECURITY BASELINE
+- All shipment management endpoints require authenticated ownership.
+- Bill download must be owner-restricted, not publicly accessible.
+- Mutating actions must be CSRF-protected and auditable.
+- Cross-user access attempts must return forbidden.
+
+13. UX AND PRODUCT REQUIREMENTS
+13.1 Booking Wizard UX
+- Clear progress indicator across Create -> Details -> Summary.
+- Inline validation with actionable messages.
+- Locked fields clearly marked when governance applies.
+
+13.2 Dashboard UX
+- Fast search and multi-filter support.
+- Status badges and quick actions.
+- Empty state guidance with CTA to create booking.
+
+13.3 Detail UX
+- Strong visual hierarchy for status, references, timeline, and costs.
+- One-click bill download.
+- Clear cancellation affordance when allowed.
+
+14. ANALYTICS REQUIREMENTS
+Track and report:
+- Booking funnel conversion by step.
+- Submission failures by validation key.
+- Cancellation rate and cancellation reasons.
+- On-time delivery ratio.
+- Monthly spend and shipment count.
+- Provider performance distribution.
+
+15. NON-FUNCTIONAL REQUIREMENTS
+- Performance: responsive list rendering and pagination for large histories.
+- Reliability: prevent duplicate submission with idempotent strategy.
+- Accessibility: keyboard navigation and readable contrast.
+- Maintainability: single normalized DTO for list and detail consumers.
+
+16. KNOWN RISKS TO RESOLVE BEFORE IMPLEMENTATION
+- Public access risk around bill endpoint.
+- Potential mismatch between displayed provider and assigned vendor.
+- Data field mismatch risk in all-bookings courier address mapping.
+- Incomplete filter behavior (date controls not fully applied in some UI flows).
+- Empty courier submenu links in client navigation.
+
+17. ACCEPTANCE CRITERIA
+- Client can complete booking end-to-end without dead ends.
+- Summary totals align with backend enforced totals.
+- Unauthorized bill and detail access is blocked.
+- Dashboard filters (status/query/date) function correctly.
+- All-bookings courier rows open correct courier detail.
+- Cancellation follows policy and state rules.
+
+18. TEST MATRIX
+18.1 Functional
+- Create -> Details -> Summary -> Submit (domestic and logistic).
+- Validation failures for sender/recipient/package/governance locks.
+- Cancellation allowed/blocked by status.
+
+18.2 Security
+- Unauthorized dashboard access.
+- Cross-user shipment access.
+- Cross-user bill download attempts.
+
+18.3 Data Integrity
+- reviewContext and persisted package/provider/tier alignment.
+- Dashboard and detail values consistent with DB state.
+
+18.4 UX
+- Mobile and desktop responsiveness.
+- Navigation and back paths.
+- Empty/loading/error states.
+
+19. PHASED IMPLEMENTATION PLAN (AFTER APPROVAL)
+Phase 1: Contract freeze and route hardening.
+Phase 2: Booking wizard consistency and policy messaging.
+Phase 3: Dashboard and detail behavior completion.
+Phase 4: All-bookings courier integration cleanup.
+Phase 5: Security hardening and analytics instrumentation.
+
+20. DECISIONS REQUIRED FROM STAKEHOLDERS
+- Auth model for booking entry (auth-only vs guest-assisted).
+- Provider assignment truth model (strict match vs indicative).
+- Client status mutation permissions (cancel only vs broader).
+- Bill access model (strict owner-only recommended).
+- Primary dashboard authority (courier-first vs all-bookings-first).
+
+END OF DOCUMENT

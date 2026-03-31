@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'must_change_password',
+        'password_changed_at',
         'role',
         'vendor_type',
         'status',
@@ -69,6 +72,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
+            'password_changed_at' => 'datetime',
         ];
     }
 
@@ -90,6 +95,16 @@ class User extends Authenticatable
     public function serviceRegistrations()
     {
         return $this->hasMany(VendorServiceRegistration::class);
+    }
+
+    public function vendorMembership()
+    {
+        return $this->hasOne(VendorUserMembership::class, 'user_id');
+    }
+
+    public function teamMembers()
+    {
+        return $this->hasMany(VendorUserMembership::class, 'vendor_user_id');
     }
 
     /**

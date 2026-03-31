@@ -136,7 +136,7 @@ export const COURIER_SERVICES = [
         ],
     },
 
-    // ── LOGISTIC (INTERNATIONAL) SERVICES ─────────────────────────────────────
+    // ── LOGISTIC SERVICES ─────────────────────────────────────────────────────
     {
         id: "dhl",
         name: "DHL Express",
@@ -158,7 +158,7 @@ export const COURIER_SERVICES = [
                 perKg: 1.35,
                 eta: "3-6 business days",
                 description:
-                    "Cost-effective door-to-door international delivery.",
+                    "Cost-effective door-to-door logistic delivery.",
             },
             {
                 id: "express",
@@ -181,7 +181,7 @@ export const COURIER_SERVICES = [
     },
     {
         id: "fedex",
-        name: "FedEx International",
+        name: "FedEx Logistic",
         logo: fedexLogo,
         category: "logistic",
         brandColor: "#4D148C",
@@ -261,7 +261,7 @@ export const COURIER_SERVICES = [
     },
     {
         id: "aramex",
-        name: "Aramex International",
+        name: "Aramex Logistic",
         logo: aramexLogo,
         category: "logistic",
         brandColor: "#E7002A",
@@ -341,7 +341,7 @@ export const COURIER_SERVICES = [
     },
     {
         id: "dpd",
-        name: "DPDgroup International",
+        name: "DPDgroup Logistic",
         logo: dpdLogo,
         category: "logistic",
         brandColor: "#D70926",
@@ -423,6 +423,177 @@ export const COURIER_SERVICES = [
 
 const VOLUMETRIC_DIVISOR = 5000;
 
+const DEFAULT_PROVIDER_RATES = {
+    domestic: {
+        rateMultiplier: 1.015,
+        fuelSurcharge: 0.03,
+        customsBuffer: 0,
+    },
+    logistic: {
+        rateMultiplier: 1.05,
+        fuelSurcharge: 0.05,
+        customsBuffer: 3.5,
+    },
+};
+
+const DEFAULT_TIER_BLUEPRINTS = {
+    domestic: {
+        economy: {
+            label: "Economy",
+            base: 2.9,
+            perKg: 0.38,
+            eta: "2-4 business days",
+            description: "Affordable island-wide domestic delivery.",
+        },
+        express: {
+            label: "Express",
+            base: 5.8,
+            perKg: 0.68,
+            eta: "Next-day delivery",
+            description: "Fast domestic service with dependable tracking.",
+        },
+        priority: {
+            label: "Priority",
+            base: 9.7,
+            perKg: 0.98,
+            eta: "Same-day delivery",
+            description: "Rapid same-day pickup and door-to-door fulfillment.",
+        },
+    },
+    logistic: {
+        economy: {
+            label: "Economy",
+            base: 16,
+            perKg: 1.2,
+            eta: "4-7 business days",
+            description: "Economical cross-border courier service.",
+        },
+        express: {
+            label: "Express",
+            base: 29,
+            perKg: 1.85,
+            eta: "2-4 business days",
+            description: "Faster global shipping with customs assistance.",
+        },
+        priority: {
+            label: "Priority",
+            base: 52,
+            perKg: 2.6,
+            eta: "1-2 business days",
+            description: "Priority international shipping for urgent cargo.",
+        },
+    },
+};
+
+const toNumberOr = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeProviderCategory = (category) => {
+    const normalized = String(category || "").trim().toLowerCase();
+    return normalized === "logistic" ? "logistic" : "domestic";
+};
+
+const normalizeProviderTiers = (provider, category) => {
+    const defaults =
+        DEFAULT_TIER_BLUEPRINTS[category] || DEFAULT_TIER_BLUEPRINTS.domestic;
+    const providedTiers = Array.isArray(provider?.tiers) ? provider.tiers : [];
+    const providedById = new Map(
+        providedTiers.map((tier) => [
+            String(tier?.id || "")
+                .trim()
+                .toLowerCase(),
+            tier,
+        ]),
+    );
+
+    return Object.entries(defaults).map(([tierId, fallback]) => {
+        const candidate = providedById.get(tierId) || {};
+
+        return {
+            id: tierId,
+            label: String(candidate?.label || fallback.label),
+            base: Math.max(0, toNumberOr(candidate?.base, fallback.base)),
+            perKg: Math.max(0, toNumberOr(candidate?.perKg, fallback.perKg)),
+            eta: String(candidate?.eta || fallback.eta),
+            description: String(candidate?.description || fallback.description),
+            flatMarkup: Math.max(0, toNumberOr(candidate?.flatMarkup, 0)),
+        };
+    });
+};
+
+const normalizeProviderService = (provider, index) => {
+    if (!provider || typeof provider !== "object") {
+        return null;
+    }
+
+    const category = normalizeProviderCategory(provider.category);
+    const defaults = DEFAULT_PROVIDER_RATES[category];
+    const name = String(provider.name || "").trim();
+    const id = String(provider.id || "").trim() || `provider-${category}-${index + 1}`;
+
+    return {
+        id,
+        name: name || `Courier Provider ${index + 1}`,
+        logo:
+            typeof provider.logo === "string" && provider.logo.trim() !== ""
+                ? provider.logo
+                : null,
+        category,
+        brandColor:
+            typeof provider.brandColor === "string" &&
+            provider.brandColor.trim() !== ""
+                ? provider.brandColor
+                : "#0955AC",
+        badgeColor:
+            typeof provider.badgeColor === "string" &&
+            provider.badgeColor.trim() !== ""
+                ? provider.badgeColor
+                : "#E8F0FE",
+        rateMultiplier: Math.max(
+            0.6,
+            toNumberOr(provider.rateMultiplier, defaults.rateMultiplier),
+        ),
+        fuelSurcharge: Math.max(
+            0,
+            toNumberOr(provider.fuelSurcharge, defaults.fuelSurcharge),
+        ),
+        customsBuffer: Math.max(
+            0,
+            toNumberOr(provider.customsBuffer, defaults.customsBuffer),
+        ),
+        coverage: String(
+            provider.coverage ||
+                (category === "logistic"
+                    ? "Cross-border logistics support"
+                    : "Island-wide domestic delivery"),
+        ),
+        cutoff: String(
+            provider.cutoff ||
+                (category === "logistic"
+                    ? "Pickup by 3:30 PM"
+                    : "Pickup by 5:00 PM"),
+        ),
+        badges: Array.isArray(provider.badges)
+            ? provider.badges
+                  .map((badge) => String(badge).trim())
+                  .filter(Boolean)
+                  .slice(0, 4)
+            : [],
+        tiers: normalizeProviderTiers(provider, category),
+    };
+};
+
+const resolveQuoteServices = (services) => {
+    const providedServices = Array.isArray(services) ? services : [];
+    const normalizedServices = providedServices
+        .map((provider, index) => normalizeProviderService(provider, index))
+        .filter(Boolean);
+
+    return normalizedServices.length > 0 ? normalizedServices : COURIER_SERVICES;
+};
+
 export const computePackageMetrics = (packages = []) => {
     if (!Array.isArray(packages) || packages.length === 0) {
         return {
@@ -484,7 +655,7 @@ export const computePackageMetrics = (packages = []) => {
 };
 
 export const buildQuoteMatrix = (packages = [], options = {}) => {
-    const services = options.services || COURIER_SERVICES;
+    const services = resolveQuoteServices(options.services);
     const metrics = options.metrics || computePackageMetrics(packages);
 
     if (!metrics.readyForQuote) {

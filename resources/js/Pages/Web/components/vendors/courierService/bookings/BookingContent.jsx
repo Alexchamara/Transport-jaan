@@ -1,563 +1,478 @@
-import React, { useState, useRef, useEffect } from "react";
-import { usePage, Link } from "@inertiajs/react";
+import React, { useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { CalendarDays, ChevronDown, Search } from "lucide-react";
+import CourierFeedbackModal from "../common/CourierFeedbackModal";
+import useCourierActionModal from "../common/useCourierActionModal";
 
-import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
-import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg";
+const EMPTY = {
+    summary: {
+        newRequestsToday: 0,
+        awaitingConfirmation: 0,
+        confirmedToday: 0,
+        cancellationsToday: 0,
+        conversionRate: 0,
+        avgConfirmationHours: 0,
+    },
+    rows: [],
+    filters: {
+        q: "",
+        category: "",
+        service: "",
+        bookingStatus: "",
+        paymentStatus: "",
+        fromDate: "",
+        toDate: "",
+        perPage: 10,
+        page: 1,
+    },
+    pagination: {
+        page: 1,
+        perPage: 10,
+        total: 0,
+        totalPages: 1,
+    },
+    filterOptions: {
+        bookingStatuses: [],
+        paymentStatuses: [],
+        categories: [],
+        services: [],
+        perPageOptions: [10, 20, 50],
+        actionOptions: [],
+    },
+    statusCounts: [],
+};
 
-import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
+const actionLabels = {
+    accept_booking: "Accept",
+    request_revision: "Request Revision",
+    send_quote: "Send Quote",
+    mark_awaiting_confirmation: "Awaiting Confirmation",
+    cancel_booking: "Cancel",
+    reject_booking: "Reject",
+    expire_booking: "Expire",
+    reopen_booking: "Reopen",
+};
 
-import icon1 from "../../../../assets/vendors/booking/icons/icon1.svg";
-import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
-import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
-import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
+const DESTRUCTIVE_BOOKING_ACTIONS = ["cancel_booking", "reject_booking", "expire_booking"];
 
-import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-import CarBookingTableTwo from "../../../../components/vendors/courierService/bookings/CarBookingTableTwo";
-import BookingBarChart from "./BookingBarChart";
+const bookingBadge = (status) => {
+    switch (status) {
+        case "new_request":
+            return "bg-[#EEF2FF] text-[#3730A3]";
+        case "quote_pending":
+            return "bg-[#FFF7ED] text-[#9A3412]";
+        case "quoted":
+            return "bg-[#DBEAFE] text-[#1E40AF]";
+        case "awaiting_client_confirmation":
+            return "bg-[#FEF3C7] text-[#92400E]";
+        case "confirmed":
+            return "bg-[#DCFCE7] text-[#166534]";
+        case "cancelled":
+        case "rejected":
+        case "expired":
+            return "bg-[#FEE2E2] text-[#991B1B]";
+        default:
+            return "bg-[#F3F4F6] text-[#374151]";
+    }
+};
 
-
-import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
-
-import UserDropdown from "../../UserDropdown";
+const paymentBadge = (status) => {
+    switch (status) {
+        case "paid":
+            return "bg-[#DCFCE7] text-[#166534]";
+        case "pending":
+            return "bg-[#FEF3C7] text-[#92400E]";
+        default:
+            return "bg-[#FEE2E2] text-[#991B1B]";
+    }
+};
 
 const BookingContent = () => {
-    const { auth } = usePage().props;
-    const user = auth?.user;
-    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const props = usePage().props;
+    const bookings = props.courierBookings || EMPTY;
+    const flash = props.flash || {};
 
-    const paymentStatusColors = {
-        Paid: { color: "#3B8F314D", bg: "#ACE19957" },
-        Pending: { color: "#FF6060", bg: "#FF60608C" },
-    };
-
-    const statusColors = {
-        Ongoing: { bg: "#FFCD29", text: "#000000" },
-        Returned: { bg: "transparent", text: "#FFCD29" },
-        Scheduled: { bg: "#D9D9D957", text: "#000000" },
-        Delivered: { bg: "#D8E4F2", text: "#000000" },
-    };
-
-    const [bookings, setBookings] = useState([
-        {
-            id: "D-OR1001",
-            bookingDate: "Aug 28, 2025",
-            recipient: "Alice Johnson",
-            serviceType: "Express Delivery",
-            packageBadge: "2 kg",
-            route: "Colombo to Kandy",
-            slotDate: "Aug 29, 2025",
-            slotTime: "10:30 AM",
-            payment: "$12.50",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "D-OR1002",
-            bookingDate: "Aug 28, 2025",
-            recipient: "Bob Smith",
-            serviceType: "Standard Delivery",
-            packageBadge: "Fragile",
-            route: "Galle to Colombo",
-            slotDate: "Aug 30, 2025",
-            slotTime: "02:15 PM",
-            payment: "$7.90",
-            paymentStatus: "Pending",
-            paymentStatusColor: paymentStatusColors.Pending.color,
-            paymentStatusBg: paymentStatusColors.Pending.bg,
-            status: "Scheduled",
-            statusBg: statusColors.Scheduled.bg,
-            statusText: statusColors.Scheduled.text,
-        },
-        {
-            id: "D-OR1003",
-            bookingDate: "Aug 27, 2025",
-            recipient: "Steve Gibson",
-            serviceType: "Same Day",
-            packageBadge: "3 kg",
-            route: "Negombo to Colombo",
-            slotDate: "Aug 27, 2025",
-            slotTime: "04:45 PM",
-            payment: "$9.20",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Returned",
-            statusBg: statusColors.Returned.bg,
-            statusText: statusColors.Returned.text,
-        },
-        {
-            id: "D-OR1004",
-            bookingDate: "Aug 26, 2025",
-            recipient: "Nimal Perera",
-            serviceType: "International",
-            packageBadge: "Docs",
-            route: "Colombo to Chennai",
-            slotDate: "Aug 31, 2025",
-            slotTime: "09:00 AM",
-            payment: "$38.00",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "D-OR1005",
-            bookingDate: "Aug 25, 2025",
-            recipient: "Chamari Silva",
-            serviceType: "Economy",
-            packageBadge: "1.2 kg",
-            route: "Matara to Galle",
-            slotDate: "Aug 29, 2025",
-            slotTime: "11:15 AM",
-            payment: "$5.40",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Delivered",
-            statusBg: statusColors.Delivered.bg,
-            statusText: statusColors.Delivered.text,
-        },
-    ]);
-
-    const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
-    const [newBooking, setNewBooking] = useState({
-        id: "",
-        bookingDate: "",
-        recipient: "",
-        serviceType: "",
-        packageBadge: "",
-        route: "",
-        slotDate: "",
-        slotTime: "",
-        payment: "",
-        paymentStatus: "Pending",
-        status: "Ongoing",
+    const [filters, setFilters] = useState({
+        q: bookings.filters.q || "",
+        category: bookings.filters.category || "",
+        service: bookings.filters.service || "",
+        bookingStatus: bookings.filters.bookingStatus || "",
+        paymentStatus: bookings.filters.paymentStatus || "",
+        fromDate: bookings.filters.fromDate || "",
+        toDate: bookings.filters.toDate || "",
+        perPage: bookings.filters.perPage || 10,
     });
 
-    // Handle input changes for the form
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewBooking((prev) => ({ ...prev, [name]: value }));
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [bulkAction, setBulkAction] = useState("");
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const {
+        feedback,
+        closeFeedback,
+        confirmState,
+        openConfirm,
+        closeConfirm,
+        runConfirm,
+    } = useCourierActionModal(flash);
+
+    const summaryCards = useMemo(
+        () => [
+            { key: "newRequestsToday", label: "New Requests Today", value: bookings.summary.newRequestsToday },
+            { key: "awaitingConfirmation", label: "Awaiting Confirmation", value: bookings.summary.awaitingConfirmation },
+            { key: "confirmedToday", label: "Confirmed Today", value: bookings.summary.confirmedToday },
+            { key: "cancellationsToday", label: "Cancellations Today", value: bookings.summary.cancellationsToday },
+            { key: "conversionRate", label: "Conversion Rate", value: `${bookings.summary.conversionRate}%` },
+            { key: "avgConfirmationHours", label: "Avg Confirm Time", value: `${bookings.summary.avgConfirmationHours}h` },
+        ],
+        [bookings.summary],
+    );
+
+    const bookingStatusPills = useMemo(() => {
+        const allCount = bookings.statusCounts.reduce((total, item) => total + Number(item.count || 0), 0);
+
+        return [
+            { value: "", label: "All", count: allCount },
+            ...bookings.statusCounts,
+        ];
+    }, [bookings.statusCounts]);
+
+    const hasActiveFilters = useMemo(() => {
+        return Boolean(
+            filters.q ||
+            filters.category ||
+            filters.service ||
+            filters.bookingStatus ||
+            filters.paymentStatus ||
+            filters.fromDate ||
+            filters.toDate,
+        );
+    }, [filters]);
+
+    const submitFilters = (page = 1, overrides = {}) => {
+        router.get(
+            route("courierService.bookings"),
+            {
+                ...filters,
+                ...overrides,
+                page,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
 
-    // Handle form submission to add new booking
-    const handleAddBooking = () => {
-        const newBookingEntry = {
-            ...newBooking,
-            paymentStatusColor:
-                paymentStatusColors[newBooking.paymentStatus]?.color ||
-                "#FF6060",
-            paymentStatusBg:
-                paymentStatusColors[newBooking.paymentStatus]?.bg ||
-                "#FF60608C",
-            statusBg: statusColors[newBooking.status]?.bg || "#FFCD29",
-            statusText: statusColors[newBooking.status]?.text || "#000000",
+    const runAction = (shipmentId, action) => {
+        const execute = () => {
+            router.post(route("courierService.bookings.lifecycle", shipmentId), { action }, { preserveScroll: true });
         };
 
-        setBookings((prev) => [...prev, newBookingEntry]);
-        setIsAddPopupOpen(false);
-        setNewBooking({
-            id: "",
-            bookingDate: "",
-            recipient: "",
-            serviceType: "",
-            packageBadge: "",
-            route: "",
-            slotDate: "",
-            slotTime: "",
-            payment: "",
-            paymentStatus: "Pending",
-            status: "Ongoing",
+        if (DESTRUCTIVE_BOOKING_ACTIONS.includes(action)) {
+            openConfirm({
+                title: "Confirm Booking Action",
+                message: `Are you sure you want to ${titleCase(action)} for this booking? This affects booking lifecycle and can impact operations.`,
+                onConfirm: execute,
+            });
+            return;
+        }
+
+        execute();
+    };
+
+    const runBulkAction = () => {
+        if (!bulkAction || selectedIds.length === 0) {
+            return;
+        }
+
+        const execute = () => {
+            router.post(
+                route("courierService.bookings.bulk.lifecycle"),
+                { shipmentIds: selectedIds, action: bulkAction },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => setSelectedIds([]),
+                },
+            );
+        };
+
+        openConfirm({
+            title: "Confirm Bulk Booking Action",
+            message: `Apply ${titleCase(bulkAction)} to ${selectedIds.length} selected booking(s)?`,
+            onConfirm: execute,
         });
     };
 
     return (
-        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
-            {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center mb-6">
-                <h1 className="figtree text-[35px] font-[700]">
-                    Courier Service Bookings
-                </h1>
-                {/* <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
-                </div> */}
-            </div>
-            {/* end of header section */}
+        <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
+            <CourierFeedbackModal
+                open={Boolean(feedback)}
+                type={feedback?.type || "info"}
+                message={feedback?.message || ""}
+                passwordChangeRequired={Boolean(feedback?.passwordChangeRequired)}
+                passwordChangeTargetUrl={feedback?.passwordChangeTargetUrl || ""}
+                onClose={closeFeedback}
+            />
 
-            {/* Mini Cards + Chart */}
-            <div className="flex flex-row gap-10 justify-between w-full">
-                <div className="flex flex-col gap-8 w-full">
-                    {/* Card 1 */}
-                    <div
-                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon1} alt="Upcoming Bookings" />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
-                                    Upcoming Bookings
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1>+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
-                        </div>
-                    </div>
+            <CourierFeedbackModal
+                open={confirmState.open}
+                type={confirmState.type || "warning"}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmText={confirmState.confirmText || "Confirm"}
+                showCancel={true}
+                onConfirm={runConfirm}
+                onClose={closeConfirm}
+            />
 
-                    {/* Card 2 */}
-                    <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon2} alt="Pending Bookings" />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
-                                    Pending Bookings
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">234</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1>+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
-                        </div>
-                    </div>
-
-                    {/* Card 3 */}
-                    <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon3} alt="Cancelled Bookings" />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
-                                    Cancelled Bookings
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">24</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1>+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
-                        </div>
-                    </div>
-
-                    {/* Card 4 */}
-                    <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon4} alt="Completed Bookings" />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
-                                    Completed Bookings
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px]"
-                                    alt="Increase"
-                                />
-                                <h1>+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Chart */}
-                <div
-                    className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    <BookingBarChart />
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                <div>
+                    <h1 className="figtree text-[34px] font-[700]">Courier Bookings</h1>
+                    <p className="text-[14px] text-[#6B7280] mt-1">Intake, confirmation, and conversion controls before shipment execution.</p>
                 </div>
             </div>
 
-            {/* Table Section */}
-            <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
-            >
-                <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">Courier Bookings</h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} alt="Search" />
-                            <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search recipient, service, route..."
-                            />
-                        </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="Filter"
-                            />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Service type
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
-                        </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="Filter"
-                            />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Status
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-6">
+                {summaryCards.map((card) => (
+                    <div key={card.key} className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <p className="text-[12px] text-[#6B7280] font-[600]">{card.label}</p>
+                        <p className="text-[26px] leading-tight font-[700] mt-1">{card.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-6 overflow-x-auto">
+                <div className="flex gap-2 min-w-max">
+                    {bookingStatusPills.map((pill) => (
                         <button
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
-                            onClick={() => setIsAddPopupOpen(true)}
+                            key={pill.value || "all"}
+                            type="button"
+                            onClick={() => {
+                                setFilters((prev) => ({ ...prev, bookingStatus: pill.value }));
+                                submitFilters(1, { bookingStatus: pill.value });
+                            }}
+                            className={`px-3 py-2 rounded-full text-[12px] font-[700] transition-colors ${
+                                filters.bookingStatus === pill.value
+                                    ? "bg-[#0955AC] text-white"
+                                    : "bg-white text-[#4B5563]"
+                            }`}
+                            style={filters.bookingStatus === pill.value ? {} : { boxShadow: "2px 2px 4px #00000014" }}
                         >
-                            Add Booking
+                            {pill.label} ({pill.count})
                         </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-white rounded-[10px] p-4 mt-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-9 gap-2 mb-4">
+                    <div className="xl:col-span-2 h-[38px] rounded-[8px] bg-[#F3F4F6] px-3 flex items-center gap-2">
+                        <Search size={16} className="text-[#6B7280]" />
+                        <input
+                            type="text"
+                            value={filters.q}
+                            onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
+                            placeholder="Search Booking/Tracking/Client"
+                            className="w-full border-none bg-transparent outline-none focus:ring-0"
+                        />
+                    </div>
+                    <select value={filters.category} onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))} className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[13px]">
+                        <option value="">Category</option>
+                        {bookings.filterOptions.categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                    <select value={filters.service} onChange={(e) => setFilters((prev) => ({ ...prev, service: e.target.value }))} className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[13px]">
+                        <option value="">Service</option>
+                        {bookings.filterOptions.services.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                    <select value={filters.bookingStatus} onChange={(e) => setFilters((prev) => ({ ...prev, bookingStatus: e.target.value }))} className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[13px]">
+                        <option value="">Booking Status</option>
+                        {bookings.filterOptions.bookingStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                    <select value={filters.paymentStatus} onChange={(e) => setFilters((prev) => ({ ...prev, paymentStatus: e.target.value }))} className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[13px]">
+                        <option value="">Payment</option>
+                        {bookings.filterOptions.paymentStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                    <div className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-2 flex items-center gap-2">
+                        <CalendarDays size={14} className="text-[#6B7280]" />
+                        <input type="date" value={filters.fromDate} onChange={(e) => setFilters((prev) => ({ ...prev, fromDate: e.target.value }))} className="w-full border-none outline-none focus:ring-0 text-[13px]" />
+                    </div>
+                    <div className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-2 flex items-center gap-2">
+                        <CalendarDays size={14} className="text-[#6B7280]" />
+                        <input type="date" value={filters.toDate} onChange={(e) => setFilters((prev) => ({ ...prev, toDate: e.target.value }))} className="w-full border-none outline-none focus:ring-0 text-[13px]" />
+                    </div>
+                    <button type="button" onClick={() => submitFilters(1)} className="h-[38px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700]">Apply</button>
+                </div>
+
+                <div className="flex items-center justify-between mb-4 text-[13px]">
+                    <p className="text-[#6B7280]">
+                        {hasActiveFilters
+                            ? "Filters are active"
+                            : "Showing all bookings"}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const reset = {
+                                q: "",
+                                category: "",
+                                service: "",
+                                bookingStatus: "",
+                                paymentStatus: "",
+                                fromDate: "",
+                                toDate: "",
+                                perPage: filters.perPage,
+                            };
+
+                            setFilters(reset);
+                            submitFilters(1, reset);
+                        }}
+                        className="text-[#0955AC] font-[700] disabled:opacity-50"
+                        disabled={!hasActiveFilters}
+                    >
+                        Clear Filters
+                    </button>
+                </div>
+
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+                    <p className="text-[13px] text-[#6B7280]">{selectedIds.length} selected for bulk lifecycle update</p>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            className="h-[36px] px-3 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700] disabled:opacity-50"
+                            onClick={() => setSelectedIds([])}
+                            disabled={selectedIds.length === 0}
+                        >
+                            Clear Selection
+                        </button>
+                        <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)} className="h-[36px] rounded-[8px] border border-[#D1D5DB] px-3 text-[13px]">
+                            <option value="">Bulk Action</option>
+                            {bookings.filterOptions.actionOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                        </select>
+                        <button type="button" onClick={runBulkAction} disabled={!bulkAction || selectedIds.length === 0} className="h-[36px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50">Apply To Selected</button>
                     </div>
                 </div>
 
-                {/* Add Booking Popup */}
-                {isAddPopupOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                        <div className="bg-white p-10 rounded-[10px] w-[600px] shadow-lg">
-                            <h2 className="text-[18px] font-[700] mb-4">
-                                Add New Booking
-                            </h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Order ID
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="id"
-                                        value={newBooking.id}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. D-OR1006"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Booking Date
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="bookingDate"
-                                        value={newBooking.bookingDate}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Aug 29, 2025"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Recipient
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="recipient"
-                                        value={newBooking.recipient}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. John Doe"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Service Type
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="serviceType"
-                                        value={newBooking.serviceType}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Express Delivery"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Package Badge
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="packageBadge"
-                                        value={newBooking.packageBadge}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. 2 kg / Fragile / Docs"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Route
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="route"
-                                        value={newBooking.route}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Colombo to Kandy"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Slot Date
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="slotDate"
-                                        value={newBooking.slotDate}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Aug 30, 2025"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Slot Time
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="slotTime"
-                                        value={newBooking.slotTime}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. 10:30 AM"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Payment Amount
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="payment"
-                                        value={newBooking.payment}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. $12.50"
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Payment Status
-                                    </label>
-                                    <select
-                                        name="paymentStatus"
-                                        value={newBooking.paymentStatus}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                    >
-                                        <option value="Paid">Paid</option>
-                                        <option value="Pending">Pending</option>
-                                    </select>
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">
-                                        Status
-                                    </label>
-                                    <select
-                                        name="status"
-                                        value={newBooking.status}
-                                        onChange={handleInputChange}
-                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                    >
-                                        <option value="Ongoing">Ongoing</option>
-                                        <option value="Scheduled">
-                                            Scheduled
-                                        </option>
-                                        <option value="Delivered">
-                                            Delivered
-                                        </option>
-                                        <option value="Returned">
-                                            Returned
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => setIsAddPopupOpen(false)}
-                                    className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleAddBooking}
-                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
-                                >
-                                    Add Booking
-                                </button>
-                            </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-[13px]">
+                        <thead className="bg-[#D8E4F2] sticky top-0 z-10">
+                            <tr>
+                                <th className="px-3 py-3 font-[700]"><input type="checkbox" checked={bookings.rows.length > 0 && selectedIds.length === bookings.rows.length} onChange={(e) => setSelectedIds(e.target.checked ? bookings.rows.map((row) => row.id) : [])} /></th>
+                                <th className="px-3 py-3 font-[700]">Booking No</th>
+                                <th className="px-3 py-3 font-[700]">Created</th>
+                                <th className="px-3 py-3 font-[700]">Client</th>
+                                <th className="px-3 py-3 font-[700]">Route</th>
+                                <th className="px-3 py-3 font-[700]">Category</th>
+                                <th className="px-3 py-3 font-[700]">Service</th>
+                                <th className="px-3 py-3 font-[700]">Quote</th>
+                                <th className="px-3 py-3 font-[700]">Payment</th>
+                                <th className="px-3 py-3 font-[700]">Booking Status</th>
+                                <th className="px-3 py-3 font-[700]">SLA To Confirm</th>
+                                <th className="px-3 py-3 font-[700]">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {bookings.rows.length > 0 ? bookings.rows.map((row) => (
+                                <tr key={row.id} className="border-b border-[#E5E7EB] cursor-pointer" onClick={() => setSelectedBooking(row)}>
+                                    <td className="px-3 py-3"><input type="checkbox" checked={selectedIds.includes(row.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, row.id] : prev.filter((id) => id !== row.id))} /></td>
+                                    <td className="px-3 py-3 font-[700]">{row.bookingNumber}</td>
+                                    <td className="px-3 py-3">{row.createdAt || "-"}</td>
+                                    <td className="px-3 py-3">{row.client || "-"}</td>
+                                    <td className="px-3 py-3">{row.route || "-"}</td>
+                                    <td className="px-3 py-3">{row.category}</td>
+                                    <td className="px-3 py-3">{row.service}</td>
+                                    <td className="px-3 py-3">{row.currency} {Number(row.quoteAmount).toFixed(2)}</td>
+                                    <td className="px-3 py-3"><span className={`px-2 py-1 rounded-full text-[11px] font-[700] ${paymentBadge(row.paymentStatus)}`}>{titleCase(row.paymentStatus)}</span></td>
+                                    <td className="px-3 py-3"><span className={`px-2 py-1 rounded-full text-[11px] font-[700] ${bookingBadge(row.bookingStatus)}`}>{row.bookingStatusLabel}</span></td>
+                                    <td className="px-3 py-3">{row.confirmHours !== null ? `${row.confirmHours} h` : "-"}</td>
+                                    <td className="px-3 py-3">
+                                        <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                            {(row.allowedActions || []).map((action) => (
+                                                <button key={action} type="button" onClick={() => runAction(row.id, action)} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
+                                            ))}
+                                            {row.allowedActions.length === 0 && <span className="text-[11px] text-[#9CA3AF]">No actions</span>}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={12} className="px-3 py-10 text-center text-[#6B7280]">
+                                        <p className="font-[700] text-[15px]">No bookings found for current filters.</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const reset = {
+                                                    q: "",
+                                                    category: "",
+                                                    service: "",
+                                                    bookingStatus: "",
+                                                    paymentStatus: "",
+                                                    fromDate: "",
+                                                    toDate: "",
+                                                    perPage: filters.perPage,
+                                                };
+                                                setFilters(reset);
+                                                submitFilters(1, reset);
+                                            }}
+                                            className="mt-3 px-4 py-2 rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[700]"
+                                        >
+                                            Reset and Show All
+                                        </button>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mt-5">
+                    <div className="flex items-center gap-2 text-[13px]">
+                        <span>Rows per page</span>
+                        <div className="relative">
+                            <select value={filters.perPage} onChange={(e) => { const nextPerPage = Number(e.target.value); setFilters((prev) => ({ ...prev, perPage: nextPerPage })); submitFilters(1, { perPage: nextPerPage }); }} className="h-[34px] rounded-[6px] border border-[#D1D5DB] px-3 pr-7 text-[13px]">
+                                {bookings.filterOptions.perPageOptions.map((count) => <option key={count} value={count}>{count}</option>)}
+                            </select>
+                            <ChevronDown className="size-[14px] text-[#6B7280] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                     </div>
-                )}
-
-                <CarBookingTableTwo
-                    bookings={bookings}
-                    setBookings={setBookings}
-                    statusColors={statusColors}
-                />
+                    <p className="text-[13px] text-[#6B7280]">Page {bookings.pagination.page} / {bookings.pagination.totalPages} ({bookings.pagination.total} records)</p>
+                    <div className="flex gap-2">
+                        <button type="button" disabled={bookings.pagination.page <= 1} onClick={() => submitFilters(bookings.pagination.page - 1)} className="h-[34px] px-3 rounded-[6px] border border-[#D1D5DB] text-[13px] disabled:opacity-50">Previous</button>
+                        <button type="button" disabled={bookings.pagination.page >= bookings.pagination.totalPages} onClick={() => submitFilters(bookings.pagination.page + 1)} className="h-[34px] px-3 rounded-[6px] border border-[#D1D5DB] text-[13px] disabled:opacity-50">Next</button>
+                    </div>
+                </div>
             </div>
+
+            {selectedBooking && (
+                <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelectedBooking(null)}>
+                    <div className="absolute right-0 top-0 h-full w-full max-w-[430px] bg-white p-6 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-[24px] font-[700] mb-4">Booking Details</h2>
+                        <div className="space-y-3 text-[14px]">
+                            <p><span className="font-[700]">Booking:</span> {selectedBooking.bookingNumber}</p>
+                            <p><span className="font-[700]">Tracking:</span> {selectedBooking.trackingNumber}</p>
+                            <p><span className="font-[700]">Client:</span> {selectedBooking.client || "-"}</p>
+                            <p><span className="font-[700]">Company:</span> {selectedBooking.clientCompany || "-"}</p>
+                            <p><span className="font-[700]">Route:</span> {selectedBooking.route || "-"}</p>
+                            <p><span className="font-[700]">Category:</span> {selectedBooking.category}</p>
+                            <p><span className="font-[700]">Service:</span> {selectedBooking.service}</p>
+                            <p><span className="font-[700]">Quote:</span> {selectedBooking.currency} {Number(selectedBooking.quoteAmount).toFixed(2)}</p>
+                            <p><span className="font-[700]">Payment:</span> {titleCase(selectedBooking.paymentStatus)}</p>
+                            <p><span className="font-[700]">Booking Status:</span> {selectedBooking.bookingStatusLabel}</p>
+                            <p><span className="font-[700]">Pickup Window:</span> {selectedBooking.pickupWindow || "-"}</p>
+                            <p><span className="font-[700]">ETA:</span> {selectedBooking.eta || "-"}</p>
+                            <p><span className="font-[700]">Confirm Time:</span> {selectedBooking.confirmHours !== null ? `${selectedBooking.confirmHours} h` : "-"}</p>
+                        </div>
+                        <div className="mt-5 grid grid-cols-2 gap-2">
+                            {(selectedBooking.allowedActions || []).map((action) => (
+                                <button key={action} type="button" onClick={() => runAction(selectedBooking.id, action)} className="h-[36px] rounded-[8px] bg-[#F3F4F6] text-[12px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
+                            ))}
+                        </div>
+                        <button type="button" className="mt-5 w-full h-[40px] rounded-[8px] bg-[#111827] text-white font-[700]" onClick={() => setSelectedBooking(null)}>Close</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

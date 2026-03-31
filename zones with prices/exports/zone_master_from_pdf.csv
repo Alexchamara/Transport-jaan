@@ -1,0 +1,5 @@
+company_code,service_category,country,zone_code,zone_label,city_count,is_catch_all,source_file
+#CR0001,domestic,LK,A,Zone A,1,0,Domestic Zone List.pdf
+#CR0001,domestic,LK,B,Zone B,63,0,Domestic Zone List.pdf
+#CR0001,domestic,LK,C,Zone C,499,0,Domestic Zone List.pdf
+#CR0001,domestic,LK,D,Zone D,1,1,Domestic Zone List.pdf

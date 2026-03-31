@@ -68,6 +68,9 @@ class DatabaseSeeder extends Seeder
             // Service Categories for vendor registration
             ServiceCategorySeeder::class,
             VendorUsersSeeder::class,
+
+            // Service-scoped RBAC
+            CourierRbacSeeder::class,
         ]);
     }
 }

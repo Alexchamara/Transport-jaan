@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { ArrowLeft, Menu, UserCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Menu, UserCircle, Users } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
@@ -15,6 +15,8 @@ import driversLogo from "../../Pages/Web/assets/vendors/dashboard/driversLogo.sv
 import finLogo from "../../Pages/Web/assets/vendors/dashboard/finLogo.svg";
 import settingsLogo from "../../Pages/Web/assets/vendors/dashboard/settings.svg";
 import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
+
+const LIVE_REFRESH_INTERVAL_MS = 30000;
 
 /**
  * Per-service sidebar menu configuration.
@@ -61,14 +63,28 @@ const SERVICE_CONFIG = {
     "Courier Service": {
         dashboard: () => route("courierService.dashboard"),
         bookings: () => route("courierService.bookings"),
+        bookingsLabel: "Bookings",
         units: () => route("courierService.units"),
+        unitsLabel: "Shipments",
         calendar: () => route("courierService.calendar"),
+        tracking: () => route("courierService.tracking"),
         clients: () => route("courierService.clients"),
+        team: () => route("courierService.team.index"),
         drivers: null,
         payment: () => route("courierService.payment"),
         expenses: () => route("courierService.expenses"),
-        settings: () => route(""),
-        profile: () => route(""),
+        settings: () => route("courierService.settings.module", { module: "business" }),
+        settingsModules: [
+            { key: "business", label: "Business", route: () => route("courierService.settings.module", { module: "business" }) },
+            { key: "operations", label: "Operations", route: () => route("courierService.settings.module", { module: "operations" }) },
+            { key: "sla", label: "SLA", route: () => route("courierService.settings.module", { module: "sla" }) },
+            { key: "tracking", label: "Tracking", route: () => route("courierService.settings.module", { module: "tracking" }) },
+            { key: "notifications", label: "Notifications", route: () => route("courierService.settings.module", { module: "notifications" }) },
+            { key: "integrations", label: "Integrations", route: () => route("courierService.settings.module", { module: "integrations" }) },
+            { key: "pricing", label: "Pricing", route: () => route("courierService.settings.module", { module: "pricing" }) },
+            { key: "team", label: "Team Access", route: () => route("courierService.settings.team.topic", { topic: "policy-controls" }) },
+        ],
+        profile: () => route("courierService.profile"),
     },
     "Warehousing": {
         dashboard: () => route("vendors.warehouse.dashboard"),
@@ -129,7 +145,7 @@ const VendorShellLayout = ({
     activeService = "Vehicle Rental",
     isVerified: isVerifiedProp,
 }) => {
-    const { auth } = usePage().props;
+    const { auth, flash } = usePage().props;
     const user = auth?.user;
     const isVerified = isVerifiedProp !== undefined
         ? isVerifiedProp
@@ -137,7 +153,8 @@ const VendorShellLayout = ({
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showFinancial, setShowFinancial] = useState(false);
-    const [showAlert, setShowAlert] = useState(false);
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+    const [shellFlash, setShellFlash] = useState(null);
     const [showComingSoon, setShowComingSoon] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [blockedService, setBlockedService] = useState("");
@@ -151,7 +168,78 @@ const VendorShellLayout = ({
         return cleanup;
     }, []);
 
+    useEffect(() => {
+        if (flash?.error) {
+            if (flash.error === "Please update your password before continuing.") {
+                return;
+            }
+            setShellFlash({ type: "error", message: flash.error });
+            return;
+        }
+
+        if (flash?.success) {
+            setShellFlash({ type: "success", message: flash.success });
+        }
+    }, [flash?.error, flash?.success]);
+
+    useEffect(() => {
+        if (!shellFlash?.message) {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            setShellFlash(null);
+        }, 3600);
+
+        return () => window.clearTimeout(timer);
+    }, [shellFlash]);
+
+    useEffect(() => {
+        if (activeService !== "Courier Service") {
+            return undefined;
+        }
+
+        const refreshNow = () => {
+            router.reload({
+                preserveScroll: true,
+                preserveState: true,
+            });
+        };
+
+        const timer = window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+                refreshNow();
+            }
+        }, LIVE_REFRESH_INTERVAL_MS);
+
+        const onVisible = () => {
+            if (document.visibilityState === "visible") {
+                refreshNow();
+            }
+        };
+
+        document.addEventListener("visibilitychange", onVisible);
+
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
+    }, [activeService]);
+
     const approvedSlugs = user?.approved_service_slugs || [];
+    const courierPermissions = Array.isArray(user?.courier_permissions) ? user.courier_permissions : [];
+
+    const hasCourierPermission = (permission) => {
+        if (activeService !== "Courier Service") {
+            return true;
+        }
+
+        if (user?.role === "vendor") {
+            return true;
+        }
+
+        return courierPermissions.includes(permission);
+    };
 
     const canAccessService = (serviceName) => {
         switch (serviceName) {
@@ -224,8 +312,18 @@ const VendorShellLayout = ({
         if (!routeFn) return false;
         const p = routePath(routeFn);
         if (!p) return false;
-        return currentPath === p;
+        return currentPath === p || currentPath.startsWith(`${p}/`);
     };
+
+    const settingsModuleActive = Array.isArray(cfg.settingsModules)
+        ? cfg.settingsModules.some((moduleItem) => isActive(moduleItem.route))
+        : false;
+
+    useEffect(() => {
+        if (settingsModuleActive) {
+            setShowSettingsMenu(true);
+        }
+    }, [settingsModuleActive]);
 
     const menuCls = (active) =>
         `flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${active
@@ -340,38 +438,52 @@ const VendorShellLayout = ({
                         <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
                             <div className="figtree flex flex-col items-start gap-3 text-[18px] font-[500]">
 
-                                {cfg.dashboard && (
+                                {cfg.dashboard && hasCourierPermission("courier.dashboard.view") && (
                                     <div className={menuCls(isActive(cfg.dashboard))} onClick={() => navigate(cfg.dashboard)}>
                                         <img src={dashLogo} className="w-[22px]" alt="" />
                                         <span>Dashboard</span>
                                     </div>
                                 )}
 
-                                {cfg.bookings && (
+                                {cfg.bookings && hasCourierPermission("courier.bookings.view") && (
                                     <div className={menuCls(isActive(cfg.bookings))} onClick={() => navigate(cfg.bookings)}>
                                         <img src={bookLogo} className="w-[22px]" alt="" />
                                         <span>{cfg.bookingsLabel || "Bookings"}</span>
                                     </div>
                                 )}
 
-                                {cfg.units && (
+                                {cfg.units && hasCourierPermission("courier.shipments.view") && (
                                     <div className={menuCls(isActive(cfg.units))} onClick={() => navigate(cfg.units)}>
                                         <img src={uniLogo} className="w-[22px]" alt="" />
-                                        <span>Units</span>
+                                        <span>{cfg.unitsLabel || "Units"}</span>
                                     </div>
                                 )}
 
-                                {cfg.calendar && (
+                                {cfg.tracking && hasCourierPermission("courier.tracking.view") && (
+                                    <div className={menuCls(isActive(cfg.tracking))} onClick={() => navigate(cfg.tracking)}>
+                                        <MapPin className="w-[22px] h-[22px] text-[#666666]" />
+                                        <span>Tracking</span>
+                                    </div>
+                                )}
+
+                                {cfg.calendar && hasCourierPermission("courier.calendar.view") && (
                                     <div className={menuCls(isActive(cfg.calendar))} onClick={() => navigate(cfg.calendar)}>
                                         <img src={calendarLogo} className="w-[22px]" alt="" />
                                         <span>Calendar</span>
                                     </div>
                                 )}
 
-                                {cfg.clients && (
+                                {cfg.clients && hasCourierPermission("courier.clients.view") && (
                                     <div className={menuCls(isActive(cfg.clients))} onClick={() => navigate(cfg.clients)}>
                                         <img src={clientsLogo} className="w-[22px]" alt="" />
                                         <span>Clients</span>
+                                    </div>
+                                )}
+
+                                {cfg.team && hasCourierPermission("courier.team.view") && (
+                                    <div className={menuCls(isActive(cfg.team))} onClick={() => navigate(cfg.team)}>
+                                        <Users className="w-[22px] h-[22px] text-[#666666]" />
+                                        <span>Team</span>
                                     </div>
                                 )}
 
@@ -382,7 +494,8 @@ const VendorShellLayout = ({
                                     </div>
                                 )}
 
-                                {(cfg.payment || cfg.expenses) && (
+                                {((cfg.payment && hasCourierPermission("courier.finance.view")) ||
+                                    (cfg.expenses && hasCourierPermission("courier.finance.view"))) && (
                                     <>
                                         <div
                                             className={menuCls(
@@ -403,7 +516,7 @@ const VendorShellLayout = ({
 
                                         {showFinancial && (
                                             <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
-                                                {cfg.payment && (
+                                                {cfg.payment && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.payment)
                                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
@@ -414,7 +527,7 @@ const VendorShellLayout = ({
                                                         Payment
                                                     </div>
                                                 )}
-                                                {cfg.expenses && (
+                                                {cfg.expenses && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.expenses)
                                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
@@ -430,14 +543,49 @@ const VendorShellLayout = ({
                                     </>
                                 )}
 
-                                {cfg.settings && (
-                                    <div className={menuCls(isActive(cfg.settings))} onClick={() => navigate(cfg.settings)}>
-                                        <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
-                                        <span>Settings</span>
-                                    </div>
+                                {cfg.settings && hasCourierPermission("courier.settings.view") && (
+                                    Array.isArray(cfg.settingsModules) && cfg.settingsModules.length > 0 ? (
+                                        <>
+                                            <div
+                                                className={menuCls(isActive(cfg.settings) || settingsModuleActive)}
+                                                onClick={() => setShowSettingsMenu((prev) => !prev)}
+                                            >
+                                                <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
+                                                <span>Settings</span>
+                                                <svg
+                                                    className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${showSettingsMenu ? "rotate-180" : ""}`}
+                                                    fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+
+                                            {showSettingsMenu && (
+                                                <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
+                                                    {cfg.settingsModules.map((moduleItem) => (
+                                                        <div
+                                                            key={moduleItem.key}
+                                                            className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(moduleItem.route)
+                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                                : "text-[#00000066] hover:bg-gray-50"
+                                                                }`}
+                                                            onClick={() => navigate(moduleItem.route)}
+                                                        >
+                                                            {moduleItem.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={menuCls(isActive(cfg.settings))} onClick={() => navigate(cfg.settings)}>
+                                            <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
+                                            <span>Settings</span>
+                                        </div>
+                                    )
                                 )}
 
-                                {cfg.profile && (
+                                {cfg.profile && hasCourierPermission("courier.profile.view") && (
                                     <div className={menuCls(isActive(cfg.profile))} onClick={() => navigate(cfg.profile)}>
                                         <UserCircle className="w-[22px] h-[22px] text-gray-500" />
                                         <span>Profile</span>
@@ -564,6 +712,32 @@ const VendorShellLayout = ({
                                 </button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {shellFlash?.message && (
+                <div className="fixed top-5 right-5 z-[90] w-[92%] max-w-[420px]">
+                    <div
+                        className={`rounded-xl border shadow-xl backdrop-blur-sm px-4 py-3 flex items-start gap-3 ${shellFlash.type === "error"
+                            ? "bg-[#FFEFF0] border-[#FCA5A5] text-[#7F1D1D]"
+                            : "bg-[#ECFDF3] border-[#86EFAC] text-[#14532D]"
+                            }`}
+                    >
+                        <div className={`mt-0.5 h-2.5 w-2.5 rounded-full ${shellFlash.type === "error" ? "bg-[#DC2626]" : "bg-[#16A34A]"}`} />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-[700] uppercase tracking-wide opacity-80">
+                                {shellFlash.type === "error" ? "Access Notice" : "Success"}
+                            </p>
+                            <p className="text-[14px] font-[500] leading-5 break-words">{shellFlash.message}</p>
+                        </div>
+                        <button
+                            onClick={() => setShellFlash(null)}
+                            className="text-[12px] font-[700] opacity-70 hover:opacity-100 transition"
+                            aria-label="Close message"
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

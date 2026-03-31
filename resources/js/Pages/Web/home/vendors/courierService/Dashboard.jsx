@@ -5,7 +5,7 @@ import DashContent from "../../../components/vendors/courierService/dashboard/Da
 const Dashboard = () => {
     return (
         <VendorShellLayout activeService="Courier Service">
-            <DashContent />
+            <DashContent mode="dashboard" />
         </VendorShellLayout>
     );
 };

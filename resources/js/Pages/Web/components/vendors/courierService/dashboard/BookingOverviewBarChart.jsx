@@ -1,7 +1,6 @@
 import React from "react";
-import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-const bookingData = [
+const defaultBookingData = [
   { name: "Jan", bookings: 450 },
   { name: "Feb", bookings: 670 },
   { name: "Mar", bookings: 540 },
@@ -15,11 +14,16 @@ const bookingData = [
   { name: "Nov", bookings: 400 },
   { name: "Dec", bookings: 900 },
 ];
-const maxBookings = 1000;
+const fallbackMaxBookings = 1000;
 
-function BookingOverviewBarChart() {
+function BookingOverviewBarChart({ data = defaultBookingData }) {
   const [hovered, setHovered] = React.useState(null);
   const chartHeight = 217; // px
+  const bookingData = data.length > 0 ? data : defaultBookingData;
+  const maxBookings = Math.max(
+    fallbackMaxBookings,
+    ...bookingData.map((entry) => Number(entry.bookings) || 0),
+  );
   // Find the index of the highest bookings
   const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => d.bookings > arr[maxIdx].bookings ? idx : maxIdx, 0);
   return (
