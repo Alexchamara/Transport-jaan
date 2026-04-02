@@ -1,13 +1,16 @@
 Warehouse booking
     - npm install react-toastify
 
-icket generation system with PDF and QR codes
+ticket generation system with PDF and QR codes
     composer require barryvdh/laravel-dompdf simplesoftwareio/simple-qrcode
 
 RABC depencency:
     composer require spatie/laravel-permission
 
     php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="permission-config" && php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --tag="permission-migrations"
+
+Pricing import adapter depencency:
+    composer require phpoffice/phpspreadsheet smalot/pdfparser --no-interaction
 
 
 .env =====================================>

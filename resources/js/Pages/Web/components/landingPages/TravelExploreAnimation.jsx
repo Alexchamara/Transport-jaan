@@ -68,7 +68,7 @@ const IMAGES = [
         description:
             "Arrange freight shipping for large or bulk goods via road, sea, or air. Track shipments and optimize your supply chain.",
         ctaLabel: "Ship Freight",
-        href: "/freight-home",
+        href: "/ffreight",
         url: img5,
         tags: ["Freight", "Shipping", "Logistics"],
     },

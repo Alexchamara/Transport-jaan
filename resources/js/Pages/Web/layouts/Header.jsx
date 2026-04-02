@@ -10,7 +10,12 @@ import NotificationDropdown from "../components/vendors/warehouse/NotificationDr
 import { API_BASE_URL } from "../../../config/api";
 
 const Header = () => {
-    const { auth } = usePage().props;
+    const page = usePage();
+    const { auth } = page.props;
+    const currentUrl = String(page.url || "");
+    const shouldLoadVendorNotifications =
+        currentUrl.startsWith("/vendors/warehouse") ||
+        currentUrl.startsWith("/vendors");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -33,15 +38,26 @@ const Header = () => {
 
     // ---------- Fetch notifications ----------
     useEffect(() => {
-        if (auth?.user) {
+        if (auth?.user && shouldLoadVendorNotifications) {
             fetchNotifications();
             // Refresh notifications every 30 seconds
             const interval = setInterval(fetchNotifications, 30000);
             return () => clearInterval(interval);
         }
-    }, [auth?.user]);
+
+        setNotifications([]);
+        setUnreadCount(0);
+    }, [auth?.user, shouldLoadVendorNotifications]);
+
+    useEffect(() => {
+        setIsProfileOpen(false);
+    }, [currentUrl]);
 
     const fetchNotifications = async () => {
+        if (!shouldLoadVendorNotifications) {
+            return;
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
             // 403 is expected for non-vendor users — skip silently
@@ -189,10 +205,12 @@ const Header = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <NotificationDropdown
-                        notifications={notifications}
-                        unreadCount={unreadCount}
-                    />
+                    {shouldLoadVendorNotifications && (
+                        <NotificationDropdown
+                            notifications={notifications}
+                            unreadCount={unreadCount}
+                        />
+                    )}
                     <div className="relative">
                         <button
                             onClick={() => setIsProfileOpen((prev) => !prev)}
@@ -227,29 +245,46 @@ const Header = () => {
                                             <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
                                         </div>
                                     )}
-                                    <Link
-                                        href="/clientDashboardSettings"
-                                        onClick={() => setIsProfileOpen(false)}
-                                        className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
-                                        My Profile
-                                    </Link>
-                                    <button
-                                        onClick={(e) => {
-                                            setIsProfileOpen(false);
-                                            handleLogout(e);
-                                        }}
-                                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                                        type="button"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                        </svg>
-                                        Logout
-                                    </button>
+                                    {auth?.user ? (
+                                        <>
+                                            <Link
+                                                href="/clientDashboardSettings"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                                My Profile
+                                            </Link>
+                                            <button
+                                                onClick={(e) => {
+                                                    setIsProfileOpen(false);
+                                                    handleLogout(e);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                                type="button"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                                </svg>
+                                                Logout
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Link
+                                                href="/signin"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="flex items-center gap-2 px-4 py-3 text-sm text-[#0955AC] hover:bg-blue-50 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5m0 0l-5-5m5 5H3" />
+                                                </svg>
+                                                Login
+                                            </Link>
+                                        </>
+                                    )}
                                 </div>
                             </>
                         )}
@@ -420,12 +455,20 @@ const Header = () => {
 
                             <Link
                                 href="/warehouseList"
+                                onClick={() => {
+                                    setIsProfileOpen(false);
+                                    setIsMenuOpen(false);
+                                }}
                                 className="hover:text-[#0955AC]"
                             >
                                 Warehouse Booking
                             </Link>
                             <Link
                                 href="/freightBookingDashboard"
+                                onClick={() => {
+                                    setIsProfileOpen(false);
+                                    setIsMenuOpen(false);
+                                }}
                                 className="hover:text-[#0955AC]"
                             >
                                 Freight Booking

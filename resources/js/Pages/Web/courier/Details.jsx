@@ -218,6 +218,7 @@ const Details = () => {
         processing,
         errors: formErrors,
     } = useForm(initialForm);
+    const [submitError, setSubmitError] = useState("");
 
     const [showFavoritePicker, setShowFavoritePicker] = useState(false);
     const [showSenderFavoritePicker, setShowSenderFavoritePicker] = useState(false);
@@ -442,10 +443,47 @@ const Details = () => {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+
+        const extractFirstErrorMessage = (errorBag) => {
+            const queue = Array.isArray(errorBag)
+                ? [...errorBag]
+                : Object.values(errorBag || {});
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+
+                if (typeof current === "string" && current.trim() !== "") {
+                    return current;
+                }
+
+                if (Array.isArray(current)) {
+                    queue.push(...current);
+                    continue;
+                }
+
+                if (current && typeof current === "object") {
+                    queue.push(...Object.values(current));
+                }
+            }
+
+            return "";
+        };
+
         post("/couriers/details", {
             preserveScroll: false,
-            onSuccess: scrollToTop,
-            onError: scrollToTop,
+            onStart: () => setSubmitError(""),
+            onSuccess: () => {
+                setSubmitError("");
+                scrollToTop();
+            },
+            onError: (validationErrors) => {
+                const firstError = extractFirstErrorMessage(validationErrors);
+                setSubmitError(
+                    firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                );
+                scrollToTop();
+            },
         });
     };
 
@@ -1661,6 +1699,9 @@ const Details = () => {
                             >
                                 {processing ? "Saving details..." : "Continue to summary"}
                             </button>
+                            {submitError && (
+                                <p className="text-xs text-[#D14343]">{submitError}</p>
+                            )}
                             <Link
                                 href="/couriers/create"
                                 className="text-xs text-[#5B6887] hover:text-[#0955AC] transition"

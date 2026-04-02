@@ -27,6 +27,8 @@ const SideMenu = () => {
     const [activeSubsection, setActiveSubsection] = useState(""); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isReportsOpen, setIsReportsOpen] = useState(false);
+    const [isServiceReportsOpen, setIsServiceReportsOpen] = useState(false);
+    const [isUserReportsOpen, setIsUserReportsOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
     const [isUsersOpen, setIsUsersOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -55,21 +57,39 @@ const SideMenu = () => {
         } else if (pathname === "/SuperAdmin/reports/vehicles") {
             setActiveSubsection("VehicleReports");
             setIsReportsOpen(true);
+            setIsServiceReportsOpen(true);
         } else if (pathname === "/SuperAdmin/reports/tickets") {
             setActiveSubsection("TicketReports");
             setIsReportsOpen(true);
+            setIsServiceReportsOpen(true);
         } else if (pathname === "/SuperAdmin/reports/warehouse") {
             setActiveSubsection("WarehouseReports");
             setIsReportsOpen(true);
+            setIsServiceReportsOpen(true);
         } else if (pathname === "/SuperAdmin/reports/multimodal") {
             setActiveSubsection("MultimodalReports");
             setIsReportsOpen(true);
+            setIsServiceReportsOpen(true);
         } else if (pathname === "/SuperAdmin/reports/courier") {
             setActiveSubsection("CourierReports");
             setIsReportsOpen(true);
+            setIsServiceReportsOpen(true);
         } else if (pathname === "/SuperAdmin/reports/freight") {
             setActiveSubsection("FreightReports");
             setIsReportsOpen(true);
+            setIsServiceReportsOpen(true);
+        } else if (pathname === "/SuperAdmin/reports/users/clients") {
+            setActiveSubsection("ClientReports");
+            setIsReportsOpen(true);
+            setIsUserReportsOpen(true);
+        } else if (pathname === "/SuperAdmin/reports/users/service-providers") {
+            setActiveSubsection("ServiceProviderReports");
+            setIsReportsOpen(true);
+            setIsUserReportsOpen(true);
+        } else if (pathname === "/SuperAdmin/reports/users/drivers") {
+            setActiveSubsection("DriversReports");
+            setIsReportsOpen(true);
+            setIsUserReportsOpen(true);
         } else if (pathname === "/SuperAdmin/Models") {
             setActiveSubsection("Models");
             setIsModelsOpen(true);
@@ -128,6 +148,8 @@ const SideMenu = () => {
             setIsAccountOpen(false);
         } else if (menu === "Reports") {
             setIsReportsOpen((prev) => !prev); // toggle open/close
+            setIsServiceReportsOpen(false);
+            setIsUserReportsOpen(false);
             setIsDashboardOpen(false);
             setIsModelsOpen(false);
             setIsSettingsOpen(false);
@@ -315,10 +337,28 @@ const SideMenu = () => {
                     <div
                         className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
                             isReportsOpen
-                                ? "max-h-[600px] opacity-100 py-4"
+                                ? "max-h-[900px] opacity-100 py-4"
                                 : "max-h-0 opacity-0 py-0"
                         }`}
                     >
+                        <div
+                            className="flex items-center justify-between cursor-pointer rounded-md px-4 py-2 hover:bg-[#181A2A]"
+                            onClick={() => setIsServiceReportsOpen((prev) => !prev)}
+                        >
+                            <div className="text-[12px] font-[600] uppercase tracking-[0.08em] text-[#6E7A9A]">
+                                Service Reports
+                            </div>
+                            <img
+                                src={isServiceReportsOpen ? drop : dropl}
+                                className="size-[12px] transition-transform duration-300"
+                                alt={isServiceReportsOpen ? "Collapse" : "Expand"}
+                            />
+                        </div>
+                        <div
+                            className={`flex flex-col gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                                isServiceReportsOpen ? "max-h-[520px] opacity-100 pb-2" : "max-h-0 opacity-0"
+                            }`}
+                        >
                         <Link
                             href="/SuperAdmin/reports/vehicles"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
@@ -334,7 +374,7 @@ const SideMenu = () => {
                             preserveState
                             preserveScroll
                         >
-                            Vehicle Booking Report
+                            Vehicle Rental Report
                         </Link>
                         <Link
                             href="/SuperAdmin/reports/tickets"
@@ -368,7 +408,7 @@ const SideMenu = () => {
                             preserveState
                             preserveScroll
                         >
-                            Warehouse Booking Report
+                            Warehousing Report
                         </Link>
                         <Link
                             href="/SuperAdmin/reports/multimodal"
@@ -385,7 +425,7 @@ const SideMenu = () => {
                             preserveState
                             preserveScroll
                         >
-                            Multimodal Booking Report
+                            Multimodal Report
                         </Link>
                         <Link
                             href="/SuperAdmin/reports/courier"
@@ -402,7 +442,7 @@ const SideMenu = () => {
                             preserveState
                             preserveScroll
                         >
-                            Courier Booking Report
+                            Courier Report
                         </Link>
                         <Link
                             href="/SuperAdmin/reports/freight"
@@ -419,8 +459,80 @@ const SideMenu = () => {
                             preserveState
                             preserveScroll
                         >
-                            Freight Booking Report
+                            Freight Report
                         </Link>
+                        </div>
+
+                        <div
+                            className="mt-2 flex items-center justify-between cursor-pointer rounded-md px-4 py-2 hover:bg-[#181A2A]"
+                            onClick={() => setIsUserReportsOpen((prev) => !prev)}
+                        >
+                            <div className="text-[12px] font-[600] uppercase tracking-[0.08em] text-[#6E7A9A]">
+                                User Reports
+                            </div>
+                            <img
+                                src={isUserReportsOpen ? drop : dropl}
+                                className="size-[12px] transition-transform duration-300"
+                                alt={isUserReportsOpen ? "Collapse" : "Expand"}
+                            />
+                        </div>
+                        <div
+                            className={`flex flex-col gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                                isUserReportsOpen ? "max-h-[180px] opacity-100 pb-2" : "max-h-0 opacity-0"
+                            }`}
+                        >
+                        <Link
+                            href="/SuperAdmin/reports/users/clients"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "ClientReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "ClientReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("ClientReports")}
+                            onMouseEnter={() => setHoveredSection("ClientReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                            preserveState
+                            preserveScroll
+                        >
+                            Client Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/users/service-providers"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "ServiceProviderReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "ServiceProviderReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("ServiceProviderReports")}
+                            onMouseEnter={() => setHoveredSection("ServiceProviderReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                            preserveState
+                            preserveScroll
+                        >
+                            Service Provider Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/users/drivers"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "DriversReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "DriversReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("DriversReports")}
+                            onMouseEnter={() => setHoveredSection("DriversReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                            preserveState
+                            preserveScroll
+                        >
+                            Drivers Report
+                        </Link>
+                        </div>
                     </div>
 
                     {/* Models */}
@@ -464,7 +576,7 @@ const SideMenu = () => {
                                         : "text-[#AEB9E1]"
                                 }`}
                             >
-                                Models
+                                Services 
                             </h1>
                         </div>
                         <img

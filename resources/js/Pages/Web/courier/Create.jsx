@@ -56,6 +56,7 @@ const Create = () => {
     const packageTypes = props.packageTypes || [];
     const countries = props.countries || [];
     const serviceLevels = props.serviceLevels || [];
+    const quoteProviders = Array.isArray(props.quoteProviders) ? props.quoteProviders : [];
     const { flash } = props;
     const recentShipmentId = props.recentShipmentId;
     const recentPricingExplanation = props.recentPricingExplanation;
@@ -71,6 +72,7 @@ const Create = () => {
     const [activePackageIndex, setActivePackageIndex] = useState(0);
 
     const [isPlacing, setIsPlacing] = useState(false);
+    const [submitError, setSubmitError] = useState("");
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
     const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
 
@@ -559,8 +561,11 @@ const Create = () => {
     };
 
     const quoteMatrix = useMemo(
-        () => buildQuoteMatrix(data.packages, { metrics: packageMetrics }),
-        [data.packages, packageMetrics]
+        () => buildQuoteMatrix(data.packages, {
+            metrics: packageMetrics,
+            services: quoteProviders,
+        }),
+        [data.packages, packageMetrics, quoteProviders]
     );
 
     const selectedQuotes = useMemo(
@@ -620,6 +625,31 @@ const Create = () => {
         return data.packages.every((pkg) => pkg.courierProvider && pkg.serviceLevel);
     }, [data.packages, selectedQuotes]);
 
+    const extractFirstErrorMessage = (errorBag) => {
+        const queue = Array.isArray(errorBag)
+            ? [...errorBag]
+            : Object.values(errorBag || {});
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+
+            if (typeof current === "string" && current.trim() !== "") {
+                return current;
+            }
+
+            if (Array.isArray(current)) {
+                queue.push(...current);
+                continue;
+            }
+
+            if (current && typeof current === "object") {
+                queue.push(...Object.values(current));
+            }
+        }
+
+        return "";
+    };
+
     const isReadyToPlace = useMemo(() => {
         return hasRequiredDetails && hasSelectedServices;
     }, [hasRequiredDetails, hasSelectedServices]);
@@ -639,9 +669,22 @@ const Create = () => {
 
         router.post('/couriers/review', payload, {
             preserveScroll: false,
-            onStart: () => setIsPlacing(true),
-            onSuccess: scrollToTop,
-            onError: scrollToTop,
+            onStart: () => {
+                setSubmitError("");
+                setIsPlacing(true);
+            },
+            onSuccess: () => {
+                setSubmitError("");
+                scrollToTop();
+            },
+            onError: (formErrors) => {
+                scrollToTop();
+                const firstError = extractFirstErrorMessage(formErrors);
+                setSubmitError(
+                    firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                );
+            },
             onFinish: () => setIsPlacing(false),
         });
     };
@@ -1717,6 +1760,16 @@ const Create = () => {
                                     {hasRequiredDetails
                                         ? 'Select a courier service for each package to continue.'
                                         : 'Complete all required fields before continuing.'}
+                                </p>
+                            )}
+                            {submitError && (
+                                <p className="text-xs text-[#D14343]">
+                                    {submitError}
+                                </p>
+                            )}
+                            {submitError && (
+                                <p className="text-xs text-[#D14343]">
+                                    {submitError}
                                 </p>
                             )}
                         </div>

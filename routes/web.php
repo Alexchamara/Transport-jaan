@@ -84,7 +84,7 @@ Route::get('/landingPage/privacy-policy', [WebController::class, 'privacyPolicy'
 Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])->name('landingPage.returnPolicy');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
-Route::prefix('couriers')->middleware(['auth'])->name('couriers.')->group(function () {
+Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
     Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
     Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
@@ -101,12 +101,17 @@ Route::prefix('couriers')->middleware(['auth'])->name('couriers.')->group(functi
         ->name('bill');
 });
 
-// Courier Booking Dashboard (protected - requires auth)
+// Courier & Freight Booking Dashboards (protected - requires auth)
 Route::middleware(['auth'])->group(function () {
     Route::get('/courierBookingDashboard', [ClientCourierController::class, 'dashboard'])->name('courierBookingDashboard');
     Route::get('/courier-shipment/{id}', [ClientCourierController::class, 'show'])->name('courier.shipment.show');
     Route::post('/courier-shipment/{id}/update-status', [ClientCourierController::class, 'updateStatus'])->name('courier.shipment.updateStatus');
     Route::post('/courier-shipment/{id}/cancel', [ClientCourierController::class, 'cancelShipment'])->name('courier.shipment.cancel');
+    
+    // Freight Booking Dashboard
+    Route::get('/freightBookingDashboard', function () {
+        return Inertia::render('Web/home/client/FreightBookingDashboard');
+    })->name('freightBookingDashboard');
 });
 
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
@@ -114,6 +119,7 @@ Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('bookin
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
 
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
+Route::get('/ffreight', [WebController::class, 'freightHomepage'])->name('ffreight.home');
 Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
@@ -1004,6 +1010,12 @@ Route::get('/SuperAdmin/reports/courier', [\App\Http\Controllers\SuperAdmin\Repo
 
 Route::get('/SuperAdmin/reports/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('SuperAdmin.reports.freight');
 
+Route::get('/SuperAdmin/reports/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('SuperAdmin.reports.users.clients');
+
+Route::get('/SuperAdmin/reports/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('SuperAdmin.reports.users.serviceProviders');
+
+Route::get('/SuperAdmin/reports/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('SuperAdmin.reports.users.drivers');
+
 // vendor - warehouse rent
 Route::get('/warehouse/unit', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');
@@ -1204,6 +1216,14 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
     Route::get('/courierService/settingsPage/pricing/exchange-rates', [VendorCourierDashboardController::class, 'pricingExchangeRates'])
         ->middleware(['service.permission:courier.settings.view', 'throttle:20,1'])
         ->name('courierService.settings.pricing.exchange-rates');
+
+    Route::post('/courierService/settingsPage/pricing/import/preview', [VendorCourierDashboardController::class, 'pricingImportPreview'])
+        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.import.preview');
+
+    Route::post('/courierService/settingsPage/pricing/import/apply', [VendorCourierDashboardController::class, 'pricingImportApply'])
+        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.import.apply');
 
     Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
         ->middleware('service.permission:courier.profile.view')
@@ -2070,15 +2090,11 @@ Route::get('/clientAllBookings', function () {
     ]);
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientAllBookings');
 
-// Courier booking dashboard moved to protected routes with controller
-
+// Warehouse Booking Dashboard (public access)
 Route::get('/warehouseBookingDashboard', function () {
     return Inertia::render('Web/home/client/WarehouseBookingDashboard');
 })->name('warehouseBookingDashboard');
 
-Route::get('/freightBookingDashboard', function () {
-    return Inertia::render('Web/home/client/FreightBookingDashboard');
-})->name('freightBookingDashboard');
 
 
 
@@ -2157,9 +2173,9 @@ foreach ($sections as $slug => $baseView) {
 |--------------------------------------------------------------------------
 */
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
-// Courier booking dashboard moved to protected routes with controller above
+// Warehouse Booking Dashboard - public access
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
-Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
+// Freight Booking Dashboard - moved to protected routes above (requires auth)
 
 /*
 |--------------------------------------------------------------------------
