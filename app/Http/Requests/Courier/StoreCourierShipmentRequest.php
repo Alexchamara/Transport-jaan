@@ -49,6 +49,8 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
             'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
             'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
+            'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
+            'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
             'shipment.logisticDimensions' => ['nullable', 'array'],
             'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
             'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],

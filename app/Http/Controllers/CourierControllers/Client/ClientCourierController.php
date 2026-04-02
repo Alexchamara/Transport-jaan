@@ -450,6 +450,8 @@ class ClientCourierController extends Controller
             'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
             'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
             'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
+            'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
+            'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
             'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -525,6 +527,8 @@ class ClientCourierController extends Controller
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
                 'distanceKm' => null,
+                'shipmentType' => null,
+                'shipmentTypeDescription' => null,
                 'logisticDimensions' => [
                     'unitType' => null,
                     'unitCount' => 1,
