@@ -30,7 +30,7 @@ const FooterTwo = () => {
             {/* Copyright & legal links */}
             <div className="flex flex-col border-t-[2px] pt-2 md:flex-row justify-between items-center mt-5 md:text-[15px] text-[10px] font-[400]">
                 <h1 className="order-2 md:order-1 mt-3 md:mt-0 ">
-                    © {currentYear} Xsarva (Pvt) Ltd. | All rights
+                    © {currentYear} JAAN Network (Pvt) Ltd. | All rights
                     reserved.
                 </h1>
                 <div className="flex flex-row gap-10 order-1 md:order-2">
