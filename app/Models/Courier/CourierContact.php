@@ -21,6 +21,11 @@ class CourierContact extends Model
         'phone',
         'company_name',
         'preferred_contact_method',
+        'is_favorite',
+    ];
+
+    protected $casts = [
+        'is_favorite' => 'boolean',
     ];
 
     public function user()

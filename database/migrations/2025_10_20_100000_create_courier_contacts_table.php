@@ -17,7 +17,10 @@ return new class extends Migration
             $table->string('phone', 30)->nullable();
             $table->string('company_name')->nullable();
             $table->string('preferred_contact_method')->nullable();
+            $table->boolean('is_favorite')->default(false);
             $table->timestamps();
+
+            $table->index(['user_id', 'role', 'is_favorite'], 'courier_contacts_favorite_lookup');
         });
     }
 

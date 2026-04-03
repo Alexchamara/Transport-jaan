@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Head, Link, useForm, usePage, router } from "@inertiajs/react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { createPortal } from "react-dom";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
+import DetailsForm from "./Details";
+import SummaryView from "./Summary";
 import {
     buildQuoteMatrix,
     buildReviewContext,
@@ -37,22 +39,55 @@ const SRI_LANKAN_CITIES = [
 ];
 
 const DOMESTIC_COUNTRY_CODE = "LK";
+const DOMESTIC_COUNTRY_LABEL = COUNTRY_LABELS[DOMESTIC_COUNTRY_CODE] || DOMESTIC_COUNTRY_CODE;
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
 const CENTIMETERS_PER_YARD = 91.44;
+const CENTIMETERS_PER_METER = 100;
+const MILLIMETERS_PER_CENTIMETER = 10;
+const DIMENSION_UNIT_FACTORS = {
+    cm: 1,
+    mm: MILLIMETERS_PER_CENTIMETER,
+    m: 1 / CENTIMETERS_PER_METER,
+    yd: 1 / CENTIMETERS_PER_YARD,
+};
+const SHIPMENT_TYPE_OPTIONS = [
+    { value: "electronics", label: "Electronics" },
+    { value: "documents", label: "Documents" },
+    { value: "clothing", label: "Clothing" },
+    { value: "medical", label: "Medical supplies" },
+    { value: "perishable", label: "Perishable" },
+    { value: "fragile", label: "Fragile" },
+    { value: "other", label: "Other" },
+];
+
+const QUOTE_TIER_OPTIONS = [
+    { id: "economy", label: "Economy", color: "text-emerald-700" },
+    { id: "express", label: "Express", color: "text-blue-700" },
+    { id: "priority", label: "Priority", color: "text-purple-700" },
+];
 
 const Create = () => {
     const { props } = usePage();
     const packageTypes = props.packageTypes || [];
     const countries = props.countries || [];
-    const serviceLevels = props.serviceLevels || [];
     const quoteProviders = Array.isArray(props.quoteProviders) ? props.quoteProviders : [];
     const { flash } = props;
     const recentShipmentId = props.recentShipmentId;
     const recentPricingExplanation = props.recentPricingExplanation;
     const packageSectionDescription = "Use the quick calculator layout to set locations, weight, and dimensions.";
-    const defaultDomesticFromCity = SRI_LANKAN_CITIES[0] || "";
-    const defaultDomesticToCity = SRI_LANKAN_CITIES[1] || defaultDomesticFromCity;
+    const defaultDomesticFromCity = "";
+    const defaultDomesticToCity = "";
+
+    const buildDefaultQuoteFilters = () => ({
+        providerSearch: "",
+        minPrice: "",
+        maxPrice: "",
+        tiers: QUOTE_TIER_OPTIONS.reduce((acc, tier) => ({
+            ...acc,
+            [tier.id]: true,
+        }), {}),
+    });
 
     // Currency conversion state
     const [displayCurrency, setDisplayCurrency] = useState('LKR');
@@ -64,80 +99,102 @@ const Create = () => {
     const [isPlacing, setIsPlacing] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
+    const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
+    const [quoteFilters, setQuoteFilters] = useState(() => buildDefaultQuoteFilters());
+    const [showDetails, setShowDetails] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const quotesSectionRef = useRef(null);
+    const quotesTableRef = useRef(null);
+    const quotesAutoScrollRef = useRef(false);
+    const detailsSectionRef = useRef(null);
+    const summarySectionRef = useRef(null);
 
-    const scrollToTop = () => {
-        if (typeof window !== "undefined") {
-            window.scrollTo({ top: 0, behavior: "auto" });
-        }
+    const buildEmptyForm = (routeType) => {
+        const isDomestic = routeType !== "international";
+        return {
+            sender: {
+                name: "",
+                email: "",
+                phone: "",
+                company: "",
+                address: {
+                    line1: "",
+                    line2: "",
+                    city: isDomestic ? defaultDomesticFromCity : "",
+                    state: "",
+                    postalCode: "",
+                    country: isDomestic ? DOMESTIC_COUNTRY_CODE : "",
+                    instructions: "",
+                },
+            },
+            recipient: {
+                name: "",
+                email: "",
+                phone: "",
+                company: "",
+                address: {
+                    line1: "",
+                    line2: "",
+                    city: isDomestic ? defaultDomesticToCity : "",
+                    state: "",
+                    postalCode: "",
+                    country: isDomestic ? DOMESTIC_COUNTRY_CODE : "",
+                    instructions: "",
+                },
+            },
+            shipment: {
+                pickupDate: "",
+                pickupWindowStart: "",
+                pickupWindowEnd: "",
+                routeType: isDomestic ? "domestic" : "international",
+                courierProvider: "",
+                insurance: false,
+                estimatedValue: "",
+                paymentOptions: {
+                    all: false,
+                    cod: false,
+                    card: false,
+                },
+                shipmentType: "",
+                shipmentTypeDescription: "",
+            },
+            packages: [
+                {
+                    label: "",
+                    packageType: packageTypes[0] || "parcel",
+                    quantity: 1,
+                    weightKg: "",
+                    weightUnit: "kg",
+                    lengthCm: "",
+                    widthCm: "",
+                    heightCm: "",
+                    dimensionUnit: "cm",
+                    declaredValue: "",
+                    description: "",
+                    courierProvider: "",
+                    serviceLevel: "",
+                },
+            ],
+        };
     };
 
-    const { data, setData, errors } = useForm({
-        sender: {
-            name: "",
-            email: "",
-            phone: "",
-            company: "",
-            address: {
-                line1: "",
-                line2: "",
-                city: defaultDomesticFromCity,
-                state: "",
-                postalCode: "",
-                country: DOMESTIC_COUNTRY_CODE,
-                instructions: "",
-            },
-        },
-        recipient: {
-            name: "",
-            email: "",
-            phone: "",
-            company: "",
-            address: {
-                line1: "",
-                line2: "",
-                city: defaultDomesticToCity,
-                state: "",
-                postalCode: "",
-                country: DOMESTIC_COUNTRY_CODE,
-                instructions: "",
-            },
-        },
-        shipment: {
-            pickupDate: "",
-            pickupWindowStart: "",
-            pickupWindowEnd: "",
-            routeType: "domestic",
-            serviceLevel: serviceLevels[0] || "",
-            courierProvider: "",
-            currency: "LKR",
-            insurance: false,
-            deliveryNotes: "",
-            estimatedValue: "",
-            logisticDimensions: {
-                unitType: "",
-                unitCount: "",
-                routeClass: "",
-                handlingClass: "",
-                w2wMode: "",
-            },
-        },
-        packages: [
-            {
-                label: "",
-                packageType: packageTypes[0] || "parcel",
-                quantity: 1,
-                weightKg: "",
-                weightUnit: "kg",
-                lengthCm: "",
-                widthCm: "",
-                heightCm: "",
-                dimensionUnit: "cm",
-                declaredValue: "",
-                description: "",
-                courierProvider: "",
-                serviceLevel: "",
-            },
-        ],
+    const initialForm = buildEmptyForm("domestic");
+    const {
+        data,
+        setData,
+        errors,
+        post,
+        processing,
+        setError,
+        clearErrors,
+    } = useForm(initialForm);
+    const [activeLocationField, setActiveLocationField] = useState(null);
+    const [locationSearch, setLocationSearch] = useState({
+        senderCity: initialForm.sender.address.city || "",
+        recipientCity: initialForm.recipient.address.city || "",
+        senderCountry: initialForm.sender.address.country || "",
+        recipientCountry: initialForm.recipient.address.country || "",
     });
 
     const POLICY_ADJUSTMENT_LABELS = {
@@ -189,6 +246,54 @@ const Create = () => {
         });
     };
 
+    const cityOptions = useMemo(
+        () => SRI_LANKAN_CITIES.map((city) => ({ value: city, label: city })),
+        []
+    );
+
+    const countryOptions = useMemo(
+        () => countries.map((code) => ({
+            value: code,
+            label: COUNTRY_LABELS[code] ? `${COUNTRY_LABELS[code]} (${code})` : code,
+        })),
+        [countries]
+    );
+
+    const stripCountryCodeSuffix = (label) =>
+        String(label || "").replace(/\s*\([A-Z]{2}\)\s*$/i, "").trim();
+
+    const filterLocationOptions = (options, query) => {
+        const normalized = String(query || "").trim().toLowerCase();
+        if (!normalized) {
+            return options;
+        }
+
+        return options.filter((option) => {
+            const label = String(option.label || "").toLowerCase();
+            const value = String(option.value || "").toLowerCase();
+            const stripped = stripCountryCodeSuffix(option.label || "").toLowerCase();
+            return label.includes(normalized) || value.includes(normalized) || stripped.includes(normalized);
+        });
+    };
+
+    const matchLocationOption = (options, query) => {
+        const normalized = String(query || "").trim().toLowerCase();
+        if (!normalized) {
+            return null;
+        }
+
+        return options.find((option) => {
+            const label = String(option.label || "").toLowerCase();
+            const value = String(option.value || "").toLowerCase();
+            const stripped = stripCountryCodeSuffix(option.label || "").toLowerCase();
+            return label === normalized || value === normalized || stripped === normalized;
+        }) || null;
+    };
+
+    const handleLocationInputBlur = () => {
+        window.setTimeout(() => setActiveLocationField(null), 120);
+    };
+
     const updateAddressCity = (party, cityName) => {
         const currentParty = party === "recipient" ? data.recipient : data.sender;
 
@@ -204,33 +309,128 @@ const Create = () => {
         });
     };
 
+    const handleCitySearchChange = (party, fieldKey, value) => {
+        setLocationSearch((previous) => ({
+            ...previous,
+            [fieldKey]: value,
+        }));
+
+        const match = matchLocationOption(cityOptions, value);
+        updateAddressCity(party, match ? match.value : "");
+    };
+
+    const handleCountrySearchChange = (party, fieldKey, value) => {
+        setLocationSearch((previous) => ({
+            ...previous,
+            [fieldKey]: value,
+        }));
+
+        const match = matchLocationOption(countryOptions, value);
+        updateAddressCountry(party, match ? match.value : "");
+    };
+
+    const handleLocationSelect = (party, fieldKey, option, type) => {
+        if (!option) {
+            return;
+        }
+
+        if (type === "city") {
+            updateAddressCity(party, option.value);
+            setLocationSearch((previous) => ({
+                ...previous,
+                [fieldKey]: option.label,
+            }));
+        } else {
+            updateAddressCountry(party, option.value);
+            setLocationSearch((previous) => ({
+                ...previous,
+                [fieldKey]: option.label,
+            }));
+        }
+
+        setActiveLocationField(null);
+    };
+
+    const resetForRouteType = (nextRouteType) => {
+        const nextForm = buildEmptyForm(nextRouteType);
+        setData(nextForm);
+        setLocationSearch({
+            senderCity: nextForm.sender.address.city || "",
+            recipientCity: nextForm.recipient.address.city || "",
+            senderCountry: nextForm.sender.address.country || "",
+            recipientCountry: nextForm.recipient.address.country || "",
+        });
+        setActiveLocationField(null);
+        setActivePackageIndex(0);
+        setDisplayCurrency("LKR");
+        setServiceDetailsModal(null);
+        setIsPlacing(false);
+        setShowDetails(false);
+        setShowSummary(false);
+        setIsSummaryLoading(false);
+        clearErrors();
+    };
+
+    const handleConfirmRouteSwitch = () => {
+        if (!routeSwitchPrompt?.nextRouteType) {
+            setRouteSwitchPrompt(null);
+            return;
+        }
+
+        const nextRouteType = routeSwitchPrompt.nextRouteType;
+        setRouteSwitchPrompt(null);
+        resetForRouteType(nextRouteType);
+    };
+
+    const handleCancelRouteSwitch = () => {
+        setRouteSwitchPrompt(null);
+    };
+
     const handleRouteTypeChange = (routeType) => {
         const nextRouteType = routeType === "international" ? "international" : "domestic";
 
+        if (nextRouteType === selectedRouteType) {
+            return;
+        }
+
+        const baseline = buildEmptyForm(selectedRouteType);
+        const hasRouteInput = JSON.stringify(data) !== JSON.stringify(baseline);
+
+        if (hasRouteInput) {
+            setRouteSwitchPrompt({ nextRouteType });
+            return;
+        }
+
+        resetForRouteType(nextRouteType);
+    };
+
+    const handleShipmentTypeChange = (value) => {
         setData("shipment", {
             ...data.shipment,
-            routeType: nextRouteType,
+            shipmentType: value,
+            shipmentTypeDescription: value === "other" ? (data.shipment.shipmentTypeDescription || "") : "",
         });
+    };
 
-        if (nextRouteType === "domestic") {
-            setData("sender", {
-                ...data.sender,
-                address: {
-                    ...data.sender.address,
-                    city: data.sender.address.city || defaultDomesticFromCity,
-                    country: DOMESTIC_COUNTRY_CODE,
-                },
-            });
+    const updatePaymentOptions = (optionKey, checked) => {
+        const currentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
+        let nextOptions = { ...currentOptions };
 
-            setData("recipient", {
-                ...data.recipient,
-                address: {
-                    ...data.recipient.address,
-                    city: data.recipient.address.city || defaultDomesticToCity,
-                    country: DOMESTIC_COUNTRY_CODE,
-                },
-            });
+        if (optionKey === "all") {
+            nextOptions = {
+                all: checked,
+                cod: checked,
+                card: checked,
+            };
+        } else {
+            nextOptions[optionKey] = checked;
+            nextOptions.all = nextOptions.cod && nextOptions.card;
         }
+
+        setData("shipment", {
+            ...data.shipment,
+            paymentOptions: nextOptions,
+        });
     };
 
     const toDisplayValue = (rawValue, factor = 1, decimalPlaces = 2) => {
@@ -296,6 +496,8 @@ const Create = () => {
     };
 
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
+    const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
+    const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -327,6 +529,29 @@ const Create = () => {
 
         return currencyFormatter.format(convertedValue);
     };
+
+    const getDisplayAmount = (value) => {
+        if (!Number.isFinite(value)) {
+            return 0;
+        }
+
+        return displayCurrency === "LKR" ? value * USD_TO_LKR_RATE : value;
+    };
+
+    const resetQuoteFilters = () => {
+        setQuoteFilters(buildDefaultQuoteFilters());
+    };
+
+    const hasActiveQuoteFilters = useMemo(() => {
+        const tiers = quoteFilters.tiers || {};
+        const allTiersEnabled = QUOTE_TIER_OPTIONS.every((tier) => tiers[tier.id]);
+        return Boolean(
+            quoteFilters.providerSearch
+            || quoteFilters.minPrice
+            || quoteFilters.maxPrice
+            || !allTiersEnabled
+        );
+    }, [quoteFilters]);
 
     const openServiceDetailsModal = (provider, tier, options = {}) => {
         if (!provider || !tier) {
@@ -441,7 +666,35 @@ const Create = () => {
         }).length;
     }, [data.packages]);
 
-    const isReadyToPlace = useMemo(() => {
+    const hasRequiredDetails = useMemo(() => {
+        if (!Array.isArray(data.packages) || data.packages.length === 0) {
+            return false;
+        }
+
+        const senderAddress = data.sender?.address || {};
+        const recipientAddress = data.recipient?.address || {};
+        const hasRouteLocations = selectedRouteType === "domestic"
+            ? Boolean(senderAddress.city && recipientAddress.city)
+            : Boolean(senderAddress.country && recipientAddress.country);
+
+        const hasShipmentType = Boolean(data.shipment?.shipmentType);
+        const needsShipmentDescription = data.shipment?.shipmentType === "other";
+        const hasShipmentDescription = !needsShipmentDescription
+            || Boolean(String(data.shipment?.shipmentTypeDescription || "").trim());
+
+        const packagesHaveNumbers = data.packages.every((pkg) => {
+            const quantity = Number(pkg.quantity) || 0;
+            const weight = Number(pkg.weightKg) || 0;
+            const length = Number(pkg.lengthCm) || 0;
+            const width = Number(pkg.widthCm) || 0;
+            const height = Number(pkg.heightCm) || 0;
+            return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
+        });
+
+        return hasRouteLocations && hasShipmentType && hasShipmentDescription && packagesHaveNumbers && hasPaymentOption;
+    }, [data.packages, data.sender, data.recipient, data.shipment, selectedRouteType, hasPaymentOption]);
+
+    const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
             return false;
         }
@@ -452,6 +705,70 @@ const Create = () => {
 
         return data.packages.every((pkg) => pkg.courierProvider && pkg.serviceLevel);
     }, [data.packages, selectedQuotes]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (!hasRequiredDetails || quoteMatrix.length === 0) {
+            quotesAutoScrollRef.current = false;
+            return;
+        }
+
+        if (quotesAutoScrollRef.current) {
+            return;
+        }
+
+        const target = quotesTableRef.current || quotesSectionRef.current;
+        if (!target) {
+            return;
+        }
+
+        const targetTop = target.getBoundingClientRect().top + window.scrollY;
+        const offset = 300;
+
+        window.scrollTo({
+            top: Math.max(targetTop - offset, 0),
+            behavior: "smooth",
+        });
+
+        quotesAutoScrollRef.current = true;
+    }, [hasRequiredDetails, quoteMatrix.length]);
+
+    useEffect(() => {
+        if (!showDetails || typeof window === "undefined") {
+            return;
+        }
+
+        const target = detailsSectionRef.current;
+        if (!target) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [showDetails]);
+
+    useEffect(() => {
+        if (!showSummary || typeof window === "undefined") {
+            return;
+        }
+
+        const target = summarySectionRef.current;
+        if (!target) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [showSummary]);
 
     const extractFirstErrorMessage = (errorBag) => {
         const queue = Array.isArray(errorBag)
@@ -478,39 +795,175 @@ const Create = () => {
         return "";
     };
 
-    const handlePlaceCourier = () => {
+    const getCsrfToken = () => {
+        if (typeof document === "undefined") {
+            return "";
+        }
+
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+        return token || "";
+    };
+
+    const prepareDetailsSession = async (payload) => {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please refresh and try again.",
+            };
+        }
+
+        try {
+            const response = await fetch("/couriers/review", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(payload),
+            });
+
+            if (response.status === 422) {
+                const errorPayload = await response.json().catch(() => ({}));
+                const firstError = extractFirstErrorMessage(errorPayload.errors || errorPayload);
+                return {
+                    ok: false,
+                    message:
+                        firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                };
+            }
+
+            if (!response.ok) {
+                return {
+                    ok: false,
+                    message: "Unable to continue. Please try again.",
+                };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please check your connection and try again.",
+            };
+        }
+    };
+
+    const prepareSummarySession = async (payload) => {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please refresh and try again.",
+            };
+        }
+
+        try {
+            const response = await fetch("/couriers/details", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(payload),
+            });
+
+            if (response.status === 422) {
+                const errorPayload = await response.json().catch(() => ({}));
+                const firstError = extractFirstErrorMessage(errorPayload.errors || errorPayload);
+                return {
+                    ok: false,
+                    errors: errorPayload.errors || errorPayload,
+                    message:
+                        firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                };
+            }
+
+            if (!response.ok) {
+                return {
+                    ok: false,
+                    message: "Unable to continue. Please try again.",
+                };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please check your connection and try again.",
+            };
+        }
+    };
+
+    const isReadyToPlace = useMemo(() => {
+        return hasRequiredDetails && hasSelectedServices;
+    }, [hasRequiredDetails, hasSelectedServices]);
+
+    const handleContinueToDetails = async () => {
         if (!isReadyToPlace || isPlacing) {
             return;
         }
 
+        setSubmitError("");
+        setIsPlacing(true);
+
         const basePayload = JSON.parse(JSON.stringify(data));
         const reviewContext = buildReviewContext(selectedQuotes, displayCurrency);
-
         const payload = {
             ...basePayload,
             reviewContext,
         };
 
-        router.post('/couriers/review', payload, {
-            preserveScroll: false,
-            onStart: () => {
-                setSubmitError("");
-                setIsPlacing(true);
-            },
-            onSuccess: () => {
-                setSubmitError("");
-                scrollToTop();
-            },
-            onError: (formErrors) => {
-                scrollToTop();
-                const firstError = extractFirstErrorMessage(formErrors);
-                setSubmitError(
-                    firstError ||
-                        "Unable to continue. Please review the highlighted fields and try again.",
-                );
-            },
-            onFinish: () => setIsPlacing(false),
-        });
+        const result = await prepareDetailsSession(payload);
+        if (!result.ok) {
+            setSubmitError(result.message || "Unable to continue. Please try again.");
+            setIsPlacing(false);
+            return;
+        }
+
+        setData((previous) => ({
+            ...previous,
+            reviewContext,
+        }));
+        setShowDetails(true);
+        setShowSummary(false);
+        setIsPlacing(false);
+    };
+
+    const handleContinueToSummary = async ({ setSubmitError: setDetailsSubmitError } = {}) => {
+        if (isSummaryLoading) {
+            return;
+        }
+
+        const setErrorMessage = typeof setDetailsSubmitError === "function"
+            ? setDetailsSubmitError
+            : setSubmitError;
+
+        setErrorMessage("");
+        clearErrors();
+        setIsSummaryLoading(true);
+
+        const payload = JSON.parse(JSON.stringify(data));
+        const result = await prepareSummarySession(payload);
+        if (!result.ok) {
+            if (result.errors) {
+                setError(result.errors);
+            }
+            setErrorMessage(result.message || "Unable to continue. Please try again.");
+            setIsSummaryLoading(false);
+            return;
+        }
+
+        setShowSummary(true);
+        setIsSummaryLoading(false);
     };
 
     return (
@@ -518,7 +971,7 @@ const Create = () => {
             <Head title="Send a Package" />
             <Header />
 
-            <section className="relative">
+            {/* <section className="relative">
                 <img
                     src={bg}
                     className="w-full h-[300px] object-cover"
@@ -550,10 +1003,10 @@ const Create = () => {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             <main>
-                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
+                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins mt-6">
                     {flash?.success && (
                         <div className="mb-6 space-y-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                             <p>{flash.success}</p>
@@ -626,39 +1079,36 @@ const Create = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-10">
-
-                        <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-6">
-                            <div className="flex flex-col items-center gap-3 text-center">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
-                                    <p className="mt-1 text-sm text-[#5B6887]">
-                                        Choose the route type first. Courier companies will be filtered to match your selection.
-                                    </p>
-                                </div>
-                                <div className="inline-flex w-[300px] max-w-md justify-between rounded-xl border border-[#D6DEEB] bg-white p-1 shadow-sm">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRouteTypeChange('domestic')}
-                                        className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
-                                            ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
-                                            : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
-                                            }`}
-                                    >
-                                        Domestic
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRouteTypeChange('international')}
-                                        className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'international'
-                                            ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
-                                            : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
-                                            }`}
-                                    >
-                                        International
-                                    </button>
-                                </div>
+                        <div className="flex flex-col items-center gap-3 text-center">
+                            <div>
+                                <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
+                                <p className="mt-1 text-sm text-[#5B6887]">
+                                    Choose the route type first. Courier companies will be filtered to match your selection.
+                                </p>
                             </div>
-                        </section>
+                            <div className="inline-flex w-[300px] max-w-md justify-between rounded-xl border border-[#D6DEEB] bg-white p-1 shadow-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => handleRouteTypeChange('domestic')}
+                                    className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                        : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                        }`}
+                                >
+                                    Domestic
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRouteTypeChange('international')}
+                                    className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'international'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                        : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                        }`}
+                                >
+                                    International
+                                </button>
+                            </div>
+                        </div>
 
                         <section className="space-y-6">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -680,9 +1130,11 @@ const Create = () => {
                             <div className="space-y-5">
                                 {data.packages.map((item, index) => {
                                     const weightUnit = item.weightUnit === "oz" ? "oz" : "kg";
-                                    const dimensionUnit = item.dimensionUnit === "yd" ? "yd" : "cm";
+                                    const dimensionUnit = Object.prototype.hasOwnProperty.call(DIMENSION_UNIT_FACTORS, item.dimensionUnit)
+                                        ? item.dimensionUnit
+                                        : "cm";
                                     const weightFactor = weightUnit === "oz" ? OUNCES_PER_KILOGRAM : 1;
-                                    const dimensionFactor = dimensionUnit === "yd" ? 1 / CENTIMETERS_PER_YARD : 1;
+                                    const dimensionFactor = DIMENSION_UNIT_FACTORS[dimensionUnit] || 1;
 
                                     return (
                                         <div
@@ -703,599 +1155,973 @@ const Create = () => {
                                                 </button>
                                             </div>
 
-                                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2.1fr_1fr_2fr] xl:items-end">
+                                            <div className="space-y-4">
                                                 <div>
                                                     <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                        Pick up &amp; Delivery locations*
+                                                        Locations*
                                                     </label>
-                                                    <p className="text-sm text-[#5B6887]">
-                                                        Select your location where you want to deliver
-                                                    </p>
+                                                    <div
+                                                        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-3" : "xl:grid-cols-2"
+                                                            }`}
+                                                    >
+                                                        {selectedRouteType === "domestic" && (
+                                                            <div>
+                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
+                                                                <select
+                                                                    value={DOMESTIC_COUNTRY_CODE}
+                                                                    disabled
+                                                                    className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
+                                                                >
+                                                                    <option value={DOMESTIC_COUNTRY_CODE}>
+                                                                        {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
+                                                                    </option>
+                                                                </select>
+                                                            </div>
+                                                        )}
+                                                        {selectedRouteType === "domestic" ? (
+                                                            <>
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            value={locationSearch.senderCity}
+                                                                            onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
+                                                                            onFocus={() => setActiveLocationField(`sender-city-${index}`)}
+                                                                            onBlur={handleLocationInputBlur}
+                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                            placeholder="Select Pickup City"
+                                                                        />
+                                                                        {activeLocationField === `sender-city-${index}` && (
+                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                {filterLocationOptions(cityOptions, locationSearch.senderCity).map((option) => (
+                                                                                    <button
+                                                                                        key={`pickup-city-${index}-${option.value}`}
+                                                                                        type="button"
+                                                                                        onMouseDown={(event) => {
+                                                                                            event.preventDefault();
+                                                                                            handleLocationSelect("sender", "senderCity", option, "city");
+                                                                                        }}
+                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                    >
+                                                                                        {option.label}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            value={locationSearch.recipientCity}
+                                                                            onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
+                                                                            onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
+                                                                            onBlur={handleLocationInputBlur}
+                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                            placeholder="Select Destination City"
+                                                                        />
+                                                                        {activeLocationField === `recipient-city-${index}` && (
+                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                {filterLocationOptions(cityOptions, locationSearch.recipientCity).map((option) => (
+                                                                                    <button
+                                                                                        key={`destination-city-${index}-${option.value}`}
+                                                                                        type="button"
+                                                                                        onMouseDown={(event) => {
+                                                                                            event.preventDefault();
+                                                                                            handleLocationSelect("recipient", "recipientCity", option, "city");
+                                                                                        }}
+                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                    >
+                                                                                        {option.label}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            value={locationSearch.senderCountry}
+                                                                            onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
+                                                                            onFocus={() => setActiveLocationField(`sender-country-${index}`)}
+                                                                            onBlur={handleLocationInputBlur}
+                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                            placeholder="Select Pickup"
+                                                                        />
+                                                                        {activeLocationField === `sender-country-${index}` && (
+                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                {filterLocationOptions(countryOptions, locationSearch.senderCountry).map((option) => (
+                                                                                    <button
+                                                                                        key={`pickup-${index}-${option.value}`}
+                                                                                        type="button"
+                                                                                        onMouseDown={(event) => {
+                                                                                            event.preventDefault();
+                                                                                            handleLocationSelect("sender", "senderCountry", option, "country");
+                                                                                        }}
+                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                    >
+                                                                                        {option.label}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            value={locationSearch.recipientCountry}
+                                                                            onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
+                                                                            onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
+                                                                            onBlur={handleLocationInputBlur}
+                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                            placeholder="Select Destination"
+                                                                        />
+                                                                        {activeLocationField === `recipient-country-${index}` && (
+                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                {filterLocationOptions(countryOptions, locationSearch.recipientCountry).map((option) => (
+                                                                                    <button
+                                                                                        key={`destination-${index}-${option.value}`}
+                                                                                        type="button"
+                                                                                        onMouseDown={(event) => {
+                                                                                            event.preventDefault();
+                                                                                            handleLocationSelect("recipient", "recipientCountry", option, "country");
+                                                                                        }}
+                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                    >
+                                                                                        {option.label}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
 
-                                                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                        <select
-                                                            value={selectedRouteType === "domestic" ? (data.sender.address.city || "") : (data.sender.address.country || "")}
-                                                            onChange={(event) => {
-                                                                if (selectedRouteType === "domestic") {
-                                                                    updateAddressCity("sender", event.target.value);
-                                                                    return;
+                                                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
+                                                    <div>
+                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
+                                                            Package weight*
+                                                        </label>
+
+                                                        <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={toDisplayValue(item.weightKg, weightFactor, 2)}
+                                                                onChange={(event) =>
+                                                                    updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
                                                                 }
-                                                                updateAddressCountry("sender", event.target.value);
-                                                            }}
-                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 pr-10 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                        >
-                                                            {selectedRouteType === "domestic" ? (
-                                                                <>
-                                                                    <option value="">Select Pickup City</option>
-                                                                    {SRI_LANKAN_CITIES.map((city) => (
-                                                                        <option key={`pickup-city-${index}-${city}`} value={city}>
-                                                                            {city}
-                                                                        </option>
-                                                                    ))}
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <option value="">Select Pickup</option>
-                                                                    {countries.map((countryCode) => (
-                                                                        <option key={`pickup-${index}-${countryCode}`} value={countryCode}>
-                                                                            {COUNTRY_LABELS[countryCode]
-                                                                                ? `${COUNTRY_LABELS[countryCode]} (${countryCode})`
-                                                                                : countryCode}
-                                                                        </option>
-                                                                    ))}
-                                                                </>
-                                                            )}
-                                                        </select>
-                                                        <select
-                                                            value={selectedRouteType === "domestic" ? (data.recipient.address.city || "") : (data.recipient.address.country || "")}
-                                                            onChange={(event) => {
-                                                                if (selectedRouteType === "domestic") {
-                                                                    updateAddressCity("recipient", event.target.value);
-                                                                    return;
+                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Weight"
+                                                            />
+                                                            <select
+                                                                value={weightUnit}
+                                                                onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
+                                                                className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                            >
+                                                                <option value="kg">kg</option>
+                                                                <option value="oz">lb</option>
+                                                            </select>
+                                                        </div>
+                                                        {errors[`packages.${index}.weightKg`] && (
+                                                            <p className="mt-2 text-sm text-red-500">
+                                                                {errors[`packages.${index}.weightKg`]}
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
+                                                            Dimensions *
+                                                        </label>
+
+                                                        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
+                                                                onChange={(event) =>
+                                                                    updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
                                                                 }
-                                                                updateAddressCountry("recipient", event.target.value);
-                                                            }}
-                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 pr-10 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                        >
-                                                            {selectedRouteType === "domestic" ? (
-                                                                <>
-                                                                    <option value="">Select Destination City</option>
-                                                                    {SRI_LANKAN_CITIES.map((city) => (
-                                                                        <option key={`destination-city-${index}-${city}`} value={city}>
-                                                                            {city}
-                                                                        </option>
-                                                                    ))}
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <option value="">Select Destination</option>
-                                                                    {countries.map((countryCode) => (
-                                                                        <option key={`destination-${index}-${countryCode}`} value={countryCode}>
-                                                                            {COUNTRY_LABELS[countryCode]
-                                                                                ? `${COUNTRY_LABELS[countryCode]} (${countryCode})`
-                                                                                : countryCode}
-                                                                        </option>
-                                                                    ))}
-                                                                </>
-                                                            )}
-                                                        </select>
+                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Length"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
+                                                                onChange={(event) =>
+                                                                    updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                }
+                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Width"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
+                                                                onChange={(event) =>
+                                                                    updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                }
+                                                                className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                                                                placeholder="Height"
+                                                            />
+                                                            <select
+                                                                value={dimensionUnit}
+                                                                onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
+                                                                className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                                                            >
+                                                                <option value="mm">mm</option>
+                                                                <option value="cm">cm</option>
+                                                                <option value="m">m</option>
+                                                                <option value="yd">yd</option>
+                                                            </select>
+                                                        </div>
+
+                                                        {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
+                                                            <p className="mt-2 text-sm text-red-500">
+                                                                {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="w-full space-y-3">
+                                                        <div>
+                                                            <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
+                                                            <select
+                                                                value={data.shipment.shipmentType || ""}
+                                                                onChange={(event) => handleShipmentTypeChange(event.target.value)}
+                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                            >
+                                                                <option value="">Select type</option>
+                                                                {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                                                    <option key={`shipment-type-${option.value}`} value={option.value}>
+                                                                        {option.label}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                <div>
-                                                    <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                        Package weight*
+                                                {data.shipment.shipmentType === "other" && (
+                                                    <div className="w-full">
+                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
+                                                        <textarea
+                                                            value={data.shipment.shipmentTypeDescription || ""}
+                                                            onChange={(event) => setData("shipment", {
+                                                                ...data.shipment,
+                                                                shipmentTypeDescription: event.target.value,
+                                                            })}
+                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                            placeholder="Describe the shipment type"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
+                                                <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                                    <label className="inline-flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-[#0955AC]"
+                                                            checked={paymentOptions.all}
+                                                            onChange={(event) => updatePaymentOptions("all", event.target.checked)}
+                                                        />
+                                                        All
                                                     </label>
-                                                    <p className="text-sm text-[#5B6887]">In Kilo or ounces</p>
-
-                                                    <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
+                                                    <label className="inline-flex items-center gap-2">
                                                         <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.01"
-                                                            value={toDisplayValue(item.weightKg, weightFactor, 2)}
-                                                            onChange={(event) =>
-                                                                updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
-                                                            }
-                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                            placeholder="Weight"
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-[#0955AC]"
+                                                            checked={paymentOptions.cod}
+                                                            onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
                                                         />
-                                                        <select
-                                                            value={weightUnit}
-                                                            onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
-                                                            className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                        >
-                                                            <option value="kg">Kg</option>
-                                                            <option value="oz">Oz</option>
-                                                        </select>
-                                                    </div>
-                                                    {errors[`packages.${index}.weightKg`] && (
-                                                        <p className="mt-2 text-sm text-red-500">
-                                                            {errors[`packages.${index}.weightKg`]}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                        Dimensions *
+                                                        COD
                                                     </label>
-                                                    <p className="text-sm text-[#5B6887]">In centimeters or yards</p>
-
-                                                    <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
+                                                    <label className="inline-flex items-center gap-2">
                                                         <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
-                                                            onChange={(event) =>
-                                                                updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                            }
-                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                            placeholder="Length"
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-[#0955AC]"
+                                                            checked={paymentOptions.card}
+                                                            onChange={(event) => updatePaymentOptions("card", event.target.checked)}
                                                         />
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
-                                                            onChange={(event) =>
-                                                                updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                            }
-                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                            placeholder="Width"
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
-                                                            onChange={(event) =>
-                                                                updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
-                                                            }
-                                                            className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                            placeholder="Height"
-                                                        />
-                                                        <select
-                                                            value={dimensionUnit}
-                                                            onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
-                                                            className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                        >
-                                                            <option value="cm">cm</option>
-                                                            <option value="yd">yd</option>
-                                                        </select>
-                                                    </div>
-
-                                                    {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
-                                                        <p className="mt-2 text-sm text-red-500">
-                                                            {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
-                                                        </p>
-                                                    )}
+                                                        Card
+                                                    </label>
                                                 </div>
+
+
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
-
-                            {packageMetrics.totalWeight > 0 && (
-                                <div className="flex flex-col gap-4 rounded-xl border border-[#D6DEEB] bg-[#EEF3FC] px-6 py-4 text-sm text-[#0B1739] md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-[#0955AC]">
-                                            Shipment summary
-                                        </p>
-                                        <div className="mt-2 flex flex-wrap gap-4">
-                                            <span>
-                                                Packages: <strong>{packageMetrics.totalPackages}</strong>
-                                            </span>
-                                            <span>
-                                                Weight: <strong>{packageMetrics.totalWeight.toFixed(2)} kg</strong>
-                                            </span>
-                                            <span>
-                                                Billable weight: <strong>{packageMetrics.billableWeight.toFixed(2)} kg</strong>
-                                            </span>
-                                            {packageMetrics.volumetricWeight > packageMetrics.totalWeight && (
-                                                <span>
-                                                    Volumetric: <strong>{packageMetrics.volumetricWeight.toFixed(2)} kg</strong>
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {packageMetrics.requiresSpecialHandling && (
-                                        <div className="rounded-lg bg-[#F8E7D8] px-4 py-2 text-xs font-medium text-[#7B3F00]">
-                                            Includes freight or temperature-controlled cargo
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </section>
 
-                        <section id="courier-quotes-section" className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-8">
-                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-[#0B1739]">
-                                        Courier service quotes
-                                    </h2>
-                                    <p className="mt-2 text-sm text-[#5B6887]">
-                                        {packageMetrics.readyForQuote
-                                            ? "Select courier services for each package. Switch between packages using the tabs below."
-                                            : `Provide quantity and weight for each package to generate live carrier rates.`}
-                                    </p>
-                                </div>
-                                {packageMetrics.readyForQuote && (
-                                    <button
-                                        type="button"
-                                        onClick={toggleCurrency}
-                                        className="rounded-lg border border-[#E3EAF5] bg-white px-4 py-2 text-xs font-semibold text-[#5B6887] shadow-sm hover:bg-[#F9FBFF] hover:border-[#0955AC] hover:text-[#0955AC] transition-all duration-200 cursor-pointer"
-                                        title={`Click to convert to ${displayCurrency === 'USD' ? 'LKR' : 'USD'}`}
-                                    >
-                                        Rates in {displayCurrency} {displayCurrency === 'LKR' && '(≈ 1 USD = 325 LKR)'}
-                                        <span className="ml-2 text-[10px] opacity-60">↻</span>
-                                    </button>
-                                )}
-                            </div>
+                        {hasRequiredDetails && (
+                            <section
+                                id="courier-quotes-section"
+                                ref={quotesSectionRef}
+                                className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-8"
+                            >
+                                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-[#0B1739]">
+                                            Courier service quotes
+                                        </h2>
+                                        <p className="mt-2 text-sm text-[#5B6887]">
+                                            {packageMetrics.readyForQuote
+                                                ? "Select a service per package. Use tabs to switch."
+                                                : `Provide quantity and weight for each package to generate live carrier rates.`}
+                                        </p>
+                                    </div>
 
-                            {quoteMatrix.length === 0 ? (
-                                <div className="mt-6 rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
-                                    {incompletePackages > 0
-                                        ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available ${selectedRouteType} courier services.`
-                                        : `Add package details to view available ${selectedRouteType} courier services.`}
-                                </div>
-                            ) : (
-                                <div className="mt-8 space-y-8">
-                                    {/* Package Tabs */}
-                                    {quoteMatrix.length > 1 && (
-                                        <div className="border-b border-[#E8F0FE]">
-                                            <nav className="flex space-x-8 overflow-x-auto">
-                                                {quoteMatrix.map((packageQuotes) => {
-                                                    const isActive = activePackageIndex === packageQuotes.packageIndex;
-                                                    const hasSelection = data.packages[packageQuotes.packageIndex]?.courierProvider;
-
-                                                    return (
-                                                        <button
-                                                            key={packageQuotes.packageIndex}
-                                                            type="button"
-                                                            onClick={() => setActivePackageIndex(packageQuotes.packageIndex)}
-                                                            className={`flex items-center gap-3 whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${isActive
-                                                                ? 'border-[#0955AC] text-[#0955AC]'
-                                                                : 'border-transparent text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
-                                                                }`}
-                                                        >
-                                                            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${isActive
-                                                                ? 'bg-[#0955AC] text-white'
-                                                                : hasSelection
-                                                                    ? 'bg-green-500 text-white'
-                                                                    : 'bg-[#E8F0FE] text-[#5B6887]'
-                                                                }`}>
-                                                                {hasSelection && !isActive ? (
-                                                                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                ) : (
-                                                                    packageQuotes.packageIndex + 1
-                                                                )}
-                                                            </div>
-                                                            <div className="text-left">
-                                                                <div className="font-medium">
-                                                                    {packageQuotes.packageInfo.label}
-                                                                </div>
-                                                                <div className="text-xs text-[#6B7893]">
-                                                                    {packageQuotes.packageInfo.weight.toFixed(1)}kg
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </nav>
+                                    {packageMetrics.totalWeight > 0 && (
+                                        <div className="inline-flex w-fit max-w-full flex-col gap-4 rounded-xl border border-[#D6DEEB] bg-[#EEF3FC] px-6 py-4 text-sm text-[#0B1739] md:flex-row md:items-center">
+                                            <div>
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-[#0955AC]">
+                                                    Shipment summary
+                                                </p>
+                                                <div className="mt-2 flex flex-wrap gap-4">
+                                                    <span>
+                                                        Packages: <strong>{packageMetrics.totalPackages}</strong>
+                                                    </span>
+                                                    <span>
+                                                        Weight: <strong>{packageMetrics.totalWeight.toFixed(2)} kg</strong>
+                                                    </span>
+                                                    <span>
+                                                        Billable weight: <strong>{packageMetrics.billableWeight.toFixed(2)} kg</strong>
+                                                    </span>
+                                                    {packageMetrics.volumetricWeight > packageMetrics.totalWeight && (
+                                                        <span>
+                                                            Volumetric: <strong>{packageMetrics.volumetricWeight.toFixed(2)} kg</strong>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {packageMetrics.requiresSpecialHandling && (
+                                                <div className="rounded-lg bg-[#F8E7D8] px-4 py-2 text-xs font-medium text-[#7B3F00]">
+                                                    Includes freight or temperature-controlled cargo
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
-                                    {/* Inline Comparison Table — Compact */}
-                                    {(() => {
-                                        const activePackageQuotes = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
-                                        if (!activePackageQuotes) return null;
+                                    {packageMetrics.readyForQuote && (
+                                        <button
+                                            type="button"
+                                            onClick={toggleCurrency}
+                                            className="rounded-lg border border-[#E3EAF5] bg-white px-4 py-2 text-xs font-semibold text-[#5B6887] shadow-sm hover:bg-[#F9FBFF] hover:border-[#0955AC] hover:text-[#0955AC] transition-all duration-200 cursor-pointer"
+                                            title={`Click to convert to ${displayCurrency === 'USD' ? 'LKR' : 'USD'}`}
+                                        >
+                                            Rates in {displayCurrency} {displayCurrency === 'LKR' && '(≈ 1 USD = 325 LKR)'}
+                                            <span className="ml-2 text-[10px] opacity-60">↻</span>
+                                        </button>
+                                    )}
+                                </div>
 
-                                        const TIER_IDS = ['economy', 'express', 'priority'];
-                                        const TIER_META = {
-                                            economy: { label: 'Economy', color: 'text-emerald-700' },
-                                            express: { label: 'Express', color: 'text-blue-700' },
-                                            priority: { label: 'Priority', color: 'text-purple-700' },
-                                        };
+                                {quoteMatrix.length === 0 ? (
+                                    <div className="mt-6 rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
+                                        {incompletePackages > 0
+                                            ? `Add quantity and weight for all packages (${incompletePackages} incomplete) to view available ${selectedRouteType} courier services.`
+                                            : `Add package details to view available ${selectedRouteType} courier services.`}
+                                    </div>
+                                ) : (
+                                    <div ref={quotesTableRef} className="mt-8 space-y-8">
+                                        {/* Package Tabs */}
+                                        {quoteMatrix.length > 1 && (
+                                            <div className="border-b border-[#E8F0FE]">
+                                                <nav className="flex space-x-8 overflow-x-auto">
+                                                    {quoteMatrix.map((packageQuotes) => {
+                                                        const isActive = activePackageIndex === packageQuotes.packageIndex;
+                                                        const hasSelection = data.packages[packageQuotes.packageIndex]?.courierProvider;
 
-                                        const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
-                                        const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
-                                        const currentPackage = data.packages[activePackageQuotes.packageIndex];
-
-                                        const cheapestByTierInGroup = (providers, tierId) => {
-                                            const prices = providers
-                                                .map(p => (p.tiers.find(t => t.id === tierId) || {}).price)
-                                                .filter(v => v !== undefined);
-                                            return prices.length ? Math.min(...prices) : Infinity;
-                                        };
-
-                                        const renderCategoryTable = (providers, categoryLabel, accentColor, accentBg) => {
-                                            if (!providers.length) return null;
-                                            const cheapest = Object.fromEntries(TIER_IDS.map(id => [id, cheapestByTierInGroup(providers, id)]));
-
-                                            return (
-                                                <div className="rounded-xl border border-[#E8F0FE] overflow-hidden">
-                                                    {/* ── Mobile: provider card, tier rows ── */}
-                                                    <div className="sm:hidden divide-y divide-[#F0F4F8]">
-                                                        {providers.map((provider) => (
-                                                            <div key={provider.id} className="bg-white">
-                                                                {/* Provider header strip */}
-                                                                <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: accentBg }}>
-                                                                    {provider.logo ? (
-                                                                        <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[38px] object-contain" loading="lazy" />
+                                                        return (
+                                                            <button
+                                                                key={packageQuotes.packageIndex}
+                                                                type="button"
+                                                                onClick={() => setActivePackageIndex(packageQuotes.packageIndex)}
+                                                                className={`flex items-center gap-3 whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${isActive
+                                                                    ? 'border-[#0955AC] text-[#0955AC]'
+                                                                    : 'border-transparent text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                                                    }`}
+                                                            >
+                                                                <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${isActive
+                                                                    ? 'bg-[#0955AC] text-white'
+                                                                    : hasSelection
+                                                                        ? 'bg-green-500 text-white'
+                                                                        : 'bg-[#E8F0FE] text-[#5B6887]'
+                                                                    }`}>
+                                                                    {hasSelection && !isActive ? (
+                                                                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                        </svg>
                                                                     ) : (
-                                                                        <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
-                                                                            {provider.name.slice(0, 2).toUpperCase()}
-                                                                        </div>
+                                                                        packageQuotes.packageIndex + 1
                                                                     )}
-                                                                    <div className="min-w-0">
-                                                                        <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
-                                                                        <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                </div>
+                                                                <div className="text-left">
+                                                                    <div className="font-medium">
+                                                                        {packageQuotes.packageInfo.label}
+                                                                    </div>
+                                                                    <div className="text-xs text-[#6B7893]">
+                                                                        {packageQuotes.packageInfo.weight.toFixed(1)}kg
                                                                     </div>
                                                                 </div>
-                                                                {/* Tier rows */}
-                                                                <div className="divide-y divide-[#F7F9FC]">
-                                                                    {TIER_IDS.map(tierId => {
-                                                                        const tier = provider.tiers.find(t => t.id === tierId);
-                                                                        if (!tier) return null;
-                                                                        const isBest = tier.price === cheapest[tierId];
-                                                                        const diff = tier.price - cheapest[tierId];
-                                                                        const isSelected =
-                                                                            currentPackage?.courierProvider === provider.id &&
-                                                                            currentPackage?.serviceLevel === tierId;
-                                                                        return (
-                                                                            <div
-                                                                                key={tierId}
-                                                                                className={`flex w-full items-center transition-colors ${isSelected
-                                                                                    ? 'bg-[#0955AC]'
-                                                                                    : isBest
-                                                                                        ? 'bg-emerald-50'
-                                                                                        : 'bg-white'
-                                                                                    }`}
-                                                                            >
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        const updatedPackages = [...data.packages];
-                                                                                        updatedPackages[activePackageQuotes.packageIndex] = {
-                                                                                            ...updatedPackages[activePackageQuotes.packageIndex],
-                                                                                            courierProvider: provider.id,
-                                                                                            serviceLevel: tierId,
-                                                                                        };
-                                                                                        setData('packages', updatedPackages);
-                                                                                    }}
-                                                                                    className="flex min-w-0 flex-1 items-center px-3 py-2 text-left"
-                                                                                >
-                                                                                    {/* Tier label — fixed width */}
-                                                                                    <span className={`text-[11px] font-semibold shrink-0 w-[62px] ${isSelected ? 'text-white' : TIER_META[tierId].color}`}>
-                                                                                        {TIER_META[tierId].label}
-                                                                                    </span>
-                                                                                    {/* Spacer */}
-                                                                                    <span className="flex-1" />
-                                                                                    {/* Price + status stacked, fixed width */}
-                                                                                    <div className="shrink-0 text-right ml-2 w-[90px]">
-                                                                                        <div className={`text-[11px] font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
-                                                                                            {formatCurrency(tier.price)}
-                                                                                        </div>
-                                                                                        {isSelected ? (
-                                                                                            <div className="text-[9px] text-white/70">✓ Selected</div>
-                                                                                        ) : isBest ? (
-                                                                                            <div className="text-[9px] font-bold text-emerald-700">● best price</div>
-                                                                                        ) : diff > 0 ? (
-                                                                                            <div className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</div>
-                                                                                        ) : null}
-                                                                                    </div>
-                                                                                </button>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => openServiceDetailsModal(provider, tier, {
-                                                                                        isBest,
-                                                                                        diff,
-                                                                                        packageIndex: activePackageQuotes.packageIndex,
-                                                                                    })}
-                                                                                    className={`mr-2 rounded border px-2 py-0.5 text-[9px] font-semibold transition ${isSelected
-                                                                                        ? 'border-white/50 text-white hover:bg-white/10'
-                                                                                        : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
-                                                                                        }`}
-                                                                                >
-                                                                                    See more
-                                                                                </button>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </nav>
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[260px_1fr] xl:items-start">
+                                            <aside className="rounded-xl border border-[#E3EAF5] bg-white  p-4 shadow-sm">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <h3 className="mt-1 text-sm font-semibold text-[#0B1739]">Refine courier quotes</h3>
+                                                        <p className="mt-1 text-xs text-[#6B7893]">Filters apply to the active package.</p>
+                                                    </div>
+                                                    {hasActiveQuoteFilters && (
+                                                        <span className="rounded-full bg-[#E6F3FF] px-2 py-1 text-[10px] font-semibold text-[#0955AC]">Active</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-4 space-y-4">
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Provider search</label>
+                                                        <input
+                                                            type="text"
+                                                            value={quoteFilters.providerSearch}
+                                                            onChange={(event) => setQuoteFilters((previous) => ({
+                                                                ...previous,
+                                                                providerSearch: event.target.value,
+                                                            }))}
+                                                            className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                            placeholder="Search provider or coverage"
+                                                        />
                                                     </div>
 
-                                                    {/* ── Desktop: compact table ── */}
-                                                    <div className="hidden sm:block overflow-x-auto">
-                                                        <table className="w-full border-collapse text-xs">
-                                                            <thead>
-                                                                <tr style={{ backgroundColor: accentBg }}>
-                                                                    <th className="px-3 py-2 text-left text-[#0B1739] font-semibold w-40">Provider</th>
-                                                                    {TIER_IDS.map(id => (
-                                                                        <th key={id} className={`px-2 py-2 text-center font-semibold ${TIER_META[id].color}`}>
-                                                                            {TIER_META[id].label}
-                                                                        </th>
-                                                                    ))}
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {providers.map((provider, rowIdx) => (
-                                                                    <tr key={provider.id} className={`transition-colors hover:bg-[#F9FBFF] ${rowIdx < providers.length - 1 ? 'border-b border-[#F0F4F8]' : ''}`}>
-                                                                        <td className="px-3 py-2">
-                                                                            <div className="flex items-center gap-2">
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Price range ({displayCurrency})</label>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={quoteFilters.minPrice}
+                                                                onChange={(event) => setQuoteFilters((previous) => ({
+                                                                    ...previous,
+                                                                    minPrice: event.target.value,
+                                                                }))}
+                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Min"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={quoteFilters.maxPrice}
+                                                                onChange={(event) => setQuoteFilters((previous) => ({
+                                                                    ...previous,
+                                                                    maxPrice: event.target.value,
+                                                                }))}
+                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Max"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Service tiers</label>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {QUOTE_TIER_OPTIONS.map((tier) => (
+                                                                <label
+                                                                    key={`quote-filter-tier-${tier.id}`}
+                                                                    className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold ${quoteFilters.tiers?.[tier.id]
+                                                                        ? 'border-[#0955AC] text-[#0B1739]'
+                                                                        : 'border-[#D6DEEB] text-[#5B6887]'
+                                                                        }`}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Boolean(quoteFilters.tiers?.[tier.id])}
+                                                                        onChange={(event) => setQuoteFilters((previous) => ({
+                                                                            ...previous,
+                                                                            tiers: {
+                                                                                ...previous.tiers,
+                                                                                [tier.id]: event.target.checked,
+                                                                            },
+                                                                        }))}
+                                                                        className="h-4 w-4 accent-[#0955AC]"
+                                                                    />
+                                                                    {tier.label}
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 flex items-center justify-between border-t border-[#E3EAF5] pt-3">
+                                                    <span className="text-[11px] text-[#6B7893]">Filters apply instantly.</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={resetQuoteFilters}
+                                                        className="rounded-lg border border-[#D6DEEB] px-3 py-1.5 text-[11px] font-semibold text-[#5B6887] transition hover:border-[#0955AC] hover:text-[#0955AC]"
+                                                    >
+                                                        Reset
+                                                    </button>
+                                                </div>
+                                            </aside>
+
+                                            <div>
+                                                {/* Inline Comparison Table — Compact */}
+                                                {(() => {
+                                                    const activePackageQuotes = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
+                                                    if (!activePackageQuotes) return null;
+
+                                                    const TIER_IDS = QUOTE_TIER_OPTIONS.map((tier) => tier.id);
+                                                    const TIER_META = Object.fromEntries(
+                                                        QUOTE_TIER_OPTIONS.map((tier) => [tier.id, { label: tier.label, color: tier.color }])
+                                                    );
+
+                                                    const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
+                                                    const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
+                                                    const currentPackage = data.packages[activePackageQuotes.packageIndex];
+
+                                                    const cheapestByTierInGroup = (providers, tierId) => {
+                                                        const prices = providers
+                                                            .map(p => (p.tiers.find(t => t.id === tierId) || {}).price)
+                                                            .filter(v => v !== undefined);
+                                                        return prices.length ? Math.min(...prices) : Infinity;
+                                                    };
+
+                                                    const renderCategoryTable = (providers, categoryLabel, accentColor, accentBg) => {
+                                                        if (!providers.length) return null;
+
+                                                        const selectedTierIds = QUOTE_TIER_OPTIONS
+                                                            .filter((tier) => quoteFilters.tiers?.[tier.id])
+                                                            .map((tier) => tier.id);
+                                                        const visibleTierIds = selectedTierIds.length ? selectedTierIds : TIER_IDS;
+                                                        const searchValue = String(quoteFilters.providerSearch || "").trim().toLowerCase();
+                                                        const minPriceValue = quoteFilters.minPrice !== "" ? Number(quoteFilters.minPrice) : null;
+                                                        const maxPriceValue = quoteFilters.maxPrice !== "" ? Number(quoteFilters.maxPrice) : null;
+
+                                                        const handleSelectService = (providerId, tierId) => {
+                                                            const updatedPackages = [...data.packages];
+                                                            updatedPackages[activePackageQuotes.packageIndex] = {
+                                                                ...updatedPackages[activePackageQuotes.packageIndex],
+                                                                courierProvider: providerId,
+                                                                serviceLevel: tierId,
+                                                            };
+                                                            setData('packages', updatedPackages);
+                                                        };
+
+                                                        const handleSelectKeyDown = (event, providerId, tierId) => {
+                                                            if (event.key === "Enter" || event.key === " ") {
+                                                                event.preventDefault();
+                                                                handleSelectService(providerId, tierId);
+                                                            }
+                                                        };
+
+                                                        const getProviderBestPrice = (provider, tierIds) => {
+                                                            if (!provider?.tiers?.length) return Infinity;
+                                                            return provider.tiers.reduce((best, tier) => {
+                                                                if (!tierIds.includes(tier.id)) {
+                                                                    return best;
+                                                                }
+                                                                const priceValue = Number(tier?.price);
+                                                                return Number.isFinite(priceValue) ? Math.min(best, priceValue) : best;
+                                                            }, Infinity);
+                                                        };
+
+                                                        const filteredProviders = providers.filter((provider) => {
+                                                            if (!provider) return false;
+                                                            const providerLabel = `${provider.name || ""} ${provider.coverage || ""}`.toLowerCase();
+                                                            if (searchValue && !providerLabel.includes(searchValue)) {
+                                                                return false;
+                                                            }
+
+                                                            const hasVisibleTier = Array.isArray(provider.tiers)
+                                                                && provider.tiers.some((tier) => visibleTierIds.includes(tier.id));
+                                                            if (!hasVisibleTier) {
+                                                                return false;
+                                                            }
+
+                                                            const bestPrice = getProviderBestPrice(provider, visibleTierIds);
+                                                            if (!Number.isFinite(bestPrice)) {
+                                                                return false;
+                                                            }
+
+                                                            const bestDisplayPrice = getDisplayAmount(bestPrice);
+                                                            if (Number.isFinite(minPriceValue) && bestDisplayPrice < minPriceValue) {
+                                                                return false;
+                                                            }
+                                                            if (Number.isFinite(maxPriceValue) && bestDisplayPrice > maxPriceValue) {
+                                                                return false;
+                                                            }
+
+                                                            return true;
+                                                        });
+
+                                                        if (!filteredProviders.length) {
+                                                            return (
+                                                                <div className="rounded-xl border border-[#E8F0FE] bg-white px-4 py-6 text-sm text-[#5B6887]">
+                                                                    No providers match the selected filters.
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        const cheapest = Object.fromEntries(
+                                                            visibleTierIds.map((id) => [id, cheapestByTierInGroup(filteredProviders, id)])
+                                                        );
+                                                        const sortedProviders = [...filteredProviders].sort((a, b) => {
+                                                            const aBest = getProviderBestPrice(a, visibleTierIds);
+                                                            const bBest = getProviderBestPrice(b, visibleTierIds);
+                                                            if (aBest !== bBest) return aBest - bBest;
+                                                            return (a?.name || "").localeCompare(b?.name || "");
+                                                        });
+
+                                                        return (
+                                                            <div className="rounded-xl border border-[#E8F0FE] overflow-hidden">
+                                                                {/* ── Mobile: provider card, tier rows ── */}
+                                                                <div className="sm:hidden max-h-[420px] overflow-y-auto divide-y divide-[#F0F4F8]">
+                                                                    {sortedProviders.map((provider) => (
+                                                                        <div key={provider.id} className="bg-white">
+                                                                            {/* Provider header strip */}
+                                                                            <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: accentBg }}>
                                                                                 {provider.logo ? (
-                                                                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[40px] object-contain" loading="lazy" />
+                                                                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[38px] object-contain" loading="lazy" />
                                                                                 ) : (
                                                                                     <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
                                                                                         {provider.name.slice(0, 2).toUpperCase()}
                                                                                     </div>
                                                                                 )}
                                                                                 <div className="min-w-0">
-                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
+                                                                                    <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
                                                                                     <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
                                                                                 </div>
                                                                             </div>
-                                                                        </td>
-                                                                        {TIER_IDS.map(tierId => {
-                                                                            const tier = provider.tiers.find(t => t.id === tierId);
-                                                                            if (!tier) return <td key={tierId} className="px-2 py-2 text-center text-[#C5CDE0]">—</td>;
-                                                                            const isBest = tier.price === cheapest[tierId];
-                                                                            const diff = tier.price - cheapest[tierId];
-                                                                            const isSelected =
-                                                                                currentPackage?.courierProvider === provider.id &&
-                                                                                currentPackage?.serviceLevel === tierId;
-                                                                            return (
-                                                                                <td key={tierId} className="px-1.5 py-1.5 text-center">
-                                                                                    <div
-                                                                                        className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 ${isSelected
-                                                                                            ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
-                                                                                            : isBest
-                                                                                                ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
-                                                                                                : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
-                                                                                            }`}
-                                                                                    >
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            title={`${provider.name} — ${TIER_META[tierId].label} · ${tier.eta}`}
-                                                                                            onClick={() => {
-                                                                                                const updatedPackages = [...data.packages];
-                                                                                                updatedPackages[activePackageQuotes.packageIndex] = {
-                                                                                                    ...updatedPackages[activePackageQuotes.packageIndex],
-                                                                                                    courierProvider: provider.id,
-                                                                                                    serviceLevel: tierId,
-                                                                                                };
-                                                                                                setData('packages', updatedPackages);
-                                                                                            }}
-                                                                                            className="flex w-full flex-col items-center focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1"
-                                                                                        >
-                                                                                            <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
-                                                                                                {formatCurrency(tier.price)}
-                                                                                            </span>
-                                                                                            <span className={`text-[9px] leading-tight ${isSelected ? 'text-white/70' : 'text-[#6B7893]'}`}>
-                                                                                                {tier.eta}
-                                                                                            </span>
-                                                                                            {isSelected ? (
-                                                                                                <span className="text-[9px] text-white/80">✓</span>
-                                                                                            ) : isBest ? (
-                                                                                                <span className="text-[9px] font-bold text-emerald-700">best</span>
-                                                                                            ) : diff > 0 ? (
-                                                                                                <span className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</span>
-                                                                                            ) : null}
-                                                                                        </button>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => openServiceDetailsModal(provider, tier, {
-                                                                                                isBest,
-                                                                                                diff,
-                                                                                                packageIndex: activePackageQuotes.packageIndex,
-                                                                                            })}
-                                                                                            className={`mt-1 rounded border px-1.5 py-[1px] text-[9px] font-semibold transition ${isSelected
-                                                                                                ? 'border-white/50 text-white hover:bg-white/10'
-                                                                                                : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
+                                                                            {/* Tier rows */}
+                                                                            <div className="divide-y divide-[#F7F9FC]">
+                                                                                {visibleTierIds.map(tierId => {
+                                                                                    const tierMeta = TIER_META[tierId] || { label: tierId, color: "text-[#0B1739]" };
+                                                                                    const tier = provider.tiers.find(t => t.id === tierId);
+                                                                                    if (!tier) return null;
+                                                                                    const isBest = tier.price === cheapest[tierId];
+                                                                                    const diff = tier.price - cheapest[tierId];
+                                                                                    const isSelected =
+                                                                                        currentPackage?.courierProvider === provider.id &&
+                                                                                        currentPackage?.serviceLevel === tierId;
+                                                                                    return (
+                                                                                        <div
+                                                                                            key={tierId}
+                                                                                            role="button"
+                                                                                            tabIndex={0}
+                                                                                            onClick={() => handleSelectService(provider.id, tierId)}
+                                                                                            onKeyDown={(event) => handleSelectKeyDown(event, provider.id, tierId)}
+                                                                                            className={`flex w-full items-center transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${isSelected
+                                                                                                ? 'bg-[#0955AC]'
+                                                                                                : isBest
+                                                                                                    ? 'bg-emerald-50'
+                                                                                                    : 'bg-white'
                                                                                                 }`}
                                                                                         >
-                                                                                            See more
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </td>
-                                                                            );
-                                                                        })}
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            );
-                                        };
+                                                                                            <div className="flex min-w-0 flex-1 items-center px-3 py-2 text-left">
+                                                                                                {/* Tier label — fixed width */}
+                                                                                                <span className={`text-[11px] font-semibold shrink-0 w-[62px] ${isSelected ? 'text-white' : tierMeta.color}`}>
+                                                                                                    {tierMeta.label}
+                                                                                                </span>
+                                                                                                {/* Spacer */}
+                                                                                                <span className="flex-1" />
+                                                                                                {/* Price + status stacked, fixed width */}
+                                                                                                <div className="shrink-0 text-right ml-2 w-[90px]">
+                                                                                                    <div className={`text-[11px] font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
+                                                                                                        {formatCurrency(tier.price)}
+                                                                                                    </div>
+                                                                                                    {isSelected ? (
+                                                                                                        <div className="text-[9px] text-white/70">✓ Selected</div>
+                                                                                                    ) : isBest ? (
+                                                                                                        <div className="text-[9px] font-bold text-emerald-700">● best price</div>
+                                                                                                    ) : diff > 0 ? (
+                                                                                                        <div className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</div>
+                                                                                                    ) : null}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={(event) => {
+                                                                                                    event.stopPropagation();
+                                                                                                    openServiceDetailsModal(provider, tier, {
+                                                                                                        isBest,
+                                                                                                        diff,
+                                                                                                        packageIndex: activePackageQuotes.packageIndex,
+                                                                                                    });
+                                                                                                }}
+                                                                                                className={`mr-2 rounded border px-2 py-0.5 text-[9px] font-semibold transition ${isSelected
+                                                                                                    ? 'border-white/50 text-white hover:bg-white/10'
+                                                                                                    : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
+                                                                                                    }`}
+                                                                                            >
+                                                                                                See more
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
 
-                                        const hasDomestic = domesticProviders.length > 0;
-                                        const hasLogistic = logisticProviders.length > 0;
-                                        const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
-                                        const currentCategory = preferredCategory === 'domestic'
-                                            ? (hasDomestic ? 'domestic' : null)
-                                            : (hasLogistic ? 'logistic' : null);
-
-                                        return (
-                                            <div className="space-y-3">
-                                                {/* Compact legend */}
-                                                <div className="flex flex-col md:flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                    <div className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">
-                                                        Showing {selectedRouteType} courier providers
-                                                    </div>
-
-                                                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px] text-[#6B7893]">
-                                                        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>Best price</span>
-                                                        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#0955AC]"></span>Selected</span>
-                                                        <span className="hidden sm:inline text-[#9CA3AF]">· Hover for ETA</span>
-                                                    </div>
-                                                </div>
-
-                                                {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
-                                                {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
-                                                {!currentCategory && (
-                                                    <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
-                                                        No {selectedRouteType} courier providers are currently available for this package.
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
-
-                            {/* Selected Services Summary */}
-                            {selectedQuotes.length > 0 && (
-                                <div className="mt-8 space-y-4">
-                                    <h3 className="text-lg font-semibold text-[#0B1739]">Selected Services Summary</h3>
-                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                        {selectedQuotes.map((quote) => (
-                                            <div key={quote.packageIndex} className="rounded-lg border border-[#D6DEEB] bg-white p-4 text-sm">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        {quote.provider.logo && (
-                                                            <img
-                                                                src={quote.provider.logo}
-                                                                alt={`${quote.provider.name} logo`}
-                                                                className="h-6 w-auto object-contain"
-                                                                loading="lazy"
-                                                            />
-                                                        )}
-                                                        <div>
-                                                            <div className="font-medium text-[#0B1739]">{quote.packageInfo.label}</div>
-                                                            <div className="text-xs text-[#6B7893]">
-                                                                {quote.provider.name} · {quote.tier.label}
+                                                                {/* ── Desktop: compact table ── */}
+                                                                <div className="hidden sm:block">
+                                                                    <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
+                                                                        <table className="w-full border-collapse text-xs">
+                                                                            <thead className="sticky top-0 z-10" style={{ backgroundColor: accentBg }}>
+                                                                                <tr>
+                                                                                    <th className="px-3 py-2 text-left text-[#0B1739] font-semibold w-40">Provider</th>
+                                                                                    {visibleTierIds.map(id => (
+                                                                                        <th key={id} className={`px-2 py-2 text-center font-semibold ${TIER_META[id]?.color || "text-[#0B1739]"}`}>
+                                                                                            {TIER_META[id]?.label || id}
+                                                                                        </th>
+                                                                                    ))}
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {sortedProviders.map((provider, rowIdx) => (
+                                                                                    <tr key={provider.id} className={`transition-colors hover:bg-[#F9FBFF] ${rowIdx < sortedProviders.length - 1 ? 'border-b border-[#F0F4F8]' : ''}`}>
+                                                                                        <td className="px-3 py-2">
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                {provider.logo ? (
+                                                                                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[40px] object-contain" loading="lazy" />
+                                                                                                ) : (
+                                                                                                    <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
+                                                                                                        {provider.name.slice(0, 2).toUpperCase()}
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                <div className="min-w-0">
+                                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
+                                                                                                    <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        {visibleTierIds.map(tierId => {
+                                                                                            const tier = provider.tiers.find(t => t.id === tierId);
+                                                                                            if (!tier) return <td key={tierId} className="px-2 py-2 text-center text-[#C5CDE0]">—</td>;
+                                                                                            const isBest = tier.price === cheapest[tierId];
+                                                                                            const diff = tier.price - cheapest[tierId];
+                                                                                            const isSelected =
+                                                                                                currentPackage?.courierProvider === provider.id &&
+                                                                                                currentPackage?.serviceLevel === tierId;
+                                                                                            return (
+                                                                                                <td key={tierId} className="px-1.5 py-1.5 text-center">
+                                                                                                    <div
+                                                                                                        role="button"
+                                                                                                        tabIndex={0}
+                                                                                                        title={`${provider.name} — ${TIER_META[tierId]?.label || tierId} · ${tier.eta}`}
+                                                                                                        onClick={() => handleSelectService(provider.id, tierId)}
+                                                                                                        onKeyDown={(event) => handleSelectKeyDown(event, provider.id, tierId)}
+                                                                                                        className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${isSelected
+                                                                                                            ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
+                                                                                                            : isBest
+                                                                                                                ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
+                                                                                                                : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
+                                                                                                            }`}
+                                                                                                    >
+                                                                                                        <div className="flex w-full flex-col items-center">
+                                                                                                            <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
+                                                                                                                {formatCurrency(tier.price)}
+                                                                                                            </span>
+                                                                                                            <span className={`text-[9px] leading-tight ${isSelected ? 'text-white/70' : 'text-[#6B7893]'}`}>
+                                                                                                                {tier.eta}
+                                                                                                            </span>
+                                                                                                            {isSelected ? (
+                                                                                                                <span className="text-[9px] text-white/80">✓</span>
+                                                                                                            ) : isBest ? (
+                                                                                                                <span className="text-[9px] font-bold text-emerald-700">best</span>
+                                                                                                            ) : diff > 0 ? (
+                                                                                                                <span className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</span>
+                                                                                                            ) : null}
+                                                                                                        </div>
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            onClick={(event) => {
+                                                                                                                event.stopPropagation();
+                                                                                                                openServiceDetailsModal(provider, tier, {
+                                                                                                                    isBest,
+                                                                                                                    diff,
+                                                                                                                    packageIndex: activePackageQuotes.packageIndex,
+                                                                                                                });
+                                                                                                            }}
+                                                                                                            className={`mt-1 rounded border px-1.5 py-[1px] text-[9px] font-semibold transition ${isSelected
+                                                                                                                ? 'border-white/50 text-white hover:bg-white/10'
+                                                                                                                : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
+                                                                                                                }`}
+                                                                                                        >
+                                                                                                            See more
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            );
+                                                                                        })}
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
                                                             </div>
+                                                        );
+                                                    };
+
+                                                    const hasDomestic = domesticProviders.length > 0;
+                                                    const hasLogistic = logisticProviders.length > 0;
+                                                    const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
+                                                    const currentCategory = preferredCategory === 'domestic'
+                                                        ? (hasDomestic ? 'domestic' : null)
+                                                        : (hasLogistic ? 'logistic' : null);
+
+                                                    return (
+                                                        <div className="space-y-3">
+                                                            {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
+                                                            {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
+                                                            {!currentCategory && (
+                                                                <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
+                                                                    No {selectedRouteType} courier providers are currently available for this package.
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="font-bold text-[#0B1739]">
-                                                            {formatCurrency(quote.tier.price)}
-                                                        </div>
-                                                        <div className="text-xs text-[#6B7893]">{quote.tier.eta}</div>
-                                                    </div>
-                                                </div>
+                                                    );
+                                                })()}
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="rounded-lg border-2 border-[#0955AC] bg-gradient-to-r from-[#F0F7FF] to-[#E6F3FF] p-4">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-lg font-semibold text-[#0B1739]">Total Shipping Cost</span>
-                                            <span className="text-2xl font-bold text-[#0955AC]">
-                                                {formatCurrency(selectedQuotes.reduce((total, quote) => total + quote.tier.price, 0))}
-                                            </span>
                                         </div>
                                     </div>
+                                )}
+
+                                {/* Selected Services Summary */}
+                                {selectedQuotes.length > 0 && (
+                                    <div className="mt-8 space-y-4">
+                                        <h3 className="text-lg font-semibold text-[#0B1739]">Selected Services Summary</h3>
+                                        <div className="w-fullgrid grid-cols-1 gap-3 md:grid-cols-2">
+                                            {selectedQuotes.map((quote) => (
+                                                <div key={quote.packageIndex} className="rounded-lg border border-[#D6DEEB] bg-white p-4 text-sm">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            {quote.provider.logo && (
+                                                                <img
+                                                                    src={quote.provider.logo}
+                                                                    alt={`${quote.provider.name} logo`}
+                                                                    className="h-6 w-auto object-contain"
+                                                                    loading="lazy"
+                                                                />
+                                                            )}
+                                                            <div>
+                                                                <div className="font-medium text-[#0B1739]">{quote.packageInfo.label}</div>
+                                                                <div className="text-xs text-[#6B7893]">
+                                                                    {quote.provider.name} · {quote.tier.label}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="font-bold text-[#0B1739]">
+                                                                {formatCurrency(quote.tier.price)}
+                                                            </div>
+                                                            <div className="text-xs text-[#6B7893]">{quote.tier.eta}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="rounded-lg border-2 border-[#0955AC] bg-gradient-to-r from-[#F0F7FF] to-[#E6F3FF] p-4">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-lg font-semibold text-[#0B1739]">Total Shipping Cost</span>
+                                                <span className="text-2xl font-bold text-[#0955AC]">
+                                                    {formatCurrency(selectedQuotes.reduce((total, quote) => total + quote.tier.price, 0))}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {showDetails && (
+                            <section
+                                ref={detailsSectionRef}
+                                className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
+                            >
+                                <div className="mb-4">
+                                    <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
+                                    <p className="mt-1 text-sm text-[#5B6887]">
+                                        Add pickup, delivery, and shipment preferences to complete the request.
+                                    </p>
                                 </div>
-                            )}
-                        </section>
+                                <DetailsForm
+                                    inline
+                                    renderAsForm={false}
+                                    showBackLink={false}
+                                    scrollOnSubmit={false}
+                                    packageDetailsReadOnly
+                                    onSubmitOverride={handleContinueToSummary}
+                                    hideSubmit={showSummary}
+                                    formStateOverride={{
+                                        data,
+                                        setData,
+                                        post,
+                                        processing: processing || isSummaryLoading,
+                                        errors,
+                                    }}
+                                    pagePropsOverride={{
+                                        formData: data,
+                                        countries,
+                                        packageTypes,
+                                        favoriteRecipients: props.favoriteRecipients || [],
+                                        favoriteSenders: props.favoriteSenders || [],
+                                        senderProfile: props.senderProfile || null,
+                                        errors: errors || {},
+                                    }}
+                                />
+                            </section>
+                        )}
+
+                        {showSummary && (
+                            <section
+                                ref={summarySectionRef}
+                                className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
+                            >
+                                <div className="mb-4">
+                                    <h2 className="text-xl font-semibold text-[#0B1739]">Review & confirm</h2>
+                                    <p className="mt-1 text-sm text-[#5B6887]">
+                                        Review the shipment summary and confirm your booking details.
+                                    </p>
+                                </div>
+                                <SummaryView
+                                    inline
+                                    showEditLinks={false}
+                                    showHero={false}
+                                    formStateOverride={data}
+                                    pagePropsOverride={{
+                                        formData: data,
+                                        pricingPreview: null,
+                                        errors: errors || {},
+                                    }}
+                                />
+                            </section>
+                        )}
 
                         {serviceDetailsModal && typeof document !== "undefined" && createPortal(
                             <div
@@ -1398,10 +2224,10 @@ const Create = () => {
                                                     || serviceDetailsModal.packageIndex === null
                                                 }
                                                 className={`rounded-lg px-4 py-2 text-xs font-semibold text-white transition ${!serviceDetailsModal.providerId
-                                                        || !serviceDetailsModal.serviceLevel
-                                                        || serviceDetailsModal.packageIndex === null
-                                                        ? "cursor-not-allowed bg-[#9BB9E3]"
-                                                        : "bg-[#0955AC] hover:bg-[#0a4b93]"
+                                                    || !serviceDetailsModal.serviceLevel
+                                                    || serviceDetailsModal.packageIndex === null
+                                                    ? "cursor-not-allowed bg-[#9BB9E3]"
+                                                    : "bg-[#0955AC] hover:bg-[#0a4b93]"
                                                     }`}
                                             >
                                                 Select service
@@ -1413,31 +2239,65 @@ const Create = () => {
                             document.body,
                         )}
 
+                        {routeSwitchPrompt && typeof document !== "undefined" && createPortal(
+                            <div className="fixed inset-0 z-[2147483646] flex items-center justify-center bg-black/50 p-4">
+                                <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+                                    <h3 className="text-lg font-semibold text-[#0B1739]">Switch route type?</h3>
+                                    <p className="mt-1 text-sm text-[#5B6887]">
+                                        Switching to {routeSwitchPrompt.nextRouteType} will reset the form. Continue?
+                                    </p>
+                                    <div className="mt-4 flex items-center justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelRouteSwitch}
+                                            className="rounded-lg border border-[#D6DEEB] px-3 py-2 text-xs font-semibold text-[#5B6887] transition hover:border-[#0955AC] hover:text-[#0955AC]"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleConfirmRouteSwitch}
+                                            className="rounded-lg bg-[#0955AC] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4b93]"
+                                        >
+                                            OK
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>,
+                            document.body,
+                        )}
+
                         <p className="text-center text-xs text-[#5B6887]">
                             Rates are indicative and will be finalized once pickup and delivery details are confirmed; carrier fuel and customs surcharges may vary by route.
                         </p>
 
-                        <div className="mt-8 flex flex-col items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={handlePlaceCourier}
-                                disabled={!isReadyToPlace || isPlacing}
-                                className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                                    }`}
-                            >
-                                {isPlacing ? 'Preparing summary...' : 'Continue'}
-                            </button>
-                            {!isReadyToPlace && (
-                                <p className="text-xs text-[#D14343]">
-                                    Select a courier service for each package to continue.
-                                </p>
-                            )}
-                            {submitError && (
-                                <p className="text-xs text-[#D14343]">
-                                    {submitError}
-                                </p>
-                            )}
-                        </div>
+                        {!showDetails && (
+                            <div className="mt-8 flex flex-col items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleContinueToDetails}
+                                    disabled={!isReadyToPlace || isPlacing}
+                                    className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                        }`}
+                                >
+                                    {isPlacing ? 'Preparing details...' : 'Continue'}
+                                </button>
+                                {!isReadyToPlace && (
+                                    <p className="text-xs text-[#D14343]">
+                                        {hasRequiredDetails
+                                            ? 'Select a courier service for each package to continue.'
+                                            : !hasPaymentOption
+                                                ? 'Select at least one payment option to continue.'
+                                                : 'Complete all required fields before continuing.'}
+                                    </p>
+                                )}
+                                {submitError && (
+                                    <p className="text-xs text-[#D14343]">
+                                        {submitError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </form>
                 </div>
             </main>

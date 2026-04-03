@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
@@ -16,7 +17,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -44,6 +44,39 @@ class ClientCourierController extends Controller
             ->where('requested_by_user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        $favoriteRecipients = CourierContact::query()
+            ->with(['addresses' => function ($query) {
+                $query->orderByDesc('is_primary')->orderBy('id');
+            }])
+            ->where('user_id', $user->id)
+            ->where('role', CourierContact::ROLE_RECIPIENT)
+            ->where('is_favorite', true)
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(function (CourierContact $contact) {
+                $address = $contact->addresses->first();
+
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'phone' => $contact->phone,
+                    'company' => $contact->company_name,
+                    'address' => $address ? [
+                        'line1' => $address->line1,
+                        'line2' => $address->line2,
+                        'city' => $address->city,
+                        'state' => $address->state,
+                        'postalCode' => $address->postal_code,
+                        'country' => $address->country,
+                        'instructions' => $address->instructions,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
 
         // Calculate statistics
         $totalShipments = $shipments->count();
@@ -128,7 +161,88 @@ class ClientCourierController extends Controller
                 'cancelled' => $cancelledCount,
             ],
             'monthlyData' => $monthlyData,
+            'favoriteRecipients' => $favoriteRecipients,
+            'countries' => $countries,
         ]);
+    }
+
+    public function storeFavoriteRecipient(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        $validated = $request->validate(
+            [
+                'recipient.name' => ['required', 'string', 'max:120'],
+                'recipient.email' => ['nullable', 'email', 'max:150'],
+                'recipient.phone' => ['nullable', 'string', 'max:40'],
+                'recipient.company' => ['nullable', 'string', 'max:120'],
+                'recipient.address.line1' => ['required', 'string', 'max:180'],
+                'recipient.address.line2' => ['nullable', 'string', 'max:180'],
+                'recipient.address.city' => ['required', 'string', 'max:120'],
+                'recipient.address.state' => ['nullable', 'string', 'max:120'],
+                'recipient.address.postalCode' => ['nullable', 'string', 'max:30'],
+                'recipient.address.country' => ['required', 'string', 'size:2'],
+                'recipient.address.instructions' => ['nullable', 'string', 'max:500'],
+            ],
+            [],
+            [
+                'recipient.address.line1' => 'recipient address line 1',
+            ]
+        );
+
+        $recipient = $validated['recipient'] ?? [];
+        $address = $recipient['address'] ?? [];
+
+        $contact = CourierContact::create([
+            'user_id' => $user->id,
+            'role' => CourierContact::ROLE_RECIPIENT,
+            'name' => $recipient['name'],
+            'email' => $recipient['email'] ?? null,
+            'phone' => $recipient['phone'] ?? null,
+            'company_name' => $recipient['company'] ?? null,
+            'is_favorite' => true,
+        ]);
+
+        $contact->addresses()->create([
+            'label' => 'dropoff',
+            'line1' => $address['line1'],
+            'line2' => $address['line2'] ?? null,
+            'city' => $address['city'],
+            'state' => $address['state'] ?? null,
+            'postal_code' => $address['postalCode'] ?? null,
+            'country' => strtoupper((string) ($address['country'] ?? '')),
+            'instructions' => $address['instructions'] ?? null,
+            'is_primary' => true,
+        ]);
+
+        return redirect()
+            ->route('courierBookingDashboard')
+            ->with('success', 'Recipient saved to favorites.');
+    }
+
+    public function removeFavoriteRecipient(Request $request, CourierContact $contact)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        if ((int) $contact->user_id !== (int) $user->id || $contact->role !== CourierContact::ROLE_RECIPIENT) {
+            abort(404);
+        }
+
+        if ($contact->is_favorite) {
+            $contact->update([
+                'is_favorite' => false,
+            ]);
+        }
+
+        return back()->with('success', 'Recipient removed from favorites.');
     }
 
     public function show(Request $request, $id)
@@ -338,6 +452,8 @@ class ClientCourierController extends Controller
             'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
             'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
             'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
+            'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
+            'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
             'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -375,6 +491,7 @@ class ClientCourierController extends Controller
                 'email' => null,
                 'phone' => null,
                 'company' => null,
+                'saveToFavorites' => false,
                 'address' => [
                     'line1' => null,
                     'line2' => null,
@@ -390,6 +507,7 @@ class ClientCourierController extends Controller
                 'email' => null,
                 'phone' => null,
                 'company' => null,
+                'saveToFavorites' => false,
                 'address' => [
                     'line1' => null,
                     'line2' => null,
@@ -404,13 +522,13 @@ class ClientCourierController extends Controller
                 'pickupDate' => null,
                 'pickupWindowStart' => null,
                 'pickupWindowEnd' => null,
-                'serviceLevel' => null,
                 'courierProvider' => null,
-                'currency' => 'LKR',
                 'insurance' => false,
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
                 'distanceKm' => null,
+                'shipmentType' => null,
+                'shipmentTypeDescription' => null,
                 'logisticDimensions' => [
                     'unitType' => null,
                     'unitCount' => 1,
@@ -422,6 +540,9 @@ class ClientCourierController extends Controller
         ];
 
         $normalized = array_replace_recursive($defaults, $payload);
+        $normalized = $this->normalizeShipmentPreferencePayload($normalized);
+        $normalized['reviewContext'] = is_array($normalized['reviewContext'] ?? null) ? $normalized['reviewContext'] : [];
+        $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
 
         $request->session()->put('courier_preview', $normalized);
 
@@ -448,7 +569,74 @@ class ClientCourierController extends Controller
         $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
-        $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
+        $favoriteRecipients = [];
+        $favoriteSenders = [];
+        $senderProfile = null;
+
+        $user = Auth::user();
+        if ($user) {
+            $senderProfile = $this->buildSenderProfilePayload($user, $countries);
+            $favoriteSenders = CourierContact::query()
+                ->with(['addresses' => function ($query) {
+                    $query->orderByDesc('is_primary')->orderBy('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('role', CourierContact::ROLE_SENDER)
+                ->where('is_favorite', true)
+                ->orderBy('updated_at', 'desc')
+                ->get()
+                ->map(function (CourierContact $contact) {
+                    $address = $contact->addresses->first();
+
+                    return [
+                        'id' => $contact->id,
+                        'name' => $contact->name,
+                        'email' => $contact->email,
+                        'phone' => $contact->phone,
+                        'company' => $contact->company_name,
+                        'address' => $address ? [
+                            'line1' => $address->line1,
+                            'line2' => $address->line2,
+                            'city' => $address->city,
+                            'state' => $address->state,
+                            'postalCode' => $address->postal_code,
+                            'country' => $address->country,
+                            'instructions' => $address->instructions,
+                        ] : null,
+                    ];
+                })
+                ->values();
+            $favoriteRecipients = CourierContact::query()
+                ->with(['addresses' => function ($query) {
+                    $query->orderByDesc('is_primary')->orderBy('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('role', CourierContact::ROLE_RECIPIENT)
+                ->where('is_favorite', true)
+                ->orderBy('updated_at', 'desc')
+                ->get()
+                ->map(function (CourierContact $contact) {
+                    $address = $contact->addresses->first();
+
+                    return [
+                        'id' => $contact->id,
+                        'name' => $contact->name,
+                        'email' => $contact->email,
+                        'phone' => $contact->phone,
+                        'company' => $contact->company_name,
+                        'address' => $address ? [
+                            'line1' => $address->line1,
+                            'line2' => $address->line2,
+                            'city' => $address->city,
+                            'state' => $address->state,
+                            'postalCode' => $address->postal_code,
+                            'country' => $address->country,
+                            'instructions' => $address->instructions,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        }
 
         $this->observability()->logDetailsViewOpened($request, [
             'category' => $category,
@@ -460,8 +648,61 @@ class ClientCourierController extends Controller
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
             'countries' => $countries,
-            'logisticDimensionOptions' => $logisticDimensionOptions,
+            'favoriteRecipients' => $favoriteRecipients,
+            'favoriteSenders' => $favoriteSenders,
+            'senderProfile' => $senderProfile,
         ]);
+    }
+
+    private function buildSenderProfilePayload(User $user, array $countries): array
+    {
+        $user->loadMissing('vendorProfile');
+
+        $isBusiness = $user->vendor_type === 'business';
+        $vendorProfile = $isBusiness ? $user->vendorProfile : null;
+
+        $nameParts = array_filter([$user->first_name, $user->last_name]);
+        $fallbackName = $nameParts ? trim(implode(' ', $nameParts)) : (string) $user->name;
+
+        $name = $isBusiness
+            ? (string) ($vendorProfile?->contact_person ?: $fallbackName)
+            : $fallbackName;
+        $email = $isBusiness
+            ? (string) ($vendorProfile?->contact_email ?: $user->email)
+            : (string) $user->email;
+        $phone = $isBusiness
+            ? (string) ($vendorProfile?->contact_phone ?: $user->phone)
+            : (string) $user->phone;
+        $company = $isBusiness
+            ? (string) ($vendorProfile?->company_name ?: $user->name)
+            : '';
+
+        $addressLine1 = $vendorProfile?->address_line1 ?: $user->address_line1;
+        $addressLine2 = $vendorProfile?->address_line2 ?: $user->address_line2;
+        $city = $vendorProfile?->city ?: $user->city;
+        $state = $vendorProfile?->state ?: $user->state;
+        $postalCode = $vendorProfile?->postal_code ?: $user->postal_code;
+        $country = strtoupper((string) ($vendorProfile?->country ?: $user->country ?: ($countries[0] ?? 'US')));
+
+        return [
+            'label' => $isBusiness ? 'Same as company profile' : 'Same as profile',
+            'isBusiness' => $isBusiness,
+            'sender' => [
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'company' => $company,
+                'address' => [
+                    'line1' => (string) ($addressLine1 ?? ''),
+                    'line2' => (string) ($addressLine2 ?? ''),
+                    'city' => (string) ($city ?? ''),
+                    'state' => (string) ($state ?? ''),
+                    'postalCode' => (string) ($postalCode ?? ''),
+                    'country' => $country,
+                    'instructions' => null,
+                ],
+            ],
+        ];
     }
 
     private function resolveLogisticDimensionOptionsForPayload(array $payload, string $category): array
@@ -515,6 +756,7 @@ class ClientCourierController extends Controller
                 'sender.email' => ['nullable', 'email', 'max:150'],
                 'sender.phone' => ['nullable', 'string', 'max:40'],
                 'sender.company' => ['nullable', 'string', 'max:120'],
+                'sender.saveToFavorites' => ['nullable', 'boolean'],
                 'sender.address.line1' => ['required', 'string', 'max:180'],
                 'sender.address.line2' => ['nullable', 'string', 'max:180'],
                 'sender.address.city' => ['required', 'string', 'max:120'],
@@ -527,6 +769,7 @@ class ClientCourierController extends Controller
                 'recipient.email' => ['nullable', 'email', 'max:150'],
                 'recipient.phone' => ['nullable', 'string', 'max:40'],
                 'recipient.company' => ['nullable', 'string', 'max:120'],
+                'recipient.saveToFavorites' => ['nullable', 'boolean'],
                 'recipient.address.line1' => ['required', 'string', 'max:180'],
                 'recipient.address.line2' => ['nullable', 'string', 'max:180'],
                 'recipient.address.city' => ['required', 'string', 'max:120'],
@@ -538,8 +781,8 @@ class ClientCourierController extends Controller
                 'shipment.pickupDate' => ['nullable', 'date', 'after_or_equal:today'],
                 'shipment.pickupWindowStart' => ['nullable', 'date_format:H:i'],
                 'shipment.pickupWindowEnd' => ['nullable', 'date_format:H:i'],
-                'shipment.serviceLevel' => ['required', 'string', 'max:50', Rule::in($allowedServiceLevels)],
-                'shipment.currency' => ['required', 'string', 'size:3'],
+                'shipment.serviceLevel' => ['nullable', 'string', 'max:50'],
+                'shipment.currency' => ['nullable', 'string', 'size:3'],
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
@@ -606,8 +849,9 @@ class ClientCourierController extends Controller
 
         $normalized['sender']['address']['country'] = strtoupper($normalized['sender']['address']['country'] ?? '');
         $normalized['recipient']['address']['country'] = strtoupper($normalized['recipient']['address']['country'] ?? '');
-        $normalized['shipment']['currency'] = strtoupper($normalized['shipment']['currency'] ?? 'LKR');
         $normalized['shipment']['insurance'] = (bool) ($normalized['shipment']['insurance'] ?? false);
+        $normalized['sender']['saveToFavorites'] = (bool) ($normalized['sender']['saveToFavorites'] ?? false);
+        $normalized['recipient']['saveToFavorites'] = (bool) ($normalized['recipient']['saveToFavorites'] ?? false);
 
         if ($reviewContextInput !== null) {
             $normalized['reviewContext'] = array_replace(
@@ -644,6 +888,8 @@ class ClientCourierController extends Controller
         }
 
         $normalized['reviewContext']['selectedQuotes'] = $normalizedSelectedQuotes;
+        $normalized['reviewContext']['displayCurrency'] = strtoupper((string) ($normalized['reviewContext']['displayCurrency'] ?? 'LKR'));
+        $normalized = $this->normalizeShipmentPreferencePayload($normalized, $allowedServiceLevels);
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
         $normalized['reviewContext']['totalPriceUSD'] = array_reduce(
             $normalizedSelectedQuotes,
@@ -801,13 +1047,20 @@ class ClientCourierController extends Controller
             is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [],
             $reviewContext
         );
+        $category = $this->resolvePayloadCategory($payload);
+        $payload = $this->normalizeShipmentPreferencePayload(
+            $payload,
+            $this->serviceLevelLabelsForCategory($category)
+        );
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
         }, 0.0);
+        $saveSenderFavorite = (bool) ($payload['sender']['saveToFavorites'] ?? false);
+        $saveRecipientFavorite = (bool) ($payload['recipient']['saveToFavorites'] ?? false);
 
         try {
-            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService) {
+            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService, $saveSenderFavorite, $saveRecipientFavorite) {
                 $sender = CourierContact::create([
                     'user_id' => Auth::id(),
                     'role' => CourierContact::ROLE_SENDER,
@@ -815,6 +1068,7 @@ class ClientCourierController extends Controller
                     'email' => $payload['sender']['email'] ?? null,
                     'phone' => $payload['sender']['phone'] ?? null,
                     'company_name' => $payload['sender']['company'] ?? null,
+                    'is_favorite' => $saveSenderFavorite,
                 ]);
 
                 $senderAddressData = $payload['sender']['address'];
@@ -831,11 +1085,13 @@ class ClientCourierController extends Controller
                 ]);
 
                 $recipient = CourierContact::create([
+                    'user_id' => Auth::id(),
                     'role' => CourierContact::ROLE_RECIPIENT,
                     'name' => $payload['recipient']['name'],
                     'email' => $payload['recipient']['email'] ?? null,
                     'phone' => $payload['recipient']['phone'] ?? null,
                     'company_name' => $payload['recipient']['company'] ?? null,
+                    'is_favorite' => $saveRecipientFavorite,
                 ]);
 
                 $recipientAddressData = $payload['recipient']['address'];
@@ -1320,6 +1576,66 @@ class ClientCourierController extends Controller
         return $this->normalizeZoneKey($candidate);
     }
 
+    private function normalizeShipmentPreferencePayload(array $payload, array $allowedServiceLevels = []): array
+    {
+        $payload['shipment'] = is_array($payload['shipment'] ?? null) ? $payload['shipment'] : [];
+
+        $payload['shipment']['serviceLevel'] = $this->resolveShipmentServiceLevelFromPayload(
+            $payload,
+            $allowedServiceLevels
+        );
+        $payload['shipment']['currency'] = $this->resolveShipmentCurrencyFromPayload($payload);
+
+        return $payload;
+    }
+
+    private function resolveShipmentServiceLevelFromPayload(array $payload, array $allowedServiceLevels = []): string
+    {
+        $candidates = [];
+
+        foreach (($payload['reviewContext']['selectedQuotes'] ?? []) as $quote) {
+            if (!is_array($quote)) {
+                continue;
+            }
+
+            $candidates[] = $quote['serviceLevel'] ?? null;
+            $candidates[] = $quote['serviceLabel'] ?? null;
+        }
+
+        foreach (($payload['packages'] ?? []) as $package) {
+            if (!is_array($package)) {
+                continue;
+            }
+
+            $candidates[] = $package['serviceLevel'] ?? null;
+        }
+
+        $candidates[] = $payload['shipment']['serviceLevel'] ?? null;
+
+        foreach ($candidates as $candidate) {
+            $candidate = is_string($candidate) ? trim($candidate) : '';
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        if (!empty($allowedServiceLevels)) {
+            return (string) $allowedServiceLevels[0];
+        }
+
+        return 'standard';
+    }
+
+    private function resolveShipmentCurrencyFromPayload(array $payload): string
+    {
+        $shipmentCurrency = $payload['shipment']['currency'] ?? null;
+        $reviewCurrency = $payload['reviewContext']['displayCurrency'] ?? null;
+        $candidate = is_string($shipmentCurrency) ? $shipmentCurrency : $reviewCurrency;
+        $candidate = is_string($candidate) ? strtoupper(trim($candidate)) : '';
+
+        return $candidate !== '' ? $candidate : 'LKR';
+    }
+
     private function resolveDistanceKmFromPayload(array $payload): ?float
     {
         $distanceKm = $payload['shipment']['distanceKm'] ?? null;
@@ -1338,7 +1654,7 @@ class ClientCourierController extends Controller
             : null;
 
         if ($distanceKm === null) {
-            return $distanceFrom <= 0 && $distanceTo === null;
+            return true;
         }
 
         if ($distanceKm < $distanceFrom) {
@@ -1352,7 +1668,7 @@ class ClientCourierController extends Controller
         return true;
     }
 
-    private function laneRuleSpecificityScore(array $rule): int
+    private function laneRuleSpecificityScore(array $rule, ?float $distanceKm = null): int
     {
         $score = 0;
 
@@ -1368,16 +1684,18 @@ class ClientCourierController extends Controller
             $score += 3;
         }
 
-        $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
-        $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
-            ? max(0, (float) $rule['distanceToKm'])
-            : null;
-        if ($distanceFrom > 0 || $distanceTo !== null) {
-            $score += 2;
-        }
+        if ($distanceKm !== null) {
+            $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
+            $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
+                ? max(0, (float) ($rule['distanceToKm']))
+                : null;
+            if ($distanceFrom > 0 || $distanceTo !== null) {
+                $score += 2;
+            }
 
-        if ($distanceTo !== null) {
-            $score += 1;
+            if ($distanceTo !== null) {
+                $score += 1;
+            }
         }
 
         return $score;
@@ -1479,7 +1797,7 @@ class ClientCourierController extends Controller
                 return [
                     'rule' => $rule,
                     'index' => (int) $index,
-                    'score' => $this->laneRuleSpecificityScore($rule),
+                    'score' => $this->laneRuleSpecificityScore($rule, $distanceKm),
                 ];
             })
             ->filter()
@@ -3329,14 +3647,12 @@ class ClientCourierController extends Controller
             . '<p><strong>Company:</strong> ' . ($escape(optional($shipment->recipient)->company_name) ?: '—') . '</p>'
             . '<p><strong>Address:</strong> ' . $formatAddress($shipment->recipientAddress) . '</p>'
             . '<h2>Shipment preferences</h2>'
-            . '<p><strong>Service level:</strong> ' . ($escape($shipment->service_level) ?: '—') . '</p>'
             . '<p><strong>Pickup date:</strong> ' . ($shipment->pickup_date ? $escape($shipment->pickup_date->format('Y-m-d')) : '—') . '</p>'
             . '<p><strong>Pickup window:</strong> ' . ($shipment->pickup_window_start && $shipment->pickup_window_end
                 ? $escape($shipment->pickup_window_start . ' - ' . $shipment->pickup_window_end)
                 : '—') . '</p>'
             . '<p><strong>Insurance required:</strong> ' . ($shipment->insurance_required ? 'Yes' : 'No') . '</p>'
             . '<p><strong>Declared value:</strong> ' . ($escape($shipment->declared_value) ?: '—') . ' ' . ($escape($shipment->currency_code) ?: 'USD') . '</p>'
-            . '<p><strong>Delivery notes:</strong> ' . ($escape($shipment->delivery_notes) ?: '—') . '</p>'
             . '<h2>Package details</h2>'
             . '<table><thead><tr><th>#</th><th>Label</th><th>Type</th><th>Quantity</th><th>Weight (kg)</th><th>Dimensions (cm)</th><th>Declared value</th><th>Courier</th><th>Service</th><th>ETA</th><th>Quote (USD)</th><th>Description</th></tr></thead><tbody>'
             . $packagesRows

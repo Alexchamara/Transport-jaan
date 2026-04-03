@@ -91,6 +91,11 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
     Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
     Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+    Route::post('/favorites', [ClientCourierController::class, 'storeFavoriteRecipient'])
+        ->name('favorites.store');
+    Route::delete('/favorites/{contact}', [ClientCourierController::class, 'removeFavoriteRecipient'])
+        ->whereNumber('contact')
+        ->name('favorites.remove');
     Route::post('/', [ClientCourierController::class, 'store'])->name('store');
     Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
         ->whereNumber('shipment')
