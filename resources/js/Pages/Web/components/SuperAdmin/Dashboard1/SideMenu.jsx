@@ -128,6 +128,9 @@ const SideMenu = () => {
         } else if (pathname === "/superadmin/settings/website" || pathname === "/SuperAdmin/settings/website") {
             setActiveSubsection("WebsiteSettings");
             setIsSettingsOpen(true);
+        } else if (pathname === "/superadmin/settings/cod-settlement" || pathname === "/SuperAdmin/settings/cod-settlement") {
+            setActiveSubsection("CodSettlementSettings");
+            setIsSettingsOpen(true);
         }
     };
 
@@ -842,7 +845,11 @@ const SideMenu = () => {
                 {/* Settings */}
                 <div
                     className={`w-full h-[42px] flex flex-row justify-between items-center px-4 my-[15px] cursor-pointer rounded-md ${
-                        activeSubsection === "Settings" || activeSubsection === "CancellationSettings"
+                        activeSubsection === "Settings"
+                        || activeSubsection === "CancellationSettings"
+                        || activeSubsection === "CodSettlementSettings"
+                        || activeSubsection === "CommissionSettings"
+                        || activeSubsection === "WebsiteSettings"
                             ? "bg-[#181A2A]"
                             : "hover:bg-[#181A2A]"
                     }`}
@@ -854,14 +861,24 @@ const SideMenu = () => {
                         <img
                             src={settings}
                             className={`size-[14px] ${
-                                hoveredSection === "Settings" || activeSubsection === "Settings" || activeSubsection === "CancellationSettings"
+                                hoveredSection === "Settings"
+                                || activeSubsection === "Settings"
+                                || activeSubsection === "CancellationSettings"
+                                || activeSubsection === "CodSettlementSettings"
+                                || activeSubsection === "CommissionSettings"
+                                || activeSubsection === "WebsiteSettings"
                                     ? "filter brightness-0 invert"
                                     : ""
                             }`}
                         />
                         <h1
                             className={`font-[500] text-[18px] ${
-                                activeSubsection === "Settings" || hoveredSection === "Settings" || activeSubsection === "CancellationSettings"
+                                activeSubsection === "Settings"
+                                || hoveredSection === "Settings"
+                                || activeSubsection === "CancellationSettings"
+                                || activeSubsection === "CodSettlementSettings"
+                                || activeSubsection === "CommissionSettings"
+                                || activeSubsection === "WebsiteSettings"
                                     ? "text-white"
                                     : "text-[#AEB9E1]"
                             }`}
@@ -879,7 +896,7 @@ const SideMenu = () => {
                 {/* Settings Dropdown */}
                 <div
                     className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
-                        isSettingsOpen ? "max-h-[250px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+                        isSettingsOpen ? "max-h-[320px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
                     }`}
                 >
                     <Link
@@ -896,6 +913,22 @@ const SideMenu = () => {
                         onMouseLeave={() => setHoveredSection(null)}
                     >
                         Cancellation Settings
+                    </Link>
+
+                    <Link
+                        href="/superadmin/settings/cod-settlement"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "CodSettlementSettings"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "CodSettlementSettings"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("CodSettlementSettings")}
+                        onMouseEnter={() => setHoveredSection("CodSettlementSettings")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        COD Settlement
                     </Link>
 
                     <Link

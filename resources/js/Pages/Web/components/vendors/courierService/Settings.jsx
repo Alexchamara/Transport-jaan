@@ -46,6 +46,14 @@ const DEFAULT_SETTINGS = {
         retryWindowMinutes: 15,
         rotateKeysEveryDays: 90,
     },
+    services: {
+        cod: {
+            acceptCodAtCheckout: false,
+            allowCodForDomestic: true,
+            allowCodForInternational: false,
+            allowTeamOverride: false,
+        },
+    },
     labels: {
         defaults: {
             domestic: {
@@ -735,6 +743,7 @@ const TAB_CONFIG = [
     { key: "tracking", label: "Tracking", icon: MapPinned },
     { key: "notifications", label: "Notifications", icon: BellRing },
     { key: "integrations", label: "Integrations", icon: KeyRound },
+    { key: "services", label: "Services", icon: ShieldCheck },
     { key: "labels", label: "Labels", icon: Printer },
     { key: "pricing", label: "Pricing", icon: BadgeDollarSign },
     { key: "team", label: "Team Access", icon: Users },
@@ -952,6 +961,9 @@ const Settings = () => {
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const initialPricingTopic = String(props.initialPricingTopic || "currency-formula");
+    const incomingCodCapability = props.courierCodCapability && typeof props.courierCodCapability === "object"
+        ? props.courierCodCapability
+        : {};
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
@@ -982,6 +994,9 @@ const Settings = () => {
     const [settings, setSettings] = useState(() => {
         const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
         const incomingPricing = incoming.pricing && typeof incoming.pricing === "object" ? incoming.pricing : {};
+        const incomingServices = incoming.services && typeof incoming.services === "object" ? incoming.services : {};
+        const incomingServicesCod = incomingServices.cod && typeof incomingServices.cod === "object" ? incomingServices.cod : {};
+        const hasLegacyInternationalFlag = typeof incomingServicesCod.allowCodForLogistic === "boolean";
         const incomingLabels = incoming.labels && typeof incoming.labels === "object" ? incoming.labels : {};
         const incomingLabelDefaults = incomingLabels.defaults && typeof incomingLabels.defaults === "object" ? incomingLabels.defaults : {};
         const incomingLabelPolicy = incomingLabels.printPolicy && typeof incomingLabels.printPolicy === "object" ? incomingLabels.printPolicy : {};
@@ -1010,6 +1025,19 @@ const Settings = () => {
         return {
             ...DEFAULT_SETTINGS,
             ...incoming,
+            services: {
+                ...DEFAULT_SETTINGS.services,
+                ...incomingServices,
+                cod: {
+                    ...DEFAULT_SETTINGS.services.cod,
+                    ...incomingServicesCod,
+                    allowCodForInternational: typeof incomingServicesCod.allowCodForInternational === "boolean"
+                        ? incomingServicesCod.allowCodForInternational
+                        : (hasLegacyInternationalFlag
+                            ? incomingServicesCod.allowCodForLogistic
+                            : DEFAULT_SETTINGS.services.cod.allowCodForInternational),
+                },
+            },
             labels: {
                 ...DEFAULT_SETTINGS.labels,
                 ...incomingLabels,
@@ -1532,6 +1560,8 @@ const Settings = () => {
     const [labelTemplateSaveBusyId, setLabelTemplateSaveBusyId] = useState(null);
     const [labelPreviewBusyId, setLabelPreviewBusyId] = useState(null);
     const [labelTemplateUploadBusy, setLabelTemplateUploadBusy] = useState(false);
+    const [codRequestBusy, setCodRequestBusy] = useState(false);
+    const [codRequestNote, setCodRequestNote] = useState(String(incomingCodCapability.requestedNote || ""));
 
     useEffect(() => {
         if (!approvedPricingCategories.includes(activePricingCategory)) {
@@ -1577,6 +1607,19 @@ const Settings = () => {
             [section]: {
                 ...prev[section],
                 [key]: value,
+            },
+        }));
+    };
+
+    const updateServiceCodValue = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            services: {
+                ...(prev.services || DEFAULT_SETTINGS.services),
+                cod: {
+                    ...((prev.services && prev.services.cod) || DEFAULT_SETTINGS.services.cod),
+                    [key]: value,
+                },
             },
         }));
     };
@@ -4628,6 +4671,31 @@ const Settings = () => {
         });
     };
 
+    const submitCodCapabilityRequest = () => {
+        openConfirm({
+            title: "Request COD Capability",
+            message: "Submit this courier COD enablement request for superadmin review?",
+            confirmText: "Submit Request",
+            onConfirm: async () => {
+                setCodRequestBusy(true);
+                try {
+                    const payload = await requestJson("POST", route("courierService.settings.services.cod.request"), {
+                        note: codRequestNote,
+                    });
+                    setFeedback({ type: "success", message: payload?.message || "COD capability request submitted." });
+                    router.reload({
+                        preserveScroll: true,
+                        preserveState: true,
+                    });
+                } catch (error) {
+                    setFeedback({ type: "error", message: error?.message || "Failed to submit COD capability request." });
+                } finally {
+                    setCodRequestBusy(false);
+                }
+            },
+        });
+    };
+
     const saveSection = (sectionKey) => {
         router.post(
             route("courierService.settings.update"),
@@ -4697,6 +4765,32 @@ const Settings = () => {
     };
 
     const saveButtonLabel = TAB_CONFIG.find((tab) => tab.key === activeTab)?.label;
+    const servicesSettings = settings?.services || DEFAULT_SETTINGS.services;
+    const servicesCodSettings = (servicesSettings && typeof servicesSettings.cod === "object")
+        ? servicesSettings.cod
+        : DEFAULT_SETTINGS.services.cod;
+    const codCapabilityStatus = String(incomingCodCapability.status || "not_requested");
+    const codCapabilityStatusLabel = String(incomingCodCapability.statusLabel || "Not Requested");
+    const codCapabilityCanRequest = Boolean(incomingCodCapability.canRequest ?? true);
+    const codCapabilityRequestedAt = String(incomingCodCapability.requestedAt || "");
+    const codCapabilityReviewedAt = String(incomingCodCapability.reviewedAt || "");
+    const codCapabilityReviewedBy = String(incomingCodCapability.reviewedByName || "");
+    const codCapabilityDecisionReason = String(incomingCodCapability.decisionReason || "");
+    const codStatusTone = (() => {
+        if (codCapabilityStatus === "approved") {
+            return "bg-[#ECFDF3] border-[#86EFAC] text-[#166534]";
+        }
+
+        if (codCapabilityStatus === "pending") {
+            return "bg-[#FFFBEB] border-[#FCD34D] text-[#92400E]";
+        }
+
+        if (codCapabilityStatus === "rejected") {
+            return "bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]";
+        }
+
+        return "bg-[#F9FAFB] border-[#D1D5DB] text-[#374151]";
+    })();
     const labelSettings = settings?.labels || DEFAULT_SETTINGS.labels;
     const labelDefaults = (labelSettings && typeof labelSettings.defaults === "object")
         ? labelSettings.defaults
@@ -4984,6 +5078,83 @@ const Settings = () => {
                         </Field>
                     </div>
                 </SectionCard>
+            );
+        }
+
+        if (activeTab === "services") {
+            return (
+                <div className="space-y-4">
+                    <SectionCard title="Service Capabilities" description="Configure operational service behavior and request controlled capability enablement.">
+                        <div className={`rounded-[10px] border px-4 py-3 ${codStatusTone}`}>
+                            <p className="text-[13px] font-[700]">COD Capability Status: {codCapabilityStatusLabel}</p>
+                            <p className="text-[12px] mt-1">
+                                {codCapabilityStatus === "approved" && "Your courier workspace is approved to operate COD bookings."}
+                                {codCapabilityStatus === "pending" && "Your COD request is pending superadmin review."}
+                                {codCapabilityStatus === "rejected" && "Your previous COD request was rejected. Update details and re-submit."}
+                                {codCapabilityStatus === "not_requested" && "COD is not enabled yet. Submit a request for superadmin approval."}
+                            </p>
+                            {codCapabilityRequestedAt && (
+                                <p className="text-[11px] mt-2">Requested at: {codCapabilityRequestedAt}</p>
+                            )}
+                            {codCapabilityReviewedAt && (
+                                <p className="text-[11px] mt-1">Reviewed at: {codCapabilityReviewedAt}{codCapabilityReviewedBy ? ` by ${codCapabilityReviewedBy}` : ""}</p>
+                            )}
+                            {codCapabilityDecisionReason && (
+                                <p className="text-[11px] mt-1">Decision note: {codCapabilityDecisionReason}</p>
+                            )}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <Toggle
+                                label="Allow COD At Checkout"
+                                checked={Boolean(servicesCodSettings.acceptCodAtCheckout)}
+                                onChange={(next) => updateServiceCodValue("acceptCodAtCheckout", next)}
+                                description="Expose COD as an option during courier booking checkout."
+                            />
+                            <Toggle
+                                label="Allow Domestic COD"
+                                checked={Boolean(servicesCodSettings.allowCodForDomestic)}
+                                onChange={(next) => updateServiceCodValue("allowCodForDomestic", next)}
+                                description="Keep domestic COD path active once capability is approved."
+                            />
+                            <Toggle
+                                label="Allow International COD"
+                                checked={Boolean(servicesCodSettings.allowCodForInternational)}
+                                onChange={(next) => updateServiceCodValue("allowCodForInternational", next)}
+                                description="Enable international COD only when this route is approved and operationally ready."
+                            />
+                            <Toggle
+                                label="Allow Team Override"
+                                checked={Boolean(servicesCodSettings.allowTeamOverride)}
+                                onChange={(next) => updateServiceCodValue("allowTeamOverride", next)}
+                                description="Use only with explicit COD override permissions for authorized staff."
+                            />
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3">
+                            <Field label="COD Request Note" help="Share readiness details such as SOP, collection controls, and reconciliation process.">
+                                <textarea
+                                    rows={3}
+                                    className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                    value={codRequestNote}
+                                    onChange={(event) => setCodRequestNote(event.target.value)}
+                                    placeholder="COD readiness summary..."
+                                />
+                            </Field>
+
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={submitCodCapabilityRequest}
+                                    disabled={!codCapabilityCanRequest || codRequestBusy}
+                                    className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
+                                >
+                                    {codRequestBusy ? "Submitting..." : (codCapabilityStatus === "rejected" ? "Re-submit COD Request" : "Submit COD Request")}
+                                </button>
+                            </div>
+                        </div>
+                    </SectionCard>
+                </div>
             );
         }
 

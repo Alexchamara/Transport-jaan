@@ -27,6 +27,8 @@ class CourierRbac
             'courier.clients.manage',
             'courier.settings.view',
             'courier.settings.update',
+            'courier.services.cod.request',
+            'courier.services.cod.override',
             'courier.labels.view',
             'courier.labels.manage_templates',
             'courier.labels.print',
