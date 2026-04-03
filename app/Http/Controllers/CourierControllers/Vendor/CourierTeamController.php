@@ -1829,13 +1829,26 @@ class CourierTeamController extends Controller
             abort(401, 'Authentication required.');
         }
 
+        $recipientEmail = trim((string) ($actor->email ?? ''));
+        if ($recipientEmail === '' || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            Log::warning('Cannot send courier step-up verification email: actor has no valid email.', [
+                'vendor_user_id' => $vendorUserId,
+                'user_id' => (int) $actor->id,
+                'email' => $recipientEmail,
+            ]);
+
+            return response()->json([
+                'message' => 'No valid email address is configured for this account.',
+            ], 422);
+        }
+
         $code = (string) random_int(100000, 999999);
         $challenge = [
             'code_hash' => Hash::make($code),
             'expires_at' => now()->addMinutes(10)->format('Y-m-d H:i:s'),
             'attempts' => 0,
             'max_attempts' => 5,
-            'sent_to' => (string) ($actor->email ?? ''),
+            'sent_to' => $recipientEmail,
         ];
 
         $request->session()->put('courier_security.challenge', $challenge);
@@ -1843,15 +1856,22 @@ class CourierTeamController extends Controller
         try {
             Mail::raw(
                 "Courier step-up verification code: {$code}\nThis code expires in 10 minutes.",
-                function ($message) use ($actor) {
-                    $message->to((string) $actor->email)
+                function ($message) use ($recipientEmail) {
+                    $message->to($recipientEmail)
                         ->subject('[Courier] Step-up verification code');
                 }
             );
+
+            Log::info('Courier step-up verification email sent.', [
+                'vendor_user_id' => $vendorUserId,
+                'user_id' => (int) $actor->id,
+                'sent_to' => $recipientEmail,
+            ]);
         } catch (\Throwable $exception) {
             Log::warning('Failed to send courier step-up verification email.', [
                 'vendor_user_id' => $vendorUserId,
                 'user_id' => (int) $actor->id,
+                'sent_to' => $recipientEmail,
                 'error' => $exception->getMessage(),
             ]);
 
@@ -1872,7 +1892,9 @@ class CourierTeamController extends Controller
             ['channel' => 'email'],
         );
 
-        return response()->json(['message' => 'Step-up verification code issued. Check your email inbox.']);
+        $maskedRecipient = preg_replace('/(^.).*(@.*$)/', '$1***$2', $recipientEmail) ?: $recipientEmail;
+
+        return response()->json(['message' => "Step-up verification code issued to {$maskedRecipient}. Check your email inbox."]);
     }
 
     public function verifyStepUpVerification(Request $request)
