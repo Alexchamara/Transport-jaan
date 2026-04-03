@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Head, Link, useForm, usePage, router } from "@inertiajs/react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { createPortal } from "react-dom";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
+import DetailsForm from "./Details";
+import SummaryView from "./Summary";
 import {
     buildQuoteMatrix,
     buildReviewContext,
@@ -41,6 +43,14 @@ const DOMESTIC_COUNTRY_LABEL = COUNTRY_LABELS[DOMESTIC_COUNTRY_CODE] || DOMESTIC
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
 const CENTIMETERS_PER_YARD = 91.44;
+const CENTIMETERS_PER_METER = 100;
+const MILLIMETERS_PER_CENTIMETER = 10;
+const DIMENSION_UNIT_FACTORS = {
+    cm: 1,
+    mm: MILLIMETERS_PER_CENTIMETER,
+    m: 1 / CENTIMETERS_PER_METER,
+    yd: 1 / CENTIMETERS_PER_YARD,
+};
 const SHIPMENT_TYPE_OPTIONS = [
     { value: "electronics", label: "Electronics" },
     { value: "documents", label: "Documents" },
@@ -51,11 +61,16 @@ const SHIPMENT_TYPE_OPTIONS = [
     { value: "other", label: "Other" },
 ];
 
+const QUOTE_TIER_OPTIONS = [
+    { id: "economy", label: "Economy", color: "text-emerald-700" },
+    { id: "express", label: "Express", color: "text-blue-700" },
+    { id: "priority", label: "Priority", color: "text-purple-700" },
+];
+
 const Create = () => {
     const { props } = usePage();
     const packageTypes = props.packageTypes || [];
     const countries = props.countries || [];
-    const serviceLevels = props.serviceLevels || [];
     const quoteProviders = Array.isArray(props.quoteProviders) ? props.quoteProviders : [];
     const { flash } = props;
     const recentShipmentId = props.recentShipmentId;
@@ -63,6 +78,16 @@ const Create = () => {
     const packageSectionDescription = "Use the quick calculator layout to set locations, weight, and dimensions.";
     const defaultDomesticFromCity = "";
     const defaultDomesticToCity = "";
+
+    const buildDefaultQuoteFilters = () => ({
+        providerSearch: "",
+        minPrice: "",
+        maxPrice: "",
+        tiers: QUOTE_TIER_OPTIONS.reduce((acc, tier) => ({
+            ...acc,
+            [tier.id]: true,
+        }), {}),
+    });
 
     // Currency conversion state
     const [displayCurrency, setDisplayCurrency] = useState('LKR');
@@ -75,12 +100,15 @@ const Create = () => {
     const [submitError, setSubmitError] = useState("");
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
     const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
-
-    const scrollToTop = () => {
-        if (typeof window !== "undefined") {
-            window.scrollTo({ top: 0, behavior: "auto" });
-        }
-    };
+    const [quoteFilters, setQuoteFilters] = useState(() => buildDefaultQuoteFilters());
+    const [showDetails, setShowDetails] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const quotesSectionRef = useRef(null);
+    const quotesTableRef = useRef(null);
+    const quotesAutoScrollRef = useRef(false);
+    const detailsSectionRef = useRef(null);
+    const summarySectionRef = useRef(null);
 
     const buildEmptyForm = (routeType) => {
         const isDomestic = routeType !== "international";
@@ -120,21 +148,16 @@ const Create = () => {
                 pickupWindowStart: "",
                 pickupWindowEnd: "",
                 routeType: isDomestic ? "domestic" : "international",
-                serviceLevel: serviceLevels[0] || "",
                 courierProvider: "",
-                currency: "LKR",
                 insurance: false,
-                deliveryNotes: "",
                 estimatedValue: "",
+                paymentOptions: {
+                    all: false,
+                    cod: false,
+                    card: false,
+                },
                 shipmentType: "",
                 shipmentTypeDescription: "",
-                logisticDimensions: {
-                    unitType: "",
-                    unitCount: "",
-                    routeClass: "",
-                    handlingClass: "",
-                    w2wMode: "",
-                },
             },
             packages: [
                 {
@@ -157,7 +180,15 @@ const Create = () => {
     };
 
     const initialForm = buildEmptyForm("domestic");
-    const { data, setData, errors } = useForm(initialForm);
+    const {
+        data,
+        setData,
+        errors,
+        post,
+        processing,
+        setError,
+        clearErrors,
+    } = useForm(initialForm);
     const [activeLocationField, setActiveLocationField] = useState(null);
     const [locationSearch, setLocationSearch] = useState({
         senderCity: initialForm.sender.address.city || "",
@@ -334,6 +365,10 @@ const Create = () => {
         setDisplayCurrency("LKR");
         setServiceDetailsModal(null);
         setIsPlacing(false);
+        setShowDetails(false);
+        setShowSummary(false);
+        setIsSummaryLoading(false);
+        clearErrors();
     };
 
     const handleConfirmRouteSwitch = () => {
@@ -374,6 +409,27 @@ const Create = () => {
             ...data.shipment,
             shipmentType: value,
             shipmentTypeDescription: value === "other" ? (data.shipment.shipmentTypeDescription || "") : "",
+        });
+    };
+
+    const updatePaymentOptions = (optionKey, checked) => {
+        const currentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
+        let nextOptions = { ...currentOptions };
+
+        if (optionKey === "all") {
+            nextOptions = {
+                all: checked,
+                cod: checked,
+                card: checked,
+            };
+        } else {
+            nextOptions[optionKey] = checked;
+            nextOptions.all = nextOptions.cod && nextOptions.card;
+        }
+
+        setData("shipment", {
+            ...data.shipment,
+            paymentOptions: nextOptions,
         });
     };
 
@@ -440,6 +496,8 @@ const Create = () => {
     };
 
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
+    const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
+    const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -471,6 +529,29 @@ const Create = () => {
 
         return currencyFormatter.format(convertedValue);
     };
+
+    const getDisplayAmount = (value) => {
+        if (!Number.isFinite(value)) {
+            return 0;
+        }
+
+        return displayCurrency === "LKR" ? value * USD_TO_LKR_RATE : value;
+    };
+
+    const resetQuoteFilters = () => {
+        setQuoteFilters(buildDefaultQuoteFilters());
+    };
+
+    const hasActiveQuoteFilters = useMemo(() => {
+        const tiers = quoteFilters.tiers || {};
+        const allTiersEnabled = QUOTE_TIER_OPTIONS.every((tier) => tiers[tier.id]);
+        return Boolean(
+            quoteFilters.providerSearch
+            || quoteFilters.minPrice
+            || quoteFilters.maxPrice
+            || !allTiersEnabled
+        );
+    }, [quoteFilters]);
 
     const openServiceDetailsModal = (provider, tier, options = {}) => {
         if (!provider || !tier) {
@@ -610,8 +691,8 @@ const Create = () => {
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
-        return hasRouteLocations && hasShipmentType && hasShipmentDescription && packagesHaveNumbers;
-    }, [data.packages, data.sender, data.recipient, data.shipment, selectedRouteType]);
+        return hasRouteLocations && hasShipmentType && hasShipmentDescription && packagesHaveNumbers && hasPaymentOption;
+    }, [data.packages, data.sender, data.recipient, data.shipment, selectedRouteType, hasPaymentOption]);
 
     const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
@@ -624,6 +705,70 @@ const Create = () => {
 
         return data.packages.every((pkg) => pkg.courierProvider && pkg.serviceLevel);
     }, [data.packages, selectedQuotes]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (!hasRequiredDetails || quoteMatrix.length === 0) {
+            quotesAutoScrollRef.current = false;
+            return;
+        }
+
+        if (quotesAutoScrollRef.current) {
+            return;
+        }
+
+        const target = quotesTableRef.current || quotesSectionRef.current;
+        if (!target) {
+            return;
+        }
+
+        const targetTop = target.getBoundingClientRect().top + window.scrollY;
+        const offset = 300;
+
+        window.scrollTo({
+            top: Math.max(targetTop - offset, 0),
+            behavior: "smooth",
+        });
+
+        quotesAutoScrollRef.current = true;
+    }, [hasRequiredDetails, quoteMatrix.length]);
+
+    useEffect(() => {
+        if (!showDetails || typeof window === "undefined") {
+            return;
+        }
+
+        const target = detailsSectionRef.current;
+        if (!target) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [showDetails]);
+
+    useEffect(() => {
+        if (!showSummary || typeof window === "undefined") {
+            return;
+        }
+
+        const target = summarySectionRef.current;
+        if (!target) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [showSummary]);
 
     const extractFirstErrorMessage = (errorBag) => {
         const queue = Array.isArray(errorBag)
@@ -650,43 +795,175 @@ const Create = () => {
         return "";
     };
 
+    const getCsrfToken = () => {
+        if (typeof document === "undefined") {
+            return "";
+        }
+
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+        return token || "";
+    };
+
+    const prepareDetailsSession = async (payload) => {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please refresh and try again.",
+            };
+        }
+
+        try {
+            const response = await fetch("/couriers/review", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(payload),
+            });
+
+            if (response.status === 422) {
+                const errorPayload = await response.json().catch(() => ({}));
+                const firstError = extractFirstErrorMessage(errorPayload.errors || errorPayload);
+                return {
+                    ok: false,
+                    message:
+                        firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                };
+            }
+
+            if (!response.ok) {
+                return {
+                    ok: false,
+                    message: "Unable to continue. Please try again.",
+                };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please check your connection and try again.",
+            };
+        }
+    };
+
+    const prepareSummarySession = async (payload) => {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please refresh and try again.",
+            };
+        }
+
+        try {
+            const response = await fetch("/couriers/details", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                body: JSON.stringify(payload),
+            });
+
+            if (response.status === 422) {
+                const errorPayload = await response.json().catch(() => ({}));
+                const firstError = extractFirstErrorMessage(errorPayload.errors || errorPayload);
+                return {
+                    ok: false,
+                    errors: errorPayload.errors || errorPayload,
+                    message:
+                        firstError ||
+                        "Unable to continue. Please review the highlighted fields and try again.",
+                };
+            }
+
+            if (!response.ok) {
+                return {
+                    ok: false,
+                    message: "Unable to continue. Please try again.",
+                };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            return {
+                ok: false,
+                message: "Unable to continue. Please check your connection and try again.",
+            };
+        }
+    };
+
     const isReadyToPlace = useMemo(() => {
         return hasRequiredDetails && hasSelectedServices;
     }, [hasRequiredDetails, hasSelectedServices]);
 
-    const handlePlaceCourier = () => {
+    const handleContinueToDetails = async () => {
         if (!isReadyToPlace || isPlacing) {
             return;
         }
 
+        setSubmitError("");
+        setIsPlacing(true);
+
         const basePayload = JSON.parse(JSON.stringify(data));
         const reviewContext = buildReviewContext(selectedQuotes, displayCurrency);
-
         const payload = {
             ...basePayload,
             reviewContext,
         };
 
-        router.post('/couriers/review', payload, {
-            preserveScroll: false,
-            onStart: () => {
-                setSubmitError("");
-                setIsPlacing(true);
-            },
-            onSuccess: () => {
-                setSubmitError("");
-                scrollToTop();
-            },
-            onError: (formErrors) => {
-                scrollToTop();
-                const firstError = extractFirstErrorMessage(formErrors);
-                setSubmitError(
-                    firstError ||
-                        "Unable to continue. Please review the highlighted fields and try again.",
-                );
-            },
-            onFinish: () => setIsPlacing(false),
-        });
+        const result = await prepareDetailsSession(payload);
+        if (!result.ok) {
+            setSubmitError(result.message || "Unable to continue. Please try again.");
+            setIsPlacing(false);
+            return;
+        }
+
+        setData((previous) => ({
+            ...previous,
+            reviewContext,
+        }));
+        setShowDetails(true);
+        setShowSummary(false);
+        setIsPlacing(false);
+    };
+
+    const handleContinueToSummary = async ({ setSubmitError: setDetailsSubmitError } = {}) => {
+        if (isSummaryLoading) {
+            return;
+        }
+
+        const setErrorMessage = typeof setDetailsSubmitError === "function"
+            ? setDetailsSubmitError
+            : setSubmitError;
+
+        setErrorMessage("");
+        clearErrors();
+        setIsSummaryLoading(true);
+
+        const payload = JSON.parse(JSON.stringify(data));
+        const result = await prepareSummarySession(payload);
+        if (!result.ok) {
+            if (result.errors) {
+                setError(result.errors);
+            }
+            setErrorMessage(result.message || "Unable to continue. Please try again.");
+            setIsSummaryLoading(false);
+            return;
+        }
+
+        setShowSummary(true);
+        setIsSummaryLoading(false);
     };
 
     return (
@@ -694,7 +971,7 @@ const Create = () => {
             <Head title="Send a Package" />
             <Header />
 
-            <section className="relative">
+            {/* <section className="relative">
                 <img
                     src={bg}
                     className="w-full h-[300px] object-cover"
@@ -726,10 +1003,10 @@ const Create = () => {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             <main>
-                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
+                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins mt-6">
                     {flash?.success && (
                         <div className="mb-6 space-y-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                             <p>{flash.success}</p>
@@ -802,39 +1079,36 @@ const Create = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-10">
-
-                        <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-6">
-                            <div className="flex flex-col items-center gap-3 text-center">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
-                                    <p className="mt-1 text-sm text-[#5B6887]">
-                                        Choose the route type first. Courier companies will be filtered to match your selection.
-                                    </p>
-                                </div>
-                                <div className="inline-flex w-[300px] max-w-md justify-between rounded-xl border border-[#D6DEEB] bg-white p-1 shadow-sm">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRouteTypeChange('domestic')}
-                                        className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
-                                            ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
-                                            : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
-                                            }`}
-                                    >
-                                        Domestic
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRouteTypeChange('international')}
-                                        className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'international'
-                                            ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
-                                            : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
-                                            }`}
-                                    >
-                                        International
-                                    </button>
-                                </div>
+                        <div className="flex flex-col items-center gap-3 text-center">
+                            <div>
+                                <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
+                                <p className="mt-1 text-sm text-[#5B6887]">
+                                    Choose the route type first. Courier companies will be filtered to match your selection.
+                                </p>
                             </div>
-                        </section>
+                            <div className="inline-flex w-[300px] max-w-md justify-between rounded-xl border border-[#D6DEEB] bg-white p-1 shadow-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => handleRouteTypeChange('domestic')}
+                                    className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'domestic'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                        : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                        }`}
+                                >
+                                    Domestic
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRouteTypeChange('international')}
+                                    className={`min-w-[140px] rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all duration-150 ${selectedRouteType === 'international'
+                                        ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-sm'
+                                        : 'border-blue bg-white text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
+                                        }`}
+                                >
+                                    International
+                                </button>
+                            </div>
+                        </div>
 
                         <section className="space-y-6">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -856,9 +1130,11 @@ const Create = () => {
                             <div className="space-y-5">
                                 {data.packages.map((item, index) => {
                                     const weightUnit = item.weightUnit === "oz" ? "oz" : "kg";
-                                    const dimensionUnit = item.dimensionUnit === "yd" ? "yd" : "cm";
+                                    const dimensionUnit = Object.prototype.hasOwnProperty.call(DIMENSION_UNIT_FACTORS, item.dimensionUnit)
+                                        ? item.dimensionUnit
+                                        : "cm";
                                     const weightFactor = weightUnit === "oz" ? OUNCES_PER_KILOGRAM : 1;
-                                    const dimensionFactor = dimensionUnit === "yd" ? 1 / CENTIMETERS_PER_YARD : 1;
+                                    const dimensionFactor = DIMENSION_UNIT_FACTORS[dimensionUnit] || 1;
 
                                     return (
                                         <div
@@ -1110,7 +1386,9 @@ const Create = () => {
                                                                 onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
                                                                 className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
                                                             >
+                                                                <option value="mm">mm</option>
                                                                 <option value="cm">cm</option>
+                                                                <option value="m">m</option>
                                                                 <option value="yd">yd</option>
                                                             </select>
                                                         </div>
@@ -1155,46 +1433,51 @@ const Create = () => {
                                                         />
                                                     </div>
                                                 )}
+                                                <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
+                                                <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                                    <label className="inline-flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-[#0955AC]"
+                                                            checked={paymentOptions.all}
+                                                            onChange={(event) => updatePaymentOptions("all", event.target.checked)}
+                                                        />
+                                                        All
+                                                    </label>
+                                                    <label className="inline-flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-[#0955AC]"
+                                                            checked={paymentOptions.cod}
+                                                            onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
+                                                        />
+                                                        COD
+                                                    </label>
+                                                    <label className="inline-flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-[#0955AC]"
+                                                            checked={paymentOptions.card}
+                                                            onChange={(event) => updatePaymentOptions("card", event.target.checked)}
+                                                        />
+                                                        Card
+                                                    </label>
+                                                </div>
+
+
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
-
-                            {packageMetrics.totalWeight > 0 && (
-                                <div className="flex flex-col gap-4 rounded-xl border border-[#D6DEEB] bg-[#EEF3FC] px-6 py-4 text-sm text-[#0B1739] md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-[#0955AC]">
-                                            Shipment summary
-                                        </p>
-                                        <div className="mt-2 flex flex-wrap gap-4">
-                                            <span>
-                                                Packages: <strong>{packageMetrics.totalPackages}</strong>
-                                            </span>
-                                            <span>
-                                                Weight: <strong>{packageMetrics.totalWeight.toFixed(2)} kg</strong>
-                                            </span>
-                                            <span>
-                                                Billable weight: <strong>{packageMetrics.billableWeight.toFixed(2)} kg</strong>
-                                            </span>
-                                            {packageMetrics.volumetricWeight > packageMetrics.totalWeight && (
-                                                <span>
-                                                    Volumetric: <strong>{packageMetrics.volumetricWeight.toFixed(2)} kg</strong>
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {packageMetrics.requiresSpecialHandling && (
-                                        <div className="rounded-lg bg-[#F8E7D8] px-4 py-2 text-xs font-medium text-[#7B3F00]">
-                                            Includes freight or temperature-controlled cargo
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </section>
 
                         {hasRequiredDetails && (
-                            <section id="courier-quotes-section" className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-8">
+                            <section
+                                id="courier-quotes-section"
+                                ref={quotesSectionRef}
+                                className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] px-6 py-8"
+                            >
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
                                         <h2 className="text-xl font-semibold text-[#0B1739]">
@@ -1202,10 +1485,42 @@ const Create = () => {
                                         </h2>
                                         <p className="mt-2 text-sm text-[#5B6887]">
                                             {packageMetrics.readyForQuote
-                                                ? "Select courier services for each package. Switch between packages using the tabs below."
+                                                ? "Select a service per package. Use tabs to switch."
                                                 : `Provide quantity and weight for each package to generate live carrier rates.`}
                                         </p>
                                     </div>
+
+                                    {packageMetrics.totalWeight > 0 && (
+                                        <div className="inline-flex w-fit max-w-full flex-col gap-4 rounded-xl border border-[#D6DEEB] bg-[#EEF3FC] px-6 py-4 text-sm text-[#0B1739] md:flex-row md:items-center">
+                                            <div>
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-[#0955AC]">
+                                                    Shipment summary
+                                                </p>
+                                                <div className="mt-2 flex flex-wrap gap-4">
+                                                    <span>
+                                                        Packages: <strong>{packageMetrics.totalPackages}</strong>
+                                                    </span>
+                                                    <span>
+                                                        Weight: <strong>{packageMetrics.totalWeight.toFixed(2)} kg</strong>
+                                                    </span>
+                                                    <span>
+                                                        Billable weight: <strong>{packageMetrics.billableWeight.toFixed(2)} kg</strong>
+                                                    </span>
+                                                    {packageMetrics.volumetricWeight > packageMetrics.totalWeight && (
+                                                        <span>
+                                                            Volumetric: <strong>{packageMetrics.volumetricWeight.toFixed(2)} kg</strong>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {packageMetrics.requiresSpecialHandling && (
+                                                <div className="rounded-lg bg-[#F8E7D8] px-4 py-2 text-xs font-medium text-[#7B3F00]">
+                                                    Includes freight or temperature-controlled cargo
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {packageMetrics.readyForQuote && (
                                         <button
                                             type="button"
@@ -1226,7 +1541,7 @@ const Create = () => {
                                             : `Add package details to view available ${selectedRouteType} courier services.`}
                                     </div>
                                 ) : (
-                                    <div className="mt-8 space-y-8">
+                                    <div ref={quotesTableRef} className="mt-8 space-y-8">
                                         {/* Package Tabs */}
                                         {quoteMatrix.length > 1 && (
                                             <div className="border-b border-[#E8F0FE]">
@@ -1274,279 +1589,426 @@ const Create = () => {
                                             </div>
                                         )}
 
-                                        {/* Inline Comparison Table — Compact */}
-                                        {(() => {
-                                            const activePackageQuotes = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
-                                            if (!activePackageQuotes) return null;
+                                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[260px_1fr] xl:items-start">
+                                            <aside className="rounded-xl border border-[#E3EAF5] bg-white  p-4 shadow-sm">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <h3 className="mt-1 text-sm font-semibold text-[#0B1739]">Refine courier quotes</h3>
+                                                        <p className="mt-1 text-xs text-[#6B7893]">Filters apply to the active package.</p>
+                                                    </div>
+                                                    {hasActiveQuoteFilters && (
+                                                        <span className="rounded-full bg-[#E6F3FF] px-2 py-1 text-[10px] font-semibold text-[#0955AC]">Active</span>
+                                                    )}
+                                                </div>
 
-                                            const TIER_IDS = ['economy', 'express', 'priority'];
-                                            const TIER_META = {
-                                                economy: { label: 'Economy', color: 'text-emerald-700' },
-                                                express: { label: 'Express', color: 'text-blue-700' },
-                                                priority: { label: 'Priority', color: 'text-purple-700' },
-                                            };
+                                                <div className="mt-4 space-y-4">
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Provider search</label>
+                                                        <input
+                                                            type="text"
+                                                            value={quoteFilters.providerSearch}
+                                                            onChange={(event) => setQuoteFilters((previous) => ({
+                                                                ...previous,
+                                                                providerSearch: event.target.value,
+                                                            }))}
+                                                            className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                            placeholder="Search provider or coverage"
+                                                        />
+                                                    </div>
 
-                                            const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
-                                            const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
-                                            const currentPackage = data.packages[activePackageQuotes.packageIndex];
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Price range ({displayCurrency})</label>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={quoteFilters.minPrice}
+                                                                onChange={(event) => setQuoteFilters((previous) => ({
+                                                                    ...previous,
+                                                                    minPrice: event.target.value,
+                                                                }))}
+                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Min"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={quoteFilters.maxPrice}
+                                                                onChange={(event) => setQuoteFilters((previous) => ({
+                                                                    ...previous,
+                                                                    maxPrice: event.target.value,
+                                                                }))}
+                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Max"
+                                                            />
+                                                        </div>
+                                                    </div>
 
-                                            const cheapestByTierInGroup = (providers, tierId) => {
-                                                const prices = providers
-                                                    .map(p => (p.tiers.find(t => t.id === tierId) || {}).price)
-                                                    .filter(v => v !== undefined);
-                                                return prices.length ? Math.min(...prices) : Infinity;
-                                            };
-
-                                            const renderCategoryTable = (providers, categoryLabel, accentColor, accentBg) => {
-                                                if (!providers.length) return null;
-                                                const cheapest = Object.fromEntries(TIER_IDS.map(id => [id, cheapestByTierInGroup(providers, id)]));
-                                                const getProviderBestPrice = (provider) => {
-                                                    if (!provider?.tiers?.length) return Infinity;
-                                                    return provider.tiers.reduce((best, tier) => {
-                                                        const priceValue = Number(tier?.price);
-                                                        return Number.isFinite(priceValue) ? Math.min(best, priceValue) : best;
-                                                    }, Infinity);
-                                                };
-                                                const sortedProviders = [...providers].sort((a, b) => {
-                                                    const aBest = getProviderBestPrice(a);
-                                                    const bBest = getProviderBestPrice(b);
-                                                    if (aBest !== bBest) return aBest - bBest;
-                                                    return (a?.name || "").localeCompare(b?.name || "");
-                                                });
-
-                                                return (
-                                                    <div className="rounded-xl border border-[#E8F0FE] overflow-hidden">
-                                                        {/* ── Mobile: provider card, tier rows ── */}
-                                                        <div className="sm:hidden max-h-[420px] overflow-y-auto divide-y divide-[#F0F4F8]">
-                                                            {sortedProviders.map((provider) => (
-                                                                <div key={provider.id} className="bg-white">
-                                                                    {/* Provider header strip */}
-                                                                    <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: accentBg }}>
-                                                                        {provider.logo ? (
-                                                                            <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[38px] object-contain" loading="lazy" />
-                                                                        ) : (
-                                                                            <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
-                                                                                {provider.name.slice(0, 2).toUpperCase()}
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="min-w-0">
-                                                                            <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
-                                                                            <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
-                                                                        </div>
-                                                                    </div>
-                                                                    {/* Tier rows */}
-                                                                    <div className="divide-y divide-[#F7F9FC]">
-                                                                        {TIER_IDS.map(tierId => {
-                                                                            const tier = provider.tiers.find(t => t.id === tierId);
-                                                                            if (!tier) return null;
-                                                                            const isBest = tier.price === cheapest[tierId];
-                                                                            const diff = tier.price - cheapest[tierId];
-                                                                            const isSelected =
-                                                                                currentPackage?.courierProvider === provider.id &&
-                                                                                currentPackage?.serviceLevel === tierId;
-                                                                            return (
-                                                                                <div
-                                                                                    key={tierId}
-                                                                                    className={`flex w-full items-center transition-colors ${isSelected
-                                                                                        ? 'bg-[#0955AC]'
-                                                                                        : isBest
-                                                                                            ? 'bg-emerald-50'
-                                                                                            : 'bg-white'
-                                                                                        }`}
-                                                                                >
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            const updatedPackages = [...data.packages];
-                                                                                            updatedPackages[activePackageQuotes.packageIndex] = {
-                                                                                                ...updatedPackages[activePackageQuotes.packageIndex],
-                                                                                                courierProvider: provider.id,
-                                                                                                serviceLevel: tierId,
-                                                                                            };
-                                                                                            setData('packages', updatedPackages);
-                                                                                        }}
-                                                                                        className="flex min-w-0 flex-1 items-center px-3 py-2 text-left"
-                                                                                    >
-                                                                                        {/* Tier label — fixed width */}
-                                                                                        <span className={`text-[11px] font-semibold shrink-0 w-[62px] ${isSelected ? 'text-white' : TIER_META[tierId].color}`}>
-                                                                                            {TIER_META[tierId].label}
-                                                                                        </span>
-                                                                                        {/* Spacer */}
-                                                                                        <span className="flex-1" />
-                                                                                        {/* Price + status stacked, fixed width */}
-                                                                                        <div className="shrink-0 text-right ml-2 w-[90px]">
-                                                                                            <div className={`text-[11px] font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
-                                                                                                {formatCurrency(tier.price)}
-                                                                                            </div>
-                                                                                            {isSelected ? (
-                                                                                                <div className="text-[9px] text-white/70">✓ Selected</div>
-                                                                                            ) : isBest ? (
-                                                                                                <div className="text-[9px] font-bold text-emerald-700">● best price</div>
-                                                                                            ) : diff > 0 ? (
-                                                                                                <div className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</div>
-                                                                                            ) : null}
-                                                                                        </div>
-                                                                                    </button>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => openServiceDetailsModal(provider, tier, {
-                                                                                            isBest,
-                                                                                            diff,
-                                                                                            packageIndex: activePackageQuotes.packageIndex,
-                                                                                        })}
-                                                                                        className={`mr-2 rounded border px-2 py-0.5 text-[9px] font-semibold transition ${isSelected
-                                                                                            ? 'border-white/50 text-white hover:bg-white/10'
-                                                                                            : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
-                                                                                            }`}
-                                                                                    >
-                                                                                        See more
-                                                                                    </button>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </div>
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Service tiers</label>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {QUOTE_TIER_OPTIONS.map((tier) => (
+                                                                <label
+                                                                    key={`quote-filter-tier-${tier.id}`}
+                                                                    className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold ${quoteFilters.tiers?.[tier.id]
+                                                                        ? 'border-[#0955AC] text-[#0B1739]'
+                                                                        : 'border-[#D6DEEB] text-[#5B6887]'
+                                                                        }`}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Boolean(quoteFilters.tiers?.[tier.id])}
+                                                                        onChange={(event) => setQuoteFilters((previous) => ({
+                                                                            ...previous,
+                                                                            tiers: {
+                                                                                ...previous.tiers,
+                                                                                [tier.id]: event.target.checked,
+                                                                            },
+                                                                        }))}
+                                                                        className="h-4 w-4 accent-[#0955AC]"
+                                                                    />
+                                                                    {tier.label}
+                                                                </label>
                                                             ))}
                                                         </div>
+                                                    </div>
+                                                </div>
 
-                                                        {/* ── Desktop: compact table ── */}
-                                                        <div className="hidden sm:block">
-                                                            <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
-                                                                <table className="w-full border-collapse text-xs">
-                                                                    <thead className="sticky top-0 z-10" style={{ backgroundColor: accentBg }}>
-                                                                        <tr>
-                                                                            <th className="px-3 py-2 text-left text-[#0B1739] font-semibold w-40">Provider</th>
-                                                                            {TIER_IDS.map(id => (
-                                                                                <th key={id} className={`px-2 py-2 text-center font-semibold ${TIER_META[id].color}`}>
-                                                                                    {TIER_META[id].label}
-                                                                                </th>
-                                                                            ))}
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {sortedProviders.map((provider, rowIdx) => (
-                                                                            <tr key={provider.id} className={`transition-colors hover:bg-[#F9FBFF] ${rowIdx < sortedProviders.length - 1 ? 'border-b border-[#F0F4F8]' : ''}`}>
-                                                                                <td className="px-3 py-2">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        {provider.logo ? (
-                                                                                            <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[40px] object-contain" loading="lazy" />
-                                                                                        ) : (
-                                                                                            <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
-                                                                                                {provider.name.slice(0, 2).toUpperCase()}
-                                                                                            </div>
-                                                                                        )}
-                                                                                        <div className="min-w-0">
-                                                                                            <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
-                                                                                            <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
-                                                                                        </div>
+                                                <div className="mt-4 flex items-center justify-between border-t border-[#E3EAF5] pt-3">
+                                                    <span className="text-[11px] text-[#6B7893]">Filters apply instantly.</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={resetQuoteFilters}
+                                                        className="rounded-lg border border-[#D6DEEB] px-3 py-1.5 text-[11px] font-semibold text-[#5B6887] transition hover:border-[#0955AC] hover:text-[#0955AC]"
+                                                    >
+                                                        Reset
+                                                    </button>
+                                                </div>
+                                            </aside>
+
+                                            <div>
+                                                {/* Inline Comparison Table — Compact */}
+                                                {(() => {
+                                                    const activePackageQuotes = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
+                                                    if (!activePackageQuotes) return null;
+
+                                                    const TIER_IDS = QUOTE_TIER_OPTIONS.map((tier) => tier.id);
+                                                    const TIER_META = Object.fromEntries(
+                                                        QUOTE_TIER_OPTIONS.map((tier) => [tier.id, { label: tier.label, color: tier.color }])
+                                                    );
+
+                                                    const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
+                                                    const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
+                                                    const currentPackage = data.packages[activePackageQuotes.packageIndex];
+
+                                                    const cheapestByTierInGroup = (providers, tierId) => {
+                                                        const prices = providers
+                                                            .map(p => (p.tiers.find(t => t.id === tierId) || {}).price)
+                                                            .filter(v => v !== undefined);
+                                                        return prices.length ? Math.min(...prices) : Infinity;
+                                                    };
+
+                                                    const renderCategoryTable = (providers, categoryLabel, accentColor, accentBg) => {
+                                                        if (!providers.length) return null;
+
+                                                        const selectedTierIds = QUOTE_TIER_OPTIONS
+                                                            .filter((tier) => quoteFilters.tiers?.[tier.id])
+                                                            .map((tier) => tier.id);
+                                                        const visibleTierIds = selectedTierIds.length ? selectedTierIds : TIER_IDS;
+                                                        const searchValue = String(quoteFilters.providerSearch || "").trim().toLowerCase();
+                                                        const minPriceValue = quoteFilters.minPrice !== "" ? Number(quoteFilters.minPrice) : null;
+                                                        const maxPriceValue = quoteFilters.maxPrice !== "" ? Number(quoteFilters.maxPrice) : null;
+
+                                                        const handleSelectService = (providerId, tierId) => {
+                                                            const updatedPackages = [...data.packages];
+                                                            updatedPackages[activePackageQuotes.packageIndex] = {
+                                                                ...updatedPackages[activePackageQuotes.packageIndex],
+                                                                courierProvider: providerId,
+                                                                serviceLevel: tierId,
+                                                            };
+                                                            setData('packages', updatedPackages);
+                                                        };
+
+                                                        const handleSelectKeyDown = (event, providerId, tierId) => {
+                                                            if (event.key === "Enter" || event.key === " ") {
+                                                                event.preventDefault();
+                                                                handleSelectService(providerId, tierId);
+                                                            }
+                                                        };
+
+                                                        const getProviderBestPrice = (provider, tierIds) => {
+                                                            if (!provider?.tiers?.length) return Infinity;
+                                                            return provider.tiers.reduce((best, tier) => {
+                                                                if (!tierIds.includes(tier.id)) {
+                                                                    return best;
+                                                                }
+                                                                const priceValue = Number(tier?.price);
+                                                                return Number.isFinite(priceValue) ? Math.min(best, priceValue) : best;
+                                                            }, Infinity);
+                                                        };
+
+                                                        const filteredProviders = providers.filter((provider) => {
+                                                            if (!provider) return false;
+                                                            const providerLabel = `${provider.name || ""} ${provider.coverage || ""}`.toLowerCase();
+                                                            if (searchValue && !providerLabel.includes(searchValue)) {
+                                                                return false;
+                                                            }
+
+                                                            const hasVisibleTier = Array.isArray(provider.tiers)
+                                                                && provider.tiers.some((tier) => visibleTierIds.includes(tier.id));
+                                                            if (!hasVisibleTier) {
+                                                                return false;
+                                                            }
+
+                                                            const bestPrice = getProviderBestPrice(provider, visibleTierIds);
+                                                            if (!Number.isFinite(bestPrice)) {
+                                                                return false;
+                                                            }
+
+                                                            const bestDisplayPrice = getDisplayAmount(bestPrice);
+                                                            if (Number.isFinite(minPriceValue) && bestDisplayPrice < minPriceValue) {
+                                                                return false;
+                                                            }
+                                                            if (Number.isFinite(maxPriceValue) && bestDisplayPrice > maxPriceValue) {
+                                                                return false;
+                                                            }
+
+                                                            return true;
+                                                        });
+
+                                                        if (!filteredProviders.length) {
+                                                            return (
+                                                                <div className="rounded-xl border border-[#E8F0FE] bg-white px-4 py-6 text-sm text-[#5B6887]">
+                                                                    No providers match the selected filters.
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        const cheapest = Object.fromEntries(
+                                                            visibleTierIds.map((id) => [id, cheapestByTierInGroup(filteredProviders, id)])
+                                                        );
+                                                        const sortedProviders = [...filteredProviders].sort((a, b) => {
+                                                            const aBest = getProviderBestPrice(a, visibleTierIds);
+                                                            const bBest = getProviderBestPrice(b, visibleTierIds);
+                                                            if (aBest !== bBest) return aBest - bBest;
+                                                            return (a?.name || "").localeCompare(b?.name || "");
+                                                        });
+
+                                                        return (
+                                                            <div className="rounded-xl border border-[#E8F0FE] overflow-hidden">
+                                                                {/* ── Mobile: provider card, tier rows ── */}
+                                                                <div className="sm:hidden max-h-[420px] overflow-y-auto divide-y divide-[#F0F4F8]">
+                                                                    {sortedProviders.map((provider) => (
+                                                                        <div key={provider.id} className="bg-white">
+                                                                            {/* Provider header strip */}
+                                                                            <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: accentBg }}>
+                                                                                {provider.logo ? (
+                                                                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[38px] object-contain" loading="lazy" />
+                                                                                ) : (
+                                                                                    <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
+                                                                                        {provider.name.slice(0, 2).toUpperCase()}
                                                                                     </div>
-                                                                                </td>
-                                                                                {TIER_IDS.map(tierId => {
+                                                                                )}
+                                                                                <div className="min-w-0">
+                                                                                    <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
+                                                                                    <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                            {/* Tier rows */}
+                                                                            <div className="divide-y divide-[#F7F9FC]">
+                                                                                {visibleTierIds.map(tierId => {
+                                                                                    const tierMeta = TIER_META[tierId] || { label: tierId, color: "text-[#0B1739]" };
                                                                                     const tier = provider.tiers.find(t => t.id === tierId);
-                                                                                    if (!tier) return <td key={tierId} className="px-2 py-2 text-center text-[#C5CDE0]">—</td>;
+                                                                                    if (!tier) return null;
                                                                                     const isBest = tier.price === cheapest[tierId];
                                                                                     const diff = tier.price - cheapest[tierId];
                                                                                     const isSelected =
                                                                                         currentPackage?.courierProvider === provider.id &&
                                                                                         currentPackage?.serviceLevel === tierId;
                                                                                     return (
-                                                                                        <td key={tierId} className="px-1.5 py-1.5 text-center">
-                                                                                            <div
-                                                                                                className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 ${isSelected
-                                                                                                    ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
-                                                                                                    : isBest
-                                                                                                        ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
-                                                                                                        : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
-                                                                                                    }`}
-                                                                                            >
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    title={`${provider.name} — ${TIER_META[tierId].label} · ${tier.eta}`}
-                                                                                                    onClick={() => {
-                                                                                                        const updatedPackages = [...data.packages];
-                                                                                                        updatedPackages[activePackageQuotes.packageIndex] = {
-                                                                                                            ...updatedPackages[activePackageQuotes.packageIndex],
-                                                                                                            courierProvider: provider.id,
-                                                                                                            serviceLevel: tierId,
-                                                                                                        };
-                                                                                                        setData('packages', updatedPackages);
-                                                                                                    }}
-                                                                                                    className="flex w-full flex-col items-center focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1"
-                                                                                                >
-                                                                                                    <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
+                                                                                        <div
+                                                                                            key={tierId}
+                                                                                            role="button"
+                                                                                            tabIndex={0}
+                                                                                            onClick={() => handleSelectService(provider.id, tierId)}
+                                                                                            onKeyDown={(event) => handleSelectKeyDown(event, provider.id, tierId)}
+                                                                                            className={`flex w-full items-center transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${isSelected
+                                                                                                ? 'bg-[#0955AC]'
+                                                                                                : isBest
+                                                                                                    ? 'bg-emerald-50'
+                                                                                                    : 'bg-white'
+                                                                                                }`}
+                                                                                        >
+                                                                                            <div className="flex min-w-0 flex-1 items-center px-3 py-2 text-left">
+                                                                                                {/* Tier label — fixed width */}
+                                                                                                <span className={`text-[11px] font-semibold shrink-0 w-[62px] ${isSelected ? 'text-white' : tierMeta.color}`}>
+                                                                                                    {tierMeta.label}
+                                                                                                </span>
+                                                                                                {/* Spacer */}
+                                                                                                <span className="flex-1" />
+                                                                                                {/* Price + status stacked, fixed width */}
+                                                                                                <div className="shrink-0 text-right ml-2 w-[90px]">
+                                                                                                    <div className={`text-[11px] font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
                                                                                                         {formatCurrency(tier.price)}
-                                                                                                    </span>
-                                                                                                    <span className={`text-[9px] leading-tight ${isSelected ? 'text-white/70' : 'text-[#6B7893]'}`}>
-                                                                                                        {tier.eta}
-                                                                                                    </span>
+                                                                                                    </div>
                                                                                                     {isSelected ? (
-                                                                                                        <span className="text-[9px] text-white/80">✓</span>
+                                                                                                        <div className="text-[9px] text-white/70">✓ Selected</div>
                                                                                                     ) : isBest ? (
-                                                                                                        <span className="text-[9px] font-bold text-emerald-700">best</span>
+                                                                                                        <div className="text-[9px] font-bold text-emerald-700">● best price</div>
                                                                                                     ) : diff > 0 ? (
-                                                                                                        <span className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</span>
+                                                                                                        <div className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</div>
                                                                                                     ) : null}
-                                                                                                </button>
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    onClick={() => openServiceDetailsModal(provider, tier, {
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={(event) => {
+                                                                                                    event.stopPropagation();
+                                                                                                    openServiceDetailsModal(provider, tier, {
                                                                                                         isBest,
                                                                                                         diff,
                                                                                                         packageIndex: activePackageQuotes.packageIndex,
-                                                                                                    })}
-                                                                                                    className={`mt-1 rounded border px-1.5 py-[1px] text-[9px] font-semibold transition ${isSelected
-                                                                                                        ? 'border-white/50 text-white hover:bg-white/10'
-                                                                                                        : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
-                                                                                                        }`}
-                                                                                                >
-                                                                                                    See more
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        </td>
+                                                                                                    });
+                                                                                                }}
+                                                                                                className={`mr-2 rounded border px-2 py-0.5 text-[9px] font-semibold transition ${isSelected
+                                                                                                    ? 'border-white/50 text-white hover:bg-white/10'
+                                                                                                    : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
+                                                                                                    }`}
+                                                                                            >
+                                                                                                See more
+                                                                                            </button>
+                                                                                        </div>
                                                                                     );
                                                                                 })}
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+
+                                                                {/* ── Desktop: compact table ── */}
+                                                                <div className="hidden sm:block">
+                                                                    <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
+                                                                        <table className="w-full border-collapse text-xs">
+                                                                            <thead className="sticky top-0 z-10" style={{ backgroundColor: accentBg }}>
+                                                                                <tr>
+                                                                                    <th className="px-3 py-2 text-left text-[#0B1739] font-semibold w-40">Provider</th>
+                                                                                    {visibleTierIds.map(id => (
+                                                                                        <th key={id} className={`px-2 py-2 text-center font-semibold ${TIER_META[id]?.color || "text-[#0B1739]"}`}>
+                                                                                            {TIER_META[id]?.label || id}
+                                                                                        </th>
+                                                                                    ))}
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {sortedProviders.map((provider, rowIdx) => (
+                                                                                    <tr key={provider.id} className={`transition-colors hover:bg-[#F9FBFF] ${rowIdx < sortedProviders.length - 1 ? 'border-b border-[#F0F4F8]' : ''}`}>
+                                                                                        <td className="px-3 py-2">
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                {provider.logo ? (
+                                                                                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[40px] object-contain" loading="lazy" />
+                                                                                                ) : (
+                                                                                                    <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
+                                                                                                        {provider.name.slice(0, 2).toUpperCase()}
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                <div className="min-w-0">
+                                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
+                                                                                                    <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        {visibleTierIds.map(tierId => {
+                                                                                            const tier = provider.tiers.find(t => t.id === tierId);
+                                                                                            if (!tier) return <td key={tierId} className="px-2 py-2 text-center text-[#C5CDE0]">—</td>;
+                                                                                            const isBest = tier.price === cheapest[tierId];
+                                                                                            const diff = tier.price - cheapest[tierId];
+                                                                                            const isSelected =
+                                                                                                currentPackage?.courierProvider === provider.id &&
+                                                                                                currentPackage?.serviceLevel === tierId;
+                                                                                            return (
+                                                                                                <td key={tierId} className="px-1.5 py-1.5 text-center">
+                                                                                                    <div
+                                                                                                        role="button"
+                                                                                                        tabIndex={0}
+                                                                                                        title={`${provider.name} — ${TIER_META[tierId]?.label || tierId} · ${tier.eta}`}
+                                                                                                        onClick={() => handleSelectService(provider.id, tierId)}
+                                                                                                        onKeyDown={(event) => handleSelectKeyDown(event, provider.id, tierId)}
+                                                                                                        className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${isSelected
+                                                                                                            ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
+                                                                                                            : isBest
+                                                                                                                ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
+                                                                                                                : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
+                                                                                                            }`}
+                                                                                                    >
+                                                                                                        <div className="flex w-full flex-col items-center">
+                                                                                                            <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
+                                                                                                                {formatCurrency(tier.price)}
+                                                                                                            </span>
+                                                                                                            <span className={`text-[9px] leading-tight ${isSelected ? 'text-white/70' : 'text-[#6B7893]'}`}>
+                                                                                                                {tier.eta}
+                                                                                                            </span>
+                                                                                                            {isSelected ? (
+                                                                                                                <span className="text-[9px] text-white/80">✓</span>
+                                                                                                            ) : isBest ? (
+                                                                                                                <span className="text-[9px] font-bold text-emerald-700">best</span>
+                                                                                                            ) : diff > 0 ? (
+                                                                                                                <span className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</span>
+                                                                                                            ) : null}
+                                                                                                        </div>
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            onClick={(event) => {
+                                                                                                                event.stopPropagation();
+                                                                                                                openServiceDetailsModal(provider, tier, {
+                                                                                                                    isBest,
+                                                                                                                    diff,
+                                                                                                                    packageIndex: activePackageQuotes.packageIndex,
+                                                                                                                });
+                                                                                                            }}
+                                                                                                            className={`mt-1 rounded border px-1.5 py-[1px] text-[9px] font-semibold transition ${isSelected
+                                                                                                                ? 'border-white/50 text-white hover:bg-white/10'
+                                                                                                                : 'border-[#D6DEEB] text-[#5B6887] hover:border-[#0955AC] hover:text-[#0955AC]'
+                                                                                                                }`}
+                                                                                                        >
+                                                                                                            See more
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            );
+                                                                                        })}
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            };
+                                                        );
+                                                    };
 
-                                            const hasDomestic = domesticProviders.length > 0;
-                                            const hasLogistic = logisticProviders.length > 0;
-                                            const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
-                                            const currentCategory = preferredCategory === 'domestic'
-                                                ? (hasDomestic ? 'domestic' : null)
-                                                : (hasLogistic ? 'logistic' : null);
+                                                    const hasDomestic = domesticProviders.length > 0;
+                                                    const hasLogistic = logisticProviders.length > 0;
+                                                    const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
+                                                    const currentCategory = preferredCategory === 'domestic'
+                                                        ? (hasDomestic ? 'domestic' : null)
+                                                        : (hasLogistic ? 'logistic' : null);
 
-                                            return (
-                                                <div className="space-y-3">
-                                                    {/* Compact legend */}
-                                                    <div className="flex flex-col md:flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                                        <div className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">
-                                                            Showing {selectedRouteType} courier providers
+                                                    return (
+                                                        <div className="space-y-3">
+                                                            {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
+                                                            {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
+                                                            {!currentCategory && (
+                                                                <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
+                                                                    No {selectedRouteType} courier providers are currently available for this package.
+                                                                </div>
+                                                            )}
                                                         </div>
-
-                                                        <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px] text-[#6B7893]">
-                                                            <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>Best price</span>
-                                                            <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#0955AC]"></span>Selected</span>
-                                                            <span className="hidden sm:inline text-[#9CA3AF]">· Hover for ETA</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
-                                                    {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
-                                                    {!currentCategory && (
-                                                        <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
-                                                            No {selectedRouteType} courier providers are currently available for this package.
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -1554,7 +2016,7 @@ const Create = () => {
                                 {selectedQuotes.length > 0 && (
                                     <div className="mt-8 space-y-4">
                                         <h3 className="text-lg font-semibold text-[#0B1739]">Selected Services Summary</h3>
-                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div className="w-fullgrid grid-cols-1 gap-3 md:grid-cols-2">
                                             {selectedQuotes.map((quote) => (
                                                 <div key={quote.packageIndex} className="rounded-lg border border-[#D6DEEB] bg-white p-4 text-sm">
                                                     <div className="flex items-center justify-between">
@@ -1594,6 +2056,70 @@ const Create = () => {
                                         </div>
                                     </div>
                                 )}
+                            </section>
+                        )}
+
+                        {showDetails && (
+                            <section
+                                ref={detailsSectionRef}
+                                className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
+                            >
+                                <div className="mb-4">
+                                    <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
+                                    <p className="mt-1 text-sm text-[#5B6887]">
+                                        Add pickup, delivery, and shipment preferences to complete the request.
+                                    </p>
+                                </div>
+                                <DetailsForm
+                                    inline
+                                    renderAsForm={false}
+                                    showBackLink={false}
+                                    scrollOnSubmit={false}
+                                    packageDetailsReadOnly
+                                    onSubmitOverride={handleContinueToSummary}
+                                    hideSubmit={showSummary}
+                                    formStateOverride={{
+                                        data,
+                                        setData,
+                                        post,
+                                        processing: processing || isSummaryLoading,
+                                        errors,
+                                    }}
+                                    pagePropsOverride={{
+                                        formData: data,
+                                        countries,
+                                        packageTypes,
+                                        favoriteRecipients: props.favoriteRecipients || [],
+                                        favoriteSenders: props.favoriteSenders || [],
+                                        senderProfile: props.senderProfile || null,
+                                        errors: errors || {},
+                                    }}
+                                />
+                            </section>
+                        )}
+
+                        {showSummary && (
+                            <section
+                                ref={summarySectionRef}
+                                className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
+                            >
+                                <div className="mb-4">
+                                    <h2 className="text-xl font-semibold text-[#0B1739]">Review & confirm</h2>
+                                    <p className="mt-1 text-sm text-[#5B6887]">
+                                        Review the shipment summary and confirm your booking details.
+                                    </p>
+                                </div>
+                                <SummaryView
+                                    inline
+                                    showEditLinks={false}
+                                    showHero={false}
+                                    formStateOverride={data}
+                                    pagePropsOverride={{
+                                        formData: data,
+                                        pricingPreview: null,
+                                        errors: errors || {},
+                                    }}
+                                />
                             </section>
                         )}
 
@@ -1745,34 +2271,33 @@ const Create = () => {
                             Rates are indicative and will be finalized once pickup and delivery details are confirmed; carrier fuel and customs surcharges may vary by route.
                         </p>
 
-                        <div className="mt-8 flex flex-col items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={handlePlaceCourier}
-                                disabled={!isReadyToPlace || isPlacing}
-                                className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                                    }`}
-                            >
-                                {isPlacing ? 'Preparing summary...' : 'Continue'}
-                            </button>
-                            {!isReadyToPlace && (
-                                <p className="text-xs text-[#D14343]">
-                                    {hasRequiredDetails
-                                        ? 'Select a courier service for each package to continue.'
-                                        : 'Complete all required fields before continuing.'}
-                                </p>
-                            )}
-                            {submitError && (
-                                <p className="text-xs text-[#D14343]">
-                                    {submitError}
-                                </p>
-                            )}
-                            {submitError && (
-                                <p className="text-xs text-[#D14343]">
-                                    {submitError}
-                                </p>
-                            )}
-                        </div>
+                        {!showDetails && (
+                            <div className="mt-8 flex flex-col items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleContinueToDetails}
+                                    disabled={!isReadyToPlace || isPlacing}
+                                    className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                        }`}
+                                >
+                                    {isPlacing ? 'Preparing details...' : 'Continue'}
+                                </button>
+                                {!isReadyToPlace && (
+                                    <p className="text-xs text-[#D14343]">
+                                        {hasRequiredDetails
+                                            ? 'Select a courier service for each package to continue.'
+                                            : !hasPaymentOption
+                                                ? 'Select at least one payment option to continue.'
+                                                : 'Complete all required fields before continuing.'}
+                                    </p>
+                                )}
+                                {submitError && (
+                                    <p className="text-xs text-[#D14343]">
+                                        {submitError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </form>
                 </div>
             </main>

@@ -17,7 +17,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -523,9 +522,7 @@ class ClientCourierController extends Controller
                 'pickupDate' => null,
                 'pickupWindowStart' => null,
                 'pickupWindowEnd' => null,
-                'serviceLevel' => null,
                 'courierProvider' => null,
-                'currency' => 'LKR',
                 'insurance' => false,
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
@@ -543,6 +540,9 @@ class ClientCourierController extends Controller
         ];
 
         $normalized = array_replace_recursive($defaults, $payload);
+        $normalized = $this->normalizeShipmentPreferencePayload($normalized);
+        $normalized['reviewContext'] = is_array($normalized['reviewContext'] ?? null) ? $normalized['reviewContext'] : [];
+        $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
 
         $request->session()->put('courier_preview', $normalized);
 
@@ -569,7 +569,6 @@ class ClientCourierController extends Controller
         $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
-        $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
         $favoriteRecipients = [];
         $favoriteSenders = [];
         $senderProfile = null;
@@ -649,7 +648,6 @@ class ClientCourierController extends Controller
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
             'countries' => $countries,
-            'logisticDimensionOptions' => $logisticDimensionOptions,
             'favoriteRecipients' => $favoriteRecipients,
             'favoriteSenders' => $favoriteSenders,
             'senderProfile' => $senderProfile,
@@ -783,8 +781,8 @@ class ClientCourierController extends Controller
                 'shipment.pickupDate' => ['nullable', 'date', 'after_or_equal:today'],
                 'shipment.pickupWindowStart' => ['nullable', 'date_format:H:i'],
                 'shipment.pickupWindowEnd' => ['nullable', 'date_format:H:i'],
-                'shipment.serviceLevel' => ['required', 'string', 'max:50', Rule::in($allowedServiceLevels)],
-                'shipment.currency' => ['required', 'string', 'size:3'],
+                'shipment.serviceLevel' => ['nullable', 'string', 'max:50'],
+                'shipment.currency' => ['nullable', 'string', 'size:3'],
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
@@ -851,7 +849,6 @@ class ClientCourierController extends Controller
 
         $normalized['sender']['address']['country'] = strtoupper($normalized['sender']['address']['country'] ?? '');
         $normalized['recipient']['address']['country'] = strtoupper($normalized['recipient']['address']['country'] ?? '');
-        $normalized['shipment']['currency'] = strtoupper($normalized['shipment']['currency'] ?? 'LKR');
         $normalized['shipment']['insurance'] = (bool) ($normalized['shipment']['insurance'] ?? false);
         $normalized['sender']['saveToFavorites'] = (bool) ($normalized['sender']['saveToFavorites'] ?? false);
         $normalized['recipient']['saveToFavorites'] = (bool) ($normalized['recipient']['saveToFavorites'] ?? false);
@@ -891,6 +888,8 @@ class ClientCourierController extends Controller
         }
 
         $normalized['reviewContext']['selectedQuotes'] = $normalizedSelectedQuotes;
+        $normalized['reviewContext']['displayCurrency'] = strtoupper((string) ($normalized['reviewContext']['displayCurrency'] ?? 'LKR'));
+        $normalized = $this->normalizeShipmentPreferencePayload($normalized, $allowedServiceLevels);
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
         $normalized['reviewContext']['totalPriceUSD'] = array_reduce(
             $normalizedSelectedQuotes,
@@ -1044,6 +1043,11 @@ class ClientCourierController extends Controller
         $payload['reviewContext'] = array_replace(
             is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [],
             $reviewContext
+        );
+        $category = $this->resolvePayloadCategory($payload);
+        $payload = $this->normalizeShipmentPreferencePayload(
+            $payload,
+            $this->serviceLevelLabelsForCategory($category)
         );
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
@@ -1569,6 +1573,66 @@ class ClientCourierController extends Controller
         return $this->normalizeZoneKey($candidate);
     }
 
+    private function normalizeShipmentPreferencePayload(array $payload, array $allowedServiceLevels = []): array
+    {
+        $payload['shipment'] = is_array($payload['shipment'] ?? null) ? $payload['shipment'] : [];
+
+        $payload['shipment']['serviceLevel'] = $this->resolveShipmentServiceLevelFromPayload(
+            $payload,
+            $allowedServiceLevels
+        );
+        $payload['shipment']['currency'] = $this->resolveShipmentCurrencyFromPayload($payload);
+
+        return $payload;
+    }
+
+    private function resolveShipmentServiceLevelFromPayload(array $payload, array $allowedServiceLevels = []): string
+    {
+        $candidates = [];
+
+        foreach (($payload['reviewContext']['selectedQuotes'] ?? []) as $quote) {
+            if (!is_array($quote)) {
+                continue;
+            }
+
+            $candidates[] = $quote['serviceLevel'] ?? null;
+            $candidates[] = $quote['serviceLabel'] ?? null;
+        }
+
+        foreach (($payload['packages'] ?? []) as $package) {
+            if (!is_array($package)) {
+                continue;
+            }
+
+            $candidates[] = $package['serviceLevel'] ?? null;
+        }
+
+        $candidates[] = $payload['shipment']['serviceLevel'] ?? null;
+
+        foreach ($candidates as $candidate) {
+            $candidate = is_string($candidate) ? trim($candidate) : '';
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        if (!empty($allowedServiceLevels)) {
+            return (string) $allowedServiceLevels[0];
+        }
+
+        return 'standard';
+    }
+
+    private function resolveShipmentCurrencyFromPayload(array $payload): string
+    {
+        $shipmentCurrency = $payload['shipment']['currency'] ?? null;
+        $reviewCurrency = $payload['reviewContext']['displayCurrency'] ?? null;
+        $candidate = is_string($shipmentCurrency) ? $shipmentCurrency : $reviewCurrency;
+        $candidate = is_string($candidate) ? strtoupper(trim($candidate)) : '';
+
+        return $candidate !== '' ? $candidate : 'LKR';
+    }
+
     private function resolveDistanceKmFromPayload(array $payload): ?float
     {
         $distanceKm = $payload['shipment']['distanceKm'] ?? null;
@@ -1587,7 +1651,7 @@ class ClientCourierController extends Controller
             : null;
 
         if ($distanceKm === null) {
-            return $distanceFrom <= 0 && $distanceTo === null;
+            return true;
         }
 
         if ($distanceKm < $distanceFrom) {
@@ -1601,7 +1665,7 @@ class ClientCourierController extends Controller
         return true;
     }
 
-    private function laneRuleSpecificityScore(array $rule): int
+    private function laneRuleSpecificityScore(array $rule, ?float $distanceKm = null): int
     {
         $score = 0;
 
@@ -1617,16 +1681,18 @@ class ClientCourierController extends Controller
             $score += 3;
         }
 
-        $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
-        $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
-            ? max(0, (float) $rule['distanceToKm'])
-            : null;
-        if ($distanceFrom > 0 || $distanceTo !== null) {
-            $score += 2;
-        }
+        if ($distanceKm !== null) {
+            $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
+            $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
+                ? max(0, (float) ($rule['distanceToKm']))
+                : null;
+            if ($distanceFrom > 0 || $distanceTo !== null) {
+                $score += 2;
+            }
 
-        if ($distanceTo !== null) {
-            $score += 1;
+            if ($distanceTo !== null) {
+                $score += 1;
+            }
         }
 
         return $score;
@@ -1728,7 +1794,7 @@ class ClientCourierController extends Controller
                 return [
                     'rule' => $rule,
                     'index' => (int) $index,
-                    'score' => $this->laneRuleSpecificityScore($rule),
+                    'score' => $this->laneRuleSpecificityScore($rule, $distanceKm),
                 ];
             })
             ->filter()
@@ -3578,14 +3644,12 @@ class ClientCourierController extends Controller
             . '<p><strong>Company:</strong> ' . ($escape(optional($shipment->recipient)->company_name) ?: '—') . '</p>'
             . '<p><strong>Address:</strong> ' . $formatAddress($shipment->recipientAddress) . '</p>'
             . '<h2>Shipment preferences</h2>'
-            . '<p><strong>Service level:</strong> ' . ($escape($shipment->service_level) ?: '—') . '</p>'
             . '<p><strong>Pickup date:</strong> ' . ($shipment->pickup_date ? $escape($shipment->pickup_date->format('Y-m-d')) : '—') . '</p>'
             . '<p><strong>Pickup window:</strong> ' . ($shipment->pickup_window_start && $shipment->pickup_window_end
                 ? $escape($shipment->pickup_window_start . ' - ' . $shipment->pickup_window_end)
                 : '—') . '</p>'
             . '<p><strong>Insurance required:</strong> ' . ($shipment->insurance_required ? 'Yes' : 'No') . '</p>'
             . '<p><strong>Declared value:</strong> ' . ($escape($shipment->declared_value) ?: '—') . ' ' . ($escape($shipment->currency_code) ?: 'USD') . '</p>'
-            . '<p><strong>Delivery notes:</strong> ' . ($escape($shipment->delivery_notes) ?: '—') . '</p>'
             . '<h2>Package details</h2>'
             . '<table><thead><tr><th>#</th><th>Label</th><th>Type</th><th>Quantity</th><th>Weight (kg)</th><th>Dimensions (cm)</th><th>Declared value</th><th>Courier</th><th>Service</th><th>ETA</th><th>Quote (USD)</th><th>Description</th></tr></thead><tbody>'
             . $packagesRows

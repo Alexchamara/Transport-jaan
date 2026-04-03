@@ -43,7 +43,7 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.pickupDate' => ['nullable', 'date', 'after_or_equal:today'],
             'shipment.pickupWindowStart' => ['nullable', 'date_format:H:i'],
             'shipment.pickupWindowEnd' => ['nullable', 'date_format:H:i'],
-            'shipment.serviceLevel' => ['required', 'string', 'max:50'],
+            'shipment.serviceLevel' => ['nullable', 'string', 'max:50'],
             'shipment.currency' => ['nullable', 'string', 'size:3'],
             'shipment.insurance' => ['nullable', 'boolean'],
             'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],

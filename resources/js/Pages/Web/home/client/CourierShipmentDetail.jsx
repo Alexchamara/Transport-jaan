@@ -77,7 +77,7 @@ const CourierShipmentDetail = () => {
                             <ChevronLeft className="h-4 w-4 mr-1" />
                             Back to Dashboard
                         </button>
-                        
+
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex flex-col gap-2">
                                 <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
@@ -111,10 +111,6 @@ const CourierShipmentDetail = () => {
                             <div className="bg-white rounded-2xl shadow-sm p-8">
                                 <h2 className="text-[20px] font-semibold mb-6">Shipment Overview</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="text-[12px] text-slate-500 uppercase tracking-wide">Service Level</label>
-                                        <p className="text-[16px] font-medium mt-1">{shipment.serviceLevel || 'Standard'}</p>
-                                    </div>
                                     <div>
                                         <label className="text-[12px] text-slate-500 uppercase tracking-wide">Pickup Date</label>
                                         <div className="flex items-center gap-2 mt-1">
@@ -306,13 +302,6 @@ const CourierShipmentDetail = () => {
                                 </div>
                             </div>
 
-                            {/* Additional Notes */}
-                            {shipment.deliveryNotes && (
-                                <div className="bg-white rounded-2xl shadow-sm p-8">
-                                    <h2 className="text-[20px] font-semibold mb-4">Delivery Notes</h2>
-                                    <p className="text-[14px] text-slate-600">{shipment.deliveryNotes}</p>
-                                </div>
-                            )}
                         </div>
 
                         {/* Right Column - Tracking & Summary */}
