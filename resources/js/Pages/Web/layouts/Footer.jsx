@@ -253,7 +253,7 @@ const Footer = () => {
                     </div>
                     {/* Copyright */}
                     <p className="figtree text-[14px] sm:text-[16px] text-[#FFFFFF] text-center">
-                        &copy; <CurrentYear /> JAAN Network (Pvt) Ltd. | All
+                        &copy; <CurrentYear /> Xsarva (Pvt) Ltd. | All
                         rights reserved.
                     </p>
                     {/* Social Icons */}
