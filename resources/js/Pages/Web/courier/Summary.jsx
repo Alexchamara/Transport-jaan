@@ -207,6 +207,13 @@ const Summary = ({
     };
 
     const insuranceLabel = formState.shipment?.insurance ? "Yes" : "No";
+    const codEnabled = Boolean(formState.shipment?.codEnabled);
+    const codAmount = formState.shipment?.codAmount !== undefined && formState.shipment?.codAmount !== null && formState.shipment?.codAmount !== ""
+        ? Number(formState.shipment.codAmount)
+        : null;
+    const codPaymentMethodLabel = formState.shipment?.codPaymentMethod
+        ? String(formState.shipment.codPaymentMethod).replaceAll("_", " ")
+        : "—";
     const totalEstimateDisplay = formatCurrency(totalPriceUSD);
     const governanceAdjustments = useMemo(() => {
         if (!Array.isArray(pricingPreview?.policyAdjustments)) {
@@ -263,6 +270,11 @@ const Summary = ({
         payload.reviewContext = payload.reviewContext || {};
         payload.shipment.currency = resolveShipmentCurrency(payload);
         payload.shipment.serviceLevel = resolveShipmentServiceLevel(payload);
+        payload.shipment.codEnabled = Boolean(payload.shipment.codEnabled);
+        if (!payload.shipment.codEnabled) {
+            payload.shipment.codAmount = null;
+            payload.shipment.codPaymentMethod = null;
+        }
         payload.reviewContext.displayCurrency = payload.reviewContext.displayCurrency || payload.shipment.currency;
 
         router.post('/couriers', payload, {
@@ -492,6 +504,9 @@ const Summary = ({
                             <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
                             <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatDeclaredValue(Number(formState.shipment.estimatedValue)) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Cash on delivery:</span> {codEnabled ? "Enabled" : "Disabled"}</p>
+                            <p><span className="font-medium text-[#0B1739]">COD amount:</span> {codEnabled && codAmount !== null ? formatDeclaredValue(codAmount) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">COD payment method:</span> {codEnabled ? codPaymentMethodLabel : "—"}</p>
                         </div>
                     </section>
 

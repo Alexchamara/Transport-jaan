@@ -81,6 +81,9 @@ const Details = ({
                     pickupWindowEnd: "",
                     insurance: false,
                     estimatedValue: "",
+                    codEnabled: false,
+                    codAmount: "",
+                    codPaymentMethod: "",
                 },
                 packages: [
                     {
@@ -149,6 +152,9 @@ const Details = ({
                 pickupWindowEnd: shipment.pickupWindowEnd ?? "",
                 insurance: Boolean(shipment.insurance),
                 estimatedValue: shipment.estimatedValue ?? "",
+                codEnabled: Boolean(shipment.codEnabled),
+                codAmount: shipment.codAmount ?? "",
+                codPaymentMethod: shipment.codPaymentMethod ?? "",
             },
             packages: (formData.packages ?? []).map((pkg) => ({
                 ...pkg,
@@ -1510,6 +1516,70 @@ const Details = ({
                                         <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.estimatedValue"]}</p>
                                     )}
                                 </div>
+                            </div>
+
+                            <div className="mt-4 rounded-lg border border-[#D6DEEB] bg-white p-3">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        id="shipment-cod-enabled"
+                                        type="checkbox"
+                                        checked={Boolean(data.shipment.codEnabled)}
+                                        onChange={(event) => {
+                                            const nextValue = event.target.checked;
+                                            updateNestedField("shipment.codEnabled", nextValue);
+                                            if (!nextValue) {
+                                                updateNestedField("shipment.codAmount", "");
+                                                updateNestedField("shipment.codPaymentMethod", "");
+                                            }
+                                        }}
+                                        className="h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC]"
+                                    />
+                                    <label htmlFor="shipment-cod-enabled" className="text-xs font-medium text-[#0B1739]">
+                                        Enable Cash on Delivery (domestic only)
+                                    </label>
+                                </div>
+
+                                {combinedErrors["shipment.codEnabled"] && (
+                                    <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codEnabled"]}</p>
+                                )}
+
+                                {Boolean(data.shipment.codEnabled) && (
+                                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">COD amount ({data.reviewContext?.displayCurrency || DEFAULT_CURRENCY})</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={data.shipment.codAmount}
+                                                onChange={(event) => updateNestedField("shipment.codAmount", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                placeholder="0"
+                                            />
+                                            {combinedErrors["shipment.codAmount"] && (
+                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codAmount"]}</p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium">COD payment method</label>
+                                            <select
+                                                value={data.shipment.codPaymentMethod || ""}
+                                                onChange={(event) => updateNestedField("shipment.codPaymentMethod", event.target.value)}
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                            >
+                                                <option value="">Select method</option>
+                                                <option value="cash">Cash</option>
+                                                <option value="card">Card</option>
+                                                <option value="check">Check</option>
+                                                <option value="bank_transfer">Bank transfer</option>
+                                            </select>
+                                            {combinedErrors["shipment.codPaymentMethod"] && (
+                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codPaymentMethod"]}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </section>
 

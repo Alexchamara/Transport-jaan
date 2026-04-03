@@ -39,6 +39,11 @@ class CourierShipment extends Model
         'pickup_window_end',
         'insurance_required',
         'declared_value',
+        'is_cod_enabled',
+        'cod_requested_amount',
+        'cod_requested_method',
+        'cod_capability_id',
+        'cod_policy_snapshot',
         'currency_code',
         'estimated_cost',
         'actual_cost',
@@ -53,6 +58,9 @@ class CourierShipment extends Model
         'assigned_at' => 'datetime',
         'insurance_required' => 'boolean',
         'declared_value' => 'decimal:2',
+        'is_cod_enabled' => 'boolean',
+        'cod_requested_amount' => 'decimal:2',
+        'cod_policy_snapshot' => 'array',
         'estimated_cost' => 'decimal:2',
         'actual_cost' => 'decimal:2',
     ];
@@ -88,6 +96,11 @@ class CourierShipment extends Model
     public function assignedVendorRegistration()
     {
         return $this->belongsTo(\App\Models\VendorServiceRegistration::class, 'assigned_vendor_registration_id');
+    }
+
+    public function codCapability()
+    {
+        return $this->belongsTo(CourierVendorCodCapability::class, 'cod_capability_id');
     }
 
     public function sender()
