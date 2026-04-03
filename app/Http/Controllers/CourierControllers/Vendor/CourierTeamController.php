@@ -1854,6 +1854,12 @@ class CourierTeamController extends Controller
                 'user_id' => (int) $actor->id,
                 'error' => $exception->getMessage(),
             ]);
+
+            $request->session()->forget('courier_security.challenge');
+
+            return response()->json([
+                'message' => 'Unable to send OTP email right now. Please try again.',
+            ], 503);
         }
 
         $this->logTeamAction(
