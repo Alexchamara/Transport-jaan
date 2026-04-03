@@ -23,23 +23,10 @@ const COUNTRY_LABELS = {
     SG: "Singapore",
 };
 
-const SRI_LANKAN_CITIES = [
-    "Colombo",
-    "Kandy",
-    "Galle",
-    "Gampaha",
-    "Kalutara",
-    "Kurunegala",
-    "Matara",
-    "Jaffna",
-    "Negombo",
-    "Anuradhapura",
-    "Badulla",
-    "Ratnapura",
-];
-
 const DOMESTIC_COUNTRY_CODE = "LK";
 const DOMESTIC_COUNTRY_LABEL = COUNTRY_LABELS[DOMESTIC_COUNTRY_CODE] || DOMESTIC_COUNTRY_CODE;
+const LOCATION_API_BASE = "/api/location";
+const GOOGLE_MAPS_PLACES_SCRIPT_ID = "google-maps-places-script";
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
 const CENTIMETERS_PER_YARD = 91.44;
@@ -196,6 +183,48 @@ const Create = () => {
         senderCountry: initialForm.sender.address.country || "",
         recipientCountry: initialForm.recipient.address.country || "",
     });
+    const [domesticSelections, setDomesticSelections] = useState({
+        senderProvinceId: "",
+        senderDistrictId: "",
+        recipientProvinceId: "",
+        recipientDistrictId: "",
+    });
+    const [domesticLookups, setDomesticLookups] = useState({
+        provinces: [],
+        senderDistricts: [],
+        recipientDistricts: [],
+        senderCities: [],
+        recipientCities: [],
+        loading: {
+            provinces: false,
+            senderDistricts: false,
+            recipientDistricts: false,
+            senderCities: false,
+            recipientCities: false,
+        },
+    });
+    const [locationLookupError, setLocationLookupError] = useState("");
+    const domesticLookupCacheRef = useRef({
+        provincesByCountry: {},
+        districtsByProvince: {},
+        citiesByDistrict: {},
+    });
+    const domesticProvinceRequestRef = useRef(false);
+    const googleMapsApiKey = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
+    const [googlePlacesReady, setGooglePlacesReady] = useState(
+        () => typeof window !== "undefined" && Boolean(window.google?.maps?.places)
+    );
+    const [googlePlacesError, setGooglePlacesError] = useState("");
+    const [googlePlacePredictions, setGooglePlacePredictions] = useState({
+        sender: [],
+        recipient: [],
+    });
+    const googlePlacesScriptLoadingRef = useRef(false);
+    const googleAutocompleteServiceRef = useRef(null);
+    const googlePlacesServiceRef = useRef(null);
+    const googlePlacesHostNodeRef = useRef(null);
+    const googleAutocompleteSessionTokenRef = useRef(null);
+    const googlePredictionSequenceRef = useRef({ sender: 0, recipient: 0 });
 
     const POLICY_ADJUSTMENT_LABELS = {
         remote_area_surcharge: "Remote area surcharge",
@@ -246,10 +275,106 @@ const Create = () => {
         });
     };
 
-    const cityOptions = useMemo(
-        () => SRI_LANKAN_CITIES.map((city) => ({ value: city, label: city })),
-        []
+    const provinceOptions = useMemo(
+        () => (domesticLookups.provinces || []).map((province) => ({
+            value: String(province.id),
+            label: province.nameEn,
+        })),
+        [domesticLookups.provinces]
     );
+
+    const senderDistrictOptions = useMemo(
+        () => (domesticLookups.senderDistricts || []).map((district) => ({
+            value: String(district.id),
+            label: district.nameEn,
+        })),
+        [domesticLookups.senderDistricts]
+    );
+
+    const recipientDistrictOptions = useMemo(
+        () => (domesticLookups.recipientDistricts || []).map((district) => ({
+            value: String(district.id),
+            label: district.nameEn,
+        })),
+        [domesticLookups.recipientDistricts]
+    );
+
+    const senderCityOptions = useMemo(
+        () => (domesticLookups.senderCities || [])
+            .map((city) => ({
+                value: city.nameEn,
+                label: city.displayName || city.nameEn,
+            }))
+            .filter((option) => option.value && option.label),
+        [domesticLookups.senderCities]
+    );
+
+    const recipientCityOptions = useMemo(
+        () => (domesticLookups.recipientCities || [])
+            .map((city) => ({
+                value: city.nameEn,
+                label: city.displayName || city.nameEn,
+            }))
+            .filter((option) => option.value && option.label),
+        [domesticLookups.recipientCities]
+    );
+
+    const senderGoogleCityOptions = useMemo(
+        () => (googlePlacePredictions.sender || []).map((prediction) => ({
+            value: prediction.mainText || prediction.description,
+            label: prediction.description,
+            source: "google",
+            placeId: prediction.placeId,
+        })),
+        [googlePlacePredictions.sender]
+    );
+
+    const recipientGoogleCityOptions = useMemo(
+        () => (googlePlacePredictions.recipient || []).map((prediction) => ({
+            value: prediction.mainText || prediction.description,
+            label: prediction.description,
+            source: "google",
+            placeId: prediction.placeId,
+        })),
+        [googlePlacePredictions.recipient]
+    );
+
+    const setDomesticLoading = (key, loadingState) => {
+        setDomesticLookups((previous) => ({
+            ...previous,
+            loading: {
+                ...previous.loading,
+                [key]: loadingState,
+            },
+        }));
+    };
+
+    const fetchLocationOptions = async (endpoint, loadingKey) => {
+        setDomesticLoading(loadingKey, true);
+
+        try {
+            const response = await fetch(`${LOCATION_API_BASE}${endpoint}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                },
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error("Location lookup request failed.");
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            setLocationLookupError("");
+            return Array.isArray(payload?.data) ? payload.data : [];
+        } catch (error) {
+            setLocationLookupError("Unable to load Sri Lanka locations right now. Please try again.");
+            return [];
+        } finally {
+            setDomesticLoading(loadingKey, false);
+        }
+    };
 
     const countryOptions = useMemo(
         () => countries.map((code) => ({
@@ -290,6 +415,144 @@ const Create = () => {
         }) || null;
     };
 
+    const findGoogleAddressComponent = (components, type) => {
+        return (components || []).find((component) =>
+            Array.isArray(component?.types) && component.types.includes(type)
+        ) || null;
+    };
+
+    const resolveGoogleCityName = (components, fallback = "") => {
+        const cityTypes = [
+            "locality",
+            "postal_town",
+            "sublocality_level_1",
+            "administrative_area_level_3",
+            "administrative_area_level_2",
+        ];
+
+        for (const type of cityTypes) {
+            const component = findGoogleAddressComponent(components, type);
+            if (component?.long_name) {
+                return component.long_name;
+            }
+        }
+
+        return fallback;
+    };
+
+    const ensureGooglePlacesServices = () => {
+        if (typeof window === "undefined" || !window.google?.maps?.places) {
+            return false;
+        }
+
+        if (!googleAutocompleteServiceRef.current) {
+            googleAutocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+        }
+
+        if (!googlePlacesServiceRef.current) {
+            if (!googlePlacesHostNodeRef.current && typeof document !== "undefined") {
+                googlePlacesHostNodeRef.current = document.createElement("div");
+            }
+
+            if (googlePlacesHostNodeRef.current) {
+                googlePlacesServiceRef.current = new window.google.maps.places.PlacesService(googlePlacesHostNodeRef.current);
+            }
+        }
+
+        return Boolean(googleAutocompleteServiceRef.current && googlePlacesServiceRef.current);
+    };
+
+    const clearGooglePredictions = (party) => {
+        setGooglePlacePredictions((previous) => ({
+            ...previous,
+            [party]: [],
+        }));
+    };
+
+    const requestGoogleCityPredictions = (party, inputValue) => {
+        const query = String(inputValue || "").trim();
+        if (query.length < 2) {
+            clearGooglePredictions(party);
+            return;
+        }
+
+        if (!googlePlacesReady || !ensureGooglePlacesServices()) {
+            clearGooglePredictions(party);
+            return;
+        }
+
+        const nextSequence = (googlePredictionSequenceRef.current[party] || 0) + 1;
+        googlePredictionSequenceRef.current[party] = nextSequence;
+
+        if (
+            !googleAutocompleteSessionTokenRef.current
+            && window.google?.maps?.places?.AutocompleteSessionToken
+        ) {
+            googleAutocompleteSessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+        }
+
+        const requestPayload = {
+            input: query,
+            componentRestrictions: {
+                country: DOMESTIC_COUNTRY_CODE.toLowerCase(),
+            },
+            sessionToken: googleAutocompleteSessionTokenRef.current || undefined,
+        };
+
+        googleAutocompleteServiceRef.current.getPlacePredictions(
+            requestPayload,
+            (predictions, status) => {
+                if (googlePredictionSequenceRef.current[party] !== nextSequence) {
+                    return;
+                }
+
+                const okStatus = window.google?.maps?.places?.PlacesServiceStatus?.OK || "OK";
+                if (status !== okStatus || !Array.isArray(predictions)) {
+                    clearGooglePredictions(party);
+                    return;
+                }
+
+                const mappedPredictions = predictions
+                    .filter((prediction) => prediction?.place_id)
+                    .map((prediction) => ({
+                        placeId: prediction.place_id,
+                        description: prediction.description || "",
+                        mainText: prediction.structured_formatting?.main_text || prediction.description || "",
+                    }));
+
+                setGooglePlacePredictions((previous) => ({
+                    ...previous,
+                    [party]: mappedPredictions,
+                }));
+            }
+        );
+    };
+
+    const fetchGooglePlaceDetails = (placeId) => {
+        if (!placeId || !googlePlacesReady || !ensureGooglePlacesServices()) {
+            return Promise.resolve(null);
+        }
+
+        return new Promise((resolve) => {
+            googlePlacesServiceRef.current.getDetails(
+                {
+                    placeId,
+                    fields: ["address_components", "formatted_address", "name"],
+                    sessionToken: googleAutocompleteSessionTokenRef.current || undefined,
+                },
+                (place, status) => {
+                    const okStatus = window.google?.maps?.places?.PlacesServiceStatus?.OK || "OK";
+                    if (status === okStatus && place) {
+                        resolve(place);
+                        return;
+                    }
+
+                    resolve(null);
+                }
+            );
+        });
+    };
+
     const handleLocationInputBlur = (fieldKey) => {
         window.setTimeout(() => {
             setActiveLocationField((current) => (current === fieldKey ? null : current));
@@ -311,14 +574,86 @@ const Create = () => {
         });
     };
 
+    const updateAddressState = (party, stateName) => {
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                state: stateName,
+            },
+        });
+    };
+
     const handleCitySearchChange = (party, fieldKey, value) => {
         setLocationSearch((previous) => ({
             ...previous,
             [fieldKey]: value,
         }));
 
-        const match = matchLocationOption(cityOptions, value);
-        updateAddressCity(party, match ? match.value : "");
+        updateAddressCity(party, value);
+
+        if (selectedRouteType === "domestic") {
+            requestGoogleCityPredictions(party, value);
+        }
+
+        const options = party === "recipient" ? recipientCityOptions : senderCityOptions;
+        const match = matchLocationOption(options, value);
+        if (match) {
+            updateAddressCity(party, match.value);
+        }
+    };
+
+    const handleGoogleCitySelect = async (party, fieldKey, option) => {
+        if (!option?.placeId) {
+            return;
+        }
+
+        const place = await fetchGooglePlaceDetails(option.placeId);
+        const components = Array.isArray(place?.address_components) ? place.address_components : [];
+
+        const cityName = resolveGoogleCityName(components, option.value || option.label || "");
+        const stateComponent = findGoogleAddressComponent(components, "administrative_area_level_1");
+        const postalComponent = findGoogleAddressComponent(components, "postal_code");
+        const countryComponent = findGoogleAddressComponent(components, "country");
+
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                city: cityName,
+                state: stateComponent?.long_name || currentParty.address.state,
+                postalCode: postalComponent?.long_name || currentParty.address.postalCode,
+                country: selectedRouteType === "domestic"
+                    ? DOMESTIC_COUNTRY_CODE
+                    : (countryComponent?.short_name || currentParty.address.country),
+            },
+        });
+
+        setLocationSearch((previous) => ({
+            ...previous,
+            [fieldKey]: cityName,
+        }));
+
+        clearGooglePredictions(party);
+        setActiveLocationField(null);
+        googleAutocompleteSessionTokenRef.current = null;
+    };
+
+    const handleCityFieldFocus = (party, activeFieldKey, currentValue) => {
+        setActiveLocationField(activeFieldKey);
+
+        if (selectedRouteType !== "domestic") {
+            return;
+        }
+
+        const query = String(currentValue || "").trim();
+        if (query.length >= 2) {
+            requestGoogleCityPredictions(party, query);
+        }
     };
 
     const handleCountrySearchChange = (party, fieldKey, value) => {
@@ -353,6 +688,137 @@ const Create = () => {
         setActiveLocationField(null);
     };
 
+    const resetDomesticLookups = () => {
+        setDomesticSelections({
+            senderProvinceId: "",
+            senderDistrictId: "",
+            recipientProvinceId: "",
+            recipientDistrictId: "",
+        });
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            senderDistricts: [],
+            recipientDistricts: [],
+            senderCities: [],
+            recipientCities: [],
+        }));
+
+        setLocationLookupError("");
+        setGooglePlacesError("");
+        setGooglePlacePredictions({ sender: [], recipient: [] });
+        googleAutocompleteSessionTokenRef.current = null;
+    };
+
+    const handleDomesticProvinceChange = async (party, provinceId) => {
+        const districtField = party === "recipient" ? "recipientDistrictId" : "senderDistrictId";
+        const provinceField = party === "recipient" ? "recipientProvinceId" : "senderProvinceId";
+        const cityField = party === "recipient" ? "recipientCity" : "senderCity";
+        const districtsField = party === "recipient" ? "recipientDistricts" : "senderDistricts";
+        const citiesField = party === "recipient" ? "recipientCities" : "senderCities";
+        const districtsLoadingKey = party === "recipient" ? "recipientDistricts" : "senderDistricts";
+
+        setDomesticSelections((previous) => ({
+            ...previous,
+            [provinceField]: provinceId,
+            [districtField]: "",
+        }));
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [districtsField]: [],
+            [citiesField]: [],
+        }));
+
+        setLocationSearch((previous) => ({
+            ...previous,
+            [cityField]: "",
+        }));
+
+        updateAddressCity(party, "");
+        updateAddressState(party, "");
+
+        if (!provinceId) {
+            return;
+        }
+
+        const cachedDistricts = domesticLookupCacheRef.current.districtsByProvince[provinceId] || null;
+        if (cachedDistricts) {
+            setDomesticLookups((previous) => ({
+                ...previous,
+                [districtsField]: cachedDistricts,
+            }));
+            return;
+        }
+
+        const districts = await fetchLocationOptions(
+            `/districts?province_id=${encodeURIComponent(provinceId)}`,
+            districtsLoadingKey
+        );
+
+        domesticLookupCacheRef.current.districtsByProvince[provinceId] = districts;
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [districtsField]: districts,
+        }));
+    };
+
+    const handleDomesticDistrictChange = async (party, districtId) => {
+        const districtField = party === "recipient" ? "recipientDistrictId" : "senderDistrictId";
+        const cityField = party === "recipient" ? "recipientCity" : "senderCity";
+        const districtsField = party === "recipient" ? "recipientDistricts" : "senderDistricts";
+        const citiesField = party === "recipient" ? "recipientCities" : "senderCities";
+        const citiesLoadingKey = party === "recipient" ? "recipientCities" : "senderCities";
+
+        setDomesticSelections((previous) => ({
+            ...previous,
+            [districtField]: districtId,
+        }));
+
+        setLocationSearch((previous) => ({
+            ...previous,
+            [cityField]: "",
+        }));
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [citiesField]: [],
+        }));
+
+        const selectedDistrict = (domesticLookups[districtsField] || []).find(
+            (district) => String(district.id) === String(districtId)
+        );
+
+        updateAddressCity(party, "");
+        updateAddressState(party, selectedDistrict?.nameEn || "");
+
+        if (!districtId) {
+            return;
+        }
+
+        const cachedCities = domesticLookupCacheRef.current.citiesByDistrict[districtId] || null;
+        if (cachedCities) {
+            setDomesticLookups((previous) => ({
+                ...previous,
+                [citiesField]: cachedCities,
+            }));
+            return;
+        }
+
+        const cities = await fetchLocationOptions(
+            `/cities?district_id=${encodeURIComponent(districtId)}&limit=1000`,
+            citiesLoadingKey
+        );
+
+        domesticLookupCacheRef.current.citiesByDistrict[districtId] = cities;
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [citiesField]: cities,
+        }));
+    };
+
     const resetForRouteType = (nextRouteType) => {
         const nextForm = buildEmptyForm(nextRouteType);
         setData(nextForm);
@@ -362,6 +828,7 @@ const Create = () => {
             senderCountry: nextForm.sender.address.country || "",
             recipientCountry: nextForm.recipient.address.country || "",
         });
+        resetDomesticLookups();
         setActiveLocationField(null);
         setActivePackageIndex(0);
         setDisplayCurrency("LKR");
@@ -500,6 +967,171 @@ const Create = () => {
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
     const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
     const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
+
+    useEffect(() => {
+        if (selectedRouteType !== "domestic") {
+            return;
+        }
+
+        if (googlePlacesReady) {
+            ensureGooglePlacesServices();
+            return;
+        }
+
+        if (!googleMapsApiKey) {
+            console.error("Google Places disabled: VITE_GOOGLE_MAPS_API_KEY is missing at runtime.");
+            setGooglePlacesError("Google city suggestions unavailable: missing VITE_GOOGLE_MAPS_API_KEY. Using local lookup fallback.");
+            return;
+        }
+
+        let cancelled = false;
+
+        const markReady = async () => {
+            if (cancelled) {
+                return;
+            }
+
+            if (window.google?.maps?.places) {
+                ensureGooglePlacesServices();
+                setGooglePlacesReady(true);
+                setGooglePlacesError("");
+                return;
+            }
+
+            if (window.google?.maps?.importLibrary) {
+                try {
+                    await window.google.maps.importLibrary("places");
+                    if (!cancelled) {
+                        ensureGooglePlacesServices();
+                        setGooglePlacesReady(true);
+                        setGooglePlacesError("");
+                    }
+                    return;
+                } catch (error) {
+                    console.error("Failed to load Google Places library:", error);
+                    if (!cancelled) {
+                        const importMessage =
+                            error instanceof Error && error.message
+                                ? error.message
+                                : "unable to import places library";
+                        setGooglePlacesError(`Google city suggestions unavailable: ${importMessage}. Using local lookup fallback.`);
+                    }
+                }
+            }
+
+            if (!cancelled) {
+                setGooglePlacesError("Google city suggestions unavailable: places library is not available in loaded Google Maps runtime. Using local lookup fallback.");
+            }
+        };
+
+        if (window.google?.maps?.places) {
+            void markReady();
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (window.google?.maps && !window.google?.maps?.places) {
+            void markReady();
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        const onLoad = () => {
+            googlePlacesScriptLoadingRef.current = false;
+            void markReady();
+        };
+
+        const onError = () => {
+            googlePlacesScriptLoadingRef.current = false;
+            if (!cancelled) {
+                setGooglePlacesError("Google city suggestions unavailable: failed to load Google Maps JavaScript API script. Check API key restrictions and enabled APIs. Using local lookup fallback.");
+            }
+        };
+
+        const existingScript = document.getElementById(GOOGLE_MAPS_PLACES_SCRIPT_ID);
+        if (existingScript) {
+            existingScript.addEventListener("load", onLoad);
+            existingScript.addEventListener("error", onError);
+            void markReady();
+
+            return () => {
+                cancelled = true;
+                existingScript.removeEventListener("load", onLoad);
+                existingScript.removeEventListener("error", onError);
+            };
+        }
+
+        if (!googlePlacesScriptLoadingRef.current) {
+            googlePlacesScriptLoadingRef.current = true;
+
+            const script = document.createElement("script");
+            script.id = GOOGLE_MAPS_PLACES_SCRIPT_ID;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}&libraries=places`;
+            script.async = true;
+            script.defer = true;
+            script.addEventListener("load", onLoad);
+            script.addEventListener("error", onError);
+            document.head.appendChild(script);
+
+            return () => {
+                cancelled = true;
+                script.removeEventListener("load", onLoad);
+                script.removeEventListener("error", onError);
+            };
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedRouteType, googleMapsApiKey, googlePlacesReady]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "domestic") {
+            return;
+        }
+
+        if ((domesticLookups.provinces || []).length > 0) {
+            return;
+        }
+
+        const cachedProvinces = domesticLookupCacheRef.current.provincesByCountry[DOMESTIC_COUNTRY_CODE] || null;
+        if (cachedProvinces && cachedProvinces.length > 0) {
+            setDomesticLookups((previous) => ({
+                ...previous,
+                provinces: cachedProvinces,
+            }));
+            return;
+        }
+
+        if (domesticProvinceRequestRef.current) {
+            return;
+        }
+
+        domesticProvinceRequestRef.current = true;
+
+        const loadDomesticProvinces = async () => {
+            const provinces = await fetchLocationOptions(
+                `/provinces?country_iso2=${encodeURIComponent(DOMESTIC_COUNTRY_CODE)}`,
+                "provinces"
+            );
+
+            domesticLookupCacheRef.current.provincesByCountry[DOMESTIC_COUNTRY_CODE] = provinces;
+            domesticProvinceRequestRef.current = false;
+
+            setDomesticLookups((previous) => ({
+                ...previous,
+                provinces,
+            }));
+
+            if (!provinces.length) {
+                domesticProvinceRequestRef.current = false;
+            }
+        };
+
+        loadDomesticProvinces();
+    }, [selectedRouteType, domesticLookups.provinces.length]);
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -694,7 +1326,14 @@ const Create = () => {
         });
 
         return hasRouteLocations && hasShipmentType && hasShipmentDescription && packagesHaveNumbers && hasPaymentOption;
-    }, [data.packages, data.sender, data.recipient, data.shipment, selectedRouteType, hasPaymentOption]);
+    }, [
+        data.packages,
+        data.sender,
+        data.recipient,
+        data.shipment,
+        selectedRouteType,
+        hasPaymentOption,
+    ]);
 
     const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
@@ -1163,81 +1802,179 @@ const Create = () => {
                                                         Locations*
                                                     </label>
                                                     <div
-                                                        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-3" : "xl:grid-cols-2"
+                                                        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-4" : "xl:grid-cols-2"
                                                             }`}
                                                     >
-                                                        {selectedRouteType === "domestic" && (
-                                                            <div>
-                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
-                                                                <select
-                                                                    value={DOMESTIC_COUNTRY_CODE}
-                                                                    disabled
-                                                                    className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
-                                                                >
-                                                                    <option value={DOMESTIC_COUNTRY_CODE}>
-                                                                        {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
-                                                                    </option>
-                                                                </select>
-                                                            </div>
-                                                        )}
                                                         {selectedRouteType === "domestic" ? (
                                                             <>
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
+                                                                    <select
+                                                                        value={DOMESTIC_COUNTRY_CODE}
+                                                                        disabled
+                                                                        className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
+                                                                    >
+                                                                        <option value={DOMESTIC_COUNTRY_CODE}>
+                                                                            {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
+                                                                        </option>
+                                                                    </select>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup province</label>
+                                                                    <select
+                                                                        value={domesticSelections.senderProvinceId}
+                                                                        onChange={(event) => handleDomesticProvinceChange("sender", event.target.value)}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.provinces ? "Loading provinces..." : "Select Pickup Province (optional)"}
+                                                                        </option>
+                                                                        {provinceOptions.map((option) => (
+                                                                            <option key={`pickup-province-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup district</label>
+                                                                    <select
+                                                                        value={domesticSelections.senderDistrictId}
+                                                                        onChange={(event) => handleDomesticDistrictChange("sender", event.target.value)}
+                                                                        disabled={!domesticSelections.senderProvinceId || domesticLookups.loading.senderDistricts}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#F5F7FB] disabled:text-[#8C97B0]"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.senderDistricts ? "Loading districts..." : "Select Pickup District (optional)"}
+                                                                        </option>
+                                                                        {senderDistrictOptions.map((option) => (
+                                                                            <option key={`pickup-district-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
                                                                 <div>
                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
                                                                     <div className="relative">
                                                                         <input
                                                                             value={locationSearch.senderCity}
                                                                             onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`sender-city-${index}`)}
+                                                                            onFocus={() => handleCityFieldFocus("sender", `sender-city-${index}`, locationSearch.senderCity)}
                                                                             onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Pickup City"
+                                                                            placeholder={googlePlacesReady ? "Search Pickup City (Google)" : "Enter Pickup City"}
                                                                         />
                                                                         {activeLocationField === `sender-city-${index}` && (
                                                                             <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(cityOptions, locationSearch.senderCity).map((option) => (
-                                                                                    <button
-                                                                                        key={`pickup-city-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("sender", "senderCity", option, "city");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+                                                                                {(senderGoogleCityOptions.length > 0
+                                                                                    ? senderGoogleCityOptions
+                                                                                    : filterLocationOptions(senderCityOptions, locationSearch.senderCity)).length > 0 ? (
+                                                                                    (senderGoogleCityOptions.length > 0
+                                                                                        ? senderGoogleCityOptions
+                                                                                        : filterLocationOptions(senderCityOptions, locationSearch.senderCity)).map((option, optionIndex) => (
+                                                                                            <button
+                                                                                                key={`pickup-city-${index}-${option.source || "local"}-${option.placeId || option.value}-${optionIndex}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    if (option.source === "google") {
+                                                                                                        void handleGoogleCitySelect("sender", "senderCity", option);
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    handleLocationSelect("sender", "senderCity", option, "city");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))
+                                                                                ) : (
+                                                                                    <p className="px-3 py-2 text-sm text-[#6B7893]">No cities found. You can still type your city manually.</p>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                     </div>
                                                                 </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination province</label>
+                                                                    <select
+                                                                        value={domesticSelections.recipientProvinceId}
+                                                                        onChange={(event) => handleDomesticProvinceChange("recipient", event.target.value)}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.provinces ? "Loading provinces..." : "Select Destination Province (optional)"}
+                                                                        </option>
+                                                                        {provinceOptions.map((option) => (
+                                                                            <option key={`destination-province-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination district</label>
+                                                                    <select
+                                                                        value={domesticSelections.recipientDistrictId}
+                                                                        onChange={(event) => handleDomesticDistrictChange("recipient", event.target.value)}
+                                                                        disabled={!domesticSelections.recipientProvinceId || domesticLookups.loading.recipientDistricts}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#F5F7FB] disabled:text-[#8C97B0]"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.recipientDistricts ? "Loading districts..." : "Select Destination District (optional)"}
+                                                                        </option>
+                                                                        {recipientDistrictOptions.map((option) => (
+                                                                            <option key={`destination-district-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
                                                                 <div>
                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
                                                                     <div className="relative">
                                                                         <input
                                                                             value={locationSearch.recipientCity}
                                                                             onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
+                                                                            onFocus={() => handleCityFieldFocus("recipient", `recipient-city-${index}`, locationSearch.recipientCity)}
                                                                             onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Destination City"
+                                                                            placeholder={googlePlacesReady ? "Search Destination City (Google)" : "Enter Destination City"}
                                                                         />
                                                                         {activeLocationField === `recipient-city-${index}` && (
                                                                             <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(cityOptions, locationSearch.recipientCity).map((option) => (
-                                                                                    <button
-                                                                                        key={`destination-city-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("recipient", "recipientCity", option, "city");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+                                                                                {(recipientGoogleCityOptions.length > 0
+                                                                                    ? recipientGoogleCityOptions
+                                                                                    : filterLocationOptions(recipientCityOptions, locationSearch.recipientCity)).length > 0 ? (
+                                                                                    (recipientGoogleCityOptions.length > 0
+                                                                                        ? recipientGoogleCityOptions
+                                                                                        : filterLocationOptions(recipientCityOptions, locationSearch.recipientCity)).map((option, optionIndex) => (
+                                                                                            <button
+                                                                                                key={`destination-city-${index}-${option.source || "local"}-${option.placeId || option.value}-${optionIndex}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    if (option.source === "google") {
+                                                                                                        void handleGoogleCitySelect("recipient", "recipientCity", option);
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    handleLocationSelect("recipient", "recipientCity", option, "city");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))
+                                                                                ) : (
+                                                                                    <p className="px-3 py-2 text-sm text-[#6B7893]">No cities found. You can still type your city manually.</p>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -1308,6 +2045,12 @@ const Create = () => {
                                                             </>
                                                         )}
                                                     </div>
+                                                    {selectedRouteType === "domestic" && locationLookupError && (
+                                                        <p className="text-sm text-red-500">{locationLookupError}</p>
+                                                    )}
+                                                    {selectedRouteType === "domestic" && googlePlacesError && (
+                                                        <p className="text-sm text-amber-600">{googlePlacesError}</p>
+                                                    )}
                                                 </div>
 
                                                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">

@@ -37,6 +37,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
+use App\Http\Controllers\Api\LocationLookupController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
@@ -285,6 +286,12 @@ Route::get('/airVehicleDetails/{vehicle}', [ClientVehicleController::class, 'air
 Route::get('/seaVehicleDetails/{vehicle}', [ClientVehicleController::class, 'seaVehicleDetails'])->name('seaVehicle.details');
 // API Routes for frontend functionality
 Route::prefix('api')->name('api.')->group(function () {
+    // Public normalized location lookup endpoints
+    Route::get('/location/countries', [LocationLookupController::class, 'countries'])->name('location.countries');
+    Route::get('/location/provinces', [LocationLookupController::class, 'provinces'])->name('location.provinces');
+    Route::get('/location/districts', [LocationLookupController::class, 'districts'])->name('location.districts');
+    Route::get('/location/cities', [LocationLookupController::class, 'cities'])->name('location.cities');
+
     // Public warehouse units list
     Route::get('/warehouse-units', [WarehouseBookingController::class, 'getWarehouseUnits'])->name('warehouse-units.index');
 
