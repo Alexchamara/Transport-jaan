@@ -197,7 +197,7 @@ class VendorCourierLabelController extends Controller
             $this->assertSizeOwnership($vendorId, $sizeId);
         }
 
-        $backgroundPath = $this->storeBackgroundFile($request, $vendorId, $policy);
+        $backgroundPath = $this->storeBackgroundFile($request, $vendorId, $policy, $labelService);
 
         $template = VendorCourierLabelTemplate::create([
             'vendor_user_id' => $vendorId,
@@ -277,7 +277,7 @@ class VendorCourierLabelController extends Controller
         }
 
         $backgroundPath = $template->background_path;
-        $uploadedPath = $this->storeBackgroundFile($request, $vendorId, $policy);
+        $uploadedPath = $this->storeBackgroundFile($request, $vendorId, $policy, $labelService);
         if ($uploadedPath) {
             if ($backgroundPath) {
                 Storage::disk('public')->delete($backgroundPath);
@@ -345,6 +345,16 @@ class VendorCourierLabelController extends Controller
             $template = VendorCourierLabelTemplate::query()
                 ->where('vendor_user_id', $vendorId)
                 ->findOrFail((int) $validated['templateId']);
+
+            if (
+                $template->background_path
+                && Str::endsWith(strtolower((string) $template->background_path), '.pdf')
+                && !$labelService->supportsPdfBackgroundRendering()
+            ) {
+                return response()->json([
+                    'message' => 'PDF template preview requires Imagick support on the server. Upload PNG/JPG/WebP or enable Imagick.',
+                ], 422);
+            }
         }
 
         $size = null;
@@ -460,6 +470,16 @@ class VendorCourierLabelController extends Controller
 
         if ($template->background_path && Str::endsWith(strtolower($template->background_path), '.pdf') && !$policy['allowPdfBackground']) {
             abort(403, 'PDF backgrounds are disabled by policy.');
+        }
+
+        if (
+            $template->background_path
+            && Str::endsWith(strtolower((string) $template->background_path), '.pdf')
+            && !$labelService->supportsPdfBackgroundRendering()
+        ) {
+            return response()->json([
+                'message' => 'PDF label generation requires Imagick support on the server. Upload PNG/JPG/WebP or enable Imagick.',
+            ], 422);
         }
 
         $this->assertTemplateScope($template, $packages, $labelService);
@@ -683,7 +703,7 @@ class VendorCourierLabelController extends Controller
         return $size;
     }
 
-    private function storeBackgroundFile(Request $request, int $vendorId, array $policy): ?string
+    private function storeBackgroundFile(Request $request, int $vendorId, array $policy, CourierLabelService $labelService): ?string
     {
         if (!$request->hasFile('background')) {
             return null;
@@ -697,6 +717,10 @@ class VendorCourierLabelController extends Controller
         $extension = strtolower((string) $file->getClientOriginalExtension());
         if ($extension === 'pdf' && !$policy['allowPdfBackground']) {
             abort(403, 'PDF background uploads are disabled by policy.');
+        }
+
+        if ($extension === 'pdf' && !$labelService->supportsPdfBackgroundRendering()) {
+            abort(422, 'PDF backgrounds require Imagick support on the server. Upload PNG/JPG/WebP or enable Imagick.');
         }
 
         return $file->store('courier/label-templates/' . $vendorId, 'public');

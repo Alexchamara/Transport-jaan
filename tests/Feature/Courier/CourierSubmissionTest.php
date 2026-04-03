@@ -450,6 +450,7 @@ class CourierSubmissionTest extends TestCase
 
     public function test_summary_redirects_to_create_when_preview_session_is_corrupt(): void
     {
+        Log::spy();
         $user = User::factory()->create();
 
         $this->actingAs($user)
@@ -464,6 +465,15 @@ class CourierSubmissionTest extends TestCase
             ->get(route('couriers.summary'))
             ->assertRedirect(route('couriers.create'))
             ->assertSessionHas('error');
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(function ($message, $context) use ($user) {
+                return $message === 'COURIER CLIENT STORE FAILURE'
+                    && ($context['reason'] ?? null) === 'summary_view_without_valid_preview'
+                    && ($context['phase'] ?? null) === 'summary'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $user->id;
+            })
+            ->once();
     }
 
     public function test_update_status_rejects_invalid_transition_to_delivered_from_pending(): void

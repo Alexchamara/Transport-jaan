@@ -27,6 +27,8 @@ class CourierLabelService
 
     public const CATEGORY_LOGISTIC = 'logistic';
 
+    private array $backgroundDataUriCache = [];
+
     public function resolveLabelSettings(int $vendorId): array
     {
         $record = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->first();
@@ -214,11 +216,13 @@ class CourierLabelService
 
         Storage::disk('public')->put($path, $pdfBinary);
 
+        $publicPath = '/storage/' . ltrim($path, '/');
+
         return [
             'disk' => 'public',
             'path' => $path,
             'name' => $fileName,
-            'url' => Storage::disk('public')->url($path),
+            'url' => $publicPath,
         ];
     }
 
@@ -233,6 +237,11 @@ class CourierLabelService
         $size->is_system = true;
 
         return $size;
+    }
+
+    public function supportsPdfBackgroundRendering(): bool
+    {
+        return extension_loaded('imagick') && class_exists(\Imagick::class);
     }
 
     private function mapContact(?CourierAddress $address, $contact): array
@@ -282,6 +291,11 @@ class CourierLabelService
             return null;
         }
 
+        $cacheKey = (string) ($template->id ?? $template->background_path);
+        if (array_key_exists($cacheKey, $this->backgroundDataUriCache)) {
+            return $this->backgroundDataUriCache[$cacheKey];
+        }
+
         $path = (string) $template->background_path;
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $mimeMap = [
@@ -290,6 +304,13 @@ class CourierLabelService
             'jpeg' => 'image/jpeg',
             'webp' => 'image/webp',
         ];
+
+        if ($extension === 'pdf') {
+            $result = $this->resolvePdfBackgroundDataUri($path);
+            $this->backgroundDataUriCache[$cacheKey] = $result;
+
+            return $result;
+        }
 
         if (!array_key_exists($extension, $mimeMap)) {
             return null;
@@ -301,8 +322,45 @@ class CourierLabelService
         }
 
         $contents = $disk->get($path);
+        $result = 'data:' . $mimeMap[$extension] . ';base64,' . base64_encode($contents);
+        $this->backgroundDataUriCache[$cacheKey] = $result;
 
-        return 'data:' . $mimeMap[$extension] . ';base64,' . base64_encode($contents);
+        return $result;
+    }
+
+    private function resolvePdfBackgroundDataUri(string $path): ?string
+    {
+        if (!$this->supportsPdfBackgroundRendering()) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+        if (!$disk->exists($path)) {
+            return null;
+        }
+
+        try {
+            $absolutePath = $disk->path($path);
+
+            $imagickClass = '\\Imagick';
+            $imagick = new $imagickClass();
+            $imagick->setResolution(150, 150);
+            $imagick->readImage($absolutePath . '[0]');
+            $imagick->setImageFormat('png');
+
+            $blob = $imagick->getImageBlob();
+
+            $imagick->clear();
+            $imagick->destroy();
+
+            if ($blob === false || $blob === '') {
+                return null;
+            }
+
+            return 'data:image/png;base64,' . base64_encode($blob);
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 
     private function renderTemplateString(string $template, array $payload): string

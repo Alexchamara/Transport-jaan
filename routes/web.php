@@ -1210,43 +1210,43 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->name('courierService.settings.update');
 
     Route::get('/courierService/labels/sizes', [VendorCourierLabelController::class, 'listSizes'])
-        ->middleware('service.permission:courier.settings.view')
+        ->middleware('service.permission:courier.labels.view')
         ->name('courierService.labels.sizes.index');
 
     Route::post('/courierService/labels/sizes', [VendorCourierLabelController::class, 'storeSize'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->middleware(['service.permission:courier.labels.manage_templates', 'throttle:20,1'])
         ->name('courierService.labels.sizes.store');
 
     Route::patch('/courierService/labels/sizes/{size}', [VendorCourierLabelController::class, 'updateSize'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->middleware(['service.permission:courier.labels.manage_templates', 'throttle:20,1'])
         ->name('courierService.labels.sizes.update');
 
     Route::delete('/courierService/labels/sizes/{size}', [VendorCourierLabelController::class, 'deleteSize'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->middleware(['service.permission:courier.labels.manage_templates', 'throttle:20,1'])
         ->name('courierService.labels.sizes.delete');
 
     Route::get('/courierService/labels/templates', [VendorCourierLabelController::class, 'listTemplates'])
-        ->middleware('service.permission:courier.settings.view')
+        ->middleware('service.permission:courier.labels.view')
         ->name('courierService.labels.templates.index');
 
     Route::post('/courierService/labels/templates', [VendorCourierLabelController::class, 'storeTemplate'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->middleware(['service.permission:courier.labels.manage_templates', 'throttle:20,1'])
         ->name('courierService.labels.templates.store');
 
     Route::patch('/courierService/labels/templates/{template}', [VendorCourierLabelController::class, 'updateTemplate'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->middleware(['service.permission:courier.labels.manage_templates', 'throttle:20,1'])
         ->name('courierService.labels.templates.update');
 
     Route::delete('/courierService/labels/templates/{template}', [VendorCourierLabelController::class, 'deleteTemplate'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->middleware(['service.permission:courier.labels.manage_templates', 'throttle:20,1'])
         ->name('courierService.labels.templates.delete');
 
     Route::post('/courierService/labels/preview', [VendorCourierLabelController::class, 'previewTemplate'])
-        ->middleware(['service.permission:courier.settings.view', 'throttle:30,1'])
+        ->middleware(['service.permission:courier.labels.view', 'throttle:30,1'])
         ->name('courierService.labels.preview');
 
     Route::post('/courierService/labels/print', [VendorCourierLabelController::class, 'printLabels'])
-        ->middleware(['service.permission:courier.shipments.view', 'throttle:15,1'])
+        ->middleware(['service.permission:courier.labels.print', 'throttle:15,1'])
         ->name('courierService.labels.print');
 
     Route::get('/courierService/settingsPage/pricing/exchange-rates', [VendorCourierDashboardController::class, 'pricingExchangeRates'])

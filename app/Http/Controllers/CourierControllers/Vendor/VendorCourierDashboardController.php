@@ -886,6 +886,9 @@ class VendorCourierDashboardController extends Controller
             }
 
             if ($section === 'labels') {
+                if (!$this->hasLabelManagePermission($request)) {
+                    abort(403, 'You do not have permission to manage label settings.');
+                }
                 $incomingSection = $this->normalizeLabelSettings(array_replace_recursive($current['labels'] ?? [], $incomingSection));
             }
 
@@ -922,6 +925,9 @@ class VendorCourierDashboardController extends Controller
         }
 
         if (is_array($next['labels'] ?? null)) {
+            if (!$this->hasLabelManagePermission($request)) {
+                abort(403, 'You do not have permission to manage label settings.');
+            }
             $next['labels'] = $this->normalizeLabelSettings($next['labels']);
         }
 
@@ -3644,6 +3650,17 @@ class VendorCourierDashboardController extends Controller
         }
 
         return $normalized;
+    }
+
+    private function hasLabelManagePermission(Request $request): bool
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('courier.labels.manage_templates');
     }
 
     private function defaultPricingPolicyModules(): array

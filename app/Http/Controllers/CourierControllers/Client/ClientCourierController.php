@@ -665,6 +665,9 @@ class ClientCourierController extends Controller
         $formData = $request->session()->get('courier_preview');
 
         if (!$this->hasValidCourierPreviewPayload($formData)) {
+            $this->observability()->logStoreFailed($request, 'summary_view_without_valid_preview', [
+                'phase' => 'summary',
+            ]);
             $request->session()->forget('courier_preview');
 
             return redirect()

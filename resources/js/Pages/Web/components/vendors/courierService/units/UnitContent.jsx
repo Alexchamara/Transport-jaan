@@ -115,11 +115,35 @@ const assignmentBadge = (health) => {
 };
 
 const titleCase = (value) => value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const formatLabelSize = (size) => {
+    const width = size?.width_mm ?? size?.widthMm ?? "";
+    const height = size?.height_mm ?? size?.heightMm ?? "";
+    const unit = String(size?.unit || "mm");
+    return `${width}x${height} ${unit}`.trim();
+};
 
 const UnitContent = () => {
     const props = usePage().props;
     const shipments = props.courierShipments || EMPTY;
     const flash = props.flash || {};
+    const authUser = props.auth && typeof props.auth === "object" && props.auth.user && typeof props.auth.user === "object"
+        ? props.auth.user
+        : {};
+    const courierPermissions = Array.isArray(authUser?.courier_permissions) ? authUser.courier_permissions : [];
+    const hasCourierPermission = (permission) => {
+        if (String(authUser?.role || "") === "vendor") {
+            return true;
+        }
+
+        if (!permission) {
+            return true;
+        }
+
+        return courierPermissions.includes(permission);
+    };
+    const canViewLabels = hasCourierPermission("courier.labels.view")
+        || hasCourierPermission("courier.labels.manage_templates");
+    const canPrintLabels = hasCourierPermission("courier.labels.print");
 
     const [filters, setFilters] = useState({
         q: shipments.filters.q || "",
@@ -135,14 +159,140 @@ const UnitContent = () => {
     const [selectedShipment, setSelectedShipment] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkAction, setBulkAction] = useState("");
+    const [labelTemplates, setLabelTemplates] = useState([]);
+    const [labelSizes, setLabelSizes] = useState([]);
+    const [labelCatalogBusy, setLabelCatalogBusy] = useState(false);
+    const [labelCatalogError, setLabelCatalogError] = useState("");
+    const [printModalOpen, setPrintModalOpen] = useState(false);
+    const [printShipmentIds, setPrintShipmentIds] = useState([]);
+    const [printTemplateId, setPrintTemplateId] = useState("");
+    const [printSizeId, setPrintSizeId] = useState("");
+    const [printBusy, setPrintBusy] = useState(false);
     const {
         feedback,
         closeFeedback,
+        setFeedback,
         confirmState,
         openConfirm,
         closeConfirm,
         runConfirm,
     } = useCourierActionModal(flash);
+
+    const requestJson = async (method, url, body = null) => {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+        const response = await fetch(url, {
+            method,
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+            },
+            credentials: "same-origin",
+            body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const error = new Error(payload?.message || "Request failed");
+            error.status = response.status;
+            throw error;
+        }
+
+        return payload;
+    };
+
+    const loadLabelCatalog = async () => {
+        if (!canViewLabels) {
+            setLabelCatalogError("You do not have permission to view labels.");
+            return;
+        }
+
+        setLabelCatalogBusy(true);
+        setLabelCatalogError("");
+        try {
+            const [sizesPayload, templatesPayload] = await Promise.all([
+                requestJson("GET", route("courierService.labels.sizes.index")),
+                requestJson("GET", route("courierService.labels.templates.index")),
+            ]);
+            setLabelSizes(Array.isArray(sizesPayload?.sizes) ? sizesPayload.sizes : []);
+            setLabelTemplates(Array.isArray(templatesPayload?.templates) ? templatesPayload.templates : []);
+        } catch (error) {
+            setLabelCatalogError(error?.message || "Failed to load label catalog.");
+        } finally {
+            setLabelCatalogBusy(false);
+        }
+    };
+
+    const openPrintModal = (shipmentIds) => {
+        if (!canPrintLabels) {
+            setFeedback({ type: "error", message: "You do not have permission to print labels." });
+            return;
+        }
+
+        if (!canViewLabels) {
+            setFeedback({ type: "error", message: "You do not have permission to view labels." });
+            return;
+        }
+
+        const ids = Array.isArray(shipmentIds) ? shipmentIds : [];
+        if (ids.length === 0) {
+            setFeedback({ type: "error", message: "Select at least one shipment to print labels." });
+            return;
+        }
+
+        setPrintShipmentIds(ids);
+        setPrintTemplateId("");
+        setPrintSizeId("");
+        setPrintModalOpen(true);
+        loadLabelCatalog();
+    };
+
+    const closePrintModal = () => {
+        setPrintModalOpen(false);
+        setPrintShipmentIds([]);
+        setPrintTemplateId("");
+        setPrintSizeId("");
+    };
+
+    const runPrintLabels = async () => {
+        if (!canPrintLabels) {
+            setFeedback({ type: "error", message: "You do not have permission to print labels." });
+            return;
+        }
+
+        if (printShipmentIds.length === 0) {
+            setFeedback({ type: "error", message: "Select at least one shipment to print labels." });
+            return;
+        }
+
+        setPrintBusy(true);
+        try {
+            const payload = await requestJson("POST", route("courierService.labels.print"), {
+                shipmentIds: printShipmentIds,
+                templateId: printTemplateId ? Number(printTemplateId) : null,
+                sizeId: printSizeId ? Number(printSizeId) : null,
+                outputFormat: "pdf",
+            });
+
+            if (payload?.status === "queued") {
+                setFeedback({ type: "info", message: payload?.message || "Labels queued for generation." });
+                closePrintModal();
+                return;
+            }
+
+            if (payload?.url) {
+                window.open(payload.url, "_blank", "noopener,noreferrer");
+            }
+
+            setFeedback({ type: "success", message: "Labels generated." });
+            closePrintModal();
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to print labels." });
+        } finally {
+            setPrintBusy(false);
+        }
+    };
 
     const submitFilters = (page = 1, overrides = {}) => {
         router.get(
@@ -222,6 +372,23 @@ const UnitContent = () => {
         ],
         [shipments.summary],
     );
+
+    const activeLabelTemplates = useMemo(
+        () => (Array.isArray(labelTemplates) ? labelTemplates : []).filter((template) => Boolean(template?.is_active ?? template?.isActive ?? true)),
+        [labelTemplates],
+    );
+    const activeLabelSizes = useMemo(
+        () => (Array.isArray(labelSizes) ? labelSizes : []).filter((size) => Boolean(size?.is_active ?? size?.isActive ?? true)),
+        [labelSizes],
+    );
+    const printCategorySet = useMemo(() => {
+        const categories = printShipmentIds
+            .map((id) => shipments.rows.find((row) => row.id === id)?.category)
+            .filter(Boolean)
+            .map((value) => String(value || "").toLowerCase());
+        return new Set(categories);
+    }, [printShipmentIds, shipments.rows]);
+    const hasMixedPrintCategories = printCategorySet.size > 1;
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
@@ -384,6 +551,14 @@ const UnitContent = () => {
                         >
                             Apply To Selected
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => openPrintModal(selectedIds)}
+                            disabled={!canPrintLabels || selectedIds.length === 0}
+                            className="h-[36px] px-3 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700] disabled:opacity-50"
+                        >
+                            Print Labels
+                        </button>
                     </div>
                 </div>
 
@@ -461,6 +636,17 @@ const UnitContent = () => {
                                         <td className="px-3 py-3">{row.lastScan || "-"}</td>
                                         <td className="px-3 py-3">
                                             <div className="flex flex-wrap gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openPrintModal([row.id]);
+                                                    }}
+                                                    disabled={!canPrintLabels}
+                                                    className="px-2 py-1 rounded-[5px] border border-[#D1D5DB] text-[11px] font-[700] disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Print
+                                                </button>
                                                 {(row.allowedActions || []).map((action) => (
                                                     <button
                                                         key={action}
@@ -537,6 +723,90 @@ const UnitContent = () => {
                     </div>
                 </div>
             </div>
+
+            {printModalOpen && (
+                <div className="fixed inset-0 bg-black/30 z-40" onClick={closePrintModal}>
+                    <div
+                        className="absolute right-0 top-0 h-full w-full max-w-[460px] bg-white p-6 overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h2 className="text-[24px] font-[700]">Print Labels</h2>
+                        <p className="text-[13px] text-[#6B7280] mt-1">
+                            Selected {printShipmentIds.length} shipment(s).
+                        </p>
+
+                        {labelCatalogError && (
+                            <p className="text-[12px] text-[#B91C1C] mt-3">{labelCatalogError}</p>
+                        )}
+                        {labelCatalogBusy && (
+                            <p className="text-[11px] text-[#6B7280] mt-3">Loading label catalog...</p>
+                        )}
+
+                        <div className="mt-4 space-y-3">
+                            <div>
+                                <label className="text-[12px] font-[700] text-[#374151]">Template (optional)</label>
+                                <select
+                                    className="mt-1 w-full h-[38px] rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                    value={printTemplateId}
+                                    onChange={(e) => setPrintTemplateId(e.target.value)}
+                                >
+                                    <option value="">Use default template</option>
+                                    {activeLabelTemplates.map((template) => {
+                                        const typeLabel = titleCase(template.template_type || template.templateType || "");
+                                        const scopeLabel = titleCase(template.category_scope || template.categoryScope || "all");
+                                        return (
+                                            <option key={`print-template-${template.id}`} value={template.id}>
+                                                {template.name} ({typeLabel || "Template"} • {scopeLabel})
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[12px] font-[700] text-[#374151]">Size (optional)</label>
+                                <select
+                                    className="mt-1 w-full h-[38px] rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                    value={printSizeId}
+                                    onChange={(e) => setPrintSizeId(e.target.value)}
+                                >
+                                    <option value="">Use default size</option>
+                                    {activeLabelSizes.map((size) => (
+                                        <option key={`print-size-${size.id}`} value={size.id}>
+                                            {size.name} ({formatLabelSize(size)})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {hasMixedPrintCategories && (
+                                <p className="text-[11px] text-[#B45309]">
+                                    Mixed categories selected. Use a template scoped to all categories or print separately.
+                                </p>
+                            )}
+                            <p className="text-[11px] text-[#6B7280]">
+                                Leave fields blank to use the label defaults configured in Settings.
+                            </p>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                className="h-[36px] px-4 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700]"
+                                onClick={closePrintModal}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="h-[36px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
+                                onClick={runPrintLabels}
+                                disabled={printBusy || !canPrintLabels}
+                            >
+                                {printBusy ? "Printing..." : "Print Labels"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {selectedShipment && (
                 <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelectedShipment(null)}>

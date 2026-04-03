@@ -813,8 +813,8 @@ const Field = ({ label, children, help }) => (
     </label>
 );
 
-const Toggle = ({ label, checked, onChange, description }) => (
-    <div className="flex items-start justify-between gap-3 border border-[#E5E7EB] rounded-[8px] px-3 py-3">
+const Toggle = ({ label, checked, onChange, description, disabled = false }) => (
+    <div className={`flex items-start justify-between gap-3 border border-[#E5E7EB] rounded-[8px] px-3 py-3 ${disabled ? "opacity-50" : ""}`}>
         <div>
             <p className="text-[13px] font-[700] text-[#111827]">{label}</p>
             {description && <p className="text-[11px] text-[#6B7280] mt-0.5">{description}</p>}
@@ -823,8 +823,15 @@ const Toggle = ({ label, checked, onChange, description }) => (
             type="button"
             role="switch"
             aria-checked={checked}
-            onClick={() => onChange(!checked)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[#0955AC]" : "bg-[#D1D5DB]"}`}
+            aria-disabled={disabled}
+            disabled={disabled}
+            onClick={() => {
+                if (disabled) {
+                    return;
+                }
+                onChange(!checked);
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[#0955AC]" : "bg-[#D1D5DB]"} ${disabled ? "cursor-not-allowed" : ""}`}
         >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
         </button>
@@ -909,6 +916,21 @@ const Settings = () => {
     const authUser = props.auth && typeof props.auth === "object" && props.auth.user && typeof props.auth.user === "object"
         ? props.auth.user
         : {};
+    const courierPermissions = Array.isArray(authUser?.courier_permissions) ? authUser.courier_permissions : [];
+    const hasCourierPermission = (permission) => {
+        if (String(authUser?.role || "") === "vendor") {
+            return true;
+        }
+
+        if (!permission) {
+            return true;
+        }
+
+        return courierPermissions.includes(permission);
+    };
+    const canViewLabels = hasCourierPermission("courier.labels.view")
+        || hasCourierPermission("courier.labels.manage_templates");
+    const canManageLabels = hasCourierPermission("courier.labels.manage_templates");
     const currentUserRoleNames = [
         ...(Array.isArray(authUser.roles) ? authUser.roles : []).map((role) => {
             if (typeof role === "string") {
@@ -1531,8 +1553,13 @@ const Settings = () => {
             return;
         }
 
+        if (!canViewLabels) {
+            setLabelCatalogError("You do not have permission to view labels.");
+            return;
+        }
+
         loadLabelCatalog();
-    }, [activeTab]);
+    }, [activeTab, canViewLabels]);
 
     const {
         feedback,
@@ -2360,6 +2387,11 @@ const Settings = () => {
     };
 
     const loadLabelCatalog = async () => {
+        if (!canViewLabels) {
+            setLabelCatalogError("You do not have permission to view labels.");
+            return;
+        }
+
         setLabelCatalogBusy(true);
         setLabelCatalogError("");
         try {
@@ -4956,6 +4988,17 @@ const Settings = () => {
         }
 
         if (activeTab === "labels") {
+            if (!canViewLabels) {
+                return (
+                    <SectionCard title="Label Access" description="Permissions required to view label settings.">
+                        <p className="text-[12px] text-[#6B7280]">
+                            You do not have permission to view label settings. Contact an admin to grant label access.
+                        </p>
+                    </SectionCard>
+                );
+            }
+
+            const labelControlsDisabled = !canManageLabels;
             const templateOptionsForCategory = (categoryKey) => labelTemplates.filter((template) => {
                 const scope = String(template?.category_scope || template?.categoryScope || "all");
                 return scope === "all" || scope === categoryKey;
@@ -4978,6 +5021,7 @@ const Settings = () => {
                                     <Field label="Default Template">
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
                                             value={String(labelDefaults?.domestic?.templateId || "")}
                                             onChange={(e) => updateLabelDefaults("domestic", "templateId", e.target.value ? Number(e.target.value) : null)}
                                         >
@@ -4992,6 +5036,7 @@ const Settings = () => {
                                     <Field label="Default Size">
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
                                             value={String(labelDefaults?.domestic?.sizeId || "")}
                                             onChange={(e) => updateLabelDefaults("domestic", "sizeId", e.target.value ? Number(e.target.value) : null)}
                                         >
@@ -5011,6 +5056,7 @@ const Settings = () => {
                                     <Field label="Default Template">
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
                                             value={String(labelDefaults?.logistic?.templateId || "")}
                                             onChange={(e) => updateLabelDefaults("logistic", "templateId", e.target.value ? Number(e.target.value) : null)}
                                         >
@@ -5025,6 +5071,7 @@ const Settings = () => {
                                     <Field label="Default Size">
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
                                             value={String(labelDefaults?.logistic?.sizeId || "")}
                                             onChange={(e) => updateLabelDefaults("logistic", "sizeId", e.target.value ? Number(e.target.value) : null)}
                                         >
@@ -5046,6 +5093,7 @@ const Settings = () => {
                                     type="number"
                                     min={1}
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    disabled={labelControlsDisabled}
                                     value={labelPolicy.bulkAsyncThreshold}
                                     onChange={(e) => updateLabelPolicy("bulkAsyncThreshold", Number(e.target.value || 1))}
                                 />
@@ -5055,6 +5103,7 @@ const Settings = () => {
                                     type="number"
                                     min={1}
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    disabled={labelControlsDisabled}
                                     value={labelPolicy.bulkHardLimit}
                                     onChange={(e) => updateLabelPolicy("bulkHardLimit", Number(e.target.value || 1))}
                                 />
@@ -5064,24 +5113,28 @@ const Settings = () => {
                                 checked={labelPolicy.allowCustomSizes}
                                 onChange={(next) => updateLabelPolicy("allowCustomSizes", next)}
                                 description="If disabled, only system sizes can be used."
+                                disabled={labelControlsDisabled}
                             />
                             <Toggle
                                 label="Allow Template Uploads"
                                 checked={labelPolicy.allowTemplateUpload}
                                 onChange={(next) => updateLabelPolicy("allowTemplateUpload", next)}
                                 description="Disable to lock vendors to system templates."
+                                disabled={labelControlsDisabled}
                             />
                             <Toggle
                                 label="Allow HTML Templates"
                                 checked={labelPolicy.allowHtmlTemplates}
                                 onChange={(next) => updateLabelPolicy("allowHtmlTemplates", next)}
                                 description="Restrict custom HTML if you only want uploads."
+                                disabled={labelControlsDisabled}
                             />
                             <Toggle
                                 label="Allow PDF Backgrounds"
                                 checked={labelPolicy.allowPdfBackground}
                                 onChange={(next) => updateLabelPolicy("allowPdfBackground", next)}
                                 description="Toggle PDF uploads for label backgrounds."
+                                disabled={labelControlsDisabled}
                             />
                         </div>
                     </SectionCard>
@@ -5095,6 +5148,7 @@ const Settings = () => {
                                 <input
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelSizeForm.name}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, name: e.target.value }))}
                                     placeholder="4x6 Thermal"
                                 />
@@ -5103,6 +5157,7 @@ const Settings = () => {
                                 <select
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelSizeForm.unit}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, unit: e.target.value }))}
                                 >
                                     {LABEL_UNIT_OPTIONS.map((option) => (
@@ -5119,6 +5174,7 @@ const Settings = () => {
                                     step={0.1}
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelSizeForm.widthMm}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, widthMm: e.target.value }))}
                                 />
                             </Field>
@@ -5129,6 +5185,7 @@ const Settings = () => {
                                     step={0.1}
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelSizeForm.heightMm}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, heightMm: e.target.value }))}
                                 />
                             </Field>
@@ -5136,7 +5193,7 @@ const Settings = () => {
                                 type="button"
                                 className="h-[42px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
                                 onClick={createLabelSize}
-                                disabled={labelCatalogBusy || !labelPolicy.allowCustomSizes}
+                                disabled={labelCatalogBusy || !labelPolicy.allowCustomSizes || labelControlsDisabled}
                             >
                                 Add Size
                             </button>
@@ -5165,7 +5222,7 @@ const Settings = () => {
                                                 <input
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.name}
-                                                    disabled={draft.isSystem}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelSizeDrafts((prev) => ({
                                                         ...prev,
                                                         [size.id]: { ...draft, name: e.target.value },
@@ -5176,7 +5233,7 @@ const Settings = () => {
                                                 <select
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.unit || "mm"}
-                                                    disabled={draft.isSystem}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelSizeDrafts((prev) => ({
                                                         ...prev,
                                                         [size.id]: { ...draft, unit: e.target.value },
@@ -5196,7 +5253,7 @@ const Settings = () => {
                                                     step={0.1}
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.widthMm}
-                                                    disabled={draft.isSystem}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelSizeDrafts((prev) => ({
                                                         ...prev,
                                                         [size.id]: { ...draft, widthMm: e.target.value },
@@ -5210,7 +5267,7 @@ const Settings = () => {
                                                     step={0.1}
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.heightMm}
-                                                    disabled={draft.isSystem}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelSizeDrafts((prev) => ({
                                                         ...prev,
                                                         [size.id]: { ...draft, heightMm: e.target.value },
@@ -5222,7 +5279,7 @@ const Settings = () => {
                                                     <input
                                                         type="checkbox"
                                                         checked={draft.isActive}
-                                                        disabled={draft.isSystem}
+                                                        disabled={draft.isSystem || labelControlsDisabled}
                                                         onChange={(e) => setLabelSizeDrafts((prev) => ({
                                                             ...prev,
                                                             [size.id]: { ...draft, isActive: e.target.checked },
@@ -5236,15 +5293,16 @@ const Settings = () => {
                                                     type="button"
                                                     className="h-[34px] px-3 rounded-[8px] bg-[#111827] text-white text-[12px] font-[700] disabled:opacity-50"
                                                     onClick={() => saveLabelSize(size.id)}
-                                                    disabled={sizeBusy || draft.isSystem || !labelPolicy.allowCustomSizes}
+                                                    disabled={sizeBusy || draft.isSystem || !labelPolicy.allowCustomSizes || labelControlsDisabled}
                                                 >
                                                     {sizeBusy ? "Saving" : "Save"}
                                                 </button>
                                                 {!draft.isSystem && (
                                                     <button
                                                         type="button"
-                                                        className="h-[34px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[12px] font-[700]"
+                                                        className="h-[34px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[12px] font-[700] disabled:opacity-50"
                                                         onClick={() => deleteLabelSize(size.id)}
+                                                        disabled={labelControlsDisabled}
                                                     >
                                                         Delete
                                                     </button>
@@ -5269,6 +5327,7 @@ const Settings = () => {
                                 <input
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.name}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, name: e.target.value }))}
                                     placeholder="Default Thermal Label"
                                 />
@@ -5277,6 +5336,7 @@ const Settings = () => {
                                 <select
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.templateType}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, templateType: e.target.value }))}
                                 >
                                     <option value="builder">Builder (JSON)</option>
@@ -5288,6 +5348,7 @@ const Settings = () => {
                                 <select
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.categoryScope}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, categoryScope: e.target.value }))}
                                 >
                                     <option value="all">All</option>
@@ -5299,6 +5360,7 @@ const Settings = () => {
                                 <select
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.sizeId}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, sizeId: e.target.value }))}
                                 >
                                     <option value="">Select size</option>
@@ -5313,6 +5375,7 @@ const Settings = () => {
                                 <select
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.orientation}
+                                    disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, orientation: e.target.value }))}
                                 >
                                     <option value="portrait">Portrait</option>
@@ -5323,7 +5386,7 @@ const Settings = () => {
                                 type="button"
                                 className="h-[42px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
                                 onClick={createLabelTemplate}
-                                disabled={labelTemplateUploadBusy || !labelPolicy.allowTemplateUpload}
+                                disabled={labelTemplateUploadBusy || !labelPolicy.allowTemplateUpload || labelControlsDisabled}
                             >
                                 {labelTemplateUploadBusy ? "Saving" : "Create Template"}
                             </button>
@@ -5336,6 +5399,7 @@ const Settings = () => {
                                         rows={4}
                                         className="w-full rounded-[8px] border border-[#D1D5DB]"
                                         value={labelTemplateForm.builderSchema}
+                                        disabled={labelControlsDisabled}
                                         onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, builderSchema: e.target.value }))}
                                         placeholder='[{"type":"text","x":12,"y":14,"value":"{{trackingNumber}}"}]'
                                     />
@@ -5350,6 +5414,7 @@ const Settings = () => {
                                         rows={6}
                                         className="w-full rounded-[8px] border border-[#D1D5DB]"
                                         value={labelTemplateForm.htmlTemplate}
+                                        disabled={labelControlsDisabled}
                                         onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, htmlTemplate: e.target.value }))}
                                     />
                                 </Field>
@@ -5358,6 +5423,7 @@ const Settings = () => {
                                         rows={6}
                                         className="w-full rounded-[8px] border border-[#D1D5DB]"
                                         value={labelTemplateForm.cssTemplate}
+                                        disabled={labelControlsDisabled}
                                         onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, cssTemplate: e.target.value }))}
                                     />
                                 </Field>
@@ -5371,6 +5437,7 @@ const Settings = () => {
                                         type="file"
                                         accept=".pdf,.png,.jpg,.jpeg,.webp"
                                         className="w-full"
+                                        disabled={labelControlsDisabled}
                                         onChange={(e) => setLabelTemplateForm((prev) => ({
                                             ...prev,
                                             backgroundFile: e.target.files?.[0] || null,
@@ -5387,6 +5454,7 @@ const Settings = () => {
                                         rows={3}
                                         className="w-full rounded-[8px] border border-[#D1D5DB]"
                                         value={labelTemplateForm.fieldOverrides}
+                                        disabled={labelControlsDisabled}
                                         onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, fieldOverrides: e.target.value }))}
                                     />
                                 </Field>
@@ -5417,7 +5485,7 @@ const Settings = () => {
                                                 <input
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.name}
-                                                    disabled={isSystem}
+                                                    disabled={isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelTemplateDrafts((prev) => ({
                                                         ...prev,
                                                         [template.id]: { ...draft, name: e.target.value },
@@ -5435,7 +5503,7 @@ const Settings = () => {
                                                 <select
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.categoryScope}
-                                                    disabled={isSystem}
+                                                    disabled={isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelTemplateDrafts((prev) => ({
                                                         ...prev,
                                                         [template.id]: { ...draft, categoryScope: e.target.value },
@@ -5450,7 +5518,7 @@ const Settings = () => {
                                                 <select
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.sizeId}
-                                                    disabled={isSystem}
+                                                    disabled={isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelTemplateDrafts((prev) => ({
                                                         ...prev,
                                                         [template.id]: { ...draft, sizeId: e.target.value },
@@ -5468,7 +5536,7 @@ const Settings = () => {
                                                 <select
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
                                                     value={draft.orientation}
-                                                    disabled={isSystem}
+                                                    disabled={isSystem || labelControlsDisabled}
                                                     onChange={(e) => setLabelTemplateDrafts((prev) => ({
                                                         ...prev,
                                                         [template.id]: { ...draft, orientation: e.target.value },
@@ -5483,7 +5551,7 @@ const Settings = () => {
                                                     <input
                                                         type="checkbox"
                                                         checked={draft.isActive}
-                                                        disabled={isSystem}
+                                                        disabled={isSystem || labelControlsDisabled}
                                                         onChange={(e) => setLabelTemplateDrafts((prev) => ({
                                                             ...prev,
                                                             [template.id]: { ...draft, isActive: e.target.checked },
@@ -5505,15 +5573,16 @@ const Settings = () => {
                                                     type="button"
                                                     className="h-[34px] px-3 rounded-[8px] bg-[#111827] text-white text-[12px] font-[700] disabled:opacity-50"
                                                     onClick={() => saveLabelTemplate(template.id)}
-                                                    disabled={templateBusy || isSystem || !labelPolicy.allowTemplateUpload}
+                                                    disabled={templateBusy || isSystem || !labelPolicy.allowTemplateUpload || labelControlsDisabled}
                                                 >
                                                     {templateBusy ? "Saving" : "Save"}
                                                 </button>
                                                 {!isSystem && (
                                                     <button
                                                         type="button"
-                                                        className="h-[34px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[12px] font-[700]"
+                                                        className="h-[34px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[12px] font-[700] disabled:opacity-50"
                                                         onClick={() => deleteLabelTemplate(template.id)}
+                                                        disabled={labelControlsDisabled}
                                                     >
                                                         Delete
                                                     </button>
