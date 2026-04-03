@@ -32,17 +32,17 @@ class PublishScheduledCourierPricing extends Command
                 $settings = is_array($record->settings) ? $record->settings : [];
                 $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : [];
                 $governanceInput = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : [];
-                $hasCategoryGovernance = is_array($governanceInput['domestic'] ?? null) || is_array($governanceInput['logistic'] ?? null);
+                $hasCategoryGovernance = is_array($governanceInput['domestic'] ?? null) || is_array($governanceInput['international'] ?? null);
                 $governanceByCategory = $hasCategoryGovernance
                     ? $governanceInput
                     : [
                         'domestic' => $governanceInput,
-                        'logistic' => $governanceInput,
+                        'international' => $governanceInput,
                     ];
 
                 $publishedInRecord = false;
 
-                foreach (['domestic', 'logistic'] as $category) {
+                foreach (['domestic', 'international'] as $category) {
                     $governance = is_array($governanceByCategory[$category] ?? null) ? $governanceByCategory[$category] : [];
                     $scheduled = is_array($governance['scheduledPublish'] ?? null) ? $governance['scheduledPublish'] : null;
 
@@ -56,7 +56,7 @@ class PublishScheduledCourierPricing extends Command
                     }
 
                     $snapshot = $scheduled['snapshot'];
-                    $snapshotCategory = in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'logistic'], true)
+                    $snapshotCategory = in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'international'], true)
                         ? (string) $snapshot['category']
                         : null;
 
@@ -86,7 +86,7 @@ class PublishScheduledCourierPricing extends Command
                         if (!is_array($enabled)) {
                             $enabled = [
                                 'domestic' => (bool) $enabled,
-                                'logistic' => (bool) $enabled,
+                                'international' => (bool) $enabled,
                             ];
                         }
                         $enabled[$snapshotCategory] = (bool) ($snapshot['laneMatrix']['enabled'] ?? false);
@@ -186,3 +186,5 @@ class PublishScheduledCourierPricing extends Command
         return self::SUCCESS;
     }
 }
+
+

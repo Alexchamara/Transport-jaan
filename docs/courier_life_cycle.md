@@ -5,7 +5,7 @@
 This guide explains how to operate the courier pricing lifecycle in your Laravel + Inertia system for a person with zero technical background.
 
 It is practical, step-by-step, and aligned to the current implementation:
-- Pricing is category scoped: domestic and logistic.
+- Pricing is category scoped: domestic and International.
 - Vendor access to category depends on approved vendor registration scope.
 - Runtime quote logic uses lane matrix + formula + policy modules.
 - Runtime governance can enforce field locks and guardrails.
@@ -46,7 +46,7 @@ Each module includes:
 ### Vendor Perspective
 - Vendor must have approved courier registration for at least one pricing category.
 - Vendor team members must have correct workspace membership and permission to update settings.
-- Vendor should know whether they can operate domestic, logistic, or both.
+- Vendor should know whether they can operate domestic, International, or both.
 
 ### Client Impact Perspective
 - If vendor category access is missing, client quotes in that category cannot be correctly served by that vendor.
@@ -57,7 +57,7 @@ Each module includes:
 - Superadmin ensures role templates and permissions are correctly seeded and assigned.
 
 ### What should be done
-- Confirm approved registration scope for vendor: domestic, logistic, or both.
+- Confirm approved registration scope for vendor: domestic, International, or both.
 - Confirm workspace and role permissions before pricing operations start.
 - Confirm governance roles (who can request, who can approve).
 
@@ -81,11 +81,11 @@ Each module includes:
 ### Real-world example (Sri Lanka)
 - Vendor A is approved for domestic only.
 - They can set rates for Colombo to Kandy domestic parcels.
-- They cannot operate logistic price tables for container-linked B2B runs until logistic registration is approved.
+- They cannot operate International price tables for container-linked B2B runs until International registration is approved.
 
 ### Prerequisite checklist
 - [ ] Vendor registration is approved.
-- [ ] Category scope is confirmed (domestic/logistic/both).
+- [ ] Category scope is confirmed (domestic/International/both).
 - [ ] Workspace membership is active.
 - [ ] Settings update permission exists.
 - [ ] Governance approver roles are configured.
@@ -95,7 +95,7 @@ Each module includes:
 ## Module B: Pricing Model Preparation (By Category)
 
 ### Vendor Perspective
-- Build pricing separately for domestic and logistic.
+- Build pricing separately for domestic and International.
 - Prepare lane matrix rows, formula values, and policy modules per category.
 
 ### Client Impact Perspective
@@ -251,7 +251,7 @@ Each module includes:
 - Review version history and change logs weekly.
 
 ### Real-world example (Sri Lanka)
-- Logistic category update is planned for Monday 6:00 AM for Colombo Port distribution routes.
+- International category update is planned for Monday 6:00 AM for Colombo Port distribution routes.
 - Vendor schedules publish Sunday night.
 - Monday command applies version automatically.
 - If Monday 9:30 AM quote errors spike, approver triggers rollback to version 12.
@@ -312,7 +312,7 @@ Each module includes:
 ### Real-world example (Sri Lanka)
 - A Kandy retail chain places 1,500 monthly domestic parcels.
 - Contract policy module applies negotiated rates only for approved domestic category.
-- Logistic category remains unaffected for this client.
+- International category remains unaffected for this client.
 
 ### Runtime assurance checklist
 - [ ] Baseline quotes saved before release.
@@ -386,7 +386,7 @@ Each module includes:
 - Incident steps:
 1. Detect issue (abnormal quote spike/drop, complaint burst, margin alarm).
 2. Freeze further risky edits.
-3. Identify affected category (domestic or logistic).
+3. Identify affected category (domestic or International).
 4. Select rollback target from version history.
 5. Execute rollback action and validate sample quotes.
 6. Communicate status to support, sales, and client-facing teams.
@@ -412,7 +412,7 @@ Each module includes:
 - Keep incident comms template ready.
 
 ### Real-world example (Sri Lanka)
-- Logistic quotes from Colombo Port to Kurunegala drop below cost due to incorrect multiplier.
+- International quotes from Colombo Port to Kurunegala drop below cost due to incorrect multiplier.
 - Ops detects margin anomaly in one hour.
 - Approver rolls back from version 18 to version 17.
 - Quotes normalize and client escalations stop.
@@ -519,7 +519,7 @@ Track weekly and monthly.
 ## 7. Day-by-Day Onboarding Plan (First 10 Days)
 
 ### Day 1: Orientation
-- [ ] Understand domestic vs logistic category model.
+- [ ] Understand domestic vs International category model.
 - [ ] Learn registration-scope dependency.
 - [ ] Review governance actions and approval flow.
 
@@ -581,7 +581,7 @@ Track weekly and monthly.
 
 Use this for every publish, schedule, or rollback.
 
-- Category: domestic/logistic
+- Category: domestic/International
 - Action: publish now/schedule/approve/reject/rollback
 - Version: from X to Y
 - Effective time: immediate or scheduled timestamp
@@ -613,7 +613,7 @@ Scenario: Vendor updates domestic rates for Colombo 01, Dehiwala, and Gampaha du
 3. Vendor saves draft and requests publish with note.
 4. Different approver reviews sample quote sheet and approves.
 5. New version becomes active for domestic only.
-6. Client quotes increase by controlled amount, logistic category remains unchanged.
+6. Client quotes increase by controlled amount, International category remains unchanged.
 7. Ops monitors complaint rate and margin for 48 hours.
 8. If anomaly appears, approver rolls back to previous domestic version using version history.
 
@@ -765,18 +765,18 @@ Operations view:
 - Client impact: sees clear availability boundaries.
 - Superadmin dependency: can audit SLA governance quality.
 
-#### 11.3.2 Logistic Dimensions Engine
+#### 11.3.2 International Dimensions Engine
 
 Engine fields:
 - `enabled`
-- `enforceForLogisticOnly`
+- `enforceForInternationalOnly`
 - `unitTypeMultipliers` map
 - `routeClassMultipliers` map
 - `handlingClassMultipliers` map
 
 W2W option fields:
 - `w2wOption.enabled`
-- `w2wOption.strictForLogistic`
+- `w2wOption.strictForInternational`
 - `w2wOption.defaultMode`
 - `w2wOption.minimumUnitCount`
 - `w2wOption.maximumUnitCount`
@@ -787,7 +787,7 @@ What should be done:
 - Keep min/max unit controls realistic for logistics ops.
 
 Connected components:
-- Shipment logistic dimensions payload (`unitType`, `routeClass`, `handlingClass`, `w2wMode`, `unitCount`).
+- Shipment International dimensions payload (`unitType`, `routeClass`, `handlingClass`, `w2wMode`, `unitCount`).
 - Runtime validation checks allowed keys and unit limits.
 - Runtime multiplier stack can adjust quote total.
 
@@ -808,8 +808,8 @@ Sri Lanka example:
 
 Operations view:
 - Vendor: maps operational complexity into price.
-- Client impact: more transparent logistic price differences.
-- Superadmin dependency: ensures logistic schema discipline across vendors.
+- Client impact: more transparent International price differences.
+- Superadmin dependency: ensures International schema discipline across vendors.
 
 #### 11.3.3 Remote Area Surcharge
 
@@ -1135,7 +1135,7 @@ Maintenance:
 - Weekly review of pending queue, rejection reasons, and rollback count.
 
 Sri Lanka example:
-- Monday logistic release is approved by a different approver and later rolled back safely after anomaly detection.
+- Monday International release is approved by a different approver and later rolled back safely after anomaly detection.
 
 Operations view:
 - Vendor: controlled release workflow.
@@ -1214,7 +1214,7 @@ Operations view:
 
 Top-level fields:
 - `enabled.domestic`
-- `enabled.logistic`
+- `enabled.international`
 
 Lane rule fields:
 - `id`
@@ -1302,7 +1302,7 @@ Operations view:
 
 ## 12. Advanced Pricing Change Control Checklist (Field-Level)
 
-- [ ] Correct category selected (`domestic` or `logistic`).
+- [ ] Correct category selected (`domestic` or `International`).
 - [ ] Currency base/display and rates verified.
 - [ ] Formula changes tested with preview inputs.
 - [ ] Service catalog keys still match rate cards and lane rules.
@@ -1314,3 +1314,5 @@ Operations view:
 - [ ] Governance action and note completed.
 - [ ] No self-approval rule respected.
 - [ ] Rollback target confirmed in version history.
+
+

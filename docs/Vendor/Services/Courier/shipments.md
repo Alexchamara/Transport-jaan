@@ -17,7 +17,7 @@ This is the operational queue after booking confirmation.
 ## 2) Where Shipments fits in the courier flow
 
 1. Client creates and submits booking.
-2. System assigns shipment to an eligible approved vendor (`domestic` or `logistic`).
+2. System assigns shipment to an eligible approved vendor (`domestic` or `international`).
 3. Vendor handles booking lifecycle in Bookings page.
 4. Vendor handles **physical execution lifecycle** in Shipments page (`/courierService/units`).
 
@@ -64,7 +64,7 @@ The UI receives `courierShipments` payload with:
 
 ### Table rows (per shipment)
 - booking and tracking identifiers
-- category (`Domestic`/`Logistic`)
+- category (`Domestic`/`International`)
 - sender/recipient and origin/destination
 - service, status label, stage label
 - pickup window, ETA, last scan
@@ -85,14 +85,14 @@ The UI receives `courierShipments` payload with:
 ## 5) Category logic used in Shipments
 
 Category is resolved as:
-- If `assignment_category` exists (`domestic`/`logistic`), use it.
+- If `assignment_category` exists (`domestic`/`international`), use it.
 - Else fallback by country:
 	- sender `LK` + recipient `LK` => `Domestic`
-	- otherwise => `Logistic`
+	- otherwise => `International`
 
 Category filtering enforces real geography:
 - Domestic filter -> both sender and recipient country `LK`
-- Logistic filter -> at least one side not `LK`
+- International filter -> at least one side not `LK`
 
 ---
 
@@ -308,7 +308,7 @@ If any gate fails, page access is blocked before data rendering.
 1. Backend resolves vendor context and approved categories.
 2. Base shipment query is scoped to `assigned_vendor_user_id`.
 3. Scope and data-scope policies are applied.
-4. Category constraints are enforced (`domestic`, `logistic`, or both).
+4. Category constraints are enforced (`domestic`, `international`, or both).
 5. User filters are applied (`q`, service, status, stage, dates).
 6. Rows are transformed into shipment DTO for UI.
 7. Summary metrics and filter options are generated.

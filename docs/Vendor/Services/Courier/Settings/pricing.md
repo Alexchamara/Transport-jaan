@@ -15,7 +15,7 @@ Use this guide when you need to:
 
 Pricing is category-scoped:
 - domestic
-- logistic
+- international
 
 A vendor can manage only approved categories from registration scope.
 
@@ -43,14 +43,14 @@ Pricing settings are grouped as:
 - Sees better consistency when governance and guardrails are used correctly.
 
 ### Superadmin Dependency
-- Approves vendor registration scope (domestic/logistic).
+- Approves vendor registration scope (domestic/international).
 - Ensures role and governance standards are in place.
 - Oversees incident control and compliance patterns.
 
 ## 4. Runtime Quote Flow (How Final Price Is Built)
 
 At a high level, runtime quote flow is:
-1. Resolve assignment category (domestic/logistic).
+1. Resolve assignment category (domestic/international).
 2. Load vendor pricing config for that category.
 3. Enforce service catalog and tier policy constraints.
 4. If lane matrix is enabled, enforce matching lane rule; otherwise use fallback quote base.
@@ -222,7 +222,7 @@ Example:
 
 Top-level fields:
 - `enabled.domestic`
-- `enabled.logistic`
+- `enabled.international`
 
 Lane row fields:
 - `id`
@@ -311,16 +311,16 @@ Maintenance:
 Example:
 - Same-day tier only allowed within defined distance and lead window.
 
-### 11.2 Logistic Dimensions Engine
+### 11.2 International Dimensions Engine
 
 Fields:
 - `enabled`
-- `enforceForLogisticOnly`
+- `enforceForInternationalOnly`
 - `unitTypeMultipliers`
 - `routeClassMultipliers`
 - `handlingClassMultipliers`
 - `w2wOption.enabled`
-- `w2wOption.strictForLogistic`
+- `w2wOption.strictForInternational`
 - `w2wOption.defaultMode`
 - `w2wOption.minimumUnitCount`
 - `w2wOption.maximumUnitCount`
@@ -331,14 +331,14 @@ What should be done:
 - Keep min/max unit constraints practical.
 
 Connected components:
-- Shipment logistic dimensions input.
+- Shipment international dimensions input.
 - Runtime validation and multiplier projection.
 
 Change impact:
 - Invalid keys lead to validation failures.
 
 How clients are affected:
-- More accurate complexity pricing on logistic shipments.
+- More accurate complexity pricing on international shipments.
 
 Maintenance:
 - Bi-weekly operations calibration.

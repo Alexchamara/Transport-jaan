@@ -136,12 +136,12 @@ export const COURIER_SERVICES = [
     //     ],
     // },
 
-    // ── LOGISTIC SERVICES ─────────────────────────────────────────────────────
+    // ── international SERVICES ─────────────────────────────────────────────────────
     // {
     //     id: "dhl",
     //     name: "DHL Express",
     //     logo: dhlLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#FFB800",
     //     badgeColor: "#FFF4CC",
     //     rateMultiplier: 1.08,
@@ -158,7 +158,7 @@ export const COURIER_SERVICES = [
     //             perKg: 1.35,
     //             eta: "3-6 business days",
     //             description:
-    //                 "Cost-effective door-to-door logistic delivery.",
+    //                 "Cost-effective door-to-door international delivery.",
     //         },
     //         {
     //             id: "express",
@@ -181,9 +181,9 @@ export const COURIER_SERVICES = [
     // },
     // {
     //     id: "fedex",
-    //     name: "FedEx Logistic",
+    //     name: "FedEx international",
     //     logo: fedexLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#4D148C",
     //     badgeColor: "#EFE6FB",
     //     rateMultiplier: 1.05,
@@ -223,7 +223,7 @@ export const COURIER_SERVICES = [
     //     id: "ups",
     //     name: "UPS Worldwide",
     //     logo: upsLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#3B2419",
     //     badgeColor: "#F4EDE5",
     //     rateMultiplier: 1.04,
@@ -261,9 +261,9 @@ export const COURIER_SERVICES = [
     // },
     // {
     //     id: "aramex",
-    //     name: "Aramex Logistic",
+    //     name: "Aramex international",
     //     logo: aramexLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#E7002A",
     //     badgeColor: "#FFE0E6",
     //     rateMultiplier: 1.02,
@@ -303,7 +303,7 @@ export const COURIER_SERVICES = [
     //     id: "sf",
     //     name: "SF Express Global",
     //     logo: sfLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#111",
     //     badgeColor: "#E9E9E9",
     //     rateMultiplier: 1.03,
@@ -341,9 +341,9 @@ export const COURIER_SERVICES = [
     // },
     // {
     //     id: "dpd",
-    //     name: "DPDgroup Logistic",
+    //     name: "DPDgroup international",
     //     logo: dpdLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#D70926",
     //     badgeColor: "#FFE5EA",
     //     rateMultiplier: 1.01,
@@ -383,7 +383,7 @@ export const COURIER_SERVICES = [
     //     id: "tnt",
     //     name: "TNT Express",
     //     logo: tntLogo,
-    //     category: "logistic",
+    //     category: "international",
     //     brandColor: "#FF6600",
     //     badgeColor: "#FFE3CC",
     //     rateMultiplier: 1.04,
@@ -429,7 +429,7 @@ const DEFAULT_PROVIDER_RATES = {
         fuelSurcharge: 0.03,
         customsBuffer: 0,
     },
-    logistic: {
+    international: {
         rateMultiplier: 1.05,
         fuelSurcharge: 0.05,
         customsBuffer: 3.5,
@@ -460,7 +460,7 @@ const DEFAULT_TIER_BLUEPRINTS = {
             description: "Rapid same-day pickup and door-to-door fulfillment.",
         },
     },
-    logistic: {
+    international: {
         economy: {
             label: "Economy",
             base: 16,
@@ -492,7 +492,7 @@ const toNumberOr = (value, fallback) => {
 
 const normalizeProviderCategory = (category) => {
     const normalized = String(category || "").trim().toLowerCase();
-    return normalized === "logistic" ? "logistic" : "domestic";
+    return normalized === "international" ? "international" : "domestic";
 };
 
 const normalizeProviderTiers = (provider, category) => {
@@ -565,13 +565,13 @@ const normalizeProviderService = (provider, index) => {
         ),
         coverage: String(
             provider.coverage ||
-                (category === "logistic"
-                    ? "Cross-border logistics support"
+                (category === "international"
+                    ? "Cross-border international delivery support"
                     : "Island-wide domestic delivery"),
         ),
         cutoff: String(
             provider.cutoff ||
-                (category === "logistic"
+                (category === "international"
                     ? "Pickup by 3:30 PM"
                     : "Pickup by 5:00 PM"),
         ),
@@ -841,3 +841,5 @@ export const buildReviewContext = (
         totalPriceUSD,
     };
 };
+
+

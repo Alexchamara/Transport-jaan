@@ -15,7 +15,7 @@ It also explains how booking updates are validated and enforced.
 
 ## 2) High-level lifecycle
 
-1. Vendor registers courier services (`Domestic`, `Logistic`, or both).
+1. Vendor registers courier services (`Domestic`, `International`, or both).
 2. Superadmin approves courier service registrations.
 3. Client creates a courier booking through Create -> Review -> Details -> Summary -> Submit.
 4. System validates policy and assigns shipment to an eligible approved vendor.
@@ -31,7 +31,7 @@ Courier bookings depend on approved vendor registrations:
 - Only vendors with approved courier registration are eligible.
 - Assignment category is strict:
 	- `domestic` shipment -> vendors approved for domestic courier subcategory.
-	- `logistic` shipment -> vendors approved for logistic courier subcategory.
+	- `international` shipment -> vendors approved for international courier subcategory.
 - If no eligible registration exists, shipment remains `unassigned`.
 
 This is the operational gate for vendor visibility and execution.
@@ -77,7 +77,7 @@ This is the operational gate for vendor visibility and execution.
 
 Category is resolved by countries:
 - Sender country = `LK` and recipient country = `LK` -> `domestic`
-- Otherwise -> `logistic`
+- Otherwise -> `international`
 
 Assignment service behavior:
 - Finds approved courier registrations for required category.
@@ -192,7 +192,7 @@ During summary/store, pricing is not just UI math; backend enforces:
 	- customer contract pricing
 	- quote runtime governance guardrails
 	- speed/ETA tier engine
-	- logistic dimensions engine
+	- international dimensions engine
 
 If no active matching lane is found (when lane matrix is enabled), booking is blocked with validation error.
 

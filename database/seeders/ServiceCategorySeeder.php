@@ -105,7 +105,7 @@ class ServiceCategorySeeder extends Seeder
         $courier = ServiceCategory::create([
             'name' => 'Courier Services',
             'slug' => 'courier-services',
-            'description' => 'Domestic and logistic courier services',
+            'description' => 'Domestic and international courier services',
             'icon' => 'truck',
             'display_order' => 2,
             'is_active' => true,
@@ -125,14 +125,14 @@ class ServiceCategorySeeder extends Seeder
 
         ServiceSubCategory::create([
             'service_category_id' => $courier->id,
-            'name' => 'Logistic',
-            'slug' => 'logistic',
-            'description' => 'Logistic courier services',
+            'name' => 'International',
+            'slug' => 'international',
+            'description' => 'International courier services',
             'display_order' => 2,
             'required_fields' => [
                 ['key' => 'business_incorporation', 'label' => 'Business Incorporation', 'type' => 'file', 'required' => true],
                 ['key' => 'courier_service_license', 'label' => 'Courier Service License', 'type' => 'file_with_dates', 'required' => true],
-                ['key' => 'customs_registration', 'label' => 'Sri Lanka Customs Registration (Only for Logistic)', 'type' => 'file', 'required' => true],
+                ['key' => 'customs_registration', 'label' => 'Sri Lanka Customs Registration (Only for International)', 'type' => 'file', 'required' => true],
             ],
         ]);
 

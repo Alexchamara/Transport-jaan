@@ -25,7 +25,7 @@ class CourierLabelService
 
     public const CATEGORY_DOMESTIC = 'domestic';
 
-    public const CATEGORY_LOGISTIC = 'logistic';
+    public const CATEGORY_INTERNATIONAL = 'international';
 
     private array $backgroundDataUriCache = [];
 
@@ -69,7 +69,7 @@ class CourierLabelService
             return self::CATEGORY_DOMESTIC;
         }
 
-        return self::CATEGORY_LOGISTIC;
+        return self::CATEGORY_INTERNATIONAL;
     }
 
     public function resolveDefaultsForCategory(array $settings, string $category): array

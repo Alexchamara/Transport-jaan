@@ -42,7 +42,7 @@ const HeroSection = () => {
                                 Experience hassle-free delivery to over 200
                                 countries with our fast, secure, and affordable
                                 courier services. From same-day deliveries to
-                                logistic freight, we offer a range of
+                                international freight, we offer a range of
                                 solutions to suit your needs. Start shipping
                                 today with just a few clicks.
                             </p>

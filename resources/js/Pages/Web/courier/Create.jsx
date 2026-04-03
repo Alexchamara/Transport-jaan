@@ -206,7 +206,7 @@ const Create = () => {
         cod_fee: "COD fee",
         minimum_shipment_guardrail: "Minimum shipment guardrail",
         speed_eta_tier_multiplier: "Speed/ETA tier multiplier",
-        logistic_dimensions_engine: "Logistic dimensions engine",
+        international_dimensions_engine: "International dimensions engine",
         quote_runtime_discount_applied: "Quote runtime discount applied",
         quote_runtime_discount_ceiling_guardrail: "Quote runtime discount ceiling guardrail",
         quote_runtime_floor_price_guardrail: "Quote runtime floor-price guardrail",
@@ -290,8 +290,10 @@ const Create = () => {
         }) || null;
     };
 
-    const handleLocationInputBlur = () => {
-        window.setTimeout(() => setActiveLocationField(null), 120);
+    const handleLocationInputBlur = (fieldKey) => {
+        window.setTimeout(() => {
+            setActiveLocationField((current) => (current === fieldKey ? null : current));
+        }, 120);
     };
 
     const updateAddressCity = (party, cityName) => {
@@ -1054,14 +1056,14 @@ const Create = () => {
                                             <p>Tier Multiplier: x{Number(recentPricingExplanation.speedEtaTier.priceMultiplier || 1).toFixed(2)} {recentPricingExplanation.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
                                         </div>
                                     )}
-                                    {recentPricingExplanation.logisticDimensions && (
+                                    {recentPricingExplanation.internationalDimensions && (
                                         <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
-                                            <p>Logistic Unit Type: {recentPricingExplanation.logisticDimensions.unitType || "—"}</p>
-                                            <p>Route Class: {recentPricingExplanation.logisticDimensions.routeClass || "—"}</p>
-                                            <p>Handling Class: {recentPricingExplanation.logisticDimensions.handlingClass || "—"}</p>
-                                            <p>W2W Mode: {recentPricingExplanation.logisticDimensions.w2wMode || "—"}</p>
-                                            <p>Unit Count: {recentPricingExplanation.logisticDimensions.unitCount || "—"}</p>
-                                            <p>Combined Multiplier: x{Number(recentPricingExplanation.logisticDimensions.totalMultiplier || 1).toFixed(2)}</p>
+                                            <p>International Unit Type: {recentPricingExplanation.internationalDimensions.unitType || "—"}</p>
+                                            <p>Route Class: {recentPricingExplanation.internationalDimensions.routeClass || "—"}</p>
+                                            <p>Handling Class: {recentPricingExplanation.internationalDimensions.handlingClass || "—"}</p>
+                                            <p>W2W Mode: {recentPricingExplanation.internationalDimensions.w2wMode || "—"}</p>
+                                            <p>Unit Count: {recentPricingExplanation.internationalDimensions.unitCount || "—"}</p>
+                                            <p>Combined Multiplier: x{Number(recentPricingExplanation.internationalDimensions.totalMultiplier || 1).toFixed(2)}</p>
                                         </div>
                                     )}
                                     {Array.isArray(recentPricingExplanation.policyAdjustments) && recentPricingExplanation.policyAdjustments.length > 0 && (
@@ -1187,7 +1189,7 @@ const Create = () => {
                                                                             value={locationSearch.senderCity}
                                                                             onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
                                                                             onFocus={() => setActiveLocationField(`sender-city-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
+                                                                            onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                             placeholder="Select Pickup City"
                                                                         />
@@ -1217,7 +1219,7 @@ const Create = () => {
                                                                             value={locationSearch.recipientCity}
                                                                             onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
                                                                             onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
+                                                                            onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                             placeholder="Select Destination City"
                                                                         />
@@ -1250,7 +1252,7 @@ const Create = () => {
                                                                             value={locationSearch.senderCountry}
                                                                             onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
                                                                             onFocus={() => setActiveLocationField(`sender-country-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
+                                                                            onBlur={() => handleLocationInputBlur(`sender-country-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                             placeholder="Select Pickup"
                                                                         />
@@ -1280,7 +1282,7 @@ const Create = () => {
                                                                             value={locationSearch.recipientCountry}
                                                                             onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
                                                                             onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
+                                                                            onBlur={() => handleLocationInputBlur(`recipient-country-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                             placeholder="Select Destination"
                                                                         />
@@ -1700,7 +1702,7 @@ const Create = () => {
                                                     );
 
                                                     const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
-                                                    const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
+                                                    const internationalProviders = activePackageQuotes.providers.filter(p => p.category === 'international');
                                                     const currentPackage = data.packages[activePackageQuotes.packageIndex];
 
                                                     const cheapestByTierInGroup = (providers, tierId) => {
@@ -1989,16 +1991,16 @@ const Create = () => {
                                                     };
 
                                                     const hasDomestic = domesticProviders.length > 0;
-                                                    const hasLogistic = logisticProviders.length > 0;
-                                                    const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
+                                                    const hasInternational = internationalProviders.length > 0;
+                                                    const preferredCategory = selectedRouteType === 'international' ? 'international' : 'domestic';
                                                     const currentCategory = preferredCategory === 'domestic'
                                                         ? (hasDomestic ? 'domestic' : null)
-                                                        : (hasLogistic ? 'logistic' : null);
+                                                        : (hasInternational ? 'international' : null);
 
                                                     return (
                                                         <div className="space-y-3">
                                                             {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
-                                                            {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
+                                                            {currentCategory === 'international' && renderCategoryTable(internationalProviders, 'International', '#0955AC', '#F0F7FF')}
                                                             {!currentCategory && (
                                                                 <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
                                                                     No {selectedRouteType} courier providers are currently available for this package.
@@ -2142,7 +2144,7 @@ const Create = () => {
                                                     {serviceDetailsModal.providerName} · {serviceDetailsModal.tierLabel}
                                                 </h3>
                                                 <p className="mt-1 text-xs text-[#6B7893]">
-                                                    {serviceDetailsModal.providerCategory === "logistic" ? "International" : "Domestic"} service
+                                                    {serviceDetailsModal.providerCategory === "international" ? "International" : "Domestic"} service
                                                     {serviceDetailsModal.packageIndex !== null ? ` for Package ${serviceDetailsModal.packageIndex + 1}` : ""}
                                                 </p>
                                             </div>
@@ -2308,3 +2310,6 @@ const Create = () => {
 };
 
 export default Create;
+
+
+

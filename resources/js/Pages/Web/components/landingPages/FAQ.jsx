@@ -30,8 +30,8 @@ const faqData = [
 // FAQ data array
 const faqDataTwo = [
     {
-        question: "Do you support logistic shipments?",
-        answer: "Yes. Our courier and freight services support both domestic and logistic shipments via air and sea transport.",
+        question: "Do you support international shipments?",
+        answer: "Yes. Our courier and freight services support both domestic and international shipments via air and sea transport.",
     },
     {
         question: "Is warehouse storage available for short-term use?",

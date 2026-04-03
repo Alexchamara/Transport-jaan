@@ -62,7 +62,7 @@ const tableData = [
         id: "D-OR1004",
         date: "Aug 26, 2025",
         recipient: "Nimal Perera",
-        serviceType: "Logistic",
+        serviceType: "International",
         route: "Colombo → Chennai",
         slotDate: "Aug 31, 2025",
         slotTime: "09:00 AM",

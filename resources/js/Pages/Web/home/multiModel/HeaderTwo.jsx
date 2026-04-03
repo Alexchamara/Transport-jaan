@@ -130,7 +130,7 @@ const HeaderTwo = () => {
                         >
                             <svg
                                 className="w-7 h-7 sm:w-8 sm:h-8"
-                                fill="none"
+                                    International
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -156,7 +156,7 @@ const HeaderTwo = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                                            International
                         <img
                             src={bell}
                             className="size-[18px] md:w-[24px] md:h-[23px]"
@@ -410,7 +410,7 @@ const HeaderTwo = () => {
                                             href="/courierBookingDashboard"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Logistic
+                                            International
                                         </Link>
                                     </div>
                                 )}

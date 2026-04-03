@@ -179,7 +179,6 @@ const Header = () => {
                         >
                             <svg
                                 className="w-7 h-7 sm:w-8 sm:h-8"
-                                fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -205,7 +204,7 @@ const Header = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    {shouldLoadVendorNotifications && (
+                    {auth?.user && shouldLoadVendorNotifications && (
                         <NotificationDropdown
                             notifications={notifications}
                             unreadCount={unreadCount}
@@ -447,7 +446,7 @@ const Header = () => {
                                             href="/courierBookingDashboard"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Logistic
+                                            International
                                         </Link>
                                     </div>
                                 )}

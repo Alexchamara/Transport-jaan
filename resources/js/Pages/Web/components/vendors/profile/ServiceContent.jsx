@@ -473,7 +473,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                                     <h3 className='font-bold text-lg text-[#0955AC]'>Courier Service</h3>
                                 </div>
                                 <div className='text-sm text-gray-600 text-center'>
-                                    Domestic and logistic courier services available.
+                                    Domestic and international courier services available.
                                 </div>
                                 <div className='mt-4 text-center'>
                                     <button className='bg-[#0A55AC] text-white px-4 py-2 rounded hover:bg-[#0a4b97] transition text-sm'>

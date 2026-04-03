@@ -214,12 +214,12 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
-    public function test_logistic_dimensions_engine_applies_combined_multiplier(): void
+    public function test_international_dimensions_engine_applies_combined_multiplier(): void
     {
-        $this->createLogisticVendorWithPolicyModules([
-            'logisticDimensionsEngine' => [
+        $this->createInternationalVendorWithPolicyModules([
+            'internationalDimensionsEngine' => [
                 'enabled' => true,
-                'enforceForLogisticOnly' => true,
+                'enforceForInternationalOnly' => true,
                 'unitTypeMultipliers' => [
                     'pallet' => 1.1,
                 ],
@@ -231,7 +231,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 ],
                 'w2wOption' => [
                     'enabled' => true,
-                    'strictForLogistic' => true,
+                    'strictForInternational' => true,
                     'defaultMode' => 'door_to_door',
                     'minimumUnitCount' => 1,
                     'maximumUnitCount' => 5,
@@ -249,7 +249,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 ],
             ],
             'shipment' => [
-                'logisticDimensions' => [
+                'internationalDimensions' => [
                     'unitType' => 'pallet',
                     'unitCount' => 2,
                     'routeClass' => 'express_corridor',
@@ -260,15 +260,15 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         ]);
 
         $this->assertEqualsWithDelta(79.7, $result['estimatedCost'], 0.01);
-        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'logistic_dimensions_engine', 29.7);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'international_dimensions_engine', 29.7);
     }
 
-    public function test_logistic_dimensions_engine_rejects_invalid_unit_type(): void
+    public function test_international_dimensions_engine_rejects_invalid_unit_type(): void
     {
-        $this->createLogisticVendorWithPolicyModules([
-            'logisticDimensionsEngine' => [
+        $this->createInternationalVendorWithPolicyModules([
+            'internationalDimensionsEngine' => [
                 'enabled' => true,
-                'enforceForLogisticOnly' => true,
+                'enforceForInternationalOnly' => true,
                 'unitTypeMultipliers' => [
                     'pallet' => 1.1,
                 ],
@@ -280,7 +280,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 ],
                 'w2wOption' => [
                     'enabled' => true,
-                    'strictForLogistic' => true,
+                    'strictForInternational' => true,
                     'defaultMode' => 'door_to_door',
                     'modeMultipliers' => [
                         'door_to_door' => 1.0,
@@ -297,7 +297,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 ],
             ],
             'shipment' => [
-                'logisticDimensions' => [
+                'internationalDimensions' => [
                     'unitType' => 'unsupported_unit',
                     'unitCount' => 1,
                     'routeClass' => 'standard',
@@ -306,17 +306,17 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 ],
             ],
         ]);
-        $csrfToken = 'advanced-policy-test-token-logistic-unit-type';
+        $csrfToken = 'advanced-policy-test-token-international-unit-type';
 
         $response = $this->actingAs($user)
             ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
-        $response->assertSessionHasErrors('shipment.logisticDimensions.unitType');
+        $response->assertSessionHasErrors('shipment.internationalDimensions.unitType');
         $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
-    public function test_quote_runtime_governance_field_lock_rejects_service_level_mismatch(): void
+    public function test_quote_runtime_governance_field_lock_rejects_package_service_level_mismatch(): void
     {
         $this->createDomesticVendorWithPolicyModules([
             'quoteRuntimeGovernance' => [
@@ -324,7 +324,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 'fieldLocks' => [
                     'enabled' => true,
                     'lockShipmentServiceLevel' => true,
-                    'lockPackageServiceLevel' => false,
+                    'lockPackageServiceLevel' => true,
                     'lockPackageCourierProvider' => false,
                     'lockQuoteTotal' => false,
                 ],
@@ -335,6 +335,11 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $payload = $this->buildPayload([
             'shipment' => [
                 'serviceLevel' => 'Economy',
+            ],
+            'packages' => [
+                [
+                    'serviceLevel' => 'economy',
+                ],
             ],
             'reviewContext' => [
                 'selectedQuotes' => [
@@ -351,7 +356,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
             ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
 
-        $response->assertSessionHasErrors('shipment.serviceLevel');
+        $response->assertSessionHasErrors('packages.0.serviceLevel');
     }
 
     public function test_quote_runtime_discount_ceiling_and_floor_guardrails_are_enforced(): void
@@ -456,7 +461,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             'distanceKm' => null,
             'matchedRule' => null,
             'speedEtaTier' => null,
-            'logisticDimensions' => null,
+            'internationalDimensions' => null,
             'policyAdjustments' => [
                 ['key' => 'remote_area_surcharge', 'amount' => 10.0],
                 ['key' => 'minimum_shipment_guardrail', 'amount' => 10.0],
@@ -581,9 +586,9 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         return $this->createVendorWithPolicyModules($policyModules, 'domestic', 'Courier Domestic');
     }
 
-    private function createLogisticVendorWithPolicyModules(array $policyModules): User
+    private function createInternationalVendorWithPolicyModules(array $policyModules): User
     {
-        return $this->createVendorWithPolicyModules($policyModules, 'logistic', 'Courier Logistic');
+        return $this->createVendorWithPolicyModules($policyModules, 'international', 'Courier international');
     }
 
     private function createVendorWithPolicyModules(array $policyModules, string $subCategorySlug, string $subCategoryName): User
@@ -639,7 +644,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
                 public function determineAssignment(CourierShipment $shipment): array
                 {
                     return [
-                        'assignment_category' => $this->subCategorySlug === 'logistic' ? 'logistic' : 'domestic',
+                        'assignment_category' => $this->subCategorySlug === 'international' ? 'international' : 'domestic',
                         'assignment_status' => 'assigned',
                         'assigned_vendor_user_id' => $this->vendorId,
                         'assigned_vendor_registration_id' => $this->registrationId,
@@ -815,7 +820,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             'distanceKm' => $pricingExplanation['distanceKm'] ?? null,
             'matchedRule' => $pricingExplanation['matchedRule'] ?? null,
             'speedEtaTier' => $pricingExplanation['speedEtaTier'] ?? null,
-            'logisticDimensions' => $pricingExplanation['logisticDimensions'] ?? null,
+            'internationalDimensions' => $pricingExplanation['internationalDimensions'] ?? null,
             'policyAdjustments' => collect($pricingExplanation['policyAdjustments'] ?? [])
                 ->map(function ($adjustment) {
                     return [
@@ -829,3 +834,6 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         ];
     }
 }
+
+
+

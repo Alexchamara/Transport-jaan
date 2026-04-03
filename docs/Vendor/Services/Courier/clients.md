@@ -59,7 +59,7 @@ If checks fail, view or updates are blocked.
 - identity: name/company/email/phone
 - `clientTier`, `categoryMix`, `priorityTag`, `watchlist`, `accountOwner`
 - shipment metrics: total, active, delivered %, exception %, SLA %, open exceptions
-- distribution metrics: domestic count, logistic count
+- distribution metrics: domestic count, international count
 - activity: last shipment date
 - notes: internal notes
 
@@ -82,7 +82,7 @@ For each group, backend derives:
 - delivered rate
 - exception rate
 - SLA performance
-- category mix (`Domestic`, `Logistic`, or `Mixed`)
+- category mix (`Domestic`, `International`, or `Mixed`)
 
 Then merges vendor-managed profile (`VendorCourierClientProfile`) if available:
 - watchlist flag
@@ -133,7 +133,7 @@ Additional policy checks:
 
 Supported filters:
 - `q` (name/company/email/phone)
-- `category` (`domestic`/`logistic` scope)
+- `category` (`domestic`/`international` scope)
 - `tier`
 - `risk`
 - `watchlist` (`only`)

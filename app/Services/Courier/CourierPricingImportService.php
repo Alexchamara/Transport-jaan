@@ -90,7 +90,7 @@ class CourierPricingImportService
 
     public function preview(UploadedFile $file, string $pricingCategory = 'domestic', array $serviceCatalog = []): array
     {
-        $pricingCategory = in_array($pricingCategory, ['domestic', 'logistic'], true) ? $pricingCategory : 'domestic';
+        $pricingCategory = in_array($pricingCategory, ['domestic', 'international'], true) ? $pricingCategory : 'domestic';
 
         $extracted = $this->extractRowsFromFile($file);
         $fieldMap = $this->detectFieldMap($extracted['headers']);
@@ -152,7 +152,7 @@ class CourierPricingImportService
 
     public function sanitizePatch(array $patch, string $pricingCategory = 'domestic', array $serviceCatalog = []): array
     {
-        $pricingCategory = in_array($pricingCategory, ['domestic', 'logistic'], true) ? $pricingCategory : 'domestic';
+        $pricingCategory = in_array($pricingCategory, ['domestic', 'international'], true) ? $pricingCategory : 'domestic';
         $allowedServiceKeys = $this->allowedServiceKeys($serviceCatalog);
         $defaultServiceKey = $allowedServiceKeys[0] ?? 'economy';
 
@@ -791,7 +791,7 @@ class CourierPricingImportService
         }
 
         $lower = strtolower($zone);
-        if (in_array($lower, ['zone', 'city', 'cities', 'rate', 'price', 'card', 'list', 'domestic', 'logistic', 'lkr'], true)) {
+        if (in_array($lower, ['zone', 'city', 'cities', 'rate', 'price', 'card', 'list', 'domestic', 'international', 'lkr'], true)) {
             return false;
         }
 
@@ -1391,3 +1391,5 @@ class CourierPricingImportService
         return ucwords($clean);
     }
 }
+
+

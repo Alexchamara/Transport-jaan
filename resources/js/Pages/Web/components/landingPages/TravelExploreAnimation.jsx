@@ -22,7 +22,7 @@ const IMAGES = [
         title: "Courier",
         subtitle: "Fast & Reliable Delivery",
         description:
-            "Send packages, documents, and parcels through domestic or logistic routes with our trusted courier network. Real-time tracking and secure delivery options.",
+            "Send packages, documents, and parcels through domestic or international routes with our trusted courier network. Real-time tracking and secure delivery options.",
         ctaLabel: "Book Courier",
         href: "/couriers/create",
         url: img8,
@@ -75,7 +75,7 @@ const IMAGES = [
 ];
 
 const SERVICES = [
-    { statusLabel: "AVAILABLE", title: "Courier Booking", subtitle: "Local & logistic parcels", href: "/couriers/create", img: img8 },
+    { statusLabel: "AVAILABLE", title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
     {
         statusLabel: "COMING SOON",
         title: "Vehicle Rental",

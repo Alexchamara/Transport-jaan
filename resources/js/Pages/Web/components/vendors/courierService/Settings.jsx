@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
                 templateId: null,
                 sizeId: null,
             },
-            logistic: {
+            international: {
                 templateId: null,
                 sizeId: null,
             },
@@ -81,7 +81,7 @@ const DEFAULT_SETTINGS = {
                 },
                 lastSyncedAt: null,
             },
-            logistic: {
+            international: {
                 baseCurrency: "LKR",
                 displayCurrency: "LKR",
                 locale: "en-LK",
@@ -104,7 +104,7 @@ const DEFAULT_SETTINGS = {
                 taxPercent: 0,
                 roundTo: 2,
             },
-            logistic: {
+            international: {
                 volumetricDivisor: 5000,
                 useChargeableWeight: true,
                 fuelSurchargePercent: 0,
@@ -120,7 +120,7 @@ const DEFAULT_SETTINGS = {
                 { key: "two_three_day", label: "2-3 Day", promisedSlaDays: 3, cutoffTime: "17:00", isActive: true, sortOrder: 3 },
                 { key: "economy", label: "Economy", promisedSlaDays: 5, cutoffTime: "18:00", isActive: true, sortOrder: 4 },
             ],
-            logistic: [
+            international: [
                 { key: "next_day", label: "Next Day", promisedSlaDays: 2, cutoffTime: "13:00", isActive: true, sortOrder: 1 },
                 { key: "two_three_day", label: "2-3 Day", promisedSlaDays: 3, cutoffTime: "16:00", isActive: true, sortOrder: 2 },
                 { key: "economy", label: "Economy", promisedSlaDays: 6, cutoffTime: "18:00", isActive: true, sortOrder: 3 },
@@ -128,15 +128,15 @@ const DEFAULT_SETTINGS = {
         },
         zoneMaster: {
             domestic: [],
-            logistic: [],
+            international: [],
         },
         laneMatrix: {
             enabled: {
                 domestic: false,
-                logistic: false,
+                international: false,
             },
             domestic: [],
-            logistic: [],
+            international: [],
         },
         policyModules: {
             domestic: {
@@ -274,9 +274,9 @@ const DEFAULT_SETTINGS = {
                         },
                     },
                 },
-                logisticDimensionsEngine: {
+                internationalDimensionsEngine: {
                     enabled: false,
-                    enforceForLogisticOnly: true,
+                    enforceForInternationalOnly: true,
                     unitTypeMultipliers: {
                         parcel: 1.0,
                         pallet: 1.18,
@@ -299,7 +299,7 @@ const DEFAULT_SETTINGS = {
                     },
                     w2wOption: {
                         enabled: true,
-                        strictForLogistic: true,
+                        strictForInternational: true,
                         defaultMode: "door_to_door",
                         minimumUnitCount: 1,
                         maximumUnitCount: null,
@@ -311,7 +311,7 @@ const DEFAULT_SETTINGS = {
                     },
                 },
             },
-            logistic: {
+            international: {
                 remoteAreaSurcharge: {
                     enabled: false,
                     flatFee: 0,
@@ -446,9 +446,9 @@ const DEFAULT_SETTINGS = {
                         },
                     },
                 },
-                logisticDimensionsEngine: {
+                internationalDimensionsEngine: {
                     enabled: false,
-                    enforceForLogisticOnly: true,
+                    enforceForInternationalOnly: true,
                     unitTypeMultipliers: {
                         parcel: 1.0,
                         pallet: 1.18,
@@ -471,7 +471,7 @@ const DEFAULT_SETTINGS = {
                     },
                     w2wOption: {
                         enabled: true,
-                        strictForLogistic: true,
+                        strictForInternational: true,
                         defaultMode: "door_to_door",
                         minimumUnitCount: 1,
                         maximumUnitCount: null,
@@ -507,10 +507,10 @@ const DEFAULT_SETTINGS = {
                     priorityMultiplier: 1,
                 },
             ],
-            logistic: [
+            international: [
                 {
-                    id: "logistic_standard",
-                    label: "Logistic Standard",
+                    id: "international_standard",
+                    label: "international Standard",
                     serviceLevelKey: "two_three_day",
                     slaDays: 4,
                     basePrice: 1400,
@@ -519,8 +519,8 @@ const DEFAULT_SETTINGS = {
                     priorityMultiplier: 1,
                 },
                 {
-                    id: "logistic_express",
-                    label: "Logistic Express",
+                    id: "international_express",
+                    label: "international Express",
                     serviceLevelKey: "next_day",
                     slaDays: 2,
                     basePrice: 2200,
@@ -543,7 +543,7 @@ const DEFAULT_SETTINGS = {
                 versionHistory: [],
                 changeLog: [],
             },
-            logistic: {
+            international: {
                 requireApproval: false,
                 approverRoles: ["courier_owner", "courier_admin"],
                 draftVersion: 1,
@@ -958,11 +958,11 @@ const Settings = () => {
     const approvedPricingCategories = Array.isArray(props.approvedCourierPricingCategories)
         ? props.approvedCourierPricingCategories
             .map((item) => String(item || "").toLowerCase())
-            .filter((item) => item === "domestic" || item === "logistic")
-        : ["domestic", "logistic"];
+            .filter((item) => item === "domestic" || item === "international")
+        : ["domestic", "international"];
     const visiblePricingCategoryOptions = [
         { key: "domestic", label: "Domestic" },
-        { key: "logistic", label: "Logistic" },
+        { key: "international", label: "international" },
     ].filter((item) => approvedPricingCategories.includes(item.key));
     const defaultPricingCategory = visiblePricingCategoryOptions[0]?.key || "domestic";
 
@@ -1018,9 +1018,9 @@ const Settings = () => {
                         ...DEFAULT_SETTINGS.labels.defaults.domestic,
                         ...(incomingLabelDefaults.domestic && typeof incomingLabelDefaults.domestic === "object" ? incomingLabelDefaults.domestic : {}),
                     },
-                    logistic: {
-                        ...DEFAULT_SETTINGS.labels.defaults.logistic,
-                        ...(incomingLabelDefaults.logistic && typeof incomingLabelDefaults.logistic === "object" ? incomingLabelDefaults.logistic : {}),
+                    international: {
+                        ...DEFAULT_SETTINGS.labels.defaults.international,
+                        ...(incomingLabelDefaults.international && typeof incomingLabelDefaults.international === "object" ? incomingLabelDefaults.international : {}),
                     },
                 },
                 printPolicy: {
@@ -1046,15 +1046,15 @@ const Settings = () => {
                                     : {})),
                         },
                     },
-                    logistic: {
-                        ...DEFAULT_SETTINGS.pricing.localization.logistic,
-                        ...(incomingPricing.localization && typeof incomingPricing.localization === "object" && incomingPricing.localization.logistic && typeof incomingPricing.localization.logistic === "object"
-                            ? incomingPricing.localization.logistic
+                    international: {
+                        ...DEFAULT_SETTINGS.pricing.localization.international,
+                        ...(incomingPricing.localization && typeof incomingPricing.localization === "object" && incomingPricing.localization.international && typeof incomingPricing.localization.international === "object"
+                            ? incomingPricing.localization.international
                             : (incomingPricing.localization && typeof incomingPricing.localization === "object" ? incomingPricing.localization : {})),
                         manualRates: {
-                            ...DEFAULT_SETTINGS.pricing.localization.logistic.manualRates,
-                            ...(incomingPricing.localization?.logistic?.manualRates && typeof incomingPricing.localization.logistic.manualRates === "object"
-                                ? incomingPricing.localization.logistic.manualRates
+                            ...DEFAULT_SETTINGS.pricing.localization.international.manualRates,
+                            ...(incomingPricing.localization?.international?.manualRates && typeof incomingPricing.localization.international.manualRates === "object"
+                                ? incomingPricing.localization.international.manualRates
                                 : (incomingPricing.localization?.manualRates && typeof incomingPricing.localization.manualRates === "object"
                                     ? incomingPricing.localization.manualRates
                                     : {})),
@@ -1068,10 +1068,10 @@ const Settings = () => {
                             ? incomingPricing.formula.domestic
                             : (incomingPricing.formula && typeof incomingPricing.formula === "object" ? incomingPricing.formula : {})),
                     },
-                    logistic: {
-                        ...DEFAULT_SETTINGS.pricing.formula.logistic,
-                        ...((incomingPricing.formula && typeof incomingPricing.formula === "object" && incomingPricing.formula.logistic && typeof incomingPricing.formula.logistic === "object")
-                            ? incomingPricing.formula.logistic
+                    international: {
+                        ...DEFAULT_SETTINGS.pricing.formula.international,
+                        ...((incomingPricing.formula && typeof incomingPricing.formula === "object" && incomingPricing.formula.international && typeof incomingPricing.formula.international === "object")
+                            ? incomingPricing.formula.international
                             : (incomingPricing.formula && typeof incomingPricing.formula === "object" ? incomingPricing.formula : {})),
                     },
                 },
@@ -1079,33 +1079,33 @@ const Settings = () => {
                     domestic: Array.isArray(incomingPricing.serviceCatalog?.domestic)
                         ? incomingPricing.serviceCatalog.domestic
                         : DEFAULT_SETTINGS.pricing.serviceCatalog.domestic,
-                    logistic: Array.isArray(incomingPricing.serviceCatalog?.logistic)
-                        ? incomingPricing.serviceCatalog.logistic
-                        : DEFAULT_SETTINGS.pricing.serviceCatalog.logistic,
+                    international: Array.isArray(incomingPricing.serviceCatalog?.international)
+                        ? incomingPricing.serviceCatalog.international
+                        : DEFAULT_SETTINGS.pricing.serviceCatalog.international,
                 },
                 zoneMaster: {
                     domestic: Array.isArray(incomingPricing.zoneMaster?.domestic)
                         ? incomingPricing.zoneMaster.domestic
                         : (Array.isArray(incomingPricing.zoneMaster) ? incomingPricing.zoneMaster : DEFAULT_SETTINGS.pricing.zoneMaster.domestic),
-                    logistic: Array.isArray(incomingPricing.zoneMaster?.logistic)
-                        ? incomingPricing.zoneMaster.logistic
-                        : (Array.isArray(incomingPricing.zoneMaster) ? incomingPricing.zoneMaster : DEFAULT_SETTINGS.pricing.zoneMaster.logistic),
+                    international: Array.isArray(incomingPricing.zoneMaster?.international)
+                        ? incomingPricing.zoneMaster.international
+                        : (Array.isArray(incomingPricing.zoneMaster) ? incomingPricing.zoneMaster : DEFAULT_SETTINGS.pricing.zoneMaster.international),
                 },
                 laneMatrix: {
                     enabled: {
                         domestic: typeof incomingPricing.laneMatrix?.enabled === "object"
                             ? Boolean(incomingPricing.laneMatrix.enabled?.domestic)
                             : Boolean(incomingPricing.laneMatrix?.enabled),
-                        logistic: typeof incomingPricing.laneMatrix?.enabled === "object"
-                            ? Boolean(incomingPricing.laneMatrix.enabled?.logistic)
+                        international: typeof incomingPricing.laneMatrix?.enabled === "object"
+                            ? Boolean(incomingPricing.laneMatrix.enabled?.international)
                             : Boolean(incomingPricing.laneMatrix?.enabled),
                     },
                     domestic: Array.isArray(incomingPricing.laneMatrix?.domestic)
                         ? incomingPricing.laneMatrix.domestic
                         : DEFAULT_SETTINGS.pricing.laneMatrix.domestic,
-                    logistic: Array.isArray(incomingPricing.laneMatrix?.logistic)
-                        ? incomingPricing.laneMatrix.logistic
-                        : DEFAULT_SETTINGS.pricing.laneMatrix.logistic,
+                    international: Array.isArray(incomingPricing.laneMatrix?.international)
+                        ? incomingPricing.laneMatrix.international
+                        : DEFAULT_SETTINGS.pricing.laneMatrix.international,
                 },
                 policyModules: {
                     domestic: {
@@ -1129,120 +1129,120 @@ const Settings = () => {
                                         : {})),
                             },
                         },
-                        logisticDimensionsEngine: {
-                            ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine,
-                            ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine === "object"
-                                ? incomingPricing.policyModules.domestic.logisticDimensionsEngine
-                                : (incomingPricing.policyModules?.logisticDimensionsEngine && typeof incomingPricing.policyModules.logisticDimensionsEngine === "object"
-                                    ? incomingPricing.policyModules.logisticDimensionsEngine
+                        internationalDimensionsEngine: {
+                            ...DEFAULT_SETTINGS.pricing.policyModules.domestic.internationalDimensionsEngine,
+                            ...(incomingPricing.policyModules?.domestic?.internationalDimensionsEngine && typeof incomingPricing.policyModules.domestic.internationalDimensionsEngine === "object"
+                                ? incomingPricing.policyModules.domestic.internationalDimensionsEngine
+                                : (incomingPricing.policyModules?.internationalDimensionsEngine && typeof incomingPricing.policyModules.internationalDimensionsEngine === "object"
+                                    ? incomingPricing.policyModules.internationalDimensionsEngine
                                     : {})),
                             unitTypeMultipliers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.unitTypeMultipliers,
-                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.unitTypeMultipliers === "object"
-                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.unitTypeMultipliers
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.internationalDimensionsEngine.unitTypeMultipliers,
+                                ...(incomingPricing.policyModules?.domestic?.internationalDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.domestic.internationalDimensionsEngine.unitTypeMultipliers === "object"
+                                    ? incomingPricing.policyModules.domestic.internationalDimensionsEngine.unitTypeMultipliers
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.unitTypeMultipliers === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.unitTypeMultipliers
                                         : {})),
                             },
                             routeClassMultipliers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.routeClassMultipliers,
-                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.routeClassMultipliers === "object"
-                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.routeClassMultipliers
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.internationalDimensionsEngine.routeClassMultipliers,
+                                ...(incomingPricing.policyModules?.domestic?.internationalDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.domestic.internationalDimensionsEngine.routeClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.domestic.internationalDimensionsEngine.routeClassMultipliers
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.routeClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.routeClassMultipliers
                                         : {})),
                             },
                             handlingClassMultipliers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.handlingClassMultipliers,
-                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.handlingClassMultipliers === "object"
-                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.handlingClassMultipliers
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.internationalDimensionsEngine.handlingClassMultipliers,
+                                ...(incomingPricing.policyModules?.domestic?.internationalDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.domestic.internationalDimensionsEngine.handlingClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.domestic.internationalDimensionsEngine.handlingClassMultipliers
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.handlingClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.handlingClassMultipliers
                                         : {})),
                             },
                             w2wOption: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.w2wOption,
-                                ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption === "object"
-                                    ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption
+                                ...DEFAULT_SETTINGS.pricing.policyModules.domestic.internationalDimensionsEngine.w2wOption,
+                                ...(incomingPricing.policyModules?.domestic?.internationalDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.domestic.internationalDimensionsEngine.w2wOption === "object"
+                                    ? incomingPricing.policyModules.domestic.internationalDimensionsEngine.w2wOption
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.internationalDimensionsEngine.w2wOption === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.w2wOption
                                         : {})),
                                 modeMultipliers: {
-                                    ...DEFAULT_SETTINGS.pricing.policyModules.domestic.logisticDimensionsEngine.w2wOption.modeMultipliers,
-                                    ...(incomingPricing.policyModules?.domestic?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
-                                        ? incomingPricing.policyModules.domestic.logisticDimensionsEngine.w2wOption.modeMultipliers
-                                        : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
-                                            ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers
+                                    ...DEFAULT_SETTINGS.pricing.policyModules.domestic.internationalDimensionsEngine.w2wOption.modeMultipliers,
+                                    ...(incomingPricing.policyModules?.domestic?.internationalDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.domestic.internationalDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                        ? incomingPricing.policyModules.domestic.internationalDimensionsEngine.w2wOption.modeMultipliers
+                                        : (incomingPricing.policyModules?.internationalDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                            ? incomingPricing.policyModules.internationalDimensionsEngine.w2wOption.modeMultipliers
                                             : {})),
                                 },
                             },
                         },
                     },
-                    logistic: {
-                        ...DEFAULT_SETTINGS.pricing.policyModules.logistic,
-                        ...(incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" && incomingPricing.policyModules.logistic && typeof incomingPricing.policyModules.logistic === "object"
-                            ? incomingPricing.policyModules.logistic
+                    international: {
+                        ...DEFAULT_SETTINGS.pricing.policyModules.international,
+                        ...(incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" && incomingPricing.policyModules.international && typeof incomingPricing.policyModules.international === "object"
+                            ? incomingPricing.policyModules.international
                             : (incomingPricing.policyModules && typeof incomingPricing.policyModules === "object" ? incomingPricing.policyModules : {})),
                         speedEtaTierEngine: {
-                            ...DEFAULT_SETTINGS.pricing.policyModules.logistic.speedEtaTierEngine,
-                            ...(incomingPricing.policyModules?.logistic?.speedEtaTierEngine && typeof incomingPricing.policyModules.logistic.speedEtaTierEngine === "object"
-                                ? incomingPricing.policyModules.logistic.speedEtaTierEngine
+                            ...DEFAULT_SETTINGS.pricing.policyModules.international.speedEtaTierEngine,
+                            ...(incomingPricing.policyModules?.international?.speedEtaTierEngine && typeof incomingPricing.policyModules.international.speedEtaTierEngine === "object"
+                                ? incomingPricing.policyModules.international.speedEtaTierEngine
                                 : (incomingPricing.policyModules?.speedEtaTierEngine && typeof incomingPricing.policyModules.speedEtaTierEngine === "object"
                                     ? incomingPricing.policyModules.speedEtaTierEngine
                                     : {})),
                             tiers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.speedEtaTierEngine.tiers,
-                                ...(incomingPricing.policyModules?.logistic?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.logistic.speedEtaTierEngine.tiers === "object"
-                                    ? incomingPricing.policyModules.logistic.speedEtaTierEngine.tiers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.international.speedEtaTierEngine.tiers,
+                                ...(incomingPricing.policyModules?.international?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.international.speedEtaTierEngine.tiers === "object"
+                                    ? incomingPricing.policyModules.international.speedEtaTierEngine.tiers
                                     : (incomingPricing.policyModules?.speedEtaTierEngine?.tiers && typeof incomingPricing.policyModules.speedEtaTierEngine.tiers === "object"
                                         ? incomingPricing.policyModules.speedEtaTierEngine.tiers
                                         : {})),
                             },
                         },
-                        logisticDimensionsEngine: {
-                            ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine,
-                            ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine === "object"
-                                ? incomingPricing.policyModules.logistic.logisticDimensionsEngine
-                                : (incomingPricing.policyModules?.logisticDimensionsEngine && typeof incomingPricing.policyModules.logisticDimensionsEngine === "object"
-                                    ? incomingPricing.policyModules.logisticDimensionsEngine
+                        internationalDimensionsEngine: {
+                            ...DEFAULT_SETTINGS.pricing.policyModules.international.internationalDimensionsEngine,
+                            ...(incomingPricing.policyModules?.international?.internationalDimensionsEngine && typeof incomingPricing.policyModules.international.internationalDimensionsEngine === "object"
+                                ? incomingPricing.policyModules.international.internationalDimensionsEngine
+                                : (incomingPricing.policyModules?.internationalDimensionsEngine && typeof incomingPricing.policyModules.internationalDimensionsEngine === "object"
+                                    ? incomingPricing.policyModules.internationalDimensionsEngine
                                     : {})),
                             unitTypeMultipliers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.unitTypeMultipliers,
-                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.unitTypeMultipliers === "object"
-                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.unitTypeMultipliers
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.unitTypeMultipliers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.international.internationalDimensionsEngine.unitTypeMultipliers,
+                                ...(incomingPricing.policyModules?.international?.internationalDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.international.internationalDimensionsEngine.unitTypeMultipliers === "object"
+                                    ? incomingPricing.policyModules.international.internationalDimensionsEngine.unitTypeMultipliers
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.unitTypeMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.unitTypeMultipliers === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.unitTypeMultipliers
                                         : {})),
                             },
                             routeClassMultipliers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.routeClassMultipliers,
-                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.routeClassMultipliers === "object"
-                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.routeClassMultipliers
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.routeClassMultipliers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.international.internationalDimensionsEngine.routeClassMultipliers,
+                                ...(incomingPricing.policyModules?.international?.internationalDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.international.internationalDimensionsEngine.routeClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.international.internationalDimensionsEngine.routeClassMultipliers
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.routeClassMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.routeClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.routeClassMultipliers
                                         : {})),
                             },
                             handlingClassMultipliers: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.handlingClassMultipliers,
-                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.handlingClassMultipliers === "object"
-                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.handlingClassMultipliers
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.handlingClassMultipliers
+                                ...DEFAULT_SETTINGS.pricing.policyModules.international.internationalDimensionsEngine.handlingClassMultipliers,
+                                ...(incomingPricing.policyModules?.international?.internationalDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.international.internationalDimensionsEngine.handlingClassMultipliers === "object"
+                                    ? incomingPricing.policyModules.international.internationalDimensionsEngine.handlingClassMultipliers
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.handlingClassMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.handlingClassMultipliers === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.handlingClassMultipliers
                                         : {})),
                             },
                             w2wOption: {
-                                ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.w2wOption,
-                                ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption === "object"
-                                    ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption
-                                    : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption === "object"
-                                        ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption
+                                ...DEFAULT_SETTINGS.pricing.policyModules.international.internationalDimensionsEngine.w2wOption,
+                                ...(incomingPricing.policyModules?.international?.internationalDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.international.internationalDimensionsEngine.w2wOption === "object"
+                                    ? incomingPricing.policyModules.international.internationalDimensionsEngine.w2wOption
+                                    : (incomingPricing.policyModules?.internationalDimensionsEngine?.w2wOption && typeof incomingPricing.policyModules.internationalDimensionsEngine.w2wOption === "object"
+                                        ? incomingPricing.policyModules.internationalDimensionsEngine.w2wOption
                                         : {})),
                                 modeMultipliers: {
-                                    ...DEFAULT_SETTINGS.pricing.policyModules.logistic.logisticDimensionsEngine.w2wOption.modeMultipliers,
-                                    ...(incomingPricing.policyModules?.logistic?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
-                                        ? incomingPricing.policyModules.logistic.logisticDimensionsEngine.w2wOption.modeMultipliers
-                                        : (incomingPricing.policyModules?.logisticDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers === "object"
-                                            ? incomingPricing.policyModules.logisticDimensionsEngine.w2wOption.modeMultipliers
+                                    ...DEFAULT_SETTINGS.pricing.policyModules.international.internationalDimensionsEngine.w2wOption.modeMultipliers,
+                                    ...(incomingPricing.policyModules?.international?.internationalDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.international.internationalDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                        ? incomingPricing.policyModules.international.internationalDimensionsEngine.w2wOption.modeMultipliers
+                                        : (incomingPricing.policyModules?.internationalDimensionsEngine?.w2wOption?.modeMultipliers && typeof incomingPricing.policyModules.internationalDimensionsEngine.w2wOption.modeMultipliers === "object"
+                                            ? incomingPricing.policyModules.internationalDimensionsEngine.w2wOption.modeMultipliers
                                             : {})),
                                 },
                             },
@@ -1253,9 +1253,9 @@ const Settings = () => {
                     domestic: Array.isArray(incomingPricing.categories?.domestic)
                         ? incomingPricing.categories.domestic
                         : DEFAULT_SETTINGS.pricing.categories.domestic,
-                    logistic: Array.isArray(incomingPricing.categories?.logistic)
-                        ? incomingPricing.categories.logistic
-                        : DEFAULT_SETTINGS.pricing.categories.logistic,
+                    international: Array.isArray(incomingPricing.categories?.international)
+                        ? incomingPricing.categories.international
+                        : DEFAULT_SETTINGS.pricing.categories.international,
                 },
                 governance: {
                     domestic: {
@@ -1274,21 +1274,21 @@ const Settings = () => {
                                 ? incomingPricing.governance.changeLog
                                 : DEFAULT_SETTINGS.pricing.governance.domestic.changeLog),
                     },
-                    logistic: {
-                        ...DEFAULT_SETTINGS.pricing.governance.logistic,
-                        ...(incomingPricing.governance && typeof incomingPricing.governance === "object" && incomingPricing.governance.logistic && typeof incomingPricing.governance.logistic === "object"
-                            ? incomingPricing.governance.logistic
+                    international: {
+                        ...DEFAULT_SETTINGS.pricing.governance.international,
+                        ...(incomingPricing.governance && typeof incomingPricing.governance === "object" && incomingPricing.governance.international && typeof incomingPricing.governance.international === "object"
+                            ? incomingPricing.governance.international
                             : (incomingPricing.governance && typeof incomingPricing.governance === "object" ? incomingPricing.governance : {})),
-                        approverRoles: Array.isArray(incomingPricing.governance?.logistic?.approverRoles)
-                            ? incomingPricing.governance.logistic.approverRoles
+                        approverRoles: Array.isArray(incomingPricing.governance?.international?.approverRoles)
+                            ? incomingPricing.governance.international.approverRoles
                             : (Array.isArray(incomingPricing.governance?.approverRoles)
                                 ? incomingPricing.governance.approverRoles
-                                : DEFAULT_SETTINGS.pricing.governance.logistic.approverRoles),
-                        changeLog: Array.isArray(incomingPricing.governance?.logistic?.changeLog)
-                            ? incomingPricing.governance.logistic.changeLog
+                                : DEFAULT_SETTINGS.pricing.governance.international.approverRoles),
+                        changeLog: Array.isArray(incomingPricing.governance?.international?.changeLog)
+                            ? incomingPricing.governance.international.changeLog
                             : (Array.isArray(incomingPricing.governance?.changeLog)
                                 ? incomingPricing.governance.changeLog
-                                : DEFAULT_SETTINGS.pricing.governance.logistic.changeLog),
+                                : DEFAULT_SETTINGS.pricing.governance.international.changeLog),
                     },
                 },
             },
@@ -1915,7 +1915,7 @@ const Settings = () => {
                     [key]: {
                         ...((((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || DEFAULT_SETTINGS.pricing.laneMatrix[key]) && typeof ((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || DEFAULT_SETTINGS.pricing.laneMatrix[key]) === "object"
                             ? ((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || DEFAULT_SETTINGS.pricing.laneMatrix[key])
-                            : { domestic: Boolean((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || false), logistic: Boolean((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || false) })),
+                            : { domestic: Boolean((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || false), international: Boolean((prev.pricing && prev.pricing.laneMatrix && prev.pricing.laneMatrix[key]) || false) })),
                         [categoryKey]: value,
                     },
                 },
@@ -4770,9 +4770,9 @@ const Settings = () => {
 
             return String(a.key).localeCompare(String(b.key));
         });
-    const activeLogisticDimensionsEngine = (activePricingPolicyModules && typeof activePricingPolicyModules.logisticDimensionsEngine === "object")
-        ? activePricingPolicyModules.logisticDimensionsEngine
-        : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine;
+    const activeInternationalDimensionsEngine = (activePricingPolicyModules && typeof activePricingPolicyModules.internationalDimensionsEngine === "object")
+        ? activePricingPolicyModules.internationalDimensionsEngine
+        : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine;
     const activePricingZones = Array.isArray(pricingZoneMasterByCategory?.[activePricingCategory])
         ? pricingZoneMasterByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.zoneMaster[activePricingCategory];
@@ -5051,17 +5051,17 @@ const Settings = () => {
                                 </div>
                             </div>
                             <div className="border border-[#E5E7EB] rounded-[10px] p-3">
-                                <p className="text-[13px] font-[700] text-[#111827]">Logistic Defaults</p>
+                                <p className="text-[13px] font-[700] text-[#111827]">international Defaults</p>
                                 <div className="mt-3 grid grid-cols-1 gap-3">
                                     <Field label="Default Template">
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                             disabled={labelControlsDisabled}
-                                            value={String(labelDefaults?.logistic?.templateId || "")}
-                                            onChange={(e) => updateLabelDefaults("logistic", "templateId", e.target.value ? Number(e.target.value) : null)}
+                                            value={String(labelDefaults?.international?.templateId || "")}
+                                            onChange={(e) => updateLabelDefaults("international", "templateId", e.target.value ? Number(e.target.value) : null)}
                                         >
                                             <option value="">No default template</option>
-                                            {templateOptionsForCategory("logistic").map((template) => (
+                                            {templateOptionsForCategory("international").map((template) => (
                                                 <option key={`label-template-log-${template.id}`} value={template.id}>
                                                     {template.name}{template.is_active === false ? " (Inactive)" : ""}
                                                 </option>
@@ -5072,8 +5072,8 @@ const Settings = () => {
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                             disabled={labelControlsDisabled}
-                                            value={String(labelDefaults?.logistic?.sizeId || "")}
-                                            onChange={(e) => updateLabelDefaults("logistic", "sizeId", e.target.value ? Number(e.target.value) : null)}
+                                            value={String(labelDefaults?.international?.sizeId || "")}
+                                            onChange={(e) => updateLabelDefaults("international", "sizeId", e.target.value ? Number(e.target.value) : null)}
                                         >
                                             <option value="">No default size</option>
                                             {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
@@ -5353,7 +5353,7 @@ const Settings = () => {
                                 >
                                     <option value="all">All</option>
                                     <option value="domestic">Domestic</option>
-                                    <option value="logistic">Logistic</option>
+                                    <option value="international">international</option>
                                 </select>
                             </Field>
                             <Field label="Size">
@@ -5511,7 +5511,7 @@ const Settings = () => {
                                                 >
                                                     <option value="all">All</option>
                                                     <option value="domestic">Domestic</option>
-                                                    <option value="logistic">Logistic</option>
+                                                    <option value="international">international</option>
                                                 </select>
                                             </Field>
                                             <Field label="Size">
@@ -5604,9 +5604,9 @@ const Settings = () => {
         if (activeTab === "pricing") {
             if (visiblePricingCategoryOptions.length === 0) {
                 return (
-                    <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards with category-based approvals.">
+                    <SectionCard title="Advanced Pricing" description="Configure domestic/international rate cards with category-based approvals.">
                         <p className="text-[12px] text-[#B45309]">
-                            Pricing setup is locked because no courier pricing category is approved yet. Ask super admin to approve Domestic and/or Logistic courier registration.
+                            Pricing setup is locked because no courier pricing category is approved yet. Ask super admin to approve Domestic and/or international courier registration.
                         </p>
                     </SectionCard>
                 );
@@ -5634,7 +5634,7 @@ const Settings = () => {
                             </div>
                     </div>
 
-                    <SectionCard title="Advanced Pricing" description="Configure domestic/logistic rate cards, localized currency display, and formula controls for correct quote calculations.">
+                    <SectionCard title="Advanced Pricing" description="Configure domestic/international rate cards, localized currency display, and formula controls for correct quote calculations.">
                         <div className="space-y-4">
                             {activePricingTopic === "currency-formula" && (
                                 <div id="pricing-topic-currency-formula" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-24">
@@ -5878,35 +5878,35 @@ const Settings = () => {
                             </div>
 
                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
-                                <p className="text-[12px] font-[700] text-[#111827]">Logistic Dimensions Engine</p>
+                                <p className="text-[12px] font-[700] text-[#111827]">International Dimensions Engine</p>
                                 <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
                                 <div className="mt-2 flex flex-wrap gap-3">
                                     <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                         <input
                                             type="checkbox"
-                                            checked={Boolean(activeLogisticDimensionsEngine?.enabled)}
-                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "enabled", e.target.checked)}
+                                            checked={Boolean(activeInternationalDimensionsEngine?.enabled)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enabled", e.target.checked)}
                                         />
                                         Enable
                                     </label>
                                     <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                         <input
                                             type="checkbox"
-                                            checked={Boolean(activeLogisticDimensionsEngine?.enforceForLogisticOnly)}
-                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "enforceForLogisticOnly", e.target.checked)}
+                                            checked={Boolean(activeInternationalDimensionsEngine?.enforceForInternationalOnly)}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enforceForInternationalOnly", e.target.checked)}
                                         />
-                                        Enforce for logistic category only
+                                        Enforce for International category only
                                     </label>
                                     <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                         <input
                                             type="checkbox"
-                                            checked={Boolean(activeLogisticDimensionsEngine?.w2wOption?.enabled)}
+                                            checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.enabled)}
                                             onChange={(e) => updatePricingPolicyModule(
                                                 activePricingCategory,
-                                                "logisticDimensionsEngine",
+                                                "internationalDimensionsEngine",
                                                 "w2wOption",
                                                 {
-                                                    ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
                                                     enabled: e.target.checked,
                                                 },
                                             )}
@@ -5920,8 +5920,8 @@ const Settings = () => {
                                         <textarea
                                             rows={5}
                                             className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.unitTypeMultipliers || {})}
-                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "unitTypeMultipliers", parseMultiplierMapInput(e.target.value))}
+                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.unitTypeMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "unitTypeMultipliers", parseMultiplierMapInput(e.target.value))}
                                             placeholder={"parcel: 1.0\npallet: 1.18\ncrate: 1.24"}
                                         />
                                     </Field>
@@ -5929,8 +5929,8 @@ const Settings = () => {
                                         <textarea
                                             rows={5}
                                             className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.routeClassMultipliers || {})}
-                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "routeClassMultipliers", parseMultiplierMapInput(e.target.value))}
+                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.routeClassMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "routeClassMultipliers", parseMultiplierMapInput(e.target.value))}
                                             placeholder={"standard: 1.0\nexpress_corridor: 1.12\nremote_corridor: 1.22"}
                                         />
                                     </Field>
@@ -5938,8 +5938,8 @@ const Settings = () => {
                                         <textarea
                                             rows={5}
                                             className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.handlingClassMultipliers || {})}
-                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "logisticDimensionsEngine", "handlingClassMultipliers", parseMultiplierMapInput(e.target.value))}
+                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.handlingClassMultipliers || {})}
+                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "handlingClassMultipliers", parseMultiplierMapInput(e.target.value))}
                                             placeholder={"standard: 1.0\nfragile: 1.08\nhazardous: 1.2"}
                                         />
                                     </Field>
@@ -5951,29 +5951,29 @@ const Settings = () => {
                                         <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                             <input
                                                 type="checkbox"
-                                                checked={Boolean(activeLogisticDimensionsEngine?.w2wOption?.strictForLogistic)}
+                                                checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.strictForInternational)}
                                                 onChange={(e) => updatePricingPolicyModule(
                                                     activePricingCategory,
-                                                    "logisticDimensionsEngine",
+                                                    "internationalDimensionsEngine",
                                                     "w2wOption",
                                                     {
-                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
-                                                        strictForLogistic: e.target.checked,
+                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
+                                                        strictForInternational: e.target.checked,
                                                     },
                                                 )}
                                             />
-                                            Strict for logistic
+                                            Strict for international
                                         </label>
                                         <Field label="Default Mode">
                                             <input
                                                 className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                value={String(activeLogisticDimensionsEngine?.w2wOption?.defaultMode || "")}
+                                                value={String(activeInternationalDimensionsEngine?.w2wOption?.defaultMode || "")}
                                                 onChange={(e) => updatePricingPolicyModule(
                                                     activePricingCategory,
-                                                    "logisticDimensionsEngine",
+                                                    "internationalDimensionsEngine",
                                                     "w2wOption",
                                                     {
-                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
                                                         defaultMode: String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
                                                     },
                                                 )}
@@ -5985,13 +5985,13 @@ const Settings = () => {
                                                 min={1}
                                                 step="1"
                                                 className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                value={Number(activeLogisticDimensionsEngine?.w2wOption?.minimumUnitCount || 1)}
+                                                value={Number(activeInternationalDimensionsEngine?.w2wOption?.minimumUnitCount || 1)}
                                                 onChange={(e) => updatePricingPolicyModule(
                                                     activePricingCategory,
-                                                    "logisticDimensionsEngine",
+                                                    "internationalDimensionsEngine",
                                                     "w2wOption",
                                                     {
-                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
                                                         minimumUnitCount: Number(e.target.value || 1),
                                                     },
                                                 )}
@@ -6003,13 +6003,13 @@ const Settings = () => {
                                                 min={1}
                                                 step="1"
                                                 className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                value={activeLogisticDimensionsEngine?.w2wOption?.maximumUnitCount === null || activeLogisticDimensionsEngine?.w2wOption?.maximumUnitCount === undefined ? "" : Number(activeLogisticDimensionsEngine?.w2wOption?.maximumUnitCount || 1)}
+                                                value={activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === null || activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === undefined ? "" : Number(activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount || 1)}
                                                 onChange={(e) => updatePricingPolicyModule(
                                                     activePricingCategory,
-                                                    "logisticDimensionsEngine",
+                                                    "internationalDimensionsEngine",
                                                     "w2wOption",
                                                     {
-                                                        ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
                                                         maximumUnitCount: e.target.value === "" ? null : Number(e.target.value || 1),
                                                     },
                                                 )}
@@ -6020,13 +6020,13 @@ const Settings = () => {
                                         <textarea
                                             rows={4}
                                             className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                            value={formatMultiplierMapInput(activeLogisticDimensionsEngine?.w2wOption?.modeMultipliers || {})}
+                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.w2wOption?.modeMultipliers || {})}
                                             onChange={(e) => updatePricingPolicyModule(
                                                 activePricingCategory,
-                                                "logisticDimensionsEngine",
+                                                "internationalDimensionsEngine",
                                                 "w2wOption",
                                                 {
-                                                    ...(activeLogisticDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].logisticDimensionsEngine.w2wOption),
+                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
                                                     modeMultipliers: parseMultiplierMapInput(e.target.value),
                                                 },
                                             )}
@@ -6969,7 +6969,7 @@ const Settings = () => {
                         )}
                         {visiblePricingCategoryOptions.length === 0 && (
                             <p className="mt-2 text-[11px] text-[#B45309]">
-                                No approved courier pricing category found. Ask super admin to approve Domestic and/or Logistic courier registration.
+                                No approved courier pricing category found. Ask super admin to approve Domestic and/or international courier registration.
                             </p>
                         )}
                         <div className="mt-2 overflow-x-auto">
@@ -9756,3 +9756,6 @@ const Settings = () => {
 };
 
 export default Settings;
+
+
+

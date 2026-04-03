@@ -45,7 +45,7 @@ const Services = () => {
                     
                     <div className="w-full py-5 text-center">
                         <h1 className="bebas-neue text-[#0F0F0F] text-[24px]">
-                            Logistic service
+                            International service
                         </h1>
                         <p className="text-[14px] leading-6 poppins text-justify mt-2">
                             Lorem ipsum dolor sit amet, consectetur

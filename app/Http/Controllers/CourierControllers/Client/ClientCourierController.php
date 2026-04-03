@@ -446,12 +446,12 @@ class ClientCourierController extends Controller
             'recipient' => ['nullable', 'array'],
             'recipient.address' => ['nullable', 'array'],
             'shipment' => ['nullable', 'array'],
-            'shipment.logisticDimensions' => ['nullable', 'array'],
-            'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
-            'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
-            'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
-            'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
-            'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
+            'shipment.internationalDimensions' => ['nullable', 'array'],
+            'shipment.internationalDimensions.unitType' => ['nullable', 'string', 'max:40'],
+            'shipment.internationalDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
+            'shipment.internationalDimensions.routeClass' => ['nullable', 'string', 'max:50'],
+            'shipment.internationalDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
+            'shipment.internationalDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
             'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
             'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
             'packages' => ['required', 'array', 'min:1'],
@@ -529,7 +529,7 @@ class ClientCourierController extends Controller
                 'distanceKm' => null,
                 'shipmentType' => null,
                 'shipmentTypeDescription' => null,
-                'logisticDimensions' => [
+                'internationalDimensions' => [
                     'unitType' => null,
                     'unitCount' => 1,
                     'routeClass' => null,
@@ -705,7 +705,7 @@ class ClientCourierController extends Controller
         ];
     }
 
-    private function resolveLogisticDimensionOptionsForPayload(array $payload, string $category): array
+    private function resolveInternationalDimensionOptionsForPayload(array $payload, string $category): array
     {
         $shipment = new CourierShipment();
         $shipment->setRelation('senderAddress', (object) [
@@ -721,8 +721,8 @@ class ClientCourierController extends Controller
 
         $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
         $policyModules = is_array($pricingConfig['policyModules'] ?? null) ? $pricingConfig['policyModules'] : [];
-        $engine = is_array($policyModules['logisticDimensionsEngine'] ?? null)
-            ? $policyModules['logisticDimensionsEngine']
+        $engine = is_array($policyModules['internationalDimensionsEngine'] ?? null)
+            ? $policyModules['internationalDimensionsEngine']
             : [];
         $w2wOption = is_array($engine['w2wOption'] ?? null) ? $engine['w2wOption'] : [];
 
@@ -787,12 +787,12 @@ class ClientCourierController extends Controller
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
-                'shipment.logisticDimensions' => ['nullable', 'array'],
-                'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
-                'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
-                'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
-                'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
-                'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
+                'shipment.internationalDimensions' => ['nullable', 'array'],
+                'shipment.internationalDimensions.unitType' => ['nullable', 'string', 'max:40'],
+                'shipment.internationalDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
+                'shipment.internationalDimensions.routeClass' => ['nullable', 'string', 'max:50'],
+                'shipment.internationalDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
+                'shipment.internationalDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
                 'packages' => ['required', 'array', 'min:1'],
                 'packages.*.label' => ['nullable', 'string', 'max:120'],
                 'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -1406,7 +1406,7 @@ class ClientCourierController extends Controller
                 ['key' => 'two_three_day', 'label' => '2-3 Day', 'promisedSlaDays' => 3, 'cutoffTime' => '17:00', 'isActive' => true],
                 ['key' => 'economy', 'label' => 'Economy', 'promisedSlaDays' => 5, 'cutoffTime' => '18:00', 'isActive' => true],
             ],
-            'logistic' => [
+            'international' => [
                 ['key' => 'next_day', 'label' => 'Next Day', 'promisedSlaDays' => 2, 'cutoffTime' => '13:00', 'isActive' => true],
                 ['key' => 'two_three_day', 'label' => '2-3 Day', 'promisedSlaDays' => 3, 'cutoffTime' => '16:00', 'isActive' => true],
                 ['key' => 'economy', 'label' => 'Economy', 'promisedSlaDays' => 6, 'cutoffTime' => '18:00', 'isActive' => true],
@@ -1416,7 +1416,7 @@ class ClientCourierController extends Controller
 
     private function serviceLevelLabelsForCategory(string $category): array
     {
-        $category = $category === 'logistic' ? 'logistic' : 'domestic';
+        $category = $category === 'international' ? 'international' : 'domestic';
         $catalog = $this->defaultServiceCatalog();
 
         return collect($catalog[$category] ?? [])
@@ -1436,7 +1436,7 @@ class ClientCourierController extends Controller
             return 'domestic';
         }
 
-        return 'logistic';
+        return 'international';
     }
 
     private function normalizeServiceLevelKey(string $value): string
@@ -1456,7 +1456,7 @@ class ClientCourierController extends Controller
 
     private function resolveServiceCatalogForVendor(?int $vendorId, string $category): array
     {
-        $category = $category === 'logistic' ? 'logistic' : 'domestic';
+        $category = $category === 'international' ? 'international' : 'domestic';
         $defaults = $this->defaultServiceCatalog();
 
         if (!$vendorId || $vendorId <= 0) {
@@ -1497,7 +1497,7 @@ class ClientCourierController extends Controller
 
     private function resolveLaneMatrixForVendor(?int $vendorId, string $category): array
     {
-        $category = $category === 'logistic' ? 'logistic' : 'domestic';
+        $category = $category === 'international' ? 'international' : 'domestic';
 
         if (!$vendorId || $vendorId <= 0) {
             return ['enabled' => false, 'rows' => []];
@@ -1709,7 +1709,7 @@ class ClientCourierController extends Controller
             'distanceKm' => null,
             'matchedRule' => null,
             'speedEtaTier' => null,
-            'logisticDimensions' => null,
+            'internationalDimensions' => null,
             'policyAdjustments' => [],
             'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
         ];
@@ -1731,7 +1731,7 @@ class ClientCourierController extends Controller
             $selectedLevelKey,
             $payload
         );
-        $pricingExplanation['logisticDimensions'] = $this->resolveLogisticDimensionsProjection(
+        $pricingExplanation['internationalDimensions'] = $this->resolveInternationalDimensionsProjection(
             $policyModules,
             $payload,
             $category
@@ -2085,9 +2085,9 @@ class ClientCourierController extends Controller
                     ],
                 ],
             ],
-            'logisticDimensionsEngine' => [
+            'internationalDimensionsEngine' => [
                 'enabled' => false,
-                'enforceForLogisticOnly' => true,
+                'enforceForInternationalOnly' => true,
                 'unitTypeMultipliers' => [
                     'parcel' => 1.0,
                     'pallet' => 1.18,
@@ -2110,7 +2110,7 @@ class ClientCourierController extends Controller
                 ],
                 'w2wOption' => [
                     'enabled' => true,
-                    'strictForLogistic' => true,
+                    'strictForInternational' => true,
                     'defaultMode' => 'door_to_door',
                     'minimumUnitCount' => 1,
                     'maximumUnitCount' => null,
@@ -2155,26 +2155,26 @@ class ClientCourierController extends Controller
 
         $this->assertQuoteRuntimeGovernanceFieldLocks($payload, $policyModules);
 
-        $logisticDimensionsPolicy = is_array($policyModules['logisticDimensionsEngine'] ?? null) ? $policyModules['logisticDimensionsEngine'] : [];
-        $dimensionsPolicyInScope = !((bool) ($logisticDimensionsPolicy['enforceForLogisticOnly'] ?? true)) || $category === 'logistic';
-        if ((bool) ($logisticDimensionsPolicy['enabled'] ?? false) && $dimensionsPolicyInScope) {
-            $dimensions = is_array($payload['shipment']['logisticDimensions'] ?? null) ? $payload['shipment']['logisticDimensions'] : [];
+        $internationalDimensionsPolicy = is_array($policyModules['internationalDimensionsEngine'] ?? null) ? $policyModules['internationalDimensionsEngine'] : [];
+        $dimensionsPolicyInScope = !((bool) ($internationalDimensionsPolicy['enforceForInternationalOnly'] ?? true)) || $category === 'international';
+        if ((bool) ($internationalDimensionsPolicy['enabled'] ?? false) && $dimensionsPolicyInScope) {
+            $dimensions = is_array($payload['shipment']['internationalDimensions'] ?? null) ? $payload['shipment']['internationalDimensions'] : [];
             $unitType = $this->normalizeZoneKey((string) ($dimensions['unitType'] ?? ''));
             $routeClass = $this->normalizeZoneKey((string) ($dimensions['routeClass'] ?? ''));
             $handlingClass = $this->normalizeZoneKey((string) ($dimensions['handlingClass'] ?? ''));
             $w2wMode = $this->normalizeZoneKey((string) ($dimensions['w2wMode'] ?? ''));
 
-            $unitTypeMultipliers = is_array($logisticDimensionsPolicy['unitTypeMultipliers'] ?? null)
-                ? $logisticDimensionsPolicy['unitTypeMultipliers']
+            $unitTypeMultipliers = is_array($internationalDimensionsPolicy['unitTypeMultipliers'] ?? null)
+                ? $internationalDimensionsPolicy['unitTypeMultipliers']
                 : [];
-            $routeClassMultipliers = is_array($logisticDimensionsPolicy['routeClassMultipliers'] ?? null)
-                ? $logisticDimensionsPolicy['routeClassMultipliers']
+            $routeClassMultipliers = is_array($internationalDimensionsPolicy['routeClassMultipliers'] ?? null)
+                ? $internationalDimensionsPolicy['routeClassMultipliers']
                 : [];
-            $handlingClassMultipliers = is_array($logisticDimensionsPolicy['handlingClassMultipliers'] ?? null)
-                ? $logisticDimensionsPolicy['handlingClassMultipliers']
+            $handlingClassMultipliers = is_array($internationalDimensionsPolicy['handlingClassMultipliers'] ?? null)
+                ? $internationalDimensionsPolicy['handlingClassMultipliers']
                 : [];
 
-            $w2wOption = is_array($logisticDimensionsPolicy['w2wOption'] ?? null) ? $logisticDimensionsPolicy['w2wOption'] : [];
+            $w2wOption = is_array($internationalDimensionsPolicy['w2wOption'] ?? null) ? $internationalDimensionsPolicy['w2wOption'] : [];
             $modeMultipliers = is_array($w2wOption['modeMultipliers'] ?? null) ? $w2wOption['modeMultipliers'] : [];
             $w2wEnabled = (bool) ($w2wOption['enabled'] ?? true);
             $effectiveW2wMode = $w2wMode !== ''
@@ -2195,7 +2195,7 @@ class ClientCourierController extends Controller
                 $delta = $total - $before;
                 if (abs($delta) > 0.0001) {
                     $policyBreakdown[] = [
-                        'key' => 'logistic_dimensions_engine',
+                        'key' => 'international_dimensions_engine',
                         'amount' => round($delta, 2),
                     ];
                 }
@@ -2864,21 +2864,21 @@ class ClientCourierController extends Controller
         ];
     }
 
-    private function resolveLogisticDimensionsProjection(array $policyModules, array $payload, string $category): ?array
+    private function resolveInternationalDimensionsProjection(array $policyModules, array $payload, string $category): ?array
     {
-        $engine = is_array($policyModules['logisticDimensionsEngine'] ?? null)
-            ? $policyModules['logisticDimensionsEngine']
+        $engine = is_array($policyModules['internationalDimensionsEngine'] ?? null)
+            ? $policyModules['internationalDimensionsEngine']
             : [];
         if (!(bool) ($engine['enabled'] ?? false)) {
             return null;
         }
 
-        if ((bool) ($engine['enforceForLogisticOnly'] ?? true) && $category !== 'logistic') {
+        if ((bool) ($engine['enforceForInternationalOnly'] ?? true) && $category !== 'international') {
             return null;
         }
 
-        $dimensions = is_array($payload['shipment']['logisticDimensions'] ?? null)
-            ? $payload['shipment']['logisticDimensions']
+        $dimensions = is_array($payload['shipment']['internationalDimensions'] ?? null)
+            ? $payload['shipment']['internationalDimensions']
             : [];
         $unitType = $this->normalizeZoneKey((string) ($dimensions['unitType'] ?? ''));
         $routeClass = $this->normalizeZoneKey((string) ($dimensions['routeClass'] ?? ''));
@@ -2995,7 +2995,7 @@ class ClientCourierController extends Controller
         }
 
         $this->assertSpeedEtaTierPolicyConstraints($shipment, $payload, $category, $selectedLevelKey, $selectedEntry);
-        $this->assertLogisticDimensionsPolicyConstraints($shipment, $payload, $category);
+        $this->assertInternationalDimensionsPolicyConstraints($shipment, $payload, $category);
     }
 
     private function assertSpeedEtaTierPolicyConstraints(
@@ -3119,7 +3119,7 @@ class ClientCourierController extends Controller
         }
     }
 
-    private function assertLogisticDimensionsPolicyConstraints(CourierShipment $shipment, array $payload, string $category): void
+    private function assertInternationalDimensionsPolicyConstraints(CourierShipment $shipment, array $payload, string $category): void
     {
         $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
         if ($vendorId <= 0) {
@@ -3128,28 +3128,28 @@ class ClientCourierController extends Controller
 
         $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
         $policyModules = is_array($pricingConfig['policyModules'] ?? null) ? $pricingConfig['policyModules'] : [];
-        $engine = is_array($policyModules['logisticDimensionsEngine'] ?? null)
-            ? $policyModules['logisticDimensionsEngine']
+        $engine = is_array($policyModules['internationalDimensionsEngine'] ?? null)
+            ? $policyModules['internationalDimensionsEngine']
             : [];
 
         if (!(bool) ($engine['enabled'] ?? false)) {
             return;
         }
 
-        if ((bool) ($engine['enforceForLogisticOnly'] ?? true) && $category !== 'logistic') {
+        if ((bool) ($engine['enforceForInternationalOnly'] ?? true) && $category !== 'international') {
             return;
         }
 
-        $dimensions = is_array($payload['shipment']['logisticDimensions'] ?? null) ? $payload['shipment']['logisticDimensions'] : [];
+        $dimensions = is_array($payload['shipment']['internationalDimensions'] ?? null) ? $payload['shipment']['internationalDimensions'] : [];
         $unitType = $this->normalizeZoneKey((string) ($dimensions['unitType'] ?? ''));
         $routeClass = $this->normalizeZoneKey((string) ($dimensions['routeClass'] ?? ''));
         $handlingClass = $this->normalizeZoneKey((string) ($dimensions['handlingClass'] ?? ''));
         $w2wMode = $this->normalizeZoneKey((string) ($dimensions['w2wMode'] ?? ''));
         $unitCount = max(0, (int) ($dimensions['unitCount'] ?? 0));
 
-        if ($category === 'logistic' && ($unitType === '' || $routeClass === '' || $handlingClass === '')) {
+        if ($category === 'international' && ($unitType === '' || $routeClass === '' || $handlingClass === '')) {
             throw ValidationException::withMessages([
-                'shipment.logisticDimensions' => 'Logistic unit type, route class, and handling class are required for logistic shipments.',
+                'shipment.internationalDimensions' => 'international unit type, route class, and handling class are required for international shipments.',
             ]);
         }
 
@@ -3158,19 +3158,19 @@ class ClientCourierController extends Controller
         $handlingClassMap = is_array($engine['handlingClassMultipliers'] ?? null) ? $engine['handlingClassMultipliers'] : [];
         if ($unitType !== '' && !array_key_exists($unitType, $unitTypeMap)) {
             throw ValidationException::withMessages([
-                'shipment.logisticDimensions.unitType' => 'Selected unit type is not allowed by logistic dimension policy.',
+                'shipment.internationalDimensions.unitType' => 'Selected unit type is not allowed by international dimension policy.',
             ]);
         }
 
         if ($routeClass !== '' && !array_key_exists($routeClass, $routeClassMap)) {
             throw ValidationException::withMessages([
-                'shipment.logisticDimensions.routeClass' => 'Selected route class is not allowed by logistic dimension policy.',
+                'shipment.internationalDimensions.routeClass' => 'Selected route class is not allowed by international dimension policy.',
             ]);
         }
 
         if ($handlingClass !== '' && !array_key_exists($handlingClass, $handlingClassMap)) {
             throw ValidationException::withMessages([
-                'shipment.logisticDimensions.handlingClass' => 'Selected handling class is not allowed by logistic dimension policy.',
+                'shipment.internationalDimensions.handlingClass' => 'Selected handling class is not allowed by international dimension policy.',
             ]);
         }
 
@@ -3181,15 +3181,15 @@ class ClientCourierController extends Controller
             $defaultMode = $this->normalizeZoneKey((string) ($w2wOption['defaultMode'] ?? ''));
             $effectiveMode = $w2wMode !== '' ? $w2wMode : $defaultMode;
 
-            if ((bool) ($w2wOption['strictForLogistic'] ?? true) && $category === 'logistic' && $effectiveMode === '') {
+            if ((bool) ($w2wOption['strictForInternational'] ?? true) && $category === 'international' && $effectiveMode === '') {
                 throw ValidationException::withMessages([
-                    'shipment.logisticDimensions.w2wMode' => 'A warehouse-to-warehouse mode is required for logistic shipments.',
+                    'shipment.internationalDimensions.w2wMode' => 'A warehouse-to-warehouse mode is required for international shipments.',
                 ]);
             }
 
             if ($effectiveMode !== '' && !array_key_exists($effectiveMode, $modeMap)) {
                 throw ValidationException::withMessages([
-                    'shipment.logisticDimensions.w2wMode' => 'Selected warehouse-to-warehouse mode is not allowed by policy.',
+                    'shipment.internationalDimensions.w2wMode' => 'Selected warehouse-to-warehouse mode is not allowed by policy.',
                 ]);
             }
         }
@@ -3197,7 +3197,7 @@ class ClientCourierController extends Controller
         $minUnits = max(1, (int) ($w2wOption['minimumUnitCount'] ?? 1));
         if ($unitCount > 0 && $unitCount < $minUnits) {
             throw ValidationException::withMessages([
-                'shipment.logisticDimensions.unitCount' => 'Unit count is below the minimum allowed by logistic policy.',
+                'shipment.internationalDimensions.unitCount' => 'Unit count is below the minimum allowed by international policy.',
             ]);
         }
 
@@ -3205,7 +3205,7 @@ class ClientCourierController extends Controller
             $maxUnits = max($minUnits, (int) $w2wOption['maximumUnitCount']);
             if ($unitCount > 0 && $unitCount > $maxUnits) {
                 throw ValidationException::withMessages([
-                    'shipment.logisticDimensions.unitCount' => 'Unit count exceeds the maximum allowed by logistic policy.',
+                    'shipment.internationalDimensions.unitCount' => 'Unit count exceeds the maximum allowed by international policy.',
                 ]);
             }
         }
@@ -3219,7 +3219,7 @@ class ClientCourierController extends Controller
                 $query->where('slug', 'courier-services');
             })
             ->whereHas('serviceSubCategory', function ($query) {
-                $query->whereIn('slug', ['domestic', 'logistic', 'international']);
+                $query->whereIn('slug', ['domestic', 'international']);
             })
             ->with([
                 'user:id,name',
@@ -3249,8 +3249,8 @@ class ClientCourierController extends Controller
             })
             ->filter()
             ->sort(function (array $left, array $right) {
-                $leftCategoryOrder = ($left['category'] ?? 'logistic') === 'domestic' ? 0 : 1;
-                $rightCategoryOrder = ($right['category'] ?? 'logistic') === 'domestic' ? 0 : 1;
+                $leftCategoryOrder = ($left['category'] ?? 'international') === 'domestic' ? 0 : 1;
+                $rightCategoryOrder = ($right['category'] ?? 'international') === 'domestic' ? 0 : 1;
 
                 if ($leftCategoryOrder !== $rightCategoryOrder) {
                     return $leftCategoryOrder <=> $rightCategoryOrder;
@@ -3305,8 +3305,8 @@ class ClientCourierController extends Controller
             return 'domestic';
         }
 
-        if ($normalized === 'logistic' || $normalized === 'international') {
-            return 'logistic';
+        if ($normalized === 'international') {
+            return 'international';
         }
 
         return null;
@@ -3321,7 +3321,7 @@ class ClientCourierController extends Controller
                 ['brandColor' => '#0D9488', 'badgeColor' => '#CCFBF1'],
                 ['brandColor' => '#7C3AED', 'badgeColor' => '#EDE9FE'],
             ],
-            'logistic' => [
+            'international' => [
                 ['brandColor' => '#FFB800', 'badgeColor' => '#FFF4CC'],
                 ['brandColor' => '#4D148C', 'badgeColor' => '#EFE6FB'],
                 ['brandColor' => '#3B2419', 'badgeColor' => '#F4EDE5'],
@@ -3337,7 +3337,7 @@ class ClientCourierController extends Controller
 
     private function resolveQuoteProviderPricing(string $category, array $settings): array
     {
-        $defaults = $category === 'logistic'
+        $defaults = $category === 'international'
             ? ['rateMultiplier' => 1.05, 'fuelSurcharge' => 0.05, 'customsBuffer' => 3.5]
             : ['rateMultiplier' => 1.015, 'fuelSurcharge' => 0.03, 'customsBuffer' => 0.0];
 
@@ -3357,7 +3357,7 @@ class ClientCourierController extends Controller
         $rateMultiplier = round(min(1.35, max(0.85, $defaults['rateMultiplier'] + $taxRate)), 3);
 
         $customsBuffer = $defaults['customsBuffer'];
-        if ($category === 'logistic' && isset($scopedFormula['handlingFee'])) {
+        if ($category === 'international' && isset($scopedFormula['handlingFee'])) {
             $customsBuffer = round(max($customsBuffer, min(12, (float) $scopedFormula['handlingFee'] / 10)), 2);
         }
 
@@ -3380,13 +3380,13 @@ class ClientCourierController extends Controller
         }
 
         return $country !== ''
-            ? sprintf('Cross-border logistics from %s', $country)
-            : 'Cross-border logistics support';
+            ? sprintf('Cross-border international delivery from %s', $country)
+            : 'Cross-border international delivery support';
     }
 
     private function resolveQuoteProviderCutoff(string $category, array $settings): string
     {
-        $default = $category === 'logistic' ? 'Pickup by 3:30 PM' : 'Pickup by 5:00 PM';
+        $default = $category === 'international' ? 'Pickup by 3:30 PM' : 'Pickup by 5:00 PM';
 
         $serviceCatalogConfig = is_array($settings['pricing']['serviceCatalog'] ?? null)
             ? $settings['pricing']['serviceCatalog']
@@ -3449,14 +3449,14 @@ class ClientCourierController extends Controller
 
     private function resolveQuoteProviderBadges(string $category): array
     {
-        return $category === 'logistic'
+        return $category === 'international'
             ? ['Approved vendor', 'Customs support']
             : ['Approved vendor', 'Door-to-door'];
     }
 
     private function resolveQuoteProviderTiers(string $category): array
     {
-        if ($category === 'logistic') {
+        if ($category === 'international') {
             return [
                 [
                     'id' => 'economy',
@@ -3713,3 +3713,6 @@ class ClientCourierController extends Controller
         return app(CourierClientObservabilityService::class);
     }
 }
+
+
+

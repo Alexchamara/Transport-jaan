@@ -38,17 +38,17 @@ class RefreshCourierExchangeRates extends Command
                 $settings = is_array($record->settings) ? $record->settings : [];
                 $pricing = is_array($settings['pricing'] ?? null) ? $settings['pricing'] : [];
                 $localizationInput = is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [];
-                $hasCategoryLocalization = is_array($localizationInput['domestic'] ?? null) || is_array($localizationInput['logistic'] ?? null);
+                $hasCategoryLocalization = is_array($localizationInput['domestic'] ?? null) || is_array($localizationInput['international'] ?? null);
                 $localizationByCategory = $hasCategoryLocalization
                     ? $localizationInput
                     : [
                         'domestic' => $localizationInput,
-                        'logistic' => $localizationInput,
+                        'international' => $localizationInput,
                     ];
 
                 $updatedInRecord = false;
 
-                foreach (['domestic', 'logistic'] as $category) {
+                foreach (['domestic', 'international'] as $category) {
                     $localization = is_array($localizationByCategory[$category] ?? null) ? $localizationByCategory[$category] : [];
                     $autoLiveRates = (bool) ($localization['autoLiveRates'] ?? false);
                     if (!$autoLiveRates) {
@@ -127,3 +127,5 @@ class RefreshCourierExchangeRates extends Command
         return self::SUCCESS;
     }
 }
+
+
