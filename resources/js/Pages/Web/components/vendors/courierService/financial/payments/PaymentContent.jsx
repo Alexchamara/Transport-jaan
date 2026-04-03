@@ -499,8 +499,8 @@ const PaymentContent = () => {
                                     <button
                                         key={num}
                                         className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
-                                                ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
-                                                : "bg-[#F4F3F3]"
+                                            ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                            : "bg-[#F4F3F3]"
                                             }`}
                                         onClick={() => goToPage(num)}
                                     >

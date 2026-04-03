@@ -5,6 +5,7 @@ Last updated: 25 March 2026
 ## 1) Purpose
 
 This document explains the vendor-side **Clients module** for courier service:
+
 - how client data is built from shipments
 - how risk/tier metrics are calculated
 - how profile actions work (watchlist, priority, owner, notes, tier)
@@ -22,6 +23,7 @@ Clients page is the relationship-control layer for assigned courier accounts.
 4. Vendor team uses this page to manage account priority and interventions.
 
 In short:
+
 - **Bookings/Shipments** manage jobs.
 - **Clients** manages account portfolio quality.
 
@@ -30,12 +32,15 @@ In short:
 ## 3) Access control and routes
 
 Main route:
+
 - `GET /courierService/clients`
 
 Profile mutation route:
+
 - `POST /courierService/clients/{contact}/profile`
 
 Required:
+
 - authenticated workspace actor
 - permission `courier.clients.view` (for page)
 - permission `courier.clients.manage` (for updates)
@@ -48,6 +53,7 @@ If checks fail, view or updates are blocked.
 ## 4) Backend payload (`courierClients`)
 
 ### Summary
+
 - `totalActiveClients`
 - `watchlistClients`
 - `criticalRiskClients`
@@ -56,6 +62,7 @@ If checks fail, view or updates are blocked.
 - `avgSlaPerformance`
 
 ### Rows (per client/contact)
+
 - identity: name/company/email/phone
 - `clientTier`, `categoryMix`, `priorityTag`, `watchlist`, `accountOwner`
 - shipment metrics: total, active, delivered %, exception %, SLA %, open exceptions
@@ -64,6 +71,7 @@ If checks fail, view or updates are blocked.
 - notes: internal notes
 
 ### Filter options
+
 - tier list
 - risk list
 - category list (vendor-approved scope)
@@ -77,6 +85,7 @@ If checks fail, view or updates are blocked.
 Client rows are grouped from shipments by `sender_contact_id`.
 
 For each group, backend derives:
+
 - total shipments
 - active shipments
 - delivered rate
@@ -85,6 +94,7 @@ For each group, backend derives:
 - category mix (`Domestic`, `International`, or `Mixed`)
 
 Then merges vendor-managed profile (`VendorCourierClientProfile`) if available:
+
 - watchlist flag
 - priority tag
 - account owner
@@ -96,11 +106,13 @@ Then merges vendor-managed profile (`VendorCourierClientProfile`) if available:
 ## 6) Risk and tier logic
 
 ### Risk calculation
+
 - `critical` if exception rate >= 20% OR delivered rate < 65%
 - `at_risk` if exception rate >= 10% OR delivered rate < 80%
 - otherwise `stable`
 
 ### Tier calculation (derived baseline)
+
 - `enterprise` if total shipments >= 50
 - `sme` if total shipments >= 15
 - otherwise `individual`
@@ -112,6 +124,7 @@ Manual tier updates (`set_tier`) can override derived tier.
 ## 7) Profile actions and behavior
 
 Supported profile actions:
+
 - `toggle_watchlist`
 - `set_priority` (`vip`, `standard`, `watchlist`)
 - `set_owner`
@@ -119,11 +132,13 @@ Supported profile actions:
 - `set_tier` (`enterprise`, `sme`, `individual`)
 
 Action behavior:
+
 - update persists to `VendorCourierClientProfile`
 - note appends with timestamp
 - watchlist/priority can trigger escalation workflow in ops usage
 
 Additional policy checks:
+
 - ownership reassignment can be blocked by team access policy
 - action permissions depend on role policy/resource scopes
 
@@ -132,6 +147,7 @@ Additional policy checks:
 ## 8) Filters and pagination
 
 Supported filters:
+
 - `q` (name/company/email/phone)
 - `category` (`domestic`/`international` scope)
 - `tier`
@@ -156,6 +172,7 @@ This means user may see rows but not all contact-level fields.
 Clients page supports CSV export when query has `export=csv`.
 
 CSV columns include:
+
 - client identity
 - tier/risk/watchlist
 - shipment and SLA metrics
@@ -167,6 +184,7 @@ Export respects current filters and permission/approval constraints.
 ## 11) UI structure in vendor dashboard clients page
 
 Main blocks:
+
 1. Header and purpose text
 2. summary KPI cards
 3. filter row
@@ -175,6 +193,7 @@ Main blocks:
 6. right-side **Client 360** drawer (on row click)
 
 Client 360 drawer includes:
+
 - contact details
 - tier/risk/priority
 - shipment KPIs
@@ -186,16 +205,19 @@ Client 360 drawer includes:
 ## 12) Operational SOP (recommended)
 
 ### Start of week
+
 1. Open `/courierService/clients`.
 2. Filter `risk=critical` and `watchlist=only`.
 3. Assign account owner and add action notes.
 
 ### Daily
+
 1. Monitor open exceptions by client.
 2. Update priority for high-impact accounts.
 3. Add internal notes for follow-up actions.
 
 ### End of week
+
 1. Export filtered portfolio report.
 2. Review SLA trend and exception trend by tier.
 3. Adjust watchlist and ownership assignments.
@@ -205,18 +227,22 @@ Client 360 drawer includes:
 ## 13) Common issues and fixes
 
 ### Issue: No clients visible
+
 - Check registration approval scope.
 - Check filters (`category`, `risk`, `watchlist`, `q`).
 - Verify assigned shipment data exists for this vendor.
 
 ### Issue: Cannot update owner
+
 - Team policy may block reassignment.
 - User may lack required permission/action scope.
 
 ### Issue: Phone/email missing
+
 - Sensitive field visibility may be restricted by access policy.
 
 ### Issue: Tier seems unexpected
+
 - Derived tier is shipment-volume based.
 - Check if manual `set_tier` override exists.
 
@@ -229,6 +255,7 @@ This section explains the exact runtime behavior for the Clients page in vendor 
 ### 14.1 Page load pipeline
 
 When user opens `/courierService/clients`:
+
 1. Request reaches `GET /courierService/clients`.
 2. Backend validates auth/workspace access and `courier.clients.view` permission.
 3. Backend loads vendor-assigned shipments only.
@@ -241,12 +268,14 @@ When user opens `/courierService/clients`:
 ### 14.2 What operator sees first
 
 Top KPI layer guides triage:
+
 - `criticalRiskClients`
 - `watchlistClients`
 - `clientsWithOpenExceptions`
 - `avgSlaPerformance`
 
 Recommended first actions:
+
 - filter risk to `critical`
 - filter watchlist to `only`
 - open Client 360 drawer for high-risk rows
@@ -256,6 +285,7 @@ Recommended first actions:
 All filters are server-side (Inertia request), not local-only.
 
 Active filter keys:
+
 - `q`
 - `category`
 - `tier`
@@ -268,6 +298,7 @@ Category options are restricted to vendor-approved courier categories.
 ### 14.4 Client 360 drawer behavior
 
 Clicking a row opens the right panel (Client 360):
+
 - identity and contact info
 - tier/risk/priority
 - shipment KPIs and open exceptions
@@ -287,6 +318,7 @@ From row buttons or Client 360 drawer:
 5. UI refreshes with flash feedback.
 
 Supported actions:
+
 - `toggle_watchlist`
 - `set_priority`
 - `set_owner`
@@ -302,6 +334,7 @@ Supported actions:
 ### 14.7 Export behavior (operations reporting)
 
 When `export=csv` is requested from Clients view:
+
 - backend exports currently filtered rows
 - includes identity + tier/risk + key performance metrics
 - respects access policy constraints
@@ -315,4 +348,3 @@ When `export=csv` is requested from Clients view:
 5. Export filtered portfolio for weekly review.
 
 This makes Clients the **account-governance control panel** in courier vendor operations.
-

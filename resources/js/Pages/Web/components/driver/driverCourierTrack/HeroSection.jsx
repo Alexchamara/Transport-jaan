@@ -19,7 +19,7 @@ const HeroSection = () => {
                         offer a range of solutions to suit your needs. Start
                         shipping today with just a few clicks. journeys.
                     </p>
-                </div>                
+                </div>
             </div>
         </div>
     );

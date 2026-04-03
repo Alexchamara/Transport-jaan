@@ -60,7 +60,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
     };
     const resolveWarehouseLikeUrl = () => {
         if (typeof route === 'function') {
-            try { return route('client.warehouse.like.toggle'); } catch (_) {}
+            try { return route('client.warehouse.like.toggle'); } catch (_) { }
         }
         return '/api/warehouse/like-toggle';
     };
@@ -89,7 +89,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
     // Vehicle Rental Service Content
     if (activeService === 'Vehicle Rental') {
         let vehicles = [];
-        
+
         if (activeMode === 'Land') {
             vehicles = landVehicles;
         } else if (activeMode === 'Sea') {
@@ -103,7 +103,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     {activeMode} Vehicles ({vehicles.length})
                 </h2>
-                
+
                 {vehicles.length === 0 ? (
                     <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
                         <p className='text-gray-600'>No {activeMode.toLowerCase()} vehicles available.</p>
@@ -222,7 +222,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     Warehouse Units ({warehouseUnits.length})
                 </h2>
-                
+
                 {warehouseUnits.length === 0 ? (
                     <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
                         <p className='text-gray-600'>No warehouse units available.</p>
@@ -332,7 +332,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     Aviation Services ({flightSchedules.length})
                 </h2>
-                
+
                 {flightSchedules.length === 0 ? (
                     <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
                         <p className='text-gray-600'>No flight schedules available.</p>
@@ -341,8 +341,8 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 ) : (
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                         {flightSchedules.map((flight, index) => (
-                            <div 
-                                key={index} 
+                            <div
+                                key={index}
                                 className='bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow p-6'
                             >
                                 <div className='text-center mb-4'>
@@ -372,7 +372,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     Railway Services ({trainSchedules.length})
                 </h2>
-                
+
                 {trainSchedules.length === 0 ? (
                     <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
                         <p className='text-gray-600'>No train schedules available.</p>
@@ -381,8 +381,8 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 ) : (
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                         {trainSchedules.map((train, index) => (
-                            <div 
-                                key={index} 
+                            <div
+                                key={index}
                                 className='bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow p-6'
                             >
                                 <div className='text-center mb-4'>
@@ -431,7 +431,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     Waterborne Transport Services
                 </h2>
-                
+
                 <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
                     <p className='text-gray-600'>Waterborne transport services available.</p>
                     <p className='text-sm text-gray-500 mt-2'>Cruise line and private yacht/boat services offered by this vendor.</p>
@@ -452,7 +452,7 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     Courier Services ({courierServices.length})
                 </h2>
-                
+
                 {courierServices.length === 0 ? (
                     <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
                         <div className='text-center mb-2'>
@@ -464,8 +464,8 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 ) : (
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                         {courierServices.map((service, index) => (
-                            <div 
-                                key={index} 
+                            <div
+                                key={index}
                                 className='bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow p-6'
                             >
                                 <div className='text-center mb-4'>

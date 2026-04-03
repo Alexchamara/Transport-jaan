@@ -135,7 +135,6 @@ export const COURIER_SERVICES = [
     //         },
     //     ],
     // },
-
     // ── international SERVICES ─────────────────────────────────────────────────────
     // {
     //     id: "dhl",
@@ -491,7 +490,9 @@ const toNumberOr = (value, fallback) => {
 };
 
 const normalizeProviderCategory = (category) => {
-    const normalized = String(category || "").trim().toLowerCase();
+    const normalized = String(category || "")
+        .trim()
+        .toLowerCase();
     return normalized === "international" ? "international" : "domestic";
 };
 
@@ -531,7 +532,8 @@ const normalizeProviderService = (provider, index) => {
     const category = normalizeProviderCategory(provider.category);
     const defaults = DEFAULT_PROVIDER_RATES[category];
     const name = String(provider.name || "").trim();
-    const id = String(provider.id || "").trim() || `provider-${category}-${index + 1}`;
+    const id =
+        String(provider.id || "").trim() || `provider-${category}-${index + 1}`;
 
     return {
         id,
@@ -591,7 +593,9 @@ const resolveQuoteServices = (services) => {
         .map((provider, index) => normalizeProviderService(provider, index))
         .filter(Boolean);
 
-    return normalizedServices.length > 0 ? normalizedServices : COURIER_SERVICES;
+    return normalizedServices.length > 0
+        ? normalizedServices
+        : COURIER_SERVICES;
 };
 
 export const computePackageMetrics = (packages = []) => {
@@ -841,5 +845,3 @@ export const buildReviewContext = (
         totalPriceUSD,
     };
 };
-
-
