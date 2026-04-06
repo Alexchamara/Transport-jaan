@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { CalendarDays, ChevronDown, Search } from "lucide-react";
 import CourierFeedbackModal from "../common/CourierFeedbackModal";
@@ -116,6 +116,20 @@ const BookingContent = () => {
         closeConfirm,
         runConfirm,
     } = useCourierActionModal(flash);
+
+    useEffect(() => {
+        const msg = String(flash.error || "").toLowerCase();
+        if (msg.includes("step-up authentication is required")) {
+            if (typeof window !== "undefined") {
+                window.sessionStorage.setItem("courier.profileStepUpGuidancePending", "1");
+            }
+            router.get(route("courierService.profile.module", { module: "security" }), {}, {
+                preserveScroll: true,
+                preserveState: false,
+                replace: true,
+            });
+        }
+    }, [flash.error]);
 
     const summaryCards = useMemo(
         () => [
