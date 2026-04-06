@@ -10,6 +10,12 @@ const STATUS_OPTIONS = [
     { value: 'not_requested', label: 'Not Requested' },
 ];
 
+const CATEGORY_OPTIONS = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'domestic', label: 'Domestic' },
+    { value: 'international', label: 'International' },
+];
+
 const statusClassMap = {
     pending: 'bg-[#FDB52A33] text-[#FDB52A] border border-[#FDB52A80]',
     approved: 'bg-[#05C16833] text-[#14CA74] border border-[#05C16880]',
@@ -17,11 +23,18 @@ const statusClassMap = {
     not_requested: 'bg-[#AEB9E133] text-[#AEB9E1] border border-[#AEB9E180]',
 };
 
+const auditEventAccentMap = {
+    cod_capability_request_submitted: 'bg-[#5B8DEF]',
+    cod_capability_approved: 'bg-[#14CA74]',
+    cod_capability_rejected: 'bg-[#FF4757]',
+};
+
 const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) => {
     const { flash } = usePage().props;
 
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'all');
+    const [category, setCategory] = useState(filters?.category || 'all');
     const [actionNotes, setActionNotes] = useState({});
 
     const {
@@ -43,13 +56,15 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     useEffect(() => {
         setSearch(filters?.search || '');
         setStatus(filters?.status || 'all');
-    }, [filters?.search, filters?.status]);
+        setCategory(filters?.category || 'all');
+    }, [filters?.search, filters?.status, filters?.category]);
 
     const applyFilters = (nextPage = 1) => {
         router.get(
             route('superadmin.settings.cod-settlement.index'),
             {
                 status,
+                category,
                 search,
                 page: nextPage,
             },
@@ -240,6 +255,15 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                             <option key={option.value} value={option.value}>{option.label}</option>
                                         ))}
                                     </select>
+                                    <select
+                                        value={category}
+                                        onChange={(event) => setCategory(event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-white"
+                                    >
+                                        {CATEGORY_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
                                     <button
                                         type="button"
                                         onClick={() => applyFilters(1)}
@@ -279,6 +303,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${statusClassMap[row.status] || statusClassMap.not_requested}`}>
                                                         {row.statusLabel}
                                                     </span>
+                                                    <p className="mt-1 text-xs text-gray-400">{row.categoryLabel || 'Domestic'}</p>
                                                 </td>
                                                 <td className="py-3 pr-4 text-gray-300">
                                                     <p>{row.requestedAt || '-'}</p>
@@ -298,6 +323,12 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                     <p>{row.reviewedAt || '-'}</p>
                                                     <p className="text-xs text-gray-500">By: {row.reviewedBy || '-'}</p>
                                                     {row.decisionReason && <p className="text-xs text-gray-400 mt-1">{row.decisionReason}</p>}
+                                                    {row.expiresAt && <p className="text-xs text-sky-300 mt-1">Expires: {row.expiresAt}</p>}
+
+                                                    <CapabilityAuditTimeline
+                                                        events={Array.isArray(row.auditTrail) ? row.auditTrail : []}
+                                                        totalCount={Number(row.auditEventCount || 0)}
+                                                    />
                                                 </td>
                                                 <td className="py-3">
                                                     <div className="flex gap-2">
@@ -368,5 +399,48 @@ const StatCard = ({ title, value, color }) => (
         <p className={`mt-2 text-2xl font-bold ${color}`}>{value}</p>
     </div>
 );
+
+const CapabilityAuditTimeline = ({ events, totalCount }) => {
+    const timelineEvents = Array.isArray(events) ? events : [];
+
+    if (timelineEvents.length === 0) {
+        return (
+            <div className="mt-3 rounded-md border border-gray-700 bg-[#081028] px-3 py-2 text-[11px] text-gray-500">
+                No audit events yet.
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-3 rounded-md border border-gray-700 bg-[#081028] p-3">
+            <p className="text-[11px] uppercase tracking-wide text-gray-400">Audit Timeline</p>
+
+            <div className="relative mt-2 space-y-3 pl-4">
+                <div className="absolute bottom-1 left-[7px] top-1 w-px bg-gray-700" />
+
+                {timelineEvents.map((event) => {
+                    const accentClass = auditEventAccentMap[event.eventType] || 'bg-[#AEB9E1]';
+
+                    return (
+                        <div key={event.id} className="relative">
+                            <span className={`absolute -left-[14px] top-1 h-3 w-3 rounded-full border-2 border-[#081028] ${accentClass}`} />
+                            <p className="text-xs font-semibold text-white">{event.eventLabel || 'Capability event'}</p>
+                            <p className="text-[11px] text-gray-500">{event.createdAt || '-'} • {event.actorName || 'System'}</p>
+                            {event.transitionLabel && <p className="mt-1 text-[11px] text-gray-300">{event.transitionLabel}</p>}
+                            {event.note && <p className="mt-1 text-[11px] italic text-gray-400">&quot;{event.note}&quot;</p>}
+                            {event.expiresAt && <p className="mt-1 text-[11px] text-sky-300">Expires: {event.expiresAt}</p>}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {Number(totalCount || 0) > timelineEvents.length && (
+                <p className="mt-2 text-[11px] text-gray-500">
+                    Showing latest {timelineEvents.length} of {Number(totalCount || 0)} events.
+                </p>
+            )}
+        </div>
+    );
+};
 
 export default CourierCodSettings;

@@ -12,6 +12,7 @@ use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use Database\Seeders\CourierRbacSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -164,6 +165,72 @@ class CourierCodCapabilityRequestTest extends TestCase
                 ->where('courier_vendor_cod_capability_id', (int) $capability->id)
                 ->latest('id')
                 ->value('event_type')
+        );
+    }
+
+    public function test_superadmin_index_includes_capability_audit_timeline(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $pendingLabel = CourierVendorCodCapability::STATUS_LABELS[CourierVendorCodCapability::STATUS_PENDING] ?? 'Pending';
+        $approvedLabel = CourierVendorCodCapability::STATUS_LABELS[CourierVendorCodCapability::STATUS_APPROVED] ?? 'Approved';
+        $notRequestedLabel = CourierVendorCodCapability::STATUS_LABELS[CourierVendorCodCapability::STATUS_NOT_REQUESTED] ?? 'Not Requested';
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(45),
+            'requested_note' => 'Need COD for district operations.',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            CourierVendorCodCapability::STATUS_NOT_REQUESTED,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $vendor->id,
+            'Initial COD request from vendor settings.',
+            [
+                'source' => 'vendor_settings',
+            ]
+        );
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_approved',
+            CourierVendorCodCapability::STATUS_PENDING,
+            CourierVendorCodCapability::STATUS_APPROVED,
+            $superAdmin->id,
+            'Approved for rollout.',
+            [
+                'source' => 'superadmin_cod_settlement',
+                'expires_at' => now()->addMonths(12)->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        $response = $this->actingAs($superAdmin)
+            ->get(route('superadmin.settings.cod-settlement.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/SuperAdmin/CourierCodSettings')
+            ->has('requests', 1)
+            ->where('requests.0.id', (int) $capability->id)
+            ->where('requests.0.auditEventCount', 2)
+            ->where('requests.0.auditTrail.0.eventType', 'cod_capability_approved')
+            ->where('requests.0.auditTrail.0.actorName', $superAdmin->name)
+            ->where('requests.0.auditTrail.0.transitionLabel', $pendingLabel . ' -> ' . $approvedLabel)
+            ->where('requests.0.auditTrail.1.eventType', 'cod_capability_request_submitted')
+            ->where('requests.0.auditTrail.1.actorName', $vendor->name)
+            ->where('requests.0.auditTrail.1.transitionLabel', $notRequestedLabel . ' -> ' . $pendingLabel)
         );
     }
 

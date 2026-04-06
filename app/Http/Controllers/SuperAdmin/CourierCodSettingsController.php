@@ -57,10 +57,41 @@ class CourierCodSettingsController extends Controller
 
         $paginator = $query->paginate(20)->withQueryString();
 
+        $capabilityIds = collect($paginator->items())
+            ->map(static fn (CourierVendorCodCapability $capability) => (int) $capability->id)
+            ->filter(static fn (int $id) => $id > 0)
+            ->values();
+
+        $auditEventsByCapability = collect();
+        $auditEventCountByCapability = [];
+
+        if ($capabilityIds->isNotEmpty()) {
+            $audits = CourierVendorCodCapabilityAudit::query()
+                ->with(['actor:id,name'])
+                ->whereIn('courier_vendor_cod_capability_id', $capabilityIds->all())
+                ->orderByDesc('id')
+                ->get();
+
+            $auditEventCountByCapability = $audits
+                ->groupBy(static fn (CourierVendorCodCapabilityAudit $audit) => (int) $audit->courier_vendor_cod_capability_id)
+                ->map(static fn ($events) => $events->count())
+                ->all();
+
+            $auditEventsByCapability = $audits
+                ->groupBy(static fn (CourierVendorCodCapabilityAudit $audit) => (int) $audit->courier_vendor_cod_capability_id)
+                ->map(fn ($events) => $events
+                    ->take(8)
+                    ->map(fn (CourierVendorCodCapabilityAudit $audit) => $this->serializeCapabilityAuditEvent($audit))
+                    ->values());
+        }
+
         $requests = collect($paginator->items())
-            ->map(function (CourierVendorCodCapability $capability) {
+            ->map(function (CourierVendorCodCapability $capability) use ($auditEventsByCapability, $auditEventCountByCapability) {
+                $capabilityId = (int) $capability->id;
+                $auditTrail = $auditEventsByCapability->get($capabilityId, collect());
+
                 return [
-                    'id' => (int) $capability->id,
+                    'id' => $capabilityId,
                     'status' => (string) $capability->status,
                     'statusLabel' => $capability->statusLabel(),
                     'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
@@ -77,6 +108,8 @@ class CourierCodSettingsController extends Controller
                     'expiresAt' => optional($capability->expires_at)->format('Y-m-d H:i:s'),
                     'isExpired' => (bool) ($capability->expires_at && $capability->expires_at->isPast()),
                     'decisionReason' => (string) ($capability->decision_reason ?? ''),
+                    'auditEventCount' => (int) ($auditEventCountByCapability[$capabilityId] ?? 0),
+                    'auditTrail' => $auditTrail->all(),
                 ];
             })
             ->values();
@@ -226,5 +259,50 @@ class CourierCodSettingsController extends Controller
         );
 
         return back()->with('success', 'COD capability request rejected.');
+    }
+
+    private function serializeCapabilityAuditEvent(CourierVendorCodCapabilityAudit $audit): array
+    {
+        $fromStatus = (string) ($audit->from_status ?? '');
+        $toStatus = (string) ($audit->to_status ?? '');
+
+        $transitionParts = array_values(array_filter([
+            $fromStatus !== '' ? $this->statusLabelFromKey($fromStatus) : null,
+            $toStatus !== '' ? $this->statusLabelFromKey($toStatus) : null,
+        ]));
+
+        return [
+            'id' => (int) $audit->id,
+            'eventType' => (string) $audit->event_type,
+            'eventLabel' => $this->auditEventLabel((string) $audit->event_type),
+            'fromStatus' => $fromStatus,
+            'toStatus' => $toStatus,
+            'transitionLabel' => count($transitionParts) === 2
+                ? ($transitionParts[0] . ' -> ' . $transitionParts[1])
+                : ($transitionParts[0] ?? ''),
+            'actorName' => (string) ($audit->actor->name ?? 'System'),
+            'note' => (string) ($audit->note ?? ''),
+            'source' => (string) data_get($audit->metadata, 'source', ''),
+            'expiresAt' => (string) data_get($audit->metadata, 'expires_at', ''),
+            'createdAt' => optional($audit->created_at)->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    private function auditEventLabel(string $eventType): string
+    {
+        return match ($eventType) {
+            'cod_capability_request_submitted' => 'Request submitted',
+            'cod_capability_approved' => 'Capability approved',
+            'cod_capability_rejected' => 'Capability rejected',
+            default => ucwords(str_replace('_', ' ', trim($eventType) !== '' ? $eventType : 'cod_capability_event')),
+        };
+    }
+
+    private function statusLabelFromKey(string $status): string
+    {
+        $normalized = strtolower(trim($status));
+
+        return CourierVendorCodCapability::STATUS_LABELS[$normalized]
+            ?? ucwords(str_replace('_', ' ', $normalized));
     }
 }
