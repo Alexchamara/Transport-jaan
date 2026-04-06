@@ -10,6 +10,14 @@ class CourierVendorCodCapability extends Model
 {
     use HasFactory;
 
+    public const CATEGORY_DOMESTIC = 'domestic';
+    public const CATEGORY_INTERNATIONAL = 'international';
+
+    public const CATEGORY_LABELS = [
+        self::CATEGORY_DOMESTIC => 'Domestic',
+        self::CATEGORY_INTERNATIONAL => 'International',
+    ];
+
     public const STATUS_NOT_REQUESTED = 'not_requested';
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
@@ -25,6 +33,7 @@ class CourierVendorCodCapability extends Model
     protected $fillable = [
         'vendor_user_id',
         'service_workspace_id',
+        'category',
         'requested_by_user_id',
         'status',
         'requested_at',
@@ -32,6 +41,7 @@ class CourierVendorCodCapability extends Model
         'reviewed_at',
         'reviewed_by_user_id',
         'approved_at',
+        'expires_at',
         'decision_reason',
         'metadata',
     ];
@@ -40,6 +50,7 @@ class CourierVendorCodCapability extends Model
         'requested_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',
+        'expires_at' => 'datetime',
         'metadata' => 'array',
     ];
 
@@ -56,6 +67,32 @@ class CourierVendorCodCapability extends Model
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
+
+    public function audits()
+    {
+        return $this->hasMany(CourierVendorCodCapabilityAudit::class, 'courier_vendor_cod_capability_id');
+    }
+
+    public function categoryLabel(): string
+    {
+        return self::CATEGORY_LABELS[self::normalizeCategory((string) $this->category)] ?? 'Domestic';
+    }
+
+    public static function normalizeCategory(?string $category): string
+    {
+        $normalized = strtolower(trim((string) $category));
+
+        // Keep backward compatibility with legacy "logistic" naming.
+        if ($normalized === 'logistic') {
+            $normalized = self::CATEGORY_INTERNATIONAL;
+        }
+
+        if (!in_array($normalized, [self::CATEGORY_DOMESTIC, self::CATEGORY_INTERNATIONAL], true)) {
+            return self::CATEGORY_DOMESTIC;
+        }
+
+        return $normalized;
     }
 
     public function statusLabel(): string

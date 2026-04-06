@@ -231,6 +231,16 @@ const Summary = ({
     );
     const pricingPreviewFinalTotal = Number(pricingPreview?.totalEstimatedUsd || 0);
     const pricingPreviewBeforeGovernance = pricingPreviewFinalTotal - governanceNetImpact;
+    const pricingPreviewCodDetails = pricingPreview?.codDetails || null;
+    const pricingPreviewCodFeeBase = pricingPreviewCodDetails?.feeBaseAmount !== null
+        && pricingPreviewCodDetails?.feeBaseAmount !== undefined
+        ? Number(pricingPreviewCodDetails.feeBaseAmount)
+        : null;
+    const pricingPreviewCodFeeBaseSource = pricingPreviewCodDetails?.feeBaseSource === 'requested_cod_amount'
+        ? 'Requested COD amount'
+        : pricingPreviewCodDetails?.feeBaseSource === 'declared_value'
+            ? 'Declared value'
+            : null;
 
     const resolveShipmentServiceLevel = (payload) => {
         const candidates = [];
@@ -431,6 +441,17 @@ const Summary = ({
                                     <p><span className="font-semibold">Assigned Vendor ID:</span> {pricingPreview.assignment.vendorUserId}</p>
                                 )}
                             </div>
+                            {pricingPreviewCodDetails && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">COD Pricing Base</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        <p><span className="font-semibold">COD Enabled:</span> {pricingPreviewCodDetails.codEnabled ? 'Yes' : 'No'}</p>
+                                        <p><span className="font-semibold">Fee Base Source:</span> {pricingPreviewCodFeeBaseSource || '—'}</p>
+                                        <p><span className="font-semibold">Fee Base Amount:</span> {pricingPreviewCodFeeBase !== null && Number.isFinite(pricingPreviewCodFeeBase) ? pricingPreviewCodFeeBase.toFixed(2) : '—'} USD</p>
+                                        <p><span className="font-semibold">Requested COD Amount:</span> {pricingPreviewCodDetails.requestedCodAmount !== null && pricingPreviewCodDetails.requestedCodAmount !== undefined ? Number(pricingPreviewCodDetails.requestedCodAmount).toFixed(2) : '—'} USD</p>
+                                    </div>
+                                </div>
+                            )}
                             {pricingPreview.reason && (
                                 <p className="mt-3 text-sm text-[#1E40AF]"><span className="font-semibold">Reason:</span> {pricingPreview.reason}</p>
                             )}

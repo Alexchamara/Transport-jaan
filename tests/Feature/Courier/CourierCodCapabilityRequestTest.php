@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Courier;
 
+use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
@@ -48,16 +49,29 @@ class CourierCodCapabilityRequestTest extends TestCase
         $response->assertOk();
         $response->assertJsonFragment([
             'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
         ]);
 
         $capability = CourierVendorCodCapability::query()
             ->where('vendor_user_id', $vendor->id)
+            ->where('category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
             ->first();
 
         $this->assertNotNull($capability);
         $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, $capability->status);
+        $this->assertSame(CourierVendorCodCapability::CATEGORY_DOMESTIC, (string) $capability->category);
         $this->assertSame($actor->id, (int) $capability->requested_by_user_id);
         $this->assertNotNull($capability->requested_at);
+
+        $audit = CourierVendorCodCapabilityAudit::query()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($audit);
+        $this->assertSame('cod_capability_request_submitted', (string) $audit->event_type);
+        $this->assertSame(CourierVendorCodCapability::STATUS_NOT_REQUESTED, (string) ($audit->from_status ?? ''));
+        $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, (string) ($audit->to_status ?? ''));
     }
 
     public function test_superadmin_can_approve_pending_cod_request(): void
@@ -67,6 +81,7 @@ class CourierCodCapabilityRequestTest extends TestCase
         $capability = CourierVendorCodCapability::query()->create([
             'vendor_user_id' => $vendor->id,
             'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
             'requested_by_user_id' => $vendor->id,
             'status' => CourierVendorCodCapability::STATUS_PENDING,
             'requested_at' => now()->subHour(),
@@ -96,7 +111,19 @@ class CourierCodCapabilityRequestTest extends TestCase
         $this->assertSame($superAdmin->id, (int) $capability->reviewed_by_user_id);
         $this->assertNotNull($capability->reviewed_at);
         $this->assertNotNull($capability->approved_at);
+        $this->assertNotNull($capability->expires_at);
+        $this->assertTrue($capability->expires_at->isFuture());
         $this->assertSame('Approved after readiness review.', $capability->decision_reason);
+
+        $audit = CourierVendorCodCapabilityAudit::query()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($audit);
+        $this->assertSame('cod_capability_approved', (string) $audit->event_type);
+        $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, (string) ($audit->from_status ?? ''));
+        $this->assertSame(CourierVendorCodCapability::STATUS_APPROVED, (string) ($audit->to_status ?? ''));
     }
 
     public function test_superadmin_reject_requires_reason(): void
@@ -106,6 +133,7 @@ class CourierCodCapabilityRequestTest extends TestCase
         $capability = CourierVendorCodCapability::query()->create([
             'vendor_user_id' => $vendor->id,
             'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
             'requested_by_user_id' => $vendor->id,
             'status' => CourierVendorCodCapability::STATUS_PENDING,
             'requested_at' => now()->subMinutes(30),
@@ -131,6 +159,38 @@ class CourierCodCapabilityRequestTest extends TestCase
 
         $capability->refresh();
         $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, $capability->status);
+        $this->assertNull(
+            CourierVendorCodCapabilityAudit::query()
+                ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+                ->latest('id')
+                ->value('event_type')
+        );
+    }
+
+    public function test_vendor_request_rejects_invalid_cod_category(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership(
+            $vendor,
+            $workspace,
+            ['courier.settings.update'],
+            'courier_dispatcher'
+        );
+
+        $csrfToken = 'cod-request-invalid-category-token';
+
+        $response = $this->actingAs($actor)
+            ->withSession(['_token' => $csrfToken])
+            ->from(route('courierService.settings.module', ['module' => 'services']))
+            ->post(route('courierService.settings.services.cod.request'), [
+                '_token' => $csrfToken,
+                'note' => 'Testing invalid category validation.',
+                'category' => 'overnight',
+            ]);
+
+        $response->assertRedirect(route('courierService.settings.module', ['module' => 'services']));
+        $response->assertSessionHasErrors(['category']);
     }
 
     private function createCourierVendorWorkspace(): array

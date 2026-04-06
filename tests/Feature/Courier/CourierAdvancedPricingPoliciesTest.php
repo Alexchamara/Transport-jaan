@@ -147,6 +147,36 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 20.0);
     }
 
+    public function test_cod_fee_uses_requested_cod_amount_when_cod_booking_is_enabled(): void
+    {
+        $vendor = $this->createDomesticVendorWithPolicyModules([
+            'codFee' => [
+                'enabled' => true,
+                'flatFee' => 0,
+                'percentOfDeclaredValue' => 10,
+                'minFee' => 0,
+                'maxFee' => null,
+            ],
+        ]);
+
+        $this->enableVendorDomesticCodCheckout((int) $vendor->id);
+        $this->approveVendorCodCapability((int) $vendor->id);
+
+        $result = $this->submitShipment([
+            'shipment' => [
+                'estimatedValue' => 100,
+                'codEnabled' => true,
+                'codAmount' => 300,
+                'codPaymentMethod' => 'cash',
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta(80.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 30.0);
+        $this->assertEqualsWithDelta(300.0, (float) ($result['pricingExplanation']['codDetails']['feeBaseAmount'] ?? 0), 0.01);
+        $this->assertSame('requested_amount', (string) ($result['pricingExplanation']['codDetails']['feeBaseSource'] ?? ''));
+    }
+
     public function test_minimum_shipment_guardrail_sets_floor_total(): void
     {
         $this->createDomesticVendorWithPolicyModules([
@@ -849,7 +879,10 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
     private function approveVendorCodCapability(int $vendorId): CourierVendorCodCapability
     {
         return CourierVendorCodCapability::query()->updateOrCreate(
-            ['vendor_user_id' => $vendorId],
+            [
+                'vendor_user_id' => $vendorId,
+                'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            ],
             [
                 'status' => CourierVendorCodCapability::STATUS_APPROVED,
                 'requested_at' => now()->subHour(),

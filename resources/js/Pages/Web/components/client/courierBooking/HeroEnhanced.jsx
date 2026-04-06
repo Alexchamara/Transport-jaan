@@ -68,6 +68,23 @@ const statusMap = {
     },
 };
 
+const formatCodMethod = (method) => {
+    if (!method) {
+        return "";
+    }
+
+    return String(method).replaceAll("_", " ");
+};
+
+const formatCodAmount = (amount, currencyCode = "USD") => {
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount)) {
+        return "";
+    }
+
+    return `${numericAmount.toFixed(2)} ${currencyCode}`;
+};
+
 const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlot = null }) => {
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -301,7 +318,12 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
             Packages: shipment.packages?.length ?? 0,
             Weight: Number(shipment.totalWeight || 0).toFixed(2),
             Cost: Number(shipment.totalCost || 0).toFixed(2),
-            Currency: "USD",
+            Currency: shipment.currencyCode || "USD",
+            CodEnabled: shipment.codEnabled ? "Yes" : "No",
+            CodAmount: shipment.codEnabled
+                ? formatCodAmount(shipment.codAmount, shipment.currencyCode || "USD")
+                : "",
+            CodMethod: shipment.codEnabled ? formatCodMethod(shipment.codPaymentMethod) : "",
         }));
 
         const dateStamp = new Date().toISOString().split("T")[0];
@@ -598,6 +620,18 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                                         Service: {shipment.serviceLevel}
                                                     </div>
                                                 )}
+
+                                                {shipment.codEnabled && (
+                                                    <div className="mb-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
+                                                        <span>COD enabled</span>
+                                                        {shipment.codAmount !== null && shipment.codAmount !== undefined && (
+                                                            <span>• {formatCodAmount(shipment.codAmount, shipment.currencyCode || 'USD')}</span>
+                                                        )}
+                                                        {shipment.codPaymentMethod && (
+                                                            <span className="capitalize">• {formatCodMethod(shipment.codPaymentMethod)}</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="px-10 pb-8 flex items-center justify-between gap-2 border-t pt-4">
@@ -677,6 +711,13 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                         <div className="mt-1 text-sm text-slate-500">
                                             {shipment.packages?.length || 0} package(s)
                                         </div>
+                                        {shipment.codEnabled && (
+                                            <div className="mt-1 text-[11px] font-medium text-emerald-700">
+                                                COD: {shipment.codAmount !== null && shipment.codAmount !== undefined
+                                                    ? formatCodAmount(shipment.codAmount, shipment.currencyCode || 'USD')
+                                                    : 'Enabled'}
+                                            </div>
+                                        )}
                                         <div className="mt-2 flex items-center justify-between text-[12px]">
                                             <span className="text-slate-500">Ref: {shipment.code}</span>
                                             <button

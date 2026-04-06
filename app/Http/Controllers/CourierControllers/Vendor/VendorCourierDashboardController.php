@@ -9,6 +9,7 @@ use App\Models\Courier\CourierSensitiveActionApproval;
 use App\Models\Courier\CourierTeamSecurityAudit;
 use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\CourierVendorCodCapability;
+use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierLabel;
@@ -982,34 +983,48 @@ class VendorCourierDashboardController extends Controller
 
         $validated = $request->validate([
             'note' => ['nullable', 'string', 'max:500'],
+            'category' => ['nullable', 'string', Rule::in([
+                CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+                'logistic',
+            ])],
         ]);
 
         $actorId = (int) optional($request->user())->id ?: null;
         $note = trim((string) ($validated['note'] ?? ''));
+        $category = CourierVendorCodCapability::normalizeCategory(
+            (string) ($validated['category'] ?? CourierVendorCodCapability::CATEGORY_DOMESTIC)
+        );
 
         $capability = CourierVendorCodCapability::query()->firstOrNew([
             'vendor_user_id' => $vendorId,
+            'category' => $category,
         ]);
+        $previousStatus = (string) ($capability->status ?: CourierVendorCodCapability::STATUS_NOT_REQUESTED);
 
         if (!$capability->exists) {
             $capability->service_workspace_id = $workspaceId > 0 ? $workspaceId : null;
         }
 
-        if ((string) $capability->status === CourierVendorCodCapability::STATUS_APPROVED) {
+        $isApprovedAndActive = (string) $capability->status === CourierVendorCodCapability::STATUS_APPROVED
+            && (!$capability->expires_at || $capability->expires_at->isFuture());
+
+        if ($isApprovedAndActive) {
             return response()->json([
                 'message' => 'COD capability is already approved for your courier account.',
-                'capability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId),
+                'capability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId, $category),
             ]);
         }
 
         if ((string) $capability->status === CourierVendorCodCapability::STATUS_PENDING) {
             return response()->json([
                 'message' => 'COD capability request is already pending superadmin review.',
-                'capability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId),
+                'capability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId, $category),
             ]);
         }
 
         $capability->fill([
+            'category' => $category,
             'requested_by_user_id' => $actorId > 0 ? $actorId : null,
             'status' => CourierVendorCodCapability::STATUS_PENDING,
             'requested_at' => now(),
@@ -1017,13 +1032,27 @@ class VendorCourierDashboardController extends Controller
             'reviewed_at' => null,
             'reviewed_by_user_id' => null,
             'approved_at' => null,
+            'expires_at' => null,
             'decision_reason' => null,
         ]);
         $capability->save();
 
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            $previousStatus,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $actorId > 0 ? $actorId : null,
+            $note !== '' ? $note : null,
+            [
+                'source' => 'vendor_settings',
+                'request_channel' => 'settings_page',
+            ]
+        );
+
         return response()->json([
             'message' => 'COD capability request submitted successfully.',
-            'capability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId),
+            'capability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId, $category),
         ]);
     }
 
@@ -3627,14 +3656,21 @@ class VendorCourierDashboardController extends Controller
         return $normalized;
     }
 
-    private function buildCodCapabilityPayload(Request $request, int $vendorId, int $workspaceId): array
+    private function buildCodCapabilityPayload(Request $request, int $vendorId, int $workspaceId, ?string $category = null): array
     {
+        $resolvedCategory = CourierVendorCodCapability::normalizeCategory(
+            $category
+                ?? (string) $request->query('codCategory', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+        );
+
         $capability = CourierVendorCodCapability::query()
             ->where('vendor_user_id', $vendorId)
+            ->where('category', $resolvedCategory)
             ->with(['requester:id,name', 'reviewer:id,name'])
             ->first();
 
         $status = (string) ($capability?->status ?: CourierVendorCodCapability::STATUS_NOT_REQUESTED);
+        $isExpired = (bool) ($capability?->expires_at && $capability->expires_at->isPast());
         $canRequestByPermission = (string) (optional($request->user())->role ?? '') === 'vendor'
             || (bool) optional($request->user())->can('courier.services.cod.request')
             || (bool) optional($request->user())->can('courier.settings.update');
@@ -3642,11 +3678,16 @@ class VendorCourierDashboardController extends Controller
             CourierVendorCodCapability::STATUS_NOT_REQUESTED,
             CourierVendorCodCapability::STATUS_REJECTED,
         ], true);
+        if ($canRequestByPermission && $status === CourierVendorCodCapability::STATUS_APPROVED && $isExpired) {
+            $canRequest = true;
+        }
         $canOverride = (bool) optional($request->user())->can('courier.services.cod.override');
 
         return [
             'status' => $status,
             'statusLabel' => CourierVendorCodCapability::STATUS_LABELS[$status] ?? 'Unknown',
+            'category' => $resolvedCategory,
+            'categoryLabel' => CourierVendorCodCapability::CATEGORY_LABELS[$resolvedCategory] ?? 'Domestic',
             'requestedAt' => optional($capability?->requested_at)->format('Y-m-d H:i:s'),
             'requestedByName' => (string) ($capability?->requester?->name ?? ''),
             'requestedNote' => (string) ($capability?->requested_note ?? ''),
@@ -3654,9 +3695,11 @@ class VendorCourierDashboardController extends Controller
             'reviewedByName' => (string) ($capability?->reviewer?->name ?? ''),
             'decisionReason' => (string) ($capability?->decision_reason ?? ''),
             'approvedAt' => optional($capability?->approved_at)->format('Y-m-d H:i:s'),
+            'expiresAt' => optional($capability?->expires_at)->format('Y-m-d H:i:s'),
+            'isExpired' => $isExpired,
             'canRequest' => $canRequest,
             'canOverride' => $canOverride,
-            'isEnabled' => $status === CourierVendorCodCapability::STATUS_APPROVED,
+            'isEnabled' => $status === CourierVendorCodCapability::STATUS_APPROVED && !$isExpired,
             'workspaceId' => $workspaceId,
         ];
     }

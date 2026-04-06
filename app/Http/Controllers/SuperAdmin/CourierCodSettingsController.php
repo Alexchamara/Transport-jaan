@@ -5,6 +5,8 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierCodSettlementSetting;
 use App\Models\Courier\CourierVendorCodCapability;
+use App\Models\Courier\CourierVendorCodCapabilityAudit;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,10 +17,15 @@ class CourierCodSettingsController extends Controller
     {
         $validated = $request->validate([
             'status' => ['nullable', 'string', 'in:all,pending,approved,rejected,not_requested'],
+            'category' => ['nullable', 'string', 'in:all,domestic,international,logistic'],
             'search' => ['nullable', 'string', 'max:120'],
         ]);
 
         $statusFilter = (string) ($validated['status'] ?? 'all');
+        $categoryFilterRaw = (string) ($validated['category'] ?? 'all');
+        $categoryFilter = $categoryFilterRaw === 'all'
+            ? 'all'
+            : CourierVendorCodCapability::normalizeCategory($categoryFilterRaw);
         $search = trim((string) ($validated['search'] ?? ''));
 
         $settings = CourierCodSettlementSetting::query()->firstOrCreate(
@@ -34,6 +41,10 @@ class CourierCodSettingsController extends Controller
 
         if ($statusFilter !== 'all') {
             $query->where('status', $statusFilter);
+        }
+
+        if ($categoryFilter !== 'all') {
+            $query->where('category', $categoryFilter);
         }
 
         if ($search !== '') {
@@ -52,6 +63,8 @@ class CourierCodSettingsController extends Controller
                     'id' => (int) $capability->id,
                     'status' => (string) $capability->status,
                     'statusLabel' => $capability->statusLabel(),
+                    'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
+                    'categoryLabel' => $capability->categoryLabel(),
                     'vendorId' => (int) ($capability->vendor_user_id ?? 0),
                     'vendorName' => (string) ($capability->vendor->name ?? ''),
                     'vendorEmail' => (string) ($capability->vendor->email ?? ''),
@@ -61,16 +74,23 @@ class CourierCodSettingsController extends Controller
                     'reviewedAt' => optional($capability->reviewed_at)->format('Y-m-d H:i:s'),
                     'reviewedBy' => (string) ($capability->reviewer->name ?? ''),
                     'approvedAt' => optional($capability->approved_at)->format('Y-m-d H:i:s'),
+                    'expiresAt' => optional($capability->expires_at)->format('Y-m-d H:i:s'),
+                    'isExpired' => (bool) ($capability->expires_at && $capability->expires_at->isPast()),
                     'decisionReason' => (string) ($capability->decision_reason ?? ''),
                 ];
             })
             ->values();
 
+        $statsQuery = CourierVendorCodCapability::query();
+        if ($categoryFilter !== 'all') {
+            $statsQuery->where('category', $categoryFilter);
+        }
+
         $stats = [
-            'total' => CourierVendorCodCapability::query()->count(),
-            'pending' => CourierVendorCodCapability::query()->where('status', CourierVendorCodCapability::STATUS_PENDING)->count(),
-            'approved' => CourierVendorCodCapability::query()->where('status', CourierVendorCodCapability::STATUS_APPROVED)->count(),
-            'rejected' => CourierVendorCodCapability::query()->where('status', CourierVendorCodCapability::STATUS_REJECTED)->count(),
+            'total' => (clone $statsQuery)->count(),
+            'pending' => (clone $statsQuery)->where('status', CourierVendorCodCapability::STATUS_PENDING)->count(),
+            'approved' => (clone $statsQuery)->where('status', CourierVendorCodCapability::STATUS_APPROVED)->count(),
+            'rejected' => (clone $statsQuery)->where('status', CourierVendorCodCapability::STATUS_REJECTED)->count(),
         ];
 
         return Inertia::render('Web/home/SuperAdmin/CourierCodSettings', [
@@ -86,6 +106,7 @@ class CourierCodSettingsController extends Controller
             'requests' => $requests,
             'filters' => [
                 'status' => $statusFilter,
+                'category' => $categoryFilter,
                 'search' => $search,
             ],
             'pagination' => [
@@ -134,19 +155,39 @@ class CourierCodSettingsController extends Controller
     {
         $validated = $request->validate([
             'note' => ['nullable', 'string', 'max:500'],
+            'expiresAt' => ['nullable', 'date', 'after:now'],
         ]);
 
+        $previousStatus = (string) ($capability->status ?: CourierVendorCodCapability::STATUS_NOT_REQUESTED);
         $note = trim((string) ($validated['note'] ?? ''));
+        $expiresAt = isset($validated['expiresAt'])
+            ? Carbon::parse((string) $validated['expiresAt'])
+            : now()->addYear();
+        $actorId = (int) optional($request->user())->id ?: null;
 
         $capability->fill([
             'status' => CourierVendorCodCapability::STATUS_APPROVED,
             'reviewed_at' => now(),
-            'reviewed_by_user_id' => (int) optional($request->user())->id ?: null,
+            'reviewed_by_user_id' => $actorId > 0 ? $actorId : null,
             'approved_at' => now(),
+            'expires_at' => $expiresAt,
             'decision_reason' => $note !== '' ? $note : null,
         ]);
 
         $capability->save();
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_approved',
+            $previousStatus,
+            CourierVendorCodCapability::STATUS_APPROVED,
+            $actorId > 0 ? $actorId : null,
+            $note !== '' ? $note : null,
+            [
+                'source' => 'superadmin_cod_settlement',
+                'expires_at' => optional($expiresAt)->toDateTimeString(),
+            ]
+        );
 
         return back()->with('success', 'COD capability approved successfully.');
     }
@@ -157,17 +198,32 @@ class CourierCodSettingsController extends Controller
             'note' => ['required', 'string', 'max:500'],
         ]);
 
+        $previousStatus = (string) ($capability->status ?: CourierVendorCodCapability::STATUS_NOT_REQUESTED);
         $note = trim((string) ($validated['note'] ?? ''));
+        $actorId = (int) optional($request->user())->id ?: null;
 
         $capability->fill([
             'status' => CourierVendorCodCapability::STATUS_REJECTED,
             'reviewed_at' => now(),
-            'reviewed_by_user_id' => (int) optional($request->user())->id ?: null,
+            'reviewed_by_user_id' => $actorId > 0 ? $actorId : null,
             'approved_at' => null,
+            'expires_at' => null,
             'decision_reason' => $note,
         ]);
 
         $capability->save();
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_rejected',
+            $previousStatus,
+            CourierVendorCodCapability::STATUS_REJECTED,
+            $actorId > 0 ? $actorId : null,
+            $note,
+            [
+                'source' => 'superadmin_cod_settlement',
+            ]
+        );
 
         return back()->with('success', 'COD capability request rejected.');
     }

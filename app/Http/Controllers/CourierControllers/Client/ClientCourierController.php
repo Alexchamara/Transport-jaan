@@ -1058,6 +1058,7 @@ class ClientCourierController extends Controller
             is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [],
             $reviewContext
         );
+        $payload['reviewContext']['requestedShipmentServiceLevel'] = $payload['shipment']['serviceLevel'] ?? null;
         $category = $this->resolvePayloadCategory($payload);
         $payload = $this->normalizeShipmentPreferencePayload(
             $payload,
@@ -1829,6 +1830,16 @@ class ClientCourierController extends Controller
     private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd, ?array &$pricingExplanation = null): float
     {
         $codRequest = $this->resolveCodBookingPayload($payload);
+        $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $declaredValueForCodPreview = max(
+            0,
+            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
+        );
+        $codEnabled = (bool) ($codRequest['enabled'] ?? false);
+        $codFeeBaseAmount = $codEnabled
+            ? max(0, (float) ($codRequest['requestedAmount'] ?? 0))
+            : $declaredValueForCodPreview;
+        $codFeeBaseSource = $codEnabled ? 'requested_amount' : 'declared_value';
 
         $pricingExplanation = [
             'mode' => 'fallback_quotes',
@@ -1838,9 +1849,11 @@ class ClientCourierController extends Controller
             'speedEtaTier' => null,
             'logisticDimensions' => null,
             'codDetails' => [
-                'enabled' => (bool) ($codRequest['enabled'] ?? false),
+                'enabled' => $codEnabled,
                 'requestedAmount' => $codRequest['requestedAmount'] ?? null,
                 'requestedMethod' => $codRequest['requestedMethod'] ?? null,
+                'feeBaseAmount' => $codFeeBaseAmount > 0 ? round($codFeeBaseAmount, 2) : 0.0,
+                'feeBaseSource' => $codFeeBaseSource,
                 'policyFeeApplied' => 0.0,
             ],
             'policyAdjustments' => [],
@@ -2287,6 +2300,10 @@ class ClientCourierController extends Controller
             0,
             (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
+        $codRequest = $this->resolveCodBookingPayload($payload);
+        $codEnabled = (bool) ($codRequest['enabled'] ?? false);
+        $requestedCodAmount = max(0, (float) ($codRequest['requestedAmount'] ?? 0));
+        $codFeeBaseAmount = $codEnabled ? $requestedCodAmount : $declaredValue;
         $category = $category ?: $this->resolvePayloadCategory($payload);
 
         $this->assertQuoteRuntimeGovernanceFieldLocks($payload, $policyModules);
@@ -2477,9 +2494,10 @@ class ClientCourierController extends Controller
         }
 
         $codPolicy = is_array($policyModules['codFee'] ?? null) ? $policyModules['codFee'] : [];
-        if ((bool) ($codPolicy['enabled'] ?? false) && $declaredValue > 0) {
+        $codInScopeCategory = !((bool) ($codPolicy['domesticOnly'] ?? false)) || $category === 'domestic';
+        if ((bool) ($codPolicy['enabled'] ?? false) && $codInScopeCategory && $codFeeBaseAmount > 0) {
             $flatFee = max(0, (float) ($codPolicy['flatFee'] ?? 0)) * $flatFeeFactor;
-            $percentFee = $declaredValue * (max(0, (float) ($codPolicy['percentOfDeclaredValue'] ?? 0)) / 100) * $percentBaseFactor;
+            $percentFee = $codFeeBaseAmount * (max(0, (float) ($codPolicy['percentOfDeclaredValue'] ?? 0)) / 100) * $percentBaseFactor;
             $codFee = $flatFee + $percentFee;
 
             $minFee = max(0, (float) ($codPolicy['minFee'] ?? 0)) * $flatFeeFactor;
@@ -2854,8 +2872,11 @@ class ClientCourierController extends Controller
 
         if ((bool) ($fieldLocks['lockShipmentServiceLevel'] ?? true) && $selectedQuotes->isNotEmpty()) {
             $selectedServiceLevel = $this->normalizeServiceLevelKey((string) ($selectedQuotes->first()['serviceLevel'] ?? ''));
-            $shipmentServiceLevel = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
-            if ($selectedServiceLevel !== '' && $shipmentServiceLevel !== '' && $selectedServiceLevel !== $shipmentServiceLevel) {
+            $requestedShipmentServiceLevel = $this->normalizeServiceLevelKey((string) (
+                $payload['reviewContext']['requestedShipmentServiceLevel']
+                ?? ($payload['shipment']['serviceLevel'] ?? '')
+            ));
+            if ($selectedServiceLevel !== '' && $requestedShipmentServiceLevel !== '' && $selectedServiceLevel !== $requestedShipmentServiceLevel) {
                 $errors['shipment.serviceLevel'] = 'Shipment service level is locked by pricing governance and must match the selected quote.';
             }
         }
@@ -3162,7 +3183,7 @@ class ClientCourierController extends Controller
             ]);
         }
 
-        $capability = $this->resolveApprovedVendorCodCapability($vendorId);
+        $capability = $this->resolveApprovedVendorCodCapability($vendorId, $category);
         if (!$capability) {
             throw ValidationException::withMessages([
                 'shipment.codEnabled' => 'Selected courier vendor does not have approved COD capability.',
@@ -3194,15 +3215,22 @@ class ClientCourierController extends Controller
         ];
     }
 
-    private function resolveApprovedVendorCodCapability(int $vendorId): ?CourierVendorCodCapability
+    private function resolveApprovedVendorCodCapability(int $vendorId, string $category = 'domestic'): ?CourierVendorCodCapability
     {
         if ($vendorId <= 0) {
             return null;
         }
 
+        $normalizedCategory = CourierVendorCodCapability::normalizeCategory($category);
+
         return CourierVendorCodCapability::query()
             ->where('vendor_user_id', $vendorId)
+            ->where('category', $normalizedCategory)
             ->where('status', CourierVendorCodCapability::STATUS_APPROVED)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
             ->first();
     }
 
