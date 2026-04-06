@@ -65,7 +65,7 @@ class VendorCourierDashboardController extends Controller
         $this->middleware('service.permission:courier.settings.update')->only(['updateSettings', 'pricingImportPreview', 'pricingImportApply']);
 
         $this->middleware('service.permission:courier.profile.view')->only(['profile']);
-        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'updateOwnerProfile', 'removeProfileLogo']);
+        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'updateOwnerProfile', 'removeOwnerProfileImage', 'removeProfileLogo']);
     }
 
     private const BOOKING_STATUS_OPTIONS = [
@@ -1511,20 +1511,40 @@ class VendorCourierDashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'ownerName' => ['required', 'string', 'max:180'],
+            'ownerName' => ['nullable', 'string', 'max:180', 'required_without:ownerImage'],
             'ownerAddress' => ['nullable', 'string', 'max:255'],
             'ownerCountry' => ['nullable', 'string', 'max:120'],
-            'ownerEmail' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($actorId)],
-            'ownerPhone' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\+\-\s\(\)]{7,25}$/'],
+            'ownerEmail' => ['nullable', 'email', 'max:180', Rule::unique('users', 'email')->ignore($actorId), 'required_without:ownerImage'],
+            'ownerPhone' => ['nullable', 'string', 'max:50'],
+            'ownerImage' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:3072'],
         ]);
 
         $actor->update([
-            'name' => (string) $validated['ownerName'],
-            'address' => (string) ($validated['ownerAddress'] ?? ''),
-            'country' => (string) ($validated['ownerCountry'] ?? ''),
-            'email' => (string) $validated['ownerEmail'],
-            'phone' => (string) ($validated['ownerPhone'] ?? ''),
+            'name' => array_key_exists('ownerName', $validated)
+                ? (string) ($validated['ownerName'] ?? '')
+                : (string) $actor->name,
+            'address' => array_key_exists('ownerAddress', $validated)
+                ? (string) ($validated['ownerAddress'] ?? '')
+                : (string) ($actor->address ?? ''),
+            'country' => array_key_exists('ownerCountry', $validated)
+                ? (string) ($validated['ownerCountry'] ?? '')
+                : (string) ($actor->country ?? ''),
+            'email' => array_key_exists('ownerEmail', $validated)
+                ? (string) ($validated['ownerEmail'] ?? '')
+                : (string) $actor->email,
+            'phone' => array_key_exists('ownerPhone', $validated)
+                ? (string) ($validated['ownerPhone'] ?? '')
+                : (string) ($actor->phone ?? ''),
         ]);
+
+        if ($request->hasFile('ownerImage')) {
+            if (!empty($actor->image)) {
+                Storage::disk('public')->delete($actor->image);
+            }
+
+            $ownerImagePath = $request->file('ownerImage')->store('uploads/vendors/' . $actorId . '/profile', 'public');
+            $actor->update(['image' => $ownerImagePath]);
+        }
 
         VendorActivityLog::create([
             'vendor_id' => $actorId,
@@ -1533,11 +1553,50 @@ class VendorCourierDashboardController extends Controller
             'target_id' => $actorId,
             'description' => 'Courier owner profile info updated from profile page.',
             'metadata' => [
-                'owner_name' => (string) $validated['ownerName'],
+                'owner_name' => (string) ($validated['ownerName'] ?? $actor->name),
             ],
         ]);
 
         return back()->with('success', 'Owner profile info updated successfully.');
+    }
+
+    public function removeOwnerProfileImage(Request $request)
+    {
+        $actor = $request->user();
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $actorId = (int) $actor->id;
+
+        if (!$this->hasApprovedCourierRegistration($actorId) && !$this->isActiveCourierTeamMember($actorId)) {
+            abort(403, 'Courier service registration approval is required to update profile.');
+        }
+
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $actorId)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership && (int) $membership->vendor_user_id !== $actorId) {
+            abort(403, 'Only courier account owner can remove owner profile photo.');
+        }
+
+        if (!empty($actor->image)) {
+            Storage::disk('public')->delete($actor->image);
+            $actor->update(['image' => null]);
+        }
+
+        VendorActivityLog::create([
+            'vendor_id' => $actorId,
+            'action' => 'courier_owner_profile_image_removed',
+            'target_type' => 'user',
+            'target_id' => $actorId,
+            'description' => 'Courier owner profile image removed from profile page.',
+            'metadata' => [],
+        ]);
+
+        return back()->with('success', 'Owner profile picture removed successfully.');
     }
 
     public function removeProfileLogo(Request $request)
@@ -5483,8 +5542,11 @@ class VendorCourierDashboardController extends Controller
             'isTeamUser' => (bool) $isTeamUser,
             'profile' => [
                 'logoUrl' => $profile?->logo
-                    ? asset('storage/' . $profile->logo)
-                    : ($user?->image ? asset('storage/' . $user->image) : null),
+                    ? asset('storage/' . $profile->logo) . '?v=' . urlencode((string) optional($profile?->updated_at)->timestamp)
+                    : ($user?->image ? asset('storage/' . $user->image) . '?v=' . urlencode((string) optional($user?->updated_at)->timestamp) : null),
+                'ownerImageUrl' => $user?->image
+                    ? asset('storage/' . $user->image) . '?v=' . urlencode((string) optional($user?->updated_at)->timestamp)
+                    : null,
                 'companyName' => (string) ($profile?->company_name ?? $user?->name ?? ''),
                 'displayName' => (string) ($settings['profile']['displayName'] ?? $user?->name ?? ''),
                 'ownerName' => (string) ($user?->name ?? ''),

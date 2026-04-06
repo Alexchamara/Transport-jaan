@@ -141,10 +141,13 @@ const ProfileContent = () => {
     const flash = props.flash || {};
     const errors = props.errors || {};
     const logoInputRef = useRef(null);
+    const ownerPhotoInputRef = useRef(null);
     const stepUpGuidanceRef = useRef(null);
     const stepUpGuidanceTimerRef = useRef(null);
     const [logoPreview, setLogoPreview] = useState(courierProfile.profile.logoUrl || null);
     const [logoFile, setLogoFile] = useState(null);
+    const [ownerPhotoPreview, setOwnerPhotoPreview] = useState(courierProfile.profile.ownerImageUrl || null);
+    const [ownerPhotoFile, setOwnerPhotoFile] = useState(null);
     const [clientErrors, setClientErrors] = useState({});
     const initialProfileModule = String(props.initialProfileModule || "company");
     const profileSecurityStatus = props.profileSecurityStatus && typeof props.profileSecurityStatus === "object"
@@ -212,13 +215,15 @@ const ProfileContent = () => {
 
     const serviceRows = Array.isArray(courierProfile.serviceEnrollment) ? courierProfile.serviceEnrollment : [];
     const activityRows = Array.isArray(courierProfile.activity) ? courierProfile.activity : [];
-    const isCompanyDirty = JSON.stringify(form) !== JSON.stringify(baselineForm) || Boolean(logoFile);
+    const isCompanyDirty = JSON.stringify(form) !== JSON.stringify(baselineForm) || Boolean(logoFile) || Boolean(ownerPhotoFile);
     const isSecurityDirty = Object.values(securityForm).some((value) => String(value || "").trim() !== "");
     const isDirty = isCompanyDirty || isSecurityDirty;
     const editableTab = activeTab === "company" || activeTab === "owner" || activeTab === "security";
     const isTabDirty = activeTab === "security"
         ? isSecurityDirty
-        : (TAB_FIELDS[activeTab].some((field) => form[field] !== baselineForm[field]) || (activeTab === "company" && Boolean(logoFile)));
+        : (TAB_FIELDS[activeTab].some((field) => form[field] !== baselineForm[field])
+            || (activeTab === "company" && Boolean(logoFile))
+            || (activeTab === "owner" && Boolean(ownerPhotoFile)));
     const visibleTabs = isTeamUser
         ? TAB_CONFIG.filter((tab) => ["company", "security"].includes(tab.key))
         : TAB_CONFIG;
@@ -253,6 +258,14 @@ const ProfileContent = () => {
     useEffect(() => {
         setSessionSecurityStatus(profileSecurityStatus);
     }, [profileSecurityStatus]);
+
+    useEffect(() => {
+        setLogoPreview(courierProfile.profile.logoUrl || null);
+    }, [courierProfile.profile.logoUrl]);
+
+    useEffect(() => {
+        setOwnerPhotoPreview(courierProfile.profile.ownerImageUrl || null);
+    }, [courierProfile.profile.ownerImageUrl]);
 
     const requestJson = async (method, url, body = null) => {
         const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
@@ -443,6 +456,52 @@ const ProfileContent = () => {
         });
     };
 
+    const submitOwnerProfile = ({
+        ownerImage = ownerPhotoFile,
+        successMessage = "Owner profile info updated successfully.",
+    } = {}) => {
+        // Normalize phone: if it is only a dial code (≤4 digits, no spaces), send empty string
+        const rawPhone = String(form.ownerPhone || "").trim();
+        const normalizedPhone = rawPhone.replace(/\D/g, "").length >= 5 ? rawPhone : "";
+        router.post(route("courierService.profile.owner.update"), {
+            ownerName: form.ownerName,
+            ownerAddress: form.ownerAddress,
+            ownerCountry: form.ownerCountry,
+            ownerEmail: form.ownerEmail,
+            ownerPhone: normalizedPhone,
+            ownerImage,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            forceFormData: true,
+            onSuccess: () => {
+                setBaselineForm((prev) => ({
+                    ...prev,
+                    ownerName: form.ownerName,
+                    ownerAddress: form.ownerAddress,
+                    ownerCountry: form.ownerCountry,
+                    ownerEmail: form.ownerEmail,
+                    ownerPhone: form.ownerPhone,
+                }));
+                setOwnerPhotoFile(null);
+                setFeedback({ type: "success", message: successMessage });
+                router.reload({ only: ["auth", "courierProfile"], preserveScroll: true, preserveState: true });
+            },
+            onError: (submitErrors = {}) => {
+                const firstError = Object.values(submitErrors).find((value) => Array.isArray(value)
+                    ? value.length > 0
+                    : Boolean(value));
+                const message = Array.isArray(firstError)
+                    ? String(firstError[0] || "")
+                    : String(firstError || "");
+                setFeedback({
+                    type: "error",
+                    message: message || "Failed to save owner profile info. Please review inputs.",
+                });
+            },
+        });
+    };
+
     const saveOwnerProfile = () => {
         if (!String(form.ownerName || "").trim()) {
             setFeedback({ type: "error", message: "Owner name is required." });
@@ -457,31 +516,7 @@ const ProfileContent = () => {
         openConfirm({
             title: "Save Owner Profile",
             message: "Save owner profile info now?",
-            onConfirm: () => {
-                router.post(route("courierService.profile.owner.update"), {
-                    ownerName: form.ownerName,
-                    ownerAddress: form.ownerAddress,
-                    ownerCountry: form.ownerCountry,
-                    ownerEmail: form.ownerEmail,
-                    ownerPhone: form.ownerPhone,
-                }, {
-                    preserveScroll: true,
-                    preserveState: true,
-                    onSuccess: () => {
-                        setBaselineForm((prev) => ({
-                            ...prev,
-                            ownerName: form.ownerName,
-                            ownerAddress: form.ownerAddress,
-                            ownerCountry: form.ownerCountry,
-                            ownerEmail: form.ownerEmail,
-                            ownerPhone: form.ownerPhone,
-                        }));
-                    },
-                    onError: () => {
-                        setFeedback({ type: "error", message: "Failed to save owner profile info. Please review inputs." });
-                    },
-                });
-            },
+            onConfirm: () => submitOwnerProfile(),
         });
     };
 
@@ -589,6 +624,59 @@ const ProfileContent = () => {
             setLogoPreview(e.target?.result || null);
         };
         reader.readAsDataURL(file);
+    };
+
+    const onOwnerPhotoChange = (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+            setClientErrors((prev) => ({ ...prev, ownerImage: "Please upload a JPG, PNG, or WEBP profile picture." }));
+            return;
+        }
+
+        if (file.size > 3 * 1024 * 1024) {
+            setClientErrors((prev) => ({ ...prev, ownerImage: "Profile picture must be under 3MB." }));
+            return;
+        }
+
+        setClientErrors((prev) => ({ ...prev, ownerImage: undefined }));
+        setOwnerPhotoFile(file);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            setOwnerPhotoPreview(e.target?.result || null);
+        };
+        reader.readAsDataURL(file);
+
+        submitOwnerProfile({
+            ownerImage: file,
+            successMessage: "Profile picture updated successfully.",
+        });
+    };
+
+    const removeOwnerPhoto = () => {
+        openConfirm({
+            title: "Remove Profile Picture",
+            message: "Remove your current personal profile picture?",
+            onConfirm: () => {
+                router.delete(route("courierService.profile.owner.image.remove"), {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        setOwnerPhotoPreview(null);
+                        setOwnerPhotoFile(null);
+                        router.reload({ only: ["auth", "courierProfile"], preserveScroll: true, preserveState: true });
+                    },
+                    onError: () => {
+                        setFeedback({ type: "error", message: "Failed to remove owner profile picture." });
+                    },
+                });
+            },
+        });
     };
 
     return (
@@ -759,6 +847,26 @@ const ProfileContent = () => {
 
                     {activeTab === "owner" && !isTeamUser && (
                         <SectionCard title="Owner Profile" description="Personal account details for the owner. These fields are saved directly to the users table.">
+                            <div className="mb-4 border border-[#E5E7EB] rounded-[8px] p-4 flex items-center gap-4">
+                                <div className="h-[72px] w-[72px] rounded-full bg-[#F3F4F6] overflow-hidden flex items-center justify-center text-[11px] text-[#6B7280]">
+                                    {ownerPhotoPreview ? <img src={ownerPhotoPreview} alt="Profile picture" className="h-full w-full object-cover" /> : "No Photo"}
+                                </div>
+                                <div>
+                                    <input ref={ownerPhotoInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={onOwnerPhotoChange} />
+                                    <div className="flex gap-2">
+                                        <button type="button" className="h-[34px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[700]" onClick={() => ownerPhotoInputRef.current?.click()}>
+                                            Upload Profile Picture
+                                        </button>
+                                        {ownerPhotoPreview && (
+                                            <button type="button" className="h-[34px] px-3 rounded-[8px] border border-[#DC2626] text-[#DC2626] text-[12px] font-[700]" onClick={removeOwnerPhoto}>
+                                                Remove Picture
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-[#6B7280] mt-1">JPG, PNG, WEBP profile picture up to 3MB.</p>
+                                    <ErrorText>{clientErrors.ownerImage || errors.ownerImage}</ErrorText>
+                                </div>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Field label="Name"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerName} onChange={(e) => setForm((prev) => ({ ...prev, ownerName: e.target.value }))} /><ErrorText>{errors.ownerName}</ErrorText></Field>
                                 <Field label="Address"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerAddress} onChange={(e) => setForm((prev) => ({ ...prev, ownerAddress: e.target.value }))} /><ErrorText>{errors.ownerAddress}</ErrorText></Field>

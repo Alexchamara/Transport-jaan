@@ -1247,6 +1247,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.profile.update')
         ->name('courierService.profile.owner.update');
 
+    Route::delete('/courierService/profile/owner-image', [VendorCourierDashboardController::class, 'removeOwnerProfileImage'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.owner.image.remove');
+
     Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
         ->middleware('service.permission:courier.profile.update')
         ->name('courierService.profile.logo.remove');
