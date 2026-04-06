@@ -90,6 +90,11 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
     Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
     Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+    Route::post('/favorites', [ClientCourierController::class, 'storeFavoriteRecipient'])
+        ->name('favorites.store');
+    Route::delete('/favorites/{contact}', [ClientCourierController::class, 'removeFavoriteRecipient'])
+        ->whereNumber('contact')
+        ->name('favorites.remove');
     Route::post('/', [ClientCourierController::class, 'store'])->name('store');
     Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
         ->whereNumber('shipment')
@@ -1211,6 +1216,14 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
     Route::get('/courierService/settingsPage/pricing/exchange-rates', [VendorCourierDashboardController::class, 'pricingExchangeRates'])
         ->middleware(['service.permission:courier.settings.view', 'throttle:20,1'])
         ->name('courierService.settings.pricing.exchange-rates');
+
+    Route::post('/courierService/settingsPage/pricing/import/preview', [VendorCourierDashboardController::class, 'pricingImportPreview'])
+        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.import.preview');
+
+    Route::post('/courierService/settingsPage/pricing/import/apply', [VendorCourierDashboardController::class, 'pricingImportApply'])
+        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
+        ->name('courierService.settings.pricing.import.apply');
 
     Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
         ->middleware('service.permission:courier.profile.view')

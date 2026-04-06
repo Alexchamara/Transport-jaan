@@ -45,6 +45,39 @@ class ClientCourierController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $favoriteRecipients = CourierContact::query()
+            ->with(['addresses' => function ($query) {
+                $query->orderByDesc('is_primary')->orderBy('id');
+            }])
+            ->where('user_id', $user->id)
+            ->where('role', CourierContact::ROLE_RECIPIENT)
+            ->where('is_favorite', true)
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(function (CourierContact $contact) {
+                $address = $contact->addresses->first();
+
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'phone' => $contact->phone,
+                    'company' => $contact->company_name,
+                    'address' => $address ? [
+                        'line1' => $address->line1,
+                        'line2' => $address->line2,
+                        'city' => $address->city,
+                        'state' => $address->state,
+                        'postalCode' => $address->postal_code,
+                        'country' => $address->country,
+                        'instructions' => $address->instructions,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
+
         // Calculate statistics
         $totalShipments = $shipments->count();
         
@@ -128,7 +161,88 @@ class ClientCourierController extends Controller
                 'cancelled' => $cancelledCount,
             ],
             'monthlyData' => $monthlyData,
+            'favoriteRecipients' => $favoriteRecipients,
+            'countries' => $countries,
         ]);
+    }
+
+    public function storeFavoriteRecipient(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        $validated = $request->validate(
+            [
+                'recipient.name' => ['required', 'string', 'max:120'],
+                'recipient.email' => ['nullable', 'email', 'max:150'],
+                'recipient.phone' => ['nullable', 'string', 'max:40'],
+                'recipient.company' => ['nullable', 'string', 'max:120'],
+                'recipient.address.line1' => ['required', 'string', 'max:180'],
+                'recipient.address.line2' => ['nullable', 'string', 'max:180'],
+                'recipient.address.city' => ['required', 'string', 'max:120'],
+                'recipient.address.state' => ['nullable', 'string', 'max:120'],
+                'recipient.address.postalCode' => ['nullable', 'string', 'max:30'],
+                'recipient.address.country' => ['required', 'string', 'size:2'],
+                'recipient.address.instructions' => ['nullable', 'string', 'max:500'],
+            ],
+            [],
+            [
+                'recipient.address.line1' => 'recipient address line 1',
+            ]
+        );
+
+        $recipient = $validated['recipient'] ?? [];
+        $address = $recipient['address'] ?? [];
+
+        $contact = CourierContact::create([
+            'user_id' => $user->id,
+            'role' => CourierContact::ROLE_RECIPIENT,
+            'name' => $recipient['name'],
+            'email' => $recipient['email'] ?? null,
+            'phone' => $recipient['phone'] ?? null,
+            'company_name' => $recipient['company'] ?? null,
+            'is_favorite' => true,
+        ]);
+
+        $contact->addresses()->create([
+            'label' => 'dropoff',
+            'line1' => $address['line1'],
+            'line2' => $address['line2'] ?? null,
+            'city' => $address['city'],
+            'state' => $address['state'] ?? null,
+            'postal_code' => $address['postalCode'] ?? null,
+            'country' => strtoupper((string) ($address['country'] ?? '')),
+            'instructions' => $address['instructions'] ?? null,
+            'is_primary' => true,
+        ]);
+
+        return redirect()
+            ->route('courierBookingDashboard')
+            ->with('success', 'Recipient saved to favorites.');
+    }
+
+    public function removeFavoriteRecipient(Request $request, CourierContact $contact)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        if ((int) $contact->user_id !== (int) $user->id || $contact->role !== CourierContact::ROLE_RECIPIENT) {
+            abort(404);
+        }
+
+        if ($contact->is_favorite) {
+            $contact->update([
+                'is_favorite' => false,
+            ]);
+        }
+
+        return back()->with('success', 'Recipient removed from favorites.');
     }
 
     public function show(Request $request, $id)
@@ -390,6 +504,7 @@ class ClientCourierController extends Controller
                 'email' => null,
                 'phone' => null,
                 'company' => null,
+                'saveToFavorites' => false,
                 'address' => [
                     'line1' => null,
                     'line2' => null,
@@ -449,6 +564,41 @@ class ClientCourierController extends Controller
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
         $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
+        $favoriteRecipients = [];
+
+        $user = Auth::user();
+        if ($user) {
+            $favoriteRecipients = CourierContact::query()
+                ->with(['addresses' => function ($query) {
+                    $query->orderByDesc('is_primary')->orderBy('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('role', CourierContact::ROLE_RECIPIENT)
+                ->where('is_favorite', true)
+                ->orderBy('updated_at', 'desc')
+                ->get()
+                ->map(function (CourierContact $contact) {
+                    $address = $contact->addresses->first();
+
+                    return [
+                        'id' => $contact->id,
+                        'name' => $contact->name,
+                        'email' => $contact->email,
+                        'phone' => $contact->phone,
+                        'company' => $contact->company_name,
+                        'address' => $address ? [
+                            'line1' => $address->line1,
+                            'line2' => $address->line2,
+                            'city' => $address->city,
+                            'state' => $address->state,
+                            'postalCode' => $address->postal_code,
+                            'country' => $address->country,
+                            'instructions' => $address->instructions,
+                        ] : null,
+                    ];
+                })
+                ->values();
+        }
 
         $this->observability()->logDetailsViewOpened($request, [
             'category' => $category,
@@ -461,6 +611,7 @@ class ClientCourierController extends Controller
             'packageTypes' => $packageTypes,
             'countries' => $countries,
             'logisticDimensionOptions' => $logisticDimensionOptions,
+            'favoriteRecipients' => $favoriteRecipients,
         ]);
     }
 
@@ -527,6 +678,7 @@ class ClientCourierController extends Controller
                 'recipient.email' => ['nullable', 'email', 'max:150'],
                 'recipient.phone' => ['nullable', 'string', 'max:40'],
                 'recipient.company' => ['nullable', 'string', 'max:120'],
+                'recipient.saveToFavorites' => ['nullable', 'boolean'],
                 'recipient.address.line1' => ['required', 'string', 'max:180'],
                 'recipient.address.line2' => ['nullable', 'string', 'max:180'],
                 'recipient.address.city' => ['required', 'string', 'max:120'],
@@ -608,6 +760,7 @@ class ClientCourierController extends Controller
         $normalized['recipient']['address']['country'] = strtoupper($normalized['recipient']['address']['country'] ?? '');
         $normalized['shipment']['currency'] = strtoupper($normalized['shipment']['currency'] ?? 'LKR');
         $normalized['shipment']['insurance'] = (bool) ($normalized['shipment']['insurance'] ?? false);
+        $normalized['recipient']['saveToFavorites'] = (bool) ($normalized['recipient']['saveToFavorites'] ?? false);
 
         if ($reviewContextInput !== null) {
             $normalized['reviewContext'] = array_replace(
@@ -802,9 +955,10 @@ class ClientCourierController extends Controller
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
         }, 0.0);
+        $saveRecipientFavorite = (bool) ($payload['recipient']['saveToFavorites'] ?? false);
 
         try {
-            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService) {
+            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService, $saveRecipientFavorite) {
                 $sender = CourierContact::create([
                     'user_id' => Auth::id(),
                     'role' => CourierContact::ROLE_SENDER,
@@ -828,11 +982,13 @@ class ClientCourierController extends Controller
                 ]);
 
                 $recipient = CourierContact::create([
+                    'user_id' => Auth::id(),
                     'role' => CourierContact::ROLE_RECIPIENT,
                     'name' => $payload['recipient']['name'],
                     'email' => $payload['recipient']['email'] ?? null,
                     'phone' => $payload['recipient']['phone'] ?? null,
                     'company_name' => $payload['recipient']['company'] ?? null,
+                    'is_favorite' => $saveRecipientFavorite,
                 ]);
 
                 $recipientAddressData = $payload['recipient']['address'];
