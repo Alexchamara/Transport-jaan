@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "@inertiajs/react";
+import CompanyLogo from "../components/CompanyLogo";
 
 import linkedin from "../assets/rentAVehicle/footer/linkedin.png";
 import fb from "../assets/rentAVehicle/footer/fb.png";
@@ -242,18 +243,14 @@ const Footer = () => {
                 <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-700 flex flex-col md:flex-row items-center justify-between gap-4">
                     {/* Logo */}
                     <div className="text-center md:text-center">
-                        <Link
-                            href="/"
-                            className="text-xl sm:text-2xl font-[700] hover:text-blue-400 transition-colors duration-200 poppins"
-                        >
-                            COMPANY
-                            <br />
-                            <span className="text-[#0955AC]">LOGO</span>
-                        </Link>
+                        <CompanyLogo
+                            className="h-[75px] object-contain"
+                            fallbackClassName="text-xl sm:text-2xl font-[700] text-white poppins"
+                        />
                     </div>
                     {/* Copyright */}
                     <p className="figtree text-[14px] sm:text-[16px] text-[#FFFFFF] text-center">
-                        &copy; <CurrentYear /> JAAN Network (Pvt) Ltd. | All
+                        &copy; <CurrentYear /> Xsarva (Pvt) Ltd. | All
                         rights reserved.
                     </p>
                     {/* Social Icons */}
