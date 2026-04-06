@@ -65,7 +65,7 @@ class VendorCourierDashboardController extends Controller
         $this->middleware('service.permission:courier.settings.update')->only(['updateSettings', 'pricingImportPreview', 'pricingImportApply']);
 
         $this->middleware('service.permission:courier.profile.view')->only(['profile']);
-        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'removeProfileLogo']);
+        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'updateOwnerProfile', 'removeProfileLogo']);
     }
 
     private const BOOKING_STATUS_OPTIONS = [
@@ -1315,7 +1315,7 @@ class VendorCourierDashboardController extends Controller
             abort(403, 'Courier service registration approval is required to access profile.');
         }
 
-        $allowedModules = ['company', 'security', 'compliance', 'services', 'activity'];
+        $allowedModules = ['company', 'owner', 'security', 'compliance', 'services', 'activity'];
         $moduleFromQuery = (string) $request->query('tab', '');
         $selectedModule = in_array((string) $module, $allowedModules, true)
             ? (string) $module
@@ -1373,6 +1373,8 @@ class VendorCourierDashboardController extends Controller
             'section' => ['nullable', 'string'],
             'companyName' => ['required', 'string', 'max:180'],
             'displayName' => ['nullable', 'string', 'max:180'],
+            'ownerName' => ['nullable', 'string', 'max:180'],
+            'ownerAddress' => ['nullable', 'string', 'max:255'],
             'businessRegistrationNo' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
             'taxId' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
             'contactPerson' => ['nullable', 'string', 'max:180'],
@@ -1431,6 +1433,11 @@ class VendorCourierDashboardController extends Controller
                 'email' => (string) ($validated['contactEmail'] ?: $actor->email),
                 'phone' => (string) ($validated['contactPhone'] ?: $actor->phone),
             ]);
+        } elseif ($actor) {
+            $actor->update([
+                'name' => (string) ($validated['ownerName'] ?: $validated['displayName'] ?: $validated['companyName'] ?: $actor->name),
+                'address' => (string) ($validated['ownerAddress'] ?? $actor->address),
+            ]);
         }
 
         if ($request->hasFile('logo')) {
@@ -1479,6 +1486,58 @@ class VendorCourierDashboardController extends Controller
         ]);
 
         return back()->with('success', ucfirst($section) . ' profile section updated successfully.');
+    }
+
+    public function updateOwnerProfile(Request $request)
+    {
+        $actor = $request->user();
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $actorId = (int) $actor->id;
+
+        if (!$this->hasApprovedCourierRegistration($actorId) && !$this->isActiveCourierTeamMember($actorId)) {
+            abort(403, 'Courier service registration approval is required to update profile.');
+        }
+
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $actorId)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership && (int) $membership->vendor_user_id !== $actorId) {
+            abort(403, 'Only courier account owner can update owner profile info.');
+        }
+
+        $validated = $request->validate([
+            'ownerName' => ['required', 'string', 'max:180'],
+            'ownerAddress' => ['nullable', 'string', 'max:255'],
+            'ownerCountry' => ['nullable', 'string', 'max:120'],
+            'ownerEmail' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($actorId)],
+            'ownerPhone' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\+\-\s\(\)]{7,25}$/'],
+        ]);
+
+        $actor->update([
+            'name' => (string) $validated['ownerName'],
+            'address' => (string) ($validated['ownerAddress'] ?? ''),
+            'country' => (string) ($validated['ownerCountry'] ?? ''),
+            'email' => (string) $validated['ownerEmail'],
+            'phone' => (string) ($validated['ownerPhone'] ?? ''),
+        ]);
+
+        VendorActivityLog::create([
+            'vendor_id' => $actorId,
+            'action' => 'courier_owner_profile_updated',
+            'target_type' => 'user',
+            'target_id' => $actorId,
+            'description' => 'Courier owner profile info updated from profile page.',
+            'metadata' => [
+                'owner_name' => (string) $validated['ownerName'],
+            ],
+        ]);
+
+        return back()->with('success', 'Owner profile info updated successfully.');
     }
 
     public function removeProfileLogo(Request $request)
@@ -5428,6 +5487,11 @@ class VendorCourierDashboardController extends Controller
                     : ($user?->image ? asset('storage/' . $user->image) : null),
                 'companyName' => (string) ($profile?->company_name ?? $user?->name ?? ''),
                 'displayName' => (string) ($settings['profile']['displayName'] ?? $user?->name ?? ''),
+                'ownerName' => (string) ($user?->name ?? ''),
+                'ownerAddress' => (string) ($user?->address ?? ''),
+                'ownerCountry' => (string) ($user?->country ?? ''),
+                'ownerEmail' => (string) ($user?->email ?? ''),
+                'ownerPhone' => (string) ($user?->phone ?? ''),
                 'businessRegistrationNo' => (string) ($profile?->business_registration_no ?? ''),
                 'taxId' => (string) ($profile?->tax_id ?? ''),
                 'website' => (string) ($profile?->website ?? ''),

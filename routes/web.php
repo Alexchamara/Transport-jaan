@@ -1229,14 +1229,23 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile');
 
+    Route::get('/courierService/profile/owner-info', [VendorCourierDashboardController::class, 'profile'])
+        ->defaults('module', 'owner')
+        ->middleware('service.permission:courier.profile.view')
+        ->name('courierService.profile.owner');
+
     Route::get('/courierService/profile/{module}', [VendorCourierDashboardController::class, 'profile'])
-        ->where('module', 'company|security|compliance|services|activity')
+        ->where('module', 'company|owner|security|compliance|services|activity')
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile.module');
 
     Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
         ->middleware('service.permission:courier.profile.update')
         ->name('courierService.profile.update');
+
+    Route::post('/courierService/profile/owner-info', [VendorCourierDashboardController::class, 'updateOwnerProfile'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.owner.update');
 
     Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
         ->middleware('service.permission:courier.profile.update')

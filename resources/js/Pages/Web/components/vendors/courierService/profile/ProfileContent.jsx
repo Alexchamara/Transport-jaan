@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { Building2, Eye, EyeOff, FileCheck2, KeyRound, ShieldCheck, Users } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+import { Building2, Eye, EyeOff, FileCheck2, KeyRound, ShieldCheck, User, Users } from "lucide-react";
 import CourierFeedbackModal from "../common/CourierFeedbackModal";
 import useCourierActionModal from "../common/useCourierActionModal";
 
@@ -10,6 +12,11 @@ const EMPTY = {
         logoUrl: null,
         companyName: "",
         displayName: "",
+        ownerName: "",
+        ownerAddress: "",
+        ownerCountry: "",
+        ownerEmail: "",
+        ownerPhone: "",
         businessRegistrationNo: "",
         taxId: "",
         website: "",
@@ -66,6 +73,7 @@ const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\
 
 const TAB_CONFIG = [
     { key: "company", label: "Company Info", icon: Building2 },
+    { key: "owner", label: "Personal Info", icon: User },
     { key: "security", label: "Security", icon: KeyRound },
     { key: "compliance", label: "Compliance", icon: FileCheck2 },
     { key: "services", label: "Service Access", icon: ShieldCheck },
@@ -92,6 +100,13 @@ const TAB_FIELDS = {
         "country",
         "publicAbout",
         "publicSupportHours",
+    ],
+    owner: [
+        "ownerName",
+        "ownerAddress",
+        "ownerCountry",
+        "ownerEmail",
+        "ownerPhone",
     ],
     security: [],
     compliance: [],
@@ -142,6 +157,11 @@ const ProfileContent = () => {
     const initialForm = useMemo(() => ({
         companyName: courierProfile.profile.companyName || "",
         displayName: courierProfile.profile.displayName || "",
+        ownerName: courierProfile.profile.ownerName || "",
+        ownerAddress: courierProfile.profile.ownerAddress || "",
+        ownerCountry: courierProfile.profile.ownerCountry || "",
+        ownerEmail: courierProfile.profile.ownerEmail || "",
+        ownerPhone: courierProfile.profile.ownerPhone || "",
         businessRegistrationNo: courierProfile.profile.businessRegistrationNo || "",
         taxId: courierProfile.profile.taxId || "",
         website: courierProfile.profile.website || "",
@@ -177,6 +197,7 @@ const ProfileContent = () => {
         currentPassword: "",
         otpCode: "",
     });
+    const [showStepUpPassword, setShowStepUpPassword] = useState(false);
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
 
     const {
@@ -194,7 +215,7 @@ const ProfileContent = () => {
     const isCompanyDirty = JSON.stringify(form) !== JSON.stringify(baselineForm) || Boolean(logoFile);
     const isSecurityDirty = Object.values(securityForm).some((value) => String(value || "").trim() !== "");
     const isDirty = isCompanyDirty || isSecurityDirty;
-    const editableTab = activeTab === "company" || activeTab === "security";
+    const editableTab = activeTab === "company" || activeTab === "owner" || activeTab === "security";
     const isTabDirty = activeTab === "security"
         ? isSecurityDirty
         : (TAB_FIELDS[activeTab].some((field) => form[field] !== baselineForm[field]) || (activeTab === "company" && Boolean(logoFile)));
@@ -422,6 +443,48 @@ const ProfileContent = () => {
         });
     };
 
+    const saveOwnerProfile = () => {
+        if (!String(form.ownerName || "").trim()) {
+            setFeedback({ type: "error", message: "Owner name is required." });
+            return;
+        }
+
+        if (!String(form.ownerEmail || "").trim()) {
+            setFeedback({ type: "error", message: "Owner email is required." });
+            return;
+        }
+
+        openConfirm({
+            title: "Save Owner Profile",
+            message: "Save owner profile info now?",
+            onConfirm: () => {
+                router.post(route("courierService.profile.owner.update"), {
+                    ownerName: form.ownerName,
+                    ownerAddress: form.ownerAddress,
+                    ownerCountry: form.ownerCountry,
+                    ownerEmail: form.ownerEmail,
+                    ownerPhone: form.ownerPhone,
+                }, {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        setBaselineForm((prev) => ({
+                            ...prev,
+                            ownerName: form.ownerName,
+                            ownerAddress: form.ownerAddress,
+                            ownerCountry: form.ownerCountry,
+                            ownerEmail: form.ownerEmail,
+                            ownerPhone: form.ownerPhone,
+                        }));
+                    },
+                    onError: () => {
+                        setFeedback({ type: "error", message: "Failed to save owner profile info. Please review inputs." });
+                    },
+                });
+            },
+        });
+    };
+
     const navigateProfileTab = (nextTab) => {
         const isValidTab = TAB_CONFIG.some((tab) => tab.key === nextTab);
         if (!isValidTab) {
@@ -530,6 +593,44 @@ const ProfileContent = () => {
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
+            <style>{`
+                .courier-owner-phone-input {
+                    width: 100%;
+                }
+                .courier-owner-phone-input .form-control {
+                    width: 100% !important;
+                    height: 42px !important;
+                    border: 1px solid #D1D5DB !important;
+                    border-radius: 8px !important;
+                    padding-left: 52px !important;
+                    font-size: 14px !important;
+                    color: #111827 !important;
+                    background: #FFFFFF !important;
+                }
+                .courier-owner-phone-input .form-control:focus {
+                    box-shadow: none !important;
+                    outline: none !important;
+                    border-color: #0955AC !important;
+                }
+                .courier-owner-phone-input .form-control::placeholder {
+                    color: #9CA3AF !important;
+                }
+                .courier-owner-phone-input .flag-dropdown {
+                    border: 1px solid #D1D5DB !important;
+                    border-right: none !important;
+                    border-radius: 8px 0 0 8px !important;
+                    background: #FFFFFF !important;
+                }
+                .courier-owner-phone-input .selected-flag {
+                    border-radius: 8px 0 0 8px !important;
+                    background: #FFFFFF !important;
+                }
+                .courier-owner-phone-input .selected-flag:hover,
+                .courier-owner-phone-input .selected-flag:focus {
+                    background: #FFFFFF !important;
+                }
+            `}</style>
+
             <CourierFeedbackModal
                 open={Boolean(feedback)}
                 type={feedback?.type || "info"}
@@ -566,11 +667,11 @@ const ProfileContent = () => {
                 </div>
                 <button
                     type="button"
-                    onClick={activeTab === "security" ? saveSecurity : saveProfile}
+                    onClick={activeTab === "security" ? saveSecurity : (activeTab === "owner" ? saveOwnerProfile : saveProfile)}
                     disabled={!isDirty || !editableTab}
                     className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
                 >
-                    {activeTab === "security" ? "Update Password" : "Save Profile"}
+                    {activeTab === "security" ? "Update Password" : (activeTab === "owner" ? "Save Owner Profile" : "Save Profile")}
                 </button>
             </div>
 
@@ -656,6 +757,34 @@ const ProfileContent = () => {
                         </SectionCard>
                     )}
 
+                    {activeTab === "owner" && !isTeamUser && (
+                        <SectionCard title="Owner Profile" description="Personal account details for the owner. These fields are saved directly to the users table.">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Field label="Name"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerName} onChange={(e) => setForm((prev) => ({ ...prev, ownerName: e.target.value }))} /><ErrorText>{errors.ownerName}</ErrorText></Field>
+                                <Field label="Address"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerAddress} onChange={(e) => setForm((prev) => ({ ...prev, ownerAddress: e.target.value }))} /><ErrorText>{errors.ownerAddress}</ErrorText></Field>
+                                <Field label="Email"><input type="email" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerEmail} onChange={(e) => setForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} /><ErrorText>{errors.ownerEmail}</ErrorText></Field>
+                                <Field label="Phone">
+                                    <PhoneInput
+                                        country={'lk'}
+                                        value={form.ownerPhone}
+                                        onChange={(phone) => setForm((prev) => ({ ...prev, ownerPhone: phone }))}
+                                        countryCodeEditable={false}
+                                        containerClass="courier-owner-phone-input"
+                                        inputClass="form-control"
+                                        buttonClass="flag-dropdown"
+                                        dropdownClass="text-gray-800 bg-white"
+                                        searchClass="text-gray-800"
+                                        preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                        enableSearch={true}
+                                        placeholder="Enter your phone number"
+                                    />
+                                    <ErrorText>{errors.ownerPhone}</ErrorText>
+                                </Field>
+                                <Field label="Country"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerCountry} onChange={(e) => setForm((prev) => ({ ...prev, ownerCountry: e.target.value }))} /><ErrorText>{errors.ownerCountry}</ErrorText></Field>
+                            </div>
+                        </SectionCard>
+                    )}
+
                     {activeTab === "security" && (
                         <SectionCard title="Profile Security" description="Change your account password and keep your team access secure.">
                             <div
@@ -671,13 +800,22 @@ const ProfileContent = () => {
                                     <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
                                 )}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                    <input
-                                        type="password"
-                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        placeholder="Current password"
-                                        value={stepUpForm.currentPassword}
-                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showStepUpPassword ? "text" : "password"}
+                                            className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 pr-9 text-[12px]"
+                                            placeholder="Current password"
+                                            value={stepUpForm.currentPassword}
+                                            onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 px-3 text-[#6B7280] hover:text-[#111827]"
+                                            onClick={() => setShowStepUpPassword((prev) => !prev)}
+                                        >
+                                            {showStepUpPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        </button>
+                                    </div>
                                     <input
                                         className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
                                         placeholder="OTP code"
