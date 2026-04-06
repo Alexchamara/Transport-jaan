@@ -1330,9 +1330,9 @@ class VendorCourierDashboardController extends Controller
                     (int) $request->attributes->get('service_workspace_id'),
                     $actorUserId
                 ),
-                'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
-                'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
-                'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
+                'stepUpVerifiedAt' => $this->formatCourierProfileDateTime($request->session()->get('courier_security.step_up_verified_at', '')),
+                'twoFactorVerifiedAt' => $this->formatCourierProfileDateTime($request->session()->get('courier_security.two_factor_verified_at', '')),
+                'anomalyDetectedAt' => $this->formatCourierProfileDateTime($request->session()->get('courier_security.anomaly_detected_at', '')),
             ],
         ]);
     }
@@ -5519,7 +5519,7 @@ class VendorCourierDashboardController extends Controller
                     'id' => $item->id,
                     'action' => $item->action,
                     'description' => $item->description,
-                    'createdAt' => optional($item->created_at)->format('Y-m-d H:i'),
+                    'createdAt' => $this->formatCourierProfileDateTime($item->created_at),
                 ];
             })
             ->values();
@@ -5571,7 +5571,7 @@ class VendorCourierDashboardController extends Controller
                 'publicAbout' => (string) ($profile?->description ?? ''),
                 'publicSupportHours' => (string) ($settings['profile']['publicSupportHours'] ?? ''),
                 'status' => (string) ($isTeamUser ? 'active' : ($profile?->submission_status ?? 'draft')),
-                'reviewedAt' => optional($profile?->reviewed_at)->format('Y-m-d H:i'),
+                'reviewedAt' => $this->formatCourierProfileDateTime($profile?->reviewed_at),
                 'adminNotes' => (string) ($isTeamUser ? '' : ($profile?->admin_notes ?? '')),
             ],
             'summary' => [
@@ -5586,12 +5586,33 @@ class VendorCourierDashboardController extends Controller
                     'service' => (string) optional($item->serviceSubCategory)->name,
                     'category' => (string) optional($item->serviceCategory)->name,
                     'status' => (string) $item->status,
-                    'submittedAt' => optional($item->submitted_at)->format('Y-m-d H:i'),
-                    'reviewedAt' => optional($item->reviewed_at)->format('Y-m-d H:i'),
+                    'submittedAt' => $this->formatCourierProfileDateTime($item->submitted_at),
+                    'reviewedAt' => $this->formatCourierProfileDateTime($item->reviewed_at),
                 ];
             })->values(),
             'activity' => $activities,
         ];
+    }
+
+    private function formatCourierProfileDateTime($value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        $timezone = (string) config('app.display_timezone', config('app.timezone', 'UTC'));
+
+        try {
+            if ($value instanceof Carbon) {
+                return $value->copy()->setTimezone($timezone)->format('Y-m-d H:i');
+            }
+
+            return Carbon::parse((string) $value, 'UTC')
+                ->setTimezone($timezone)
+                ->format('Y-m-d H:i');
+        } catch (\Throwable) {
+            return (string) $value;
+        }
     }
 
     private function trackingNumber(CourierShipment $shipment): string

@@ -23,6 +23,7 @@ use App\Services\Courier\CourierTeamEffectiveAccessService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -1814,9 +1815,9 @@ class CourierTeamController extends Controller
         return response()->json([
             'policy' => $service->resolvePolicyForVendor($vendorUserId),
             'trustedDevices' => $service->trustedDevicesForActor($vendorUserId, $workspaceId, (int) optional($actor)->id),
-            'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
-            'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
-            'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
+            'stepUpVerifiedAt' => $this->formatCourierSecurityDateTime($request->session()->get('courier_security.step_up_verified_at', '')),
+            'twoFactorVerifiedAt' => $this->formatCourierSecurityDateTime($request->session()->get('courier_security.two_factor_verified_at', '')),
+            'anomalyDetectedAt' => $this->formatCourierSecurityDateTime($request->session()->get('courier_security.anomaly_detected_at', '')),
         ]);
     }
 
@@ -1948,7 +1949,12 @@ class CourierTeamController extends Controller
             [],
         );
 
-        return response()->json(['message' => 'Step-up verification completed successfully.']);
+        return response()->json([
+            'message' => 'Step-up verification completed successfully.',
+            'stepUpVerifiedAt' => $this->formatCourierSecurityDateTime($now),
+            'twoFactorVerifiedAt' => $this->formatCourierSecurityDateTime($now),
+            'anomalyDetectedAt' => '',
+        ]);
     }
 
     public function trustCurrentDevice(Request $request)
@@ -1993,6 +1999,27 @@ class CourierTeamController extends Controller
                 'expiresAt' => optional($device->expires_at)->format('Y-m-d H:i:s'),
             ],
         ]);
+    }
+
+    private function formatCourierSecurityDateTime($value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        $timezone = (string) config('app.display_timezone', config('app.timezone', 'UTC'));
+
+        try {
+            if ($value instanceof Carbon) {
+                return $value->copy()->setTimezone($timezone)->format('Y-m-d H:i');
+            }
+
+            return Carbon::parse((string) $value, 'UTC')
+                ->setTimezone($timezone)
+                ->format('Y-m-d H:i');
+        } catch (\Throwable) {
+            return (string) $value;
+        }
     }
 
     public function listAccessReviews(Request $request)
