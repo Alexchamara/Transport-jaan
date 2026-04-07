@@ -1058,6 +1058,15 @@ const ProfileContent = () => {
 
                     {activeTab === "services" && (
                         <SectionCard title="Service Enrollment" description="All registered service sub-categories and their approval state.">
+                            <div className="mb-4 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => router.visit(route("vendor.profile.step2"))}
+                                    className="h-[36px] px-4 rounded-[8px] bg-[#16A34A] text-white text-[12px] font-[700] hover:bg-[#15803D] transition-colors"
+                                >
+                                    Register for new Service
+                                </button>
+                            </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full text-left text-[13px]">
                                     <thead className="bg-[#D8E4F2]">
