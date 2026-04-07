@@ -1605,9 +1605,9 @@ const Create = () => {
                                                                 type="checkbox"
                                                                 checked={Boolean(item.nonStackable)}
                                                                 onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
-                                                                className="h-7 w-7 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                                className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
                                                             />
-                                                            <span className="text-[20px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+                                                            <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
 
                                                             <div className="group relative">
                                                                 <button
