@@ -1117,7 +1117,7 @@ const ProfileContent = () => {
                         {!editableTab && <p className="text-[12px] text-[#6B7280]">This tab is view-only.</p>}
                         <button
                             type="button"
-                            onClick={activeTab === "security" ? saveSecurity : saveProfile}
+                            onClick={activeTab === "security" ? saveSecurity : (activeTab === "owner" ? saveOwnerProfile : saveProfile)}
                             disabled={!isDirty || !editableTab || !isTabDirty}
                             className="h-[38px] px-5 rounded-[8px] bg-[#111827] text-white text-[13px] font-[700] disabled:opacity-50"
                         >
