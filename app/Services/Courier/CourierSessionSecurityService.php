@@ -203,21 +203,24 @@ class CourierSessionSecurityService
         $this->evaluateAnomalySignals($request, $policy, $user->id, $currentSessionId, $ipPrefix, $vendorUserId);
 
         if ($this->requiresTrustedDevice($policy, $actorRole, $actorUserId)) {
-            $trustedDevice = $this->findTrustedDevice($vendorUserId, $workspaceId, $user->id, $this->deviceHash($request));
-            if (!$trustedDevice) {
-                return [
-                    'ok' => false,
-                    'status' => 403,
-                    'message' => 'Trusted device verification is required for your role.',
-                    'code' => 'trusted_device_required',
-                ];
-            }
+            // Bootstrap rule: do not hard-block first-time users with no trusted devices yet.
+            if ($this->hasAnyTrustedDevicesForActor($vendorUserId, $workspaceId, $actorUserId)) {
+                $trustedDevice = $this->findTrustedDevice($vendorUserId, $workspaceId, $user->id, $this->deviceHash($request));
+                if (!$trustedDevice) {
+                    return [
+                        'ok' => false,
+                        'status' => 403,
+                        'message' => 'Trusted device verification is required for your role.',
+                        'code' => 'trusted_device_required',
+                    ];
+                }
 
-            $trustedDevice->update([
-                'last_seen_at' => now(),
-                'last_ip_address' => $ipAddress,
-                'last_ip_prefix' => $ipPrefix,
-            ]);
+                $trustedDevice->update([
+                    'last_seen_at' => now(),
+                    'last_ip_address' => $ipAddress,
+                    'last_ip_prefix' => $ipPrefix,
+                ]);
+            }
         }
 
         $stepUpRequired = $this->requiresStepUpForRequest($request, $policy, $actorRole, $actorUserId);
@@ -466,6 +469,21 @@ class CourierSessionSecurityService
             })
             ->latest('id')
             ->first();
+    }
+
+    private function hasAnyTrustedDevicesForActor(int $vendorUserId, int $workspaceId, int $userId): bool
+    {
+        return CourierTrustedDevice::query()
+            ->where('vendor_user_id', $vendorUserId)
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->where(function ($query) use ($workspaceId) {
+                $query->whereNull('service_workspace_id')->orWhere('service_workspace_id', $workspaceId);
+            })
+            ->exists();
     }
 
     private function requiresTrustedDevice(array $policy, string $role, int $userId): bool
