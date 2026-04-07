@@ -1763,8 +1763,8 @@ Route::get('/vendors/profile/{userId}', [\App\Http\Controllers\VendorProfileCont
 Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorProfileController::class, 'index'])->name('index');
     Route::get('/step-1', [\App\Http\Controllers\VendorProfileController::class, 'step1'])->name('step1');
-    Route::get('/step-2', [\App\Http\Controllers\VendorProfileController::class, 'step2'])->name('step2');
-    Route::get('/step-3', [\App\Http\Controllers\VendorProfileController::class, 'step3'])->name('step3');
+    Route::get('/service_registration', [\App\Http\Controllers\VendorProfileController::class, 'step2'])->name('step2');
+    Route::get('/review_&_submit', [\App\Http\Controllers\VendorProfileController::class, 'step3'])->name('step3');
     Route::post('/activity-click', [\App\Http\Controllers\VendorProfileController::class, 'logButtonClick'])->name('activity-click');
     Route::post('/save', [\App\Http\Controllers\VendorProfileController::class, 'saveProfile'])->name('save');
     Route::post('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'saveServiceRegistration'])->name('service.save');
