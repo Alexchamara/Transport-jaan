@@ -19,7 +19,8 @@ class CourierSessionSecurityService
             'enabled' => true,
             'deviceTrust' => [
                 'enabled' => true,
-                'enforceForRoles' => [],
+                'enforceForRoles' => ['courier_owner', 'courier_admin'],
+                'enforceForUserIds' => [],
                 'trustDurationDays' => 30,
             ],
             'concurrentSessions' => [
@@ -38,15 +39,15 @@ class CourierSessionSecurityService
             ],
             'anomalyDetection' => [
                 'enabled' => true,
-                'rapidSwitchMinutes' => 45,
-                'clearStepUpOnAnomaly' => true,
+                'rapidSwitchMinutes' => 120,
+                'clearStepUpOnAnomaly' => false,
                 'ipAllowList' => [],
                 'ipDenyList' => [],
             ],
             'stepUp' => [
                 'enabled' => true,
-                'ttlMinutes' => 20,
-                'twoFactorTtlMinutes' => 20,
+                'ttlMinutes' => 120,
+                'twoFactorTtlMinutes' => 120,
                 'sensitiveRouteNames' => [
                     'courierService.team.access.update',
                     'courierService.team.bulk',
@@ -70,6 +71,7 @@ class CourierSessionSecurityService
             'mandatory2FA' => [
                 'enabled' => true,
                 'roles' => ['courier_owner', 'courier_admin'],
+                'userIds' => [],
                 'forSensitiveActions' => true,
             ],
         ];
@@ -105,6 +107,7 @@ class CourierSessionSecurityService
                     ->unique()
                     ->values()
                     ->all(),
+                'enforceForUserIds' => $this->normalizeUserIds($deviceTrust['enforceForUserIds'] ?? $defaults['deviceTrust']['enforceForUserIds']),
                 'trustDurationDays' => max(1, min(365, (int) ($deviceTrust['trustDurationDays'] ?? $defaults['deviceTrust']['trustDurationDays']))),
             ],
             'concurrentSessions' => [
@@ -153,6 +156,7 @@ class CourierSessionSecurityService
                     ->unique()
                     ->values()
                     ->all(),
+                'userIds' => $this->normalizeUserIds($mandatory2FA['userIds'] ?? $defaults['mandatory2FA']['userIds']),
                 'forSensitiveActions' => (bool) ($mandatory2FA['forSensitiveActions'] ?? $defaults['mandatory2FA']['forSensitiveActions']),
             ],
         ];
@@ -183,6 +187,7 @@ class CourierSessionSecurityService
         $ipAddress = (string) ($request->ip() ?? '');
         $ipPrefix = $this->ipPrefix($ipAddress);
         $currentSessionId = (string) $request->session()->getId();
+        $actorUserId = (int) $user->id;
         $actorRole = $this->resolveActorRole($user, $workspaceId, $vendorUserId);
 
         if ($this->isIpDenied($policy, $ipAddress)) {
@@ -197,7 +202,7 @@ class CourierSessionSecurityService
         $this->enforceConcurrentSessionLimit($policy, $user->id, $currentSessionId, $actorRole);
         $this->evaluateAnomalySignals($request, $policy, $user->id, $currentSessionId, $ipPrefix, $vendorUserId);
 
-        if ($this->requiresTrustedDevice($policy, $actorRole)) {
+        if ($this->requiresTrustedDevice($policy, $actorRole, $actorUserId)) {
             $trustedDevice = $this->findTrustedDevice($vendorUserId, $workspaceId, $user->id, $this->deviceHash($request));
             if (!$trustedDevice) {
                 return [
@@ -215,10 +220,10 @@ class CourierSessionSecurityService
             ]);
         }
 
-        $stepUpRequired = $this->requiresStepUpForRequest($request, $policy, $actorRole);
+        $stepUpRequired = $this->requiresStepUpForRequest($request, $policy, $actorRole, $actorUserId);
         if ($stepUpRequired) {
             $isStepUpValid = $this->hasFreshSessionTimestamp($request, 'courier_security.step_up_verified_at', (int) ($policy['stepUp']['ttlMinutes'] ?? 20));
-            $requiresTwoFactor = $this->requiresTwoFactorForRequest($request, $policy, $actorRole);
+            $requiresTwoFactor = $this->requiresTwoFactorForRequest($request, $policy, $actorRole, $actorUserId);
             $isTwoFactorValid = !$requiresTwoFactor
                 || $this->hasFreshSessionTimestamp($request, 'courier_security.two_factor_verified_at', (int) ($policy['stepUp']['twoFactorTtlMinutes'] ?? 20));
 
@@ -377,7 +382,7 @@ class CourierSessionSecurityService
             ->delete();
     }
 
-    private function requiresStepUpForRequest(Request $request, array $policy, string $role): bool
+    private function requiresStepUpForRequest(Request $request, array $policy, string $role, int $userId): bool
     {
         if (!(bool) ($policy['stepUp']['enabled'] ?? true)) {
             return false;
@@ -391,16 +396,23 @@ class CourierSessionSecurityService
             return true;
         }
 
-        return in_array($role, (array) ($policy['mandatory2FA']['roles'] ?? []), true);
+        return in_array($role, (array) ($policy['mandatory2FA']['roles'] ?? []), true)
+            || in_array($userId, (array) ($policy['mandatory2FA']['userIds'] ?? []), true);
     }
 
-    private function requiresTwoFactorForRequest(Request $request, array $policy, string $role): bool
+    private function requiresTwoFactorForRequest(Request $request, array $policy, string $role, int $userId): bool
     {
         if (!(bool) ($policy['mandatory2FA']['enabled'] ?? true)) {
             return false;
         }
 
-        if (in_array($role, (array) ($policy['mandatory2FA']['roles'] ?? []), true) && $this->isWriteRequest($request)) {
+        if (
+            $this->isWriteRequest($request)
+            && (
+                in_array($role, (array) ($policy['mandatory2FA']['roles'] ?? []), true)
+                || in_array($userId, (array) ($policy['mandatory2FA']['userIds'] ?? []), true)
+            )
+        ) {
             return true;
         }
 
@@ -456,13 +468,24 @@ class CourierSessionSecurityService
             ->first();
     }
 
-    private function requiresTrustedDevice(array $policy, string $role): bool
+    private function requiresTrustedDevice(array $policy, string $role, int $userId): bool
     {
         if (!(bool) ($policy['deviceTrust']['enabled'] ?? true)) {
             return false;
         }
 
-        return in_array($role, (array) ($policy['deviceTrust']['enforceForRoles'] ?? []), true);
+        return in_array($role, (array) ($policy['deviceTrust']['enforceForRoles'] ?? []), true)
+            || in_array($userId, (array) ($policy['deviceTrust']['enforceForUserIds'] ?? []), true);
+    }
+
+    private function normalizeUserIds($value): array
+    {
+        return collect(is_array($value) ? $value : [])
+            ->map(fn ($userId) => (int) $userId)
+            ->filter(fn ($userId) => $userId > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function resolveActorRole(User $user, int $workspaceId, int $vendorUserId): string

@@ -664,7 +664,8 @@ const DEFAULT_SETTINGS = {
             enabled: true,
             deviceTrust: {
                 enabled: true,
-                enforceForRoles: [],
+                enforceForRoles: ["courier_owner", "courier_admin"],
+                enforceForUserIds: [],
                 trustDurationDays: 30,
             },
             concurrentSessions: {
@@ -683,15 +684,15 @@ const DEFAULT_SETTINGS = {
             },
             anomalyDetection: {
                 enabled: true,
-                rapidSwitchMinutes: 45,
-                clearStepUpOnAnomaly: true,
+                rapidSwitchMinutes: 120,
+                clearStepUpOnAnomaly: false,
                 ipAllowList: [],
                 ipDenyList: [],
             },
             stepUp: {
                 enabled: true,
-                ttlMinutes: 20,
-                twoFactorTtlMinutes: 20,
+                ttlMinutes: 120,
+                twoFactorTtlMinutes: 120,
                 sensitiveRouteNames: [
                     "courierService.team.access.update",
                     "courierService.team.bulk",
@@ -715,6 +716,7 @@ const DEFAULT_SETTINGS = {
             mandatory2FA: {
                 enabled: true,
                 roles: ["courier_owner", "courier_admin"],
+                userIds: [],
                 forSensitiveActions: true,
             },
         },
@@ -4054,6 +4056,25 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const toggleSessionSecurityRole = (groupKey, roleName) => {
+        const currentRoles = settings.team?.sessionSecurity?.[groupKey]?.roles;
+        const roleList = Array.isArray(currentRoles) ? currentRoles : [];
+        const nextRoles = roleList.includes(roleName)
+            ? roleList.filter((role) => role !== roleName)
+            : [...roleList, roleName];
+
+        updateSessionSecurityNested(groupKey, "roles", nextRoles);
+    };
+
+    const updateSessionSecurityUserIds = (groupKey, key, rawValue) => {
+        const ids = String(rawValue || "")
+            .split(/[,\s]+/)
+            .map((value) => Number.parseInt(value, 10))
+            .filter((value, index, array) => Number.isInteger(value) && value > 0 && array.indexOf(value) === index);
+
+        updateSessionSecurityNested(groupKey, key, ids);
     };
 
     const certifyAccessReview = async (reviewId, keepAccess) => {
@@ -7997,8 +8018,8 @@ const Settings = () => {
                                                         min={5}
                                                         max={720}
                                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(settings.team?.sessionSecurity?.anomalyDetection?.rapidSwitchMinutes || 45)}
-                                                        onChange={(e) => updateSessionSecurityNested("anomalyDetection", "rapidSwitchMinutes", Number(e.target.value || 45))}
+                                                        value={Number(settings.team?.sessionSecurity?.anomalyDetection?.rapidSwitchMinutes || 120)}
+                                                        onChange={(e) => updateSessionSecurityNested("anomalyDetection", "rapidSwitchMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
                                             </div>
@@ -8013,6 +8034,11 @@ const Settings = () => {
                                                     label="Enable Geo/IP Anomaly Detection"
                                                     checked={Boolean(settings.team?.sessionSecurity?.anomalyDetection?.enabled)}
                                                     onChange={(next) => updateSessionSecurityNested("anomalyDetection", "enabled", next)}
+                                                />
+                                                <Toggle
+                                                    label="Keep Step-up Valid After Anomaly"
+                                                    checked={!Boolean(settings.team?.sessionSecurity?.anomalyDetection?.clearStepUpOnAnomaly)}
+                                                    onChange={(next) => updateSessionSecurityNested("anomalyDetection", "clearStepUpOnAnomaly", !next)}
                                                 />
                                                 <Toggle
                                                     label="Enable Step-up for Risky Actions"
@@ -8033,8 +8059,8 @@ const Settings = () => {
                                                         min={5}
                                                         max={120}
                                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.ttlMinutes || 20)}
-                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "ttlMinutes", Number(e.target.value || 20))}
+                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.ttlMinutes || 120)}
+                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "ttlMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
                                                 <Field label="2FA TTL (minutes)">
@@ -8043,10 +8069,90 @@ const Settings = () => {
                                                         min={5}
                                                         max={120}
                                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.twoFactorTtlMinutes || 20)}
-                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "twoFactorTtlMinutes", Number(e.target.value || 20))}
+                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.twoFactorTtlMinutes || 120)}
+                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "twoFactorTtlMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
+                                            </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                                <p className="text-[12px] font-[700] text-[#111827] mb-1">Targeting: All Team Roles or Selected Members</p>
+                                                <p className="text-[11px] text-[#6B7280] mb-2">Use roles for broad policy and user IDs for specific employee exceptions.</p>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                        <p className="text-[11px] font-[700] text-[#111827] mb-2">Mandatory 2FA Roles</p>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                                            {(teamRoleOptions || []).map((roleName) => {
+                                                                const selected = Boolean(settings.team?.sessionSecurity?.mandatory2FA?.roles?.includes(roleName));
+                                                                return (
+                                                                    <label key={`mfa-role-${roleName}`} className="inline-flex items-center gap-2 text-[11px] text-[#374151]">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selected}
+                                                                            onChange={() => toggleSessionSecurityRole("mandatory2FA", roleName)}
+                                                                        />
+                                                                        <span>{titleCase(roleName)}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                        <p className="text-[11px] font-[700] text-[#111827] mb-2">Trusted Device Enforcement Roles</p>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                                            {(teamRoleOptions || []).map((roleName) => {
+                                                                const selected = Boolean(settings.team?.sessionSecurity?.deviceTrust?.enforceForRoles?.includes(roleName));
+                                                                const currentRoles = settings.team?.sessionSecurity?.deviceTrust?.enforceForRoles;
+                                                                const roleList = Array.isArray(currentRoles) ? currentRoles : [];
+                                                                return (
+                                                                    <label key={`trust-role-${roleName}`} className="inline-flex items-center gap-2 text-[11px] text-[#374151]">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selected}
+                                                                            onChange={() => updateSessionSecurityNested(
+                                                                                "deviceTrust",
+                                                                                "enforceForRoles",
+                                                                                roleList.includes(roleName)
+                                                                                    ? roleList.filter((role) => role !== roleName)
+                                                                                    : [...roleList, roleName],
+                                                                            )}
+                                                                        />
+                                                                        <span>{titleCase(roleName)}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                                                    <Field label="Mandatory 2FA for Selected User IDs (comma separated)">
+                                                        <input
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            placeholder="e.g. 30, 45, 78"
+                                                            value={(settings.team?.sessionSecurity?.mandatory2FA?.userIds || []).join(", ")}
+                                                            onChange={(e) => updateSessionSecurityUserIds("mandatory2FA", "userIds", e.target.value)}
+                                                        />
+                                                    </Field>
+                                                    <Field label="Trusted Device for Selected User IDs (comma separated)">
+                                                        <input
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            placeholder="e.g. 30, 45, 78"
+                                                            value={(settings.team?.sessionSecurity?.deviceTrust?.enforceForUserIds || []).join(", ")}
+                                                            onChange={(e) => updateSessionSecurityUserIds("deviceTrust", "enforceForUserIds", e.target.value)}
+                                                        />
+                                                    </Field>
+                                                </div>
+
+                                                <div className="mt-2">
+                                                    <Toggle
+                                                        label="Require 2FA For Sensitive Actions"
+                                                        checked={Boolean(settings.team?.sessionSecurity?.mandatory2FA?.forSensitiveActions)}
+                                                        onChange={(next) => updateSessionSecurityNested("mandatory2FA", "forSensitiveActions", next)}
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2">
