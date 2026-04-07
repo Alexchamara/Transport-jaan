@@ -4,6 +4,10 @@ import { createPortal } from "react-dom";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
+import dimensionGuideIcon from "../assets/landingPages/box.svg";
+import presetPalletOneImage from "../assets/courierService/size-pallet-1.svg";
+import presetPalletTwoImage from "../assets/courierService/size-pallet-2.svg";
+import presetMovingBoxImage from "../assets/courierService/size-moving-box.svg";
 import DetailsForm from "./Details";
 import SummaryView from "./Summary";
 import {
@@ -59,6 +63,42 @@ const SHIPMENT_TYPE_OPTIONS = [
     { value: "perishable", label: "Perishable" },
     { value: "fragile", label: "Fragile" },
     { value: "other", label: "Other" },
+];
+
+const DIMENSION_ASSIST_PRESETS = [
+    {
+        id: "pallet-1",
+        label: "Pallet 1",
+        sizeLabel: "120 x 80 cm",
+        lengthCm: 120,
+        widthCm: 80,
+        heightCm: null,
+        prefillHeight: false,
+        imageSrc: presetPalletOneImage,
+        imageAlt: "Pallet 1 size example",
+    },
+    {
+        id: "pallet-2",
+        label: "Pallet 2",
+        sizeLabel: "120 x 100 cm",
+        lengthCm: 120,
+        widthCm: 100,
+        heightCm: null,
+        prefillHeight: false,
+        imageSrc: presetPalletTwoImage,
+        imageAlt: "Pallet 2 size example",
+    },
+    {
+        id: "moving-box",
+        label: "Moving box",
+        sizeLabel: "75 x 35 x 35 cm",
+        lengthCm: 75,
+        widthCm: 35,
+        heightCm: 35,
+        prefillHeight: true,
+        imageSrc: presetMovingBoxImage,
+        imageAlt: "Moving box size example",
+    },
 ];
 
 const QUOTE_TIER_OPTIONS = [
@@ -170,6 +210,7 @@ const Create = () => {
                     widthCm: "",
                     heightCm: "",
                     dimensionUnit: "cm",
+                    nonStackable: false,
                     declaredValue: "",
                     description: "",
                     courierProvider: "",
@@ -231,6 +272,25 @@ const Create = () => {
                 }
                 : item
         );
+        setData("packages", nextPackages);
+    };
+
+    const applyDimensionPreset = (index, preset) => {
+        if (!preset) {
+            return;
+        }
+
+        const nextPackages = data.packages.map((item, idx) => (
+            idx === index
+                ? {
+                    ...item,
+                    lengthCm: String(preset.lengthCm),
+                    widthCm: String(preset.widthCm),
+                    heightCm: preset.prefillHeight ? String(preset.heightCm) : "",
+                }
+                : item
+        ));
+
         setData("packages", nextPackages);
     };
 
@@ -307,6 +367,18 @@ const Create = () => {
                 country: selectedRouteType === "domestic"
                     ? DOMESTIC_COUNTRY_CODE
                     : currentParty.address.country,
+            },
+        });
+    };
+
+    const updateAddressPostalCode = (party, postalCode) => {
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                postalCode,
             },
         });
     };
@@ -474,6 +546,7 @@ const Create = () => {
                 widthCm: "",
                 heightCm: "",
                 dimensionUnit: "cm",
+                nonStackable: false,
                 declaredValue: "",
                 description: "",
                 courierProvider: "",
@@ -677,7 +750,14 @@ const Create = () => {
         const recipientAddress = data.recipient?.address || {};
         const hasRouteLocations = selectedRouteType === "domestic"
             ? Boolean(senderAddress.city && recipientAddress.city)
-            : Boolean(senderAddress.country && recipientAddress.country);
+            : Boolean(
+                senderAddress.country
+                && senderAddress.city
+                && senderAddress.postalCode
+                && recipientAddress.country
+                && recipientAddress.city
+                && recipientAddress.postalCode
+            );
 
         const hasShipmentType = Boolean(data.shipment?.shipmentType);
         const needsShipmentDescription = data.shipment?.shipmentType === "other";
@@ -1137,6 +1217,9 @@ const Create = () => {
                                         : "cm";
                                     const weightFactor = weightUnit === "oz" ? OUNCES_PER_KILOGRAM : 1;
                                     const dimensionFactor = DIMENSION_UNIT_FACTORS[dimensionUnit] || 1;
+                                    const itemLength = Number(item.lengthCm) || 0;
+                                    const itemWidth = Number(item.widthCm) || 0;
+                                    const itemHeight = Number(item.heightCm) || 0;
 
                                     return (
                                         <div
@@ -1245,64 +1328,115 @@ const Create = () => {
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <div>
-                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            value={locationSearch.senderCountry}
-                                                                            onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`sender-country-${index}`)}
-                                                                            onBlur={() => handleLocationInputBlur(`sender-country-${index}`)}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Pickup"
-                                                                        />
-                                                                        {activeLocationField === `sender-country-${index}` && (
-                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(countryOptions, locationSearch.senderCountry).map((option) => (
-                                                                                    <button
-                                                                                        key={`pickup-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("sender", "senderCountry", option, "country");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+                                                                <div className="space-y-3 sm:col-span-2 xl:col-span-2">
+                                                                    <p className="text-sm font-semibold text-[#0B1739]">From</p>
+                                                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={locationSearch.senderCountry}
+                                                                                    onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
+                                                                                    onFocus={() => setActiveLocationField(`sender-country-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`sender-country-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder="Select pickup country"
+                                                                                />
+                                                                                {activeLocationField === `sender-country-${index}` && (
+                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                        {filterLocationOptions(countryOptions, locationSearch.senderCountry).map((option) => (
+                                                                                            <button
+                                                                                                key={`pickup-${index}-${option.value}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    handleLocationSelect("sender", "senderCountry", option, "country");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        )}
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
+                                                                            <input
+                                                                                value={data.sender?.address?.city || ""}
+                                                                                onChange={(event) => updateAddressCity("sender", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter pickup city"
+                                                                            />
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup postal code*</label>
+                                                                            <input
+                                                                                value={data.sender?.address?.postalCode || ""}
+                                                                                onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter pickup postal code"
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                <div>
-                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            value={locationSearch.recipientCountry}
-                                                                            onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
-                                                                            onBlur={() => handleLocationInputBlur(`recipient-country-${index}`)}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Destination"
-                                                                        />
-                                                                        {activeLocationField === `recipient-country-${index}` && (
-                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(countryOptions, locationSearch.recipientCountry).map((option) => (
-                                                                                    <button
-                                                                                        key={`destination-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("recipient", "recipientCountry", option, "country");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+
+                                                                <div className="space-y-3 sm:col-span-2 xl:col-span-2">
+                                                                    <p className="text-sm font-semibold text-[#0B1739]">To</p>
+                                                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={locationSearch.recipientCountry}
+                                                                                    onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
+                                                                                    onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`recipient-country-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder="Select destination country"
+                                                                                />
+                                                                                {activeLocationField === `recipient-country-${index}` && (
+                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                        {filterLocationOptions(countryOptions, locationSearch.recipientCountry).map((option) => (
+                                                                                            <button
+                                                                                                key={`destination-${index}-${option.value}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    handleLocationSelect("recipient", "recipientCountry", option, "country");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        )}
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
+                                                                            <input
+                                                                                value={data.recipient?.address?.city || ""}
+                                                                                onChange={(event) => updateAddressCity("recipient", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter destination city"
+                                                                            />
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination postal code*</label>
+                                                                            <input
+                                                                                value={data.recipient?.address?.postalCode || ""}
+                                                                                onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter destination postal code"
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </>
@@ -1345,9 +1479,11 @@ const Create = () => {
                                                     </div>
 
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                            Dimensions *
-                                                        </label>
+                                                        <div className="mb-2 flex items-center gap-2">
+                                                            <label className="block text-sm font-medium text-[#0B1739]">
+                                                                Dimensions *
+                                                            </label>
+                                                        </div>
 
                                                         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
                                                             <input
@@ -1417,6 +1553,79 @@ const Create = () => {
                                                                     </option>
                                                                 ))}
                                                             </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 border-t border-[#E4EAF5] pt-4">
+                                                    <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                                                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                        {DIMENSION_ASSIST_PRESETS.map((preset) => {
+                                                            const hasMatchingBase = itemLength === preset.lengthCm
+                                                                && itemWidth === preset.widthCm;
+                                                            const isActive = preset.prefillHeight
+                                                                ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                                                : hasMatchingBase;
+
+                                                            return (
+                                                                <button
+                                                                    key={`preset-${index}-${preset.id}`}
+                                                                    type="button"
+                                                                    onClick={() => applyDimensionPreset(index, preset)}
+                                                                    className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                                                        ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                                                        : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                                                        }`}
+                                                                >
+                                                                    {isActive && (
+                                                                        <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                                                            ✓
+                                                                        </span>
+                                                                    )}
+                                                                    <div className="flex items-center gap-3">
+                                                                        <img
+                                                                            src={preset.imageSrc}
+                                                                            alt={preset.imageAlt}
+                                                                            className="h-10 w-20 object-contain"
+                                                                        />
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                                                            <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <div className="mt-5">
+                                                        <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
+                                                        <div className="mt-3 flex items-center gap-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(item.nonStackable)}
+                                                                onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                className="h-7 w-7 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                            />
+                                                            <span className="text-[20px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+
+                                                            <div className="group relative">
+                                                                <button
+                                                                    type="button"
+                                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
+                                                                    aria-label="Why do we need this information"
+                                                                >
+                                                                    ?
+                                                                </button>
+
+                                                                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                                                                    <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
+                                                                    <p className="font-semibold">Why do we need this information?</p>
+                                                                    <p className="mt-2 leading-6">
+                                                                        Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
