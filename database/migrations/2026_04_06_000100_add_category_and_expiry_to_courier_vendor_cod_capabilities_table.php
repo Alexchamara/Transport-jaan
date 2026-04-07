@@ -83,29 +83,12 @@ return new class extends Migration
                 }
                 if (count($drops) > 0) {
                     $table->dropColumn($drops);
-            if (!$this->indexExists('courier_vendor_cod_capabilities', 'cvc_vendor_category_unique')) {
-                Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
-                    $table->unique(['vendor_user_id', 'category'], 'cvc_vendor_category_unique');
-                });
-            }
+                }
+            });
+        }
+    }
 
-            if ($this->indexExists('courier_vendor_cod_capabilities', 'cvc_vendor_unique')) {
-                Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
-                    $table->dropUnique('cvc_vendor_unique');
-                });
-            }
-
-            if (!$this->indexExists('courier_vendor_cod_capabilities', 'cvc_category_status_requested_idx')) {
-                Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
-                    $table->index(['category', 'status', 'requested_at'], 'cvc_category_status_requested_idx');
-                });
-            }
-
-            if (!$this->indexExists('courier_vendor_cod_capabilities', 'cvc_expires_idx')) {
-                Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
-                    $table->index('expires_at', 'cvc_expires_idx');
-                });
-            }
+    private function indexExists(string $table, string $indexName): bool
     {
         $connection = Schema::getConnection();
         $driver = $connection->getDriverName();
