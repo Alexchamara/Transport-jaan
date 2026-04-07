@@ -520,6 +520,20 @@ const ProfileContent = () => {
         });
     };
 
+    const discardUnsavedChanges = () => {
+        setForm(baselineForm);
+        setSecurityForm({
+            current_password: "",
+            password: "",
+            password_confirmation: "",
+        });
+        setClientErrors({});
+        setLogoFile(null);
+        setOwnerPhotoFile(null);
+        setLogoPreview(courierProfile.profile.logoUrl || null);
+        setOwnerPhotoPreview(courierProfile.profile.ownerImageUrl || null);
+    };
+
     const navigateProfileTab = (nextTab) => {
         const isValidTab = TAB_CONFIG.some((tab) => tab.key === nextTab);
         if (!isValidTab) {
@@ -551,7 +565,10 @@ const ProfileContent = () => {
         openConfirm({
             title: "Unsaved Changes",
             message: "You have unsaved profile changes. Switch tab without saving?",
-            onConfirm: () => navigateProfileTab(nextTab),
+            onConfirm: () => {
+                discardUnsavedChanges();
+                navigateProfileTab(nextTab);
+            },
         });
     };
 
