@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierVendorCodCapability;
+use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
@@ -16,7 +18,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -446,12 +447,17 @@ class ClientCourierController extends Controller
             'recipient' => ['nullable', 'array'],
             'recipient.address' => ['nullable', 'array'],
             'shipment' => ['nullable', 'array'],
+            'shipment.codEnabled' => ['nullable', 'boolean'],
+            'shipment.codAmount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
             'shipment.logisticDimensions' => ['nullable', 'array'],
             'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
             'shipment.logisticDimensions.unitCount' => ['nullable', 'integer', 'min:1'],
             'shipment.logisticDimensions.routeClass' => ['nullable', 'string', 'max:50'],
             'shipment.logisticDimensions.handlingClass' => ['nullable', 'string', 'max:50'],
             'shipment.logisticDimensions.w2wMode' => ['nullable', 'string', 'max:40'],
+            'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
+            'shipment.shipmentTypeDescription' => ['nullable', 'string', 'max:200'],
             'packages' => ['required', 'array', 'min:1'],
             'packages.*.label' => ['nullable', 'string', 'max:120'],
             'packages.*.packageType' => ['nullable', 'string', 'max:50'],
@@ -489,6 +495,7 @@ class ClientCourierController extends Controller
                 'email' => null,
                 'phone' => null,
                 'company' => null,
+                'saveToFavorites' => false,
                 'address' => [
                     'line1' => null,
                     'line2' => null,
@@ -519,13 +526,16 @@ class ClientCourierController extends Controller
                 'pickupDate' => null,
                 'pickupWindowStart' => null,
                 'pickupWindowEnd' => null,
-                'serviceLevel' => null,
                 'courierProvider' => null,
-                'currency' => 'LKR',
                 'insurance' => false,
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
+                'codEnabled' => false,
+                'codAmount' => null,
+                'codPaymentMethod' => null,
                 'distanceKm' => null,
+                'shipmentType' => null,
+                'shipmentTypeDescription' => null,
                 'logisticDimensions' => [
                     'unitType' => null,
                     'unitCount' => 1,
@@ -537,6 +547,9 @@ class ClientCourierController extends Controller
         ];
 
         $normalized = array_replace_recursive($defaults, $payload);
+        $normalized = $this->normalizeShipmentPreferencePayload($normalized);
+        $normalized['reviewContext'] = is_array($normalized['reviewContext'] ?? null) ? $normalized['reviewContext'] : [];
+        $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
 
         $request->session()->put('courier_preview', $normalized);
 
@@ -563,11 +576,43 @@ class ClientCourierController extends Controller
         $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
-        $logisticDimensionOptions = $this->resolveLogisticDimensionOptionsForPayload((array) $formData, $category);
         $favoriteRecipients = [];
+        $favoriteSenders = [];
+        $senderProfile = null;
 
         $user = Auth::user();
         if ($user) {
+            $senderProfile = $this->buildSenderProfilePayload($user, $countries);
+            $favoriteSenders = CourierContact::query()
+                ->with(['addresses' => function ($query) {
+                    $query->orderByDesc('is_primary')->orderBy('id');
+                }])
+                ->where('user_id', $user->id)
+                ->where('role', CourierContact::ROLE_SENDER)
+                ->where('is_favorite', true)
+                ->orderBy('updated_at', 'desc')
+                ->get()
+                ->map(function (CourierContact $contact) {
+                    $address = $contact->addresses->first();
+
+                    return [
+                        'id' => $contact->id,
+                        'name' => $contact->name,
+                        'email' => $contact->email,
+                        'phone' => $contact->phone,
+                        'company' => $contact->company_name,
+                        'address' => $address ? [
+                            'line1' => $address->line1,
+                            'line2' => $address->line2,
+                            'city' => $address->city,
+                            'state' => $address->state,
+                            'postalCode' => $address->postal_code,
+                            'country' => $address->country,
+                            'instructions' => $address->instructions,
+                        ] : null,
+                    ];
+                })
+                ->values();
             $favoriteRecipients = CourierContact::query()
                 ->with(['addresses' => function ($query) {
                     $query->orderByDesc('is_primary')->orderBy('id');
@@ -610,9 +655,61 @@ class ClientCourierController extends Controller
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
             'countries' => $countries,
-            'logisticDimensionOptions' => $logisticDimensionOptions,
             'favoriteRecipients' => $favoriteRecipients,
+            'favoriteSenders' => $favoriteSenders,
+            'senderProfile' => $senderProfile,
         ]);
+    }
+
+    private function buildSenderProfilePayload(User $user, array $countries): array
+    {
+        $user->loadMissing('vendorProfile');
+
+        $isBusiness = $user->vendor_type === 'business';
+        $vendorProfile = $isBusiness ? $user->vendorProfile : null;
+
+        $nameParts = array_filter([$user->first_name, $user->last_name]);
+        $fallbackName = $nameParts ? trim(implode(' ', $nameParts)) : (string) $user->name;
+
+        $name = $isBusiness
+            ? (string) ($vendorProfile?->contact_person ?: $fallbackName)
+            : $fallbackName;
+        $email = $isBusiness
+            ? (string) ($vendorProfile?->contact_email ?: $user->email)
+            : (string) $user->email;
+        $phone = $isBusiness
+            ? (string) ($vendorProfile?->contact_phone ?: $user->phone)
+            : (string) $user->phone;
+        $company = $isBusiness
+            ? (string) ($vendorProfile?->company_name ?: $user->name)
+            : '';
+
+        $addressLine1 = $vendorProfile?->address_line1 ?: $user->address_line1;
+        $addressLine2 = $vendorProfile?->address_line2 ?: $user->address_line2;
+        $city = $vendorProfile?->city ?: $user->city;
+        $state = $vendorProfile?->state ?: $user->state;
+        $postalCode = $vendorProfile?->postal_code ?: $user->postal_code;
+        $country = strtoupper((string) ($vendorProfile?->country ?: $user->country ?: ($countries[0] ?? 'US')));
+
+        return [
+            'label' => $isBusiness ? 'Same as company profile' : 'Same as profile',
+            'isBusiness' => $isBusiness,
+            'sender' => [
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'company' => $company,
+                'address' => [
+                    'line1' => (string) ($addressLine1 ?? ''),
+                    'line2' => (string) ($addressLine2 ?? ''),
+                    'city' => (string) ($city ?? ''),
+                    'state' => (string) ($state ?? ''),
+                    'postalCode' => (string) ($postalCode ?? ''),
+                    'country' => $country,
+                    'instructions' => null,
+                ],
+            ],
+        ];
     }
 
     private function resolveLogisticDimensionOptionsForPayload(array $payload, string $category): array
@@ -666,6 +763,7 @@ class ClientCourierController extends Controller
                 'sender.email' => ['nullable', 'email', 'max:150'],
                 'sender.phone' => ['nullable', 'string', 'max:40'],
                 'sender.company' => ['nullable', 'string', 'max:120'],
+                'sender.saveToFavorites' => ['nullable', 'boolean'],
                 'sender.address.line1' => ['required', 'string', 'max:180'],
                 'sender.address.line2' => ['nullable', 'string', 'max:180'],
                 'sender.address.city' => ['required', 'string', 'max:120'],
@@ -690,11 +788,14 @@ class ClientCourierController extends Controller
                 'shipment.pickupDate' => ['nullable', 'date', 'after_or_equal:today'],
                 'shipment.pickupWindowStart' => ['nullable', 'date_format:H:i'],
                 'shipment.pickupWindowEnd' => ['nullable', 'date_format:H:i'],
-                'shipment.serviceLevel' => ['required', 'string', 'max:50', Rule::in($allowedServiceLevels)],
-                'shipment.currency' => ['required', 'string', 'size:3'],
+                'shipment.serviceLevel' => ['nullable', 'string', 'max:50'],
+                'shipment.currency' => ['nullable', 'string', 'size:3'],
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
+                'shipment.codEnabled' => ['nullable', 'boolean'],
+                'shipment.codAmount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+                'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
                 'shipment.logisticDimensions' => ['nullable', 'array'],
                 'shipment.logisticDimensions.unitType' => ['nullable', 'string', 'max:40'],
@@ -758,8 +859,8 @@ class ClientCourierController extends Controller
 
         $normalized['sender']['address']['country'] = strtoupper($normalized['sender']['address']['country'] ?? '');
         $normalized['recipient']['address']['country'] = strtoupper($normalized['recipient']['address']['country'] ?? '');
-        $normalized['shipment']['currency'] = strtoupper($normalized['shipment']['currency'] ?? 'LKR');
         $normalized['shipment']['insurance'] = (bool) ($normalized['shipment']['insurance'] ?? false);
+        $normalized['sender']['saveToFavorites'] = (bool) ($normalized['sender']['saveToFavorites'] ?? false);
         $normalized['recipient']['saveToFavorites'] = (bool) ($normalized['recipient']['saveToFavorites'] ?? false);
 
         if ($reviewContextInput !== null) {
@@ -797,6 +898,9 @@ class ClientCourierController extends Controller
         }
 
         $normalized['reviewContext']['selectedQuotes'] = $normalizedSelectedQuotes;
+        $normalized['reviewContext']['displayCurrency'] = strtoupper((string) ($normalized['reviewContext']['displayCurrency'] ?? 'LKR'));
+        $normalized = $this->normalizeShipmentPreferencePayload($normalized, $allowedServiceLevels);
+        $this->assertShipmentCodRequestPayload($normalized);
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
         $normalized['reviewContext']['totalPriceUSD'] = array_reduce(
             $normalizedSelectedQuotes,
@@ -818,6 +922,9 @@ class ClientCourierController extends Controller
         $formData = $request->session()->get('courier_preview');
 
         if (!$this->hasValidCourierPreviewPayload($formData)) {
+            $this->observability()->logStoreFailed($request, 'summary_view_without_valid_preview', [
+                'phase' => 'summary',
+            ]);
             $request->session()->forget('courier_preview');
 
             return redirect()
@@ -951,14 +1058,23 @@ class ClientCourierController extends Controller
             is_array($payload['reviewContext'] ?? null) ? $payload['reviewContext'] : [],
             $reviewContext
         );
+        $payload['reviewContext']['requestedShipmentServiceLevel'] = $payload['shipment']['serviceLevel'] ?? null;
+        $category = $this->resolvePayloadCategory($payload);
+        $payload = $this->normalizeShipmentPreferencePayload(
+            $payload,
+            $this->serviceLevelLabelsForCategory($category)
+        );
+        $this->assertShipmentCodRequestPayload($payload);
+        $codRequest = $this->resolveCodBookingPayload($payload);
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
         }, 0.0);
+        $saveSenderFavorite = (bool) ($payload['sender']['saveToFavorites'] ?? false);
         $saveRecipientFavorite = (bool) ($payload['recipient']['saveToFavorites'] ?? false);
 
         try {
-            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService, $saveRecipientFavorite) {
+            $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService, $saveSenderFavorite, $saveRecipientFavorite, $codRequest) {
                 $sender = CourierContact::create([
                     'user_id' => Auth::id(),
                     'role' => CourierContact::ROLE_SENDER,
@@ -966,6 +1082,7 @@ class ClientCourierController extends Controller
                     'email' => $payload['sender']['email'] ?? null,
                     'phone' => $payload['sender']['phone'] ?? null,
                     'company_name' => $payload['sender']['company'] ?? null,
+                    'is_favorite' => $saveSenderFavorite,
                 ]);
 
                 $senderAddressData = $payload['sender']['address'];
@@ -1019,6 +1136,9 @@ class ClientCourierController extends Controller
                     'declared_value' => isset($payload['shipment']['estimatedValue'])
                         ? (float) $payload['shipment']['estimatedValue']
                         : 0,
+                    'is_cod_enabled' => (bool) ($codRequest['enabled'] ?? false),
+                    'cod_requested_amount' => $codRequest['requestedAmount'] ?? null,
+                    'cod_requested_method' => $codRequest['requestedMethod'] ?? null,
                     'currency_code' => strtoupper($payload['shipment']['currency'] ?? 'LKR'),
                     'delivery_notes' => $payload['shipment']['deliveryNotes'] ?? null,
                 ]);
@@ -1047,6 +1167,14 @@ class ClientCourierController extends Controller
 
                 $assignmentService->assignShipment($shipment);
                 $this->assertShipmentServiceCatalogPolicy($shipment, $payload);
+
+                $codPolicyContext = $this->assertShipmentCODPolicy($shipment, $payload, $codRequest);
+                if ((bool) ($codRequest['enabled'] ?? false)) {
+                    $shipment->update([
+                        'cod_capability_id' => $codPolicyContext['capabilityId'] ?? null,
+                        'cod_policy_snapshot' => $codPolicyContext['policySnapshot'] ?? null,
+                    ]);
+                }
 
                 return $shipment;
             });
@@ -1226,6 +1354,8 @@ class ClientCourierController extends Controller
 
     private function flowPayloadFingerprint(array $payload): string
     {
+        $codRequest = $this->resolveCodBookingPayload($payload);
+
         $packages = collect($payload['packages'] ?? [])
             ->values()
             ->map(function ($package, $index) {
@@ -1270,6 +1400,11 @@ class ClientCourierController extends Controller
                 'serviceLevel' => trim((string) ($payload['shipment']['serviceLevel'] ?? '')),
                 'currency' => strtoupper(trim((string) ($payload['shipment']['currency'] ?? 'LKR'))),
                 'pickupDate' => (string) ($payload['shipment']['pickupDate'] ?? ''),
+                'codEnabled' => (bool) ($codRequest['enabled'] ?? false),
+                'codAmount' => $codRequest['requestedAmount'] !== null
+                    ? round((float) $codRequest['requestedAmount'], 2)
+                    : 0.0,
+                'codPaymentMethod' => (string) ($codRequest['requestedMethod'] ?? ''),
             ],
             'packages' => $packages,
             'selectedQuotes' => $selectedQuotes,
@@ -1473,6 +1608,160 @@ class ClientCourierController extends Controller
         return $this->normalizeZoneKey($candidate);
     }
 
+    private function normalizeShipmentPreferencePayload(array $payload, array $allowedServiceLevels = []): array
+    {
+        $payload['shipment'] = is_array($payload['shipment'] ?? null) ? $payload['shipment'] : [];
+
+        $payload['shipment']['serviceLevel'] = $this->resolveShipmentServiceLevelFromPayload(
+            $payload,
+            $allowedServiceLevels
+        );
+        $payload['shipment']['currency'] = $this->resolveShipmentCurrencyFromPayload($payload);
+
+        $codRequest = $this->resolveCodBookingPayload($payload);
+        $payload['shipment']['codEnabled'] = (bool) ($codRequest['enabled'] ?? false);
+        $payload['shipment']['codAmount'] = $codRequest['requestedAmount'];
+        $payload['shipment']['codPaymentMethod'] = $codRequest['requestedMethod'];
+
+        return $payload;
+    }
+
+    private function resolveShipmentServiceLevelFromPayload(array $payload, array $allowedServiceLevels = []): string
+    {
+        $candidates = [];
+
+        foreach (($payload['reviewContext']['selectedQuotes'] ?? []) as $quote) {
+            if (!is_array($quote)) {
+                continue;
+            }
+
+            $candidates[] = $quote['serviceLevel'] ?? null;
+            $candidates[] = $quote['serviceLabel'] ?? null;
+        }
+
+        foreach (($payload['packages'] ?? []) as $package) {
+            if (!is_array($package)) {
+                continue;
+            }
+
+            $candidates[] = $package['serviceLevel'] ?? null;
+        }
+
+        $candidates[] = $payload['shipment']['serviceLevel'] ?? null;
+
+        foreach ($candidates as $candidate) {
+            $candidate = is_string($candidate) ? trim($candidate) : '';
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        if (!empty($allowedServiceLevels)) {
+            return (string) $allowedServiceLevels[0];
+        }
+
+        return 'standard';
+    }
+
+    private function resolveShipmentCurrencyFromPayload(array $payload): string
+    {
+        $shipmentCurrency = $payload['shipment']['currency'] ?? null;
+        $reviewCurrency = $payload['reviewContext']['displayCurrency'] ?? null;
+        $candidate = is_string($shipmentCurrency) ? $shipmentCurrency : $reviewCurrency;
+        $candidate = is_string($candidate) ? strtoupper(trim($candidate)) : '';
+
+        return $candidate !== '' ? $candidate : 'LKR';
+    }
+
+    private function resolveCodBookingPayload(array $payload): array
+    {
+        $shipment = is_array($payload['shipment'] ?? null) ? $payload['shipment'] : [];
+        $enabled = (bool) ($shipment['codEnabled'] ?? false);
+
+        if (!$enabled) {
+            return [
+                'enabled' => false,
+                'requestedAmount' => null,
+                'requestedMethod' => null,
+            ];
+        }
+
+        $requestedMethod = $this->normalizeCodPaymentMethod($shipment['codPaymentMethod'] ?? null);
+
+        $requestedAmount = null;
+        if (array_key_exists('codAmount', $shipment) && $shipment['codAmount'] !== null && $shipment['codAmount'] !== '') {
+            $requestedAmount = max(0, (float) $shipment['codAmount']);
+        }
+
+        if ($requestedAmount === null || $requestedAmount <= 0) {
+            $declaredValue = isset($shipment['estimatedValue']) ? max(0, (float) $shipment['estimatedValue']) : 0.0;
+            if ($declaredValue > 0) {
+                $requestedAmount = $declaredValue;
+            }
+        }
+
+        if ($requestedAmount === null || $requestedAmount <= 0) {
+            $requestedAmount = collect($payload['packages'] ?? [])
+                ->reduce(static function (float $carry, $package): float {
+                    $declaredValue = is_array($package)
+                        ? max(0, (float) ($package['declaredValue'] ?? 0))
+                        : 0.0;
+
+                    return $carry + $declaredValue;
+                }, 0.0);
+            if ($requestedAmount <= 0) {
+                $requestedAmount = null;
+            }
+        }
+
+        return [
+            'enabled' => true,
+            'requestedAmount' => $requestedAmount !== null ? round($requestedAmount, 2) : null,
+            'requestedMethod' => $requestedMethod,
+        ];
+    }
+
+    private function normalizeCodPaymentMethod($value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($value));
+        $normalized = str_replace('-', '_', $normalized);
+        $normalized = str_replace(' ', '_', $normalized);
+
+        return in_array($normalized, ['cash', 'card', 'check', 'bank_transfer'], true)
+            ? $normalized
+            : null;
+    }
+
+    private function assertShipmentCodRequestPayload(array $payload): void
+    {
+        $codRequest = $this->resolveCodBookingPayload($payload);
+        if (!(bool) ($codRequest['enabled'] ?? false)) {
+            return;
+        }
+
+        if ($this->resolvePayloadCategory($payload) !== 'domestic') {
+            throw ValidationException::withMessages([
+                'shipment.codEnabled' => 'Cash on Delivery is available only for domestic routes.',
+            ]);
+        }
+
+        if (!isset($codRequest['requestedAmount']) || (float) $codRequest['requestedAmount'] <= 0) {
+            throw ValidationException::withMessages([
+                'shipment.codAmount' => 'Enter a valid COD collection amount greater than zero.',
+            ]);
+        }
+
+        if (!is_string($codRequest['requestedMethod']) || $codRequest['requestedMethod'] === '') {
+            throw ValidationException::withMessages([
+                'shipment.codPaymentMethod' => 'Select a COD payment method.',
+            ]);
+        }
+    }
+
     private function resolveDistanceKmFromPayload(array $payload): ?float
     {
         $distanceKm = $payload['shipment']['distanceKm'] ?? null;
@@ -1491,7 +1780,7 @@ class ClientCourierController extends Controller
             : null;
 
         if ($distanceKm === null) {
-            return $distanceFrom <= 0 && $distanceTo === null;
+            return true;
         }
 
         if ($distanceKm < $distanceFrom) {
@@ -1505,7 +1794,7 @@ class ClientCourierController extends Controller
         return true;
     }
 
-    private function laneRuleSpecificityScore(array $rule): int
+    private function laneRuleSpecificityScore(array $rule, ?float $distanceKm = null): int
     {
         $score = 0;
 
@@ -1521,16 +1810,18 @@ class ClientCourierController extends Controller
             $score += 3;
         }
 
-        $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
-        $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
-            ? max(0, (float) $rule['distanceToKm'])
-            : null;
-        if ($distanceFrom > 0 || $distanceTo !== null) {
-            $score += 2;
-        }
+        if ($distanceKm !== null) {
+            $distanceFrom = max(0, (float) ($rule['distanceFromKm'] ?? 0));
+            $distanceTo = isset($rule['distanceToKm']) && $rule['distanceToKm'] !== ''
+                ? max(0, (float) ($rule['distanceToKm']))
+                : null;
+            if ($distanceFrom > 0 || $distanceTo !== null) {
+                $score += 2;
+            }
 
-        if ($distanceTo !== null) {
-            $score += 1;
+            if ($distanceTo !== null) {
+                $score += 1;
+            }
         }
 
         return $score;
@@ -1538,6 +1829,18 @@ class ClientCourierController extends Controller
 
     private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd, ?array &$pricingExplanation = null): float
     {
+        $codRequest = $this->resolveCodBookingPayload($payload);
+        $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $declaredValueForCodPreview = max(
+            0,
+            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
+        );
+        $codEnabled = (bool) ($codRequest['enabled'] ?? false);
+        $codFeeBaseAmount = $codEnabled
+            ? max(0, (float) ($codRequest['requestedAmount'] ?? 0))
+            : $declaredValueForCodPreview;
+        $codFeeBaseSource = $codEnabled ? 'requested_amount' : 'declared_value';
+
         $pricingExplanation = [
             'mode' => 'fallback_quotes',
             'reason' => null,
@@ -1545,6 +1848,14 @@ class ClientCourierController extends Controller
             'matchedRule' => null,
             'speedEtaTier' => null,
             'logisticDimensions' => null,
+            'codDetails' => [
+                'enabled' => $codEnabled,
+                'requestedAmount' => $codRequest['requestedAmount'] ?? null,
+                'requestedMethod' => $codRequest['requestedMethod'] ?? null,
+                'feeBaseAmount' => $codFeeBaseAmount > 0 ? round($codFeeBaseAmount, 2) : 0.0,
+                'feeBaseSource' => $codFeeBaseSource,
+                'policyFeeApplied' => 0.0,
+            ],
             'policyAdjustments' => [],
             'totalEstimatedUsd' => round(max(0, $fallbackEstimatedUsd), 2),
         ];
@@ -1594,6 +1905,7 @@ class ClientCourierController extends Controller
                 $category
             );
             $pricingExplanation['policyAdjustments'] = $policyBreakdown;
+            $pricingExplanation['codDetails']['policyFeeApplied'] = $this->resolvePolicyAdjustmentAmount($policyBreakdown, 'cod_fee');
             $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalWithPolicy), 2);
 
             return $totalWithPolicy;
@@ -1632,7 +1944,7 @@ class ClientCourierController extends Controller
                 return [
                     'rule' => $rule,
                     'index' => (int) $index,
-                    'score' => $this->laneRuleSpecificityScore($rule),
+                    'score' => $this->laneRuleSpecificityScore($rule, $distanceKm),
                 ];
             })
             ->filter()
@@ -1727,6 +2039,7 @@ class ClientCourierController extends Controller
 
         $totalEstimatedUsd = $totalBase * $usdRate;
         $pricingExplanation['policyAdjustments'] = $policyBreakdown;
+        $pricingExplanation['codDetails']['policyFeeApplied'] = $this->resolvePolicyAdjustmentAmount($policyBreakdown, 'cod_fee');
         $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalEstimatedUsd), 2);
 
         return $totalEstimatedUsd;
@@ -1816,6 +2129,7 @@ class ClientCourierController extends Controller
             ],
             'codFee' => [
                 'enabled' => false,
+                'domesticOnly' => false,
                 'flatFee' => 0,
                 'percentOfDeclaredValue' => 0,
                 'minFee' => 0,
@@ -1986,6 +2300,10 @@ class ClientCourierController extends Controller
             0,
             (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
+        $codRequest = $this->resolveCodBookingPayload($payload);
+        $codEnabled = (bool) ($codRequest['enabled'] ?? false);
+        $requestedCodAmount = max(0, (float) ($codRequest['requestedAmount'] ?? 0));
+        $codFeeBaseAmount = $codEnabled ? $requestedCodAmount : $declaredValue;
         $category = $category ?: $this->resolvePayloadCategory($payload);
 
         $this->assertQuoteRuntimeGovernanceFieldLocks($payload, $policyModules);
@@ -2176,9 +2494,10 @@ class ClientCourierController extends Controller
         }
 
         $codPolicy = is_array($policyModules['codFee'] ?? null) ? $policyModules['codFee'] : [];
-        if ((bool) ($codPolicy['enabled'] ?? false) && $declaredValue > 0) {
+        $codInScopeCategory = !((bool) ($codPolicy['domesticOnly'] ?? false)) || $category === 'domestic';
+        if ((bool) ($codPolicy['enabled'] ?? false) && $codInScopeCategory && $codFeeBaseAmount > 0) {
             $flatFee = max(0, (float) ($codPolicy['flatFee'] ?? 0)) * $flatFeeFactor;
-            $percentFee = $declaredValue * (max(0, (float) ($codPolicy['percentOfDeclaredValue'] ?? 0)) / 100) * $percentBaseFactor;
+            $percentFee = $codFeeBaseAmount * (max(0, (float) ($codPolicy['percentOfDeclaredValue'] ?? 0)) / 100) * $percentBaseFactor;
             $codFee = $flatFee + $percentFee;
 
             $minFee = max(0, (float) ($codPolicy['minFee'] ?? 0)) * $flatFeeFactor;
@@ -2229,6 +2548,14 @@ class ClientCourierController extends Controller
         $total = $this->applyQuoteRuntimeGovernanceGuardrails($total, $payload, $policyModules, $policyBreakdown);
 
         return $total;
+    }
+
+    private function resolvePolicyAdjustmentAmount(array $policyBreakdown, string $key): float
+    {
+        $entry = collect($policyBreakdown)
+            ->first(fn ($item) => is_array($item) && (string) ($item['key'] ?? '') === $key);
+
+        return $entry ? (float) ($entry['amount'] ?? 0) : 0.0;
     }
 
     private function applyCustomerContractPricing(
@@ -2545,8 +2872,11 @@ class ClientCourierController extends Controller
 
         if ((bool) ($fieldLocks['lockShipmentServiceLevel'] ?? true) && $selectedQuotes->isNotEmpty()) {
             $selectedServiceLevel = $this->normalizeServiceLevelKey((string) ($selectedQuotes->first()['serviceLevel'] ?? ''));
-            $shipmentServiceLevel = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
-            if ($selectedServiceLevel !== '' && $shipmentServiceLevel !== '' && $selectedServiceLevel !== $shipmentServiceLevel) {
+            $requestedShipmentServiceLevel = $this->normalizeServiceLevelKey((string) (
+                $payload['reviewContext']['requestedShipmentServiceLevel']
+                ?? ($payload['shipment']['serviceLevel'] ?? '')
+            ));
+            if ($selectedServiceLevel !== '' && $requestedShipmentServiceLevel !== '' && $selectedServiceLevel !== $requestedShipmentServiceLevel) {
                 $errors['shipment.serviceLevel'] = 'Shipment service level is locked by pricing governance and must match the selected quote.';
             }
         }
@@ -2831,6 +3161,99 @@ class ClientCourierController extends Controller
 
         $this->assertSpeedEtaTierPolicyConstraints($shipment, $payload, $category, $selectedLevelKey, $selectedEntry);
         $this->assertLogisticDimensionsPolicyConstraints($shipment, $payload, $category);
+    }
+
+    private function assertShipmentCODPolicy(CourierShipment $shipment, array $payload, array $codRequest): array
+    {
+        if (!(bool) ($codRequest['enabled'] ?? false)) {
+            return [];
+        }
+
+        $category = (string) ($shipment->assignment_category ?: $this->resolvePayloadCategory($payload));
+        if ($category !== 'domestic') {
+            throw ValidationException::withMessages([
+                'shipment.codEnabled' => 'Cash on Delivery is available only for domestic routes.',
+            ]);
+        }
+
+        $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
+        if ($vendorId <= 0) {
+            throw ValidationException::withMessages([
+                'shipment.codEnabled' => 'COD booking is not available until a courier vendor is assigned.',
+            ]);
+        }
+
+        $capability = $this->resolveApprovedVendorCodCapability($vendorId, $category);
+        if (!$capability) {
+            throw ValidationException::withMessages([
+                'shipment.codEnabled' => 'Selected courier vendor does not have approved COD capability.',
+            ]);
+        }
+
+        $servicePolicy = $this->resolveVendorCodServicePolicy($vendorId);
+        if (!(bool) ($servicePolicy['acceptCodAtCheckout'] ?? false) || !(bool) ($servicePolicy['allowCodForDomestic'] ?? false)) {
+            throw ValidationException::withMessages([
+                'shipment.codEnabled' => 'Selected courier vendor has COD disabled for domestic checkout.',
+            ]);
+        }
+
+        return [
+            'capabilityId' => (int) $capability->id,
+            'policySnapshot' => [
+                'enabled' => true,
+                'requestedAmount' => isset($codRequest['requestedAmount']) ? (float) $codRequest['requestedAmount'] : null,
+                'requestedMethod' => $codRequest['requestedMethod'] ?? null,
+                'assignmentCategory' => $category,
+                'vendorUserId' => $vendorId,
+                'capability' => [
+                    'id' => (int) $capability->id,
+                    'status' => (string) ($capability->status ?? CourierVendorCodCapability::STATUS_NOT_REQUESTED),
+                    'approvedAt' => optional($capability->approved_at)->format('Y-m-d H:i:s'),
+                ],
+                'servicePolicy' => $servicePolicy,
+            ],
+        ];
+    }
+
+    private function resolveApprovedVendorCodCapability(int $vendorId, string $category = 'domestic'): ?CourierVendorCodCapability
+    {
+        if ($vendorId <= 0) {
+            return null;
+        }
+
+        $normalizedCategory = CourierVendorCodCapability::normalizeCategory($category);
+
+        return CourierVendorCodCapability::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where('category', $normalizedCategory)
+            ->where('status', CourierVendorCodCapability::STATUS_APPROVED)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->first();
+    }
+
+    private function resolveVendorCodServicePolicy(int $vendorId): array
+    {
+        $settings = VendorCourierSetting::query()
+            ->where('vendor_user_id', $vendorId)
+            ->value('settings');
+
+        $cod = is_array($settings['services']['cod'] ?? null)
+            ? $settings['services']['cod']
+            : [];
+
+        $allowInternational = array_key_exists('allowCodForInternational', $cod)
+            ? (bool) $cod['allowCodForInternational']
+            : (bool) ($cod['allowCodForLogistic'] ?? false);
+
+        return [
+            'acceptCodAtCheckout' => (bool) ($cod['acceptCodAtCheckout'] ?? false),
+            'allowCodForDomestic' => (bool) ($cod['allowCodForDomestic'] ?? false),
+            'allowCodForInternational' => $allowInternational,
+            'allowTeamOverride' => (bool) ($cod['allowTeamOverride'] ?? false),
+        ];
     }
 
     private function assertSpeedEtaTierPolicyConstraints(
@@ -3461,6 +3884,13 @@ class ClientCourierController extends Controller
             static fn ($carry, $package) => $carry + (float) ($package->quoted_price_usd ?? 0),
             0.0
         );
+        $codEnabled = (bool) ($shipment->is_cod_enabled ?? false);
+        $codAmountText = $shipment->cod_requested_amount !== null
+            ? number_format((float) $shipment->cod_requested_amount, 2) . ' ' . ($shipment->currency_code ?: 'USD')
+            : '—';
+        $codMethodText = $shipment->cod_requested_method
+            ? ucwords(str_replace('_', ' ', (string) $shipment->cod_requested_method))
+            : '—';
 
         $html = '<!DOCTYPE html>'
             . '<html lang="en"><head><meta charset="UTF-8"><title>Courier Bill ' . $escape($shipment->reference) . '</title>'
@@ -3482,14 +3912,17 @@ class ClientCourierController extends Controller
             . '<p><strong>Company:</strong> ' . ($escape(optional($shipment->recipient)->company_name) ?: '—') . '</p>'
             . '<p><strong>Address:</strong> ' . $formatAddress($shipment->recipientAddress) . '</p>'
             . '<h2>Shipment preferences</h2>'
-            . '<p><strong>Service level:</strong> ' . ($escape($shipment->service_level) ?: '—') . '</p>'
             . '<p><strong>Pickup date:</strong> ' . ($shipment->pickup_date ? $escape($shipment->pickup_date->format('Y-m-d')) : '—') . '</p>'
             . '<p><strong>Pickup window:</strong> ' . ($shipment->pickup_window_start && $shipment->pickup_window_end
                 ? $escape($shipment->pickup_window_start . ' - ' . $shipment->pickup_window_end)
                 : '—') . '</p>'
             . '<p><strong>Insurance required:</strong> ' . ($shipment->insurance_required ? 'Yes' : 'No') . '</p>'
             . '<p><strong>Declared value:</strong> ' . ($escape($shipment->declared_value) ?: '—') . ' ' . ($escape($shipment->currency_code) ?: 'USD') . '</p>'
-            . '<p><strong>Delivery notes:</strong> ' . ($escape($shipment->delivery_notes) ?: '—') . '</p>'
+            . '<p><strong>Cash on delivery enabled:</strong> ' . ($codEnabled ? 'Yes' : 'No') . '</p>'
+            . ($codEnabled
+                ? '<p><strong>COD collection amount:</strong> ' . $escape($codAmountText) . '</p>'
+                    . '<p><strong>COD payment method:</strong> ' . $escape($codMethodText) . '</p>'
+                : '')
             . '<h2>Package details</h2>'
             . '<table><thead><tr><th>#</th><th>Label</th><th>Type</th><th>Quantity</th><th>Weight (kg)</th><th>Dimensions (cm)</th><th>Declared value</th><th>Courier</th><th>Service</th><th>ETA</th><th>Quote (USD)</th><th>Description</th></tr></thead><tbody>'
             . $packagesRows

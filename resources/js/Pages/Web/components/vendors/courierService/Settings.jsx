@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { BadgeDollarSign, BellRing, ChevronDown, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
+import { BadgeDollarSign, BellRing, ChevronDown, Clock3, KeyRound, MapPinned, Printer, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
 import useCourierActionModal from "./common/useCourierActionModal";
 
@@ -45,6 +45,34 @@ const DEFAULT_SETTINGS = {
         apiKeyAlias: "CourierProdKey",
         retryWindowMinutes: 15,
         rotateKeysEveryDays: 90,
+    },
+    services: {
+        cod: {
+            acceptCodAtCheckout: false,
+            allowCodForDomestic: true,
+            allowCodForInternational: false,
+            allowTeamOverride: false,
+        },
+    },
+    labels: {
+        defaults: {
+            domestic: {
+                templateId: null,
+                sizeId: null,
+            },
+            logistic: {
+                templateId: null,
+                sizeId: null,
+            },
+        },
+        printPolicy: {
+            bulkAsyncThreshold: 50,
+            bulkHardLimit: 200,
+            allowCustomSizes: true,
+            allowTemplateUpload: true,
+            allowHtmlTemplates: true,
+            allowPdfBackground: true,
+        },
     },
     pricing: {
         localization: {
@@ -715,6 +743,8 @@ const TAB_CONFIG = [
     { key: "tracking", label: "Tracking", icon: MapPinned },
     { key: "notifications", label: "Notifications", icon: BellRing },
     { key: "integrations", label: "Integrations", icon: KeyRound },
+    { key: "services", label: "Services", icon: ShieldCheck },
+    { key: "labels", label: "Labels", icon: Printer },
     { key: "pricing", label: "Pricing", icon: BadgeDollarSign },
     { key: "team", label: "Team Access", icon: Users },
 ];
@@ -733,6 +763,12 @@ const CURRENCY_OPTIONS = [
     "INR",
     "JPY",
     "SGD",
+];
+
+const LABEL_UNIT_OPTIONS = [
+    { value: "mm", label: "mm" },
+    { value: "cm", label: "cm" },
+    { value: "in", label: "in" },
 ];
 
 const TEAM_ACCESS_TOPIC_CONFIG = [
@@ -786,8 +822,8 @@ const Field = ({ label, children, help }) => (
     </label>
 );
 
-const Toggle = ({ label, checked, onChange, description }) => (
-    <div className="flex items-start justify-between gap-3 border border-[#E5E7EB] rounded-[8px] px-3 py-3">
+const Toggle = ({ label, checked, onChange, description, disabled = false }) => (
+    <div className={`flex items-start justify-between gap-3 border border-[#E5E7EB] rounded-[8px] px-3 py-3 ${disabled ? "opacity-50" : ""}`}>
         <div>
             <p className="text-[13px] font-[700] text-[#111827]">{label}</p>
             {description && <p className="text-[11px] text-[#6B7280] mt-0.5">{description}</p>}
@@ -796,8 +832,15 @@ const Toggle = ({ label, checked, onChange, description }) => (
             type="button"
             role="switch"
             aria-checked={checked}
-            onClick={() => onChange(!checked)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[#0955AC]" : "bg-[#D1D5DB]"}`}
+            aria-disabled={disabled}
+            disabled={disabled}
+            onClick={() => {
+                if (disabled) {
+                    return;
+                }
+                onChange(!checked);
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[#0955AC]" : "bg-[#D1D5DB]"} ${disabled ? "cursor-not-allowed" : ""}`}
         >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
         </button>
@@ -806,6 +849,12 @@ const Toggle = ({ label, checked, onChange, description }) => (
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 const humanizeFieldKey = (value) => titleCase(String(value || "").replaceAll("_", " "));
+const formatLabelSize = (size) => {
+    const width = size?.width_mm ?? size?.widthMm ?? "";
+    const height = size?.height_mm ?? size?.heightMm ?? "";
+    const unit = String(size?.unit || "mm");
+    return `${width}x${height} ${unit}`.trim();
+};
 const toDayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const tryParseDate = (value) => {
     if (!value) {
@@ -876,6 +925,21 @@ const Settings = () => {
     const authUser = props.auth && typeof props.auth === "object" && props.auth.user && typeof props.auth.user === "object"
         ? props.auth.user
         : {};
+    const courierPermissions = Array.isArray(authUser?.courier_permissions) ? authUser.courier_permissions : [];
+    const hasCourierPermission = (permission) => {
+        if (String(authUser?.role || "") === "vendor") {
+            return true;
+        }
+
+        if (!permission) {
+            return true;
+        }
+
+        return courierPermissions.includes(permission);
+    };
+    const canViewLabels = hasCourierPermission("courier.labels.view")
+        || hasCourierPermission("courier.labels.manage_templates");
+    const canManageLabels = hasCourierPermission("courier.labels.manage_templates");
     const currentUserRoleNames = [
         ...(Array.isArray(authUser.roles) ? authUser.roles : []).map((role) => {
             if (typeof role === "string") {
@@ -897,6 +961,9 @@ const Settings = () => {
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const initialPricingTopic = String(props.initialPricingTopic || "currency-formula");
+    const incomingCodCapability = props.courierCodCapability && typeof props.courierCodCapability === "object"
+        ? props.courierCodCapability
+        : {};
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
@@ -927,6 +994,12 @@ const Settings = () => {
     const [settings, setSettings] = useState(() => {
         const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
         const incomingPricing = incoming.pricing && typeof incoming.pricing === "object" ? incoming.pricing : {};
+        const incomingServices = incoming.services && typeof incoming.services === "object" ? incoming.services : {};
+        const incomingServicesCod = incomingServices.cod && typeof incomingServices.cod === "object" ? incomingServices.cod : {};
+        const hasLegacyInternationalFlag = typeof incomingServicesCod.allowCodForLogistic === "boolean";
+        const incomingLabels = incoming.labels && typeof incoming.labels === "object" ? incoming.labels : {};
+        const incomingLabelDefaults = incomingLabels.defaults && typeof incomingLabels.defaults === "object" ? incomingLabels.defaults : {};
+        const incomingLabelPolicy = incomingLabels.printPolicy && typeof incomingLabels.printPolicy === "object" ? incomingLabels.printPolicy : {};
         const incomingTeamAccessControl = incomingTeam.teamAccessControl && typeof incomingTeam.teamAccessControl === "object"
             ? incomingTeam.teamAccessControl
             : {};
@@ -952,6 +1025,37 @@ const Settings = () => {
         return {
             ...DEFAULT_SETTINGS,
             ...incoming,
+            services: {
+                ...DEFAULT_SETTINGS.services,
+                ...incomingServices,
+                cod: {
+                    ...DEFAULT_SETTINGS.services.cod,
+                    ...incomingServicesCod,
+                    allowCodForInternational: typeof incomingServicesCod.allowCodForInternational === "boolean"
+                        ? incomingServicesCod.allowCodForInternational
+                        : (hasLegacyInternationalFlag
+                            ? incomingServicesCod.allowCodForLogistic
+                            : DEFAULT_SETTINGS.services.cod.allowCodForInternational),
+                },
+            },
+            labels: {
+                ...DEFAULT_SETTINGS.labels,
+                ...incomingLabels,
+                defaults: {
+                    domestic: {
+                        ...DEFAULT_SETTINGS.labels.defaults.domestic,
+                        ...(incomingLabelDefaults.domestic && typeof incomingLabelDefaults.domestic === "object" ? incomingLabelDefaults.domestic : {}),
+                    },
+                    logistic: {
+                        ...DEFAULT_SETTINGS.labels.defaults.logistic,
+                        ...(incomingLabelDefaults.logistic && typeof incomingLabelDefaults.logistic === "object" ? incomingLabelDefaults.logistic : {}),
+                    },
+                },
+                printPolicy: {
+                    ...DEFAULT_SETTINGS.labels.printPolicy,
+                    ...incomingLabelPolicy,
+                },
+            },
             pricing: {
                 ...DEFAULT_SETTINGS.pricing,
                 ...incomingPricing,
@@ -1428,6 +1532,36 @@ const Settings = () => {
     const [pricingImportPreviewToken, setPricingImportPreviewToken] = useState("");
     const [pricingImportManualReviewConfirmed, setPricingImportManualReviewConfirmed] = useState(false);
     const [pricingImportResult, setPricingImportResult] = useState(null);
+    const [labelSizes, setLabelSizes] = useState([]);
+    const [labelTemplates, setLabelTemplates] = useState([]);
+    const [labelCatalogBusy, setLabelCatalogBusy] = useState(false);
+    const [labelCatalogError, setLabelCatalogError] = useState("");
+    const [labelSizeForm, setLabelSizeForm] = useState({
+        name: "",
+        widthMm: "",
+        heightMm: "",
+        unit: "mm",
+    });
+    const [labelSizeDrafts, setLabelSizeDrafts] = useState({});
+    const [labelTemplateForm, setLabelTemplateForm] = useState({
+        name: "",
+        templateType: "builder",
+        categoryScope: "all",
+        sizeId: "",
+        orientation: "portrait",
+        builderSchema: "",
+        htmlTemplate: "",
+        cssTemplate: "",
+        fieldOverrides: "",
+        backgroundFile: null,
+    });
+    const [labelTemplateDrafts, setLabelTemplateDrafts] = useState({});
+    const [labelSizeSaveBusyId, setLabelSizeSaveBusyId] = useState(null);
+    const [labelTemplateSaveBusyId, setLabelTemplateSaveBusyId] = useState(null);
+    const [labelPreviewBusyId, setLabelPreviewBusyId] = useState(null);
+    const [labelTemplateUploadBusy, setLabelTemplateUploadBusy] = useState(false);
+    const [codRequestBusy, setCodRequestBusy] = useState(false);
+    const [codRequestNote, setCodRequestNote] = useState(String(incomingCodCapability.requestedNote || ""));
 
     useEffect(() => {
         if (!approvedPricingCategories.includes(activePricingCategory)) {
@@ -1443,6 +1577,19 @@ const Settings = () => {
         setPricingImportResolutionStrategy("prefer_most_frequent");
         setPricingImportManualResolutions({});
     }, [activePricingCategory]);
+
+    useEffect(() => {
+        if (activeTab !== "labels") {
+            return;
+        }
+
+        if (!canViewLabels) {
+            setLabelCatalogError("You do not have permission to view labels.");
+            return;
+        }
+
+        loadLabelCatalog();
+    }, [activeTab, canViewLabels]);
 
     const {
         feedback,
@@ -1460,6 +1607,48 @@ const Settings = () => {
             [section]: {
                 ...prev[section],
                 [key]: value,
+            },
+        }));
+    };
+
+    const updateServiceCodValue = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            services: {
+                ...(prev.services || DEFAULT_SETTINGS.services),
+                cod: {
+                    ...((prev.services && prev.services.cod) || DEFAULT_SETTINGS.services.cod),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const updateLabelDefaults = (categoryKey, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            labels: {
+                ...(prev.labels || DEFAULT_SETTINGS.labels),
+                defaults: {
+                    ...((prev.labels && prev.labels.defaults) || DEFAULT_SETTINGS.labels.defaults),
+                    [categoryKey]: {
+                        ...(((prev.labels && prev.labels.defaults && prev.labels.defaults[categoryKey]) || DEFAULT_SETTINGS.labels.defaults[categoryKey]) || {}),
+                        [key]: value,
+                    },
+                },
+            },
+        }));
+    };
+
+    const updateLabelPolicy = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            labels: {
+                ...(prev.labels || DEFAULT_SETTINGS.labels),
+                printPolicy: {
+                    ...((prev.labels && prev.labels.printPolicy) || DEFAULT_SETTINGS.labels.printPolicy),
+                    [key]: value,
+                },
             },
         }));
     };
@@ -2207,6 +2396,405 @@ const Settings = () => {
         }
 
         return payload;
+    };
+
+    const syncLabelSizeDrafts = (sizes) => {
+        const nextDrafts = {};
+        (Array.isArray(sizes) ? sizes : []).forEach((size) => {
+            nextDrafts[size.id] = {
+                name: String(size?.name || ""),
+                widthMm: String(size?.width_mm ?? size?.widthMm ?? ""),
+                heightMm: String(size?.height_mm ?? size?.heightMm ?? ""),
+                unit: String(size?.unit || "mm"),
+                isActive: Boolean(size?.is_active ?? size?.isActive ?? true),
+                isSystem: Boolean(size?.is_system ?? size?.isSystem ?? false),
+            };
+        });
+        setLabelSizeDrafts(nextDrafts);
+    };
+
+    const syncLabelTemplateDrafts = (templates) => {
+        const nextDrafts = {};
+        (Array.isArray(templates) ? templates : []).forEach((template) => {
+            nextDrafts[template.id] = {
+                name: String(template?.name || ""),
+                templateType: String(template?.template_type || "builder"),
+                categoryScope: String(template?.category_scope || "all"),
+                sizeId: template?.size_id ? String(template.size_id) : "",
+                orientation: String(template?.orientation || "portrait"),
+                isActive: Boolean(template?.is_active ?? true),
+                isSystem: Boolean(template?.is_system ?? false),
+            };
+        });
+        setLabelTemplateDrafts(nextDrafts);
+    };
+
+    const loadLabelCatalog = async () => {
+        if (!canViewLabels) {
+            setLabelCatalogError("You do not have permission to view labels.");
+            return;
+        }
+
+        setLabelCatalogBusy(true);
+        setLabelCatalogError("");
+        try {
+            const [sizesPayload, templatesPayload] = await Promise.all([
+                requestJson("GET", route("courierService.labels.sizes.index")),
+                requestJson("GET", route("courierService.labels.templates.index")),
+            ]);
+
+            const sizes = Array.isArray(sizesPayload?.sizes) ? sizesPayload.sizes : [];
+            const templates = Array.isArray(templatesPayload?.templates) ? templatesPayload.templates : [];
+            setLabelSizes(sizes);
+            setLabelTemplates(templates);
+            syncLabelSizeDrafts(sizes);
+            syncLabelTemplateDrafts(templates);
+        } catch (error) {
+            setLabelCatalogError(error?.message || "Failed to load label catalog.");
+        } finally {
+            setLabelCatalogBusy(false);
+        }
+    };
+
+    const createLabelSize = async () => {
+        if (!labelPolicy.allowCustomSizes) {
+            setFeedback({ type: "error", message: "Custom label sizes are disabled by policy." });
+            return;
+        }
+
+        const name = String(labelSizeForm.name || "").trim();
+        const widthMm = Number(labelSizeForm.widthMm || 0);
+        const heightMm = Number(labelSizeForm.heightMm || 0);
+        const unit = LABEL_UNIT_OPTIONS.some((option) => option.value === labelSizeForm.unit)
+            ? labelSizeForm.unit
+            : "mm";
+
+        if (!name) {
+            setFeedback({ type: "error", message: "Label size name is required." });
+            return;
+        }
+
+        if (!Number.isFinite(widthMm) || widthMm <= 0 || !Number.isFinite(heightMm) || heightMm <= 0) {
+            setFeedback({ type: "error", message: "Width and height must be valid positive numbers." });
+            return;
+        }
+
+        try {
+            await requestJson("POST", route("courierService.labels.sizes.store"), {
+                name,
+                widthMm,
+                heightMm,
+                unit,
+            });
+            setLabelSizeForm({ name: "", widthMm: "", heightMm: "", unit: "mm" });
+            setFeedback({ type: "success", message: "Label size created successfully." });
+            await loadLabelCatalog();
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to create label size." });
+        }
+    };
+
+    const saveLabelSize = async (sizeId) => {
+        if (!labelPolicy.allowCustomSizes) {
+            setFeedback({ type: "error", message: "Custom label sizes are disabled by policy." });
+            return;
+        }
+
+        const draft = labelSizeDrafts[sizeId];
+        if (!draft) {
+            return;
+        }
+
+        const widthMm = Number(draft.widthMm || 0);
+        const heightMm = Number(draft.heightMm || 0);
+        const unit = LABEL_UNIT_OPTIONS.some((option) => option.value === draft.unit)
+            ? draft.unit
+            : "mm";
+
+        if (!draft.name || !draft.name.trim()) {
+            setFeedback({ type: "error", message: "Label size name is required." });
+            return;
+        }
+
+        if (!Number.isFinite(widthMm) || widthMm <= 0 || !Number.isFinite(heightMm) || heightMm <= 0) {
+            setFeedback({ type: "error", message: "Width and height must be valid positive numbers." });
+            return;
+        }
+
+        setLabelSizeSaveBusyId(sizeId);
+        try {
+            await requestJson("PATCH", route("courierService.labels.sizes.update", { size: sizeId }), {
+                name: String(draft.name || "").trim(),
+                widthMm,
+                heightMm,
+                unit,
+                isActive: Boolean(draft.isActive),
+            });
+            setFeedback({ type: "success", message: "Label size updated." });
+            await loadLabelCatalog();
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to update label size." });
+        } finally {
+            setLabelSizeSaveBusyId(null);
+        }
+    };
+
+    const deleteLabelSize = (sizeId) => {
+        const size = labelSizes.find((item) => item.id === sizeId);
+        openConfirm({
+            title: "Remove Label Size",
+            message: `Delete ${size?.name || "this size"}? This cannot be undone.`,
+            onConfirm: async () => {
+                try {
+                    await requestJson("DELETE", route("courierService.labels.sizes.delete", { size: sizeId }));
+                    setFeedback({ type: "success", message: "Label size removed." });
+                    await loadLabelCatalog();
+                } catch (error) {
+                    setFeedback({ type: "error", message: error?.message || "Failed to remove label size." });
+                }
+            },
+        });
+    };
+
+    const parseLabelJsonField = (rawValue, fieldLabel) => {
+        const trimmed = String(rawValue || "").trim();
+        if (!trimmed) {
+            return { ok: true, value: null };
+        }
+
+        try {
+            return { ok: true, value: JSON.parse(trimmed) };
+        } catch {
+            return { ok: false, message: `${fieldLabel} must be valid JSON.` };
+        }
+    };
+
+    const createLabelTemplate = async () => {
+        if (!labelPolicy.allowTemplateUpload) {
+            setFeedback({ type: "error", message: "Template uploads are disabled by policy." });
+            return;
+        }
+
+        const name = String(labelTemplateForm.name || "").trim();
+        const templateType = String(labelTemplateForm.templateType || "builder");
+        const categoryScope = String(labelTemplateForm.categoryScope || "all");
+        const sizeId = labelTemplateForm.sizeId ? Number(labelTemplateForm.sizeId) : null;
+        const orientation = String(labelTemplateForm.orientation || "portrait");
+
+        if (!name) {
+            setFeedback({ type: "error", message: "Template name is required." });
+            return;
+        }
+
+        if (templateType === "upload" && !labelTemplateForm.backgroundFile) {
+            setFeedback({ type: "error", message: "Upload templates require a background file." });
+            return;
+        }
+
+        if (templateType === "upload" && labelTemplateForm.backgroundFile) {
+            const fileName = String(labelTemplateForm.backgroundFile.name || "").toLowerCase();
+            if (fileName.endsWith(".pdf") && !labelPolicy.allowPdfBackground) {
+                setFeedback({ type: "error", message: "PDF background uploads are disabled by policy." });
+                return;
+            }
+        }
+
+        if (templateType === "html" && !String(labelTemplateForm.htmlTemplate || "").trim()) {
+            setFeedback({ type: "error", message: "HTML template content is required." });
+            return;
+        }
+
+        if (templateType === "html" && !labelPolicy.allowHtmlTemplates) {
+            setFeedback({ type: "error", message: "HTML templates are disabled by policy." });
+            return;
+        }
+
+        const parsedBuilder = templateType === "builder"
+            ? parseLabelJsonField(labelTemplateForm.builderSchema, "Builder schema")
+            : { ok: true, value: null };
+        if (!parsedBuilder.ok) {
+            setFeedback({ type: "error", message: parsedBuilder.message });
+            return;
+        }
+
+        if (templateType === "builder" && (!Array.isArray(parsedBuilder.value) || parsedBuilder.value.length === 0)) {
+            setFeedback({ type: "error", message: "Builder schema must be a JSON array with at least one field." });
+            return;
+        }
+
+        const parsedOverrides = templateType === "upload"
+            ? { ok: true, value: null }
+            : parseLabelJsonField(labelTemplateForm.fieldOverrides, "Field overrides");
+        if (!parsedOverrides.ok) {
+            setFeedback({ type: "error", message: parsedOverrides.message });
+            return;
+        }
+
+        setLabelTemplateUploadBusy(true);
+
+        try {
+            if (templateType === "upload") {
+                if (!labelTemplateForm.backgroundFile) {
+                    setFeedback({ type: "error", message: "Upload templates require a background file." });
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("name", name);
+                formData.append("templateType", templateType);
+                formData.append("categoryScope", categoryScope);
+                if (sizeId) {
+                    formData.append("sizeId", String(sizeId));
+                }
+                formData.append("orientation", orientation);
+                formData.append("background", labelTemplateForm.backgroundFile);
+
+                await requestFormDataJson(route("courierService.labels.templates.store"), formData);
+            } else {
+                await requestJson("POST", route("courierService.labels.templates.store"), {
+                    name,
+                    templateType,
+                    categoryScope,
+                    sizeId,
+                    orientation,
+                    builderSchema: templateType === "builder" ? parsedBuilder.value : null,
+                    htmlTemplate: templateType === "html" ? labelTemplateForm.htmlTemplate : null,
+                    cssTemplate: templateType === "html" ? labelTemplateForm.cssTemplate : null,
+                    fieldOverrides: parsedOverrides.value,
+                });
+            }
+
+            setLabelTemplateForm({
+                name: "",
+                templateType: "builder",
+                categoryScope: "all",
+                sizeId: "",
+                orientation: "portrait",
+                builderSchema: "",
+                htmlTemplate: "",
+                cssTemplate: "",
+                fieldOverrides: "",
+                backgroundFile: null,
+            });
+            setFeedback({ type: "success", message: "Label template created." });
+            await loadLabelCatalog();
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to create label template." });
+        } finally {
+            setLabelTemplateUploadBusy(false);
+        }
+    };
+
+    const saveLabelTemplate = async (templateId) => {
+        if (!labelPolicy.allowTemplateUpload) {
+            setFeedback({ type: "error", message: "Template updates are disabled by policy." });
+            return;
+        }
+
+        const template = labelTemplates.find((item) => item.id === templateId);
+        const draft = labelTemplateDrafts[templateId];
+
+        if (!template || !draft) {
+            return;
+        }
+
+        if (!draft.name || !draft.name.trim()) {
+            setFeedback({ type: "error", message: "Template name is required." });
+            return;
+        }
+
+        const templateType = String(template.template_type || "builder");
+        const builderSchema = template.builder_schema || null;
+        const htmlTemplate = template.html_template || null;
+
+        if (templateType === "builder" && (!Array.isArray(builderSchema) || builderSchema.length === 0)) {
+            setFeedback({ type: "error", message: "Builder schema is missing for this template." });
+            return;
+        }
+
+        if (templateType === "html" && !String(htmlTemplate || "").trim()) {
+            setFeedback({ type: "error", message: "HTML template content is missing for this template." });
+            return;
+        }
+
+        if (templateType === "html" && !labelPolicy.allowHtmlTemplates) {
+            setFeedback({ type: "error", message: "HTML templates are disabled by policy." });
+            return;
+        }
+
+        setLabelTemplateSaveBusyId(templateId);
+        try {
+            await requestJson("PATCH", route("courierService.labels.templates.update", { template: templateId }), {
+                name: String(draft.name || "").trim(),
+                templateType,
+                categoryScope: String(draft.categoryScope || "all"),
+                sizeId: draft.sizeId ? Number(draft.sizeId) : null,
+                orientation: String(draft.orientation || "portrait"),
+                builderSchema: templateType === "builder" ? builderSchema : null,
+                htmlTemplate: templateType === "html" ? htmlTemplate : null,
+                cssTemplate: templateType === "html" ? (template.css_template || "") : null,
+                fieldOverrides: template.field_overrides || null,
+                isActive: Boolean(draft.isActive),
+            });
+            setFeedback({ type: "success", message: "Label template updated." });
+            await loadLabelCatalog();
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to update label template." });
+        } finally {
+            setLabelTemplateSaveBusyId(null);
+        }
+    };
+
+    const deleteLabelTemplate = (templateId) => {
+        const template = labelTemplates.find((item) => item.id === templateId);
+        openConfirm({
+            title: "Remove Label Template",
+            message: `Delete ${template?.name || "this template"}?`,
+            onConfirm: async () => {
+                try {
+                    await requestJson("DELETE", route("courierService.labels.templates.delete", { template: templateId }));
+                    setFeedback({ type: "success", message: "Label template removed." });
+                    await loadLabelCatalog();
+                } catch (error) {
+                    setFeedback({ type: "error", message: error?.message || "Failed to remove label template." });
+                }
+            },
+        });
+    };
+
+    const previewLabelTemplate = async (templateId, sizeId) => {
+        setLabelPreviewBusyId(templateId);
+
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+            const response = await fetch(route("courierService.labels.preview"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/pdf",
+                    ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+                },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    templateId,
+                    sizeId: sizeId || null,
+                }),
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload?.message || "Unable to preview label template.");
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank", "noopener,noreferrer");
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Unable to preview label template." });
+        } finally {
+            setLabelPreviewBusyId(null);
+        }
     };
 
     const normalizeImportCityKey = (value) => String(value || "")
@@ -4083,6 +4671,31 @@ const Settings = () => {
         });
     };
 
+    const submitCodCapabilityRequest = () => {
+        openConfirm({
+            title: "Request COD Capability",
+            message: "Submit this courier COD enablement request for superadmin review?",
+            confirmText: "Submit Request",
+            onConfirm: async () => {
+                setCodRequestBusy(true);
+                try {
+                    const payload = await requestJson("POST", route("courierService.settings.services.cod.request"), {
+                        note: codRequestNote,
+                    });
+                    setFeedback({ type: "success", message: payload?.message || "COD capability request submitted." });
+                    router.reload({
+                        preserveScroll: true,
+                        preserveState: true,
+                    });
+                } catch (error) {
+                    setFeedback({ type: "error", message: error?.message || "Failed to submit COD capability request." });
+                } finally {
+                    setCodRequestBusy(false);
+                }
+            },
+        });
+    };
+
     const saveSection = (sectionKey) => {
         router.post(
             route("courierService.settings.update"),
@@ -4152,6 +4765,41 @@ const Settings = () => {
     };
 
     const saveButtonLabel = TAB_CONFIG.find((tab) => tab.key === activeTab)?.label;
+    const servicesSettings = settings?.services || DEFAULT_SETTINGS.services;
+    const servicesCodSettings = (servicesSettings && typeof servicesSettings.cod === "object")
+        ? servicesSettings.cod
+        : DEFAULT_SETTINGS.services.cod;
+    const codCapabilityStatus = String(incomingCodCapability.status || "not_requested");
+    const codCapabilityStatusLabel = String(incomingCodCapability.statusLabel || "Not Requested");
+    const codCapabilityCanRequest = Boolean(incomingCodCapability.canRequest ?? true);
+    const codCapabilityRequestedAt = String(incomingCodCapability.requestedAt || "");
+    const codCapabilityReviewedAt = String(incomingCodCapability.reviewedAt || "");
+    const codCapabilityReviewedBy = String(incomingCodCapability.reviewedByName || "");
+    const codCapabilityDecisionReason = String(incomingCodCapability.decisionReason || "");
+    const codStatusTone = (() => {
+        if (codCapabilityStatus === "approved") {
+            return "bg-[#ECFDF3] border-[#86EFAC] text-[#166534]";
+        }
+
+        if (codCapabilityStatus === "pending") {
+            return "bg-[#FFFBEB] border-[#FCD34D] text-[#92400E]";
+        }
+
+        if (codCapabilityStatus === "rejected") {
+            return "bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]";
+        }
+
+        return "bg-[#F9FAFB] border-[#D1D5DB] text-[#374151]";
+    })();
+    const labelSettings = settings?.labels || DEFAULT_SETTINGS.labels;
+    const labelDefaults = (labelSettings && typeof labelSettings.defaults === "object")
+        ? labelSettings.defaults
+        : DEFAULT_SETTINGS.labels.defaults;
+    const labelPolicy = (labelSettings && typeof labelSettings.printPolicy === "object")
+        ? labelSettings.printPolicy
+        : DEFAULT_SETTINGS.labels.printPolicy;
+    const activeLabelSizes = (Array.isArray(labelSizes) ? labelSizes : []).filter((size) => Boolean(size?.is_active ?? size?.isActive ?? true));
+    const activeLabelTemplates = (Array.isArray(labelTemplates) ? labelTemplates : []).filter((template) => Boolean(template?.is_active ?? template?.isActive ?? true));
     const pricingLocalizationByCategory = settings?.pricing?.localization || DEFAULT_SETTINGS.pricing.localization;
     const pricingFormulaByCategory = settings?.pricing?.formula || DEFAULT_SETTINGS.pricing.formula;
     const pricingServiceCatalog = settings?.pricing?.serviceCatalog || DEFAULT_SETTINGS.pricing.serviceCatalog;
@@ -4430,6 +5078,697 @@ const Settings = () => {
                         </Field>
                     </div>
                 </SectionCard>
+            );
+        }
+
+        if (activeTab === "services") {
+            return (
+                <div className="space-y-4">
+                    <SectionCard title="Service Capabilities" description="Configure operational service behavior and request controlled capability enablement.">
+                        <div className={`rounded-[10px] border px-4 py-3 ${codStatusTone}`}>
+                            <p className="text-[13px] font-[700]">COD Capability Status: {codCapabilityStatusLabel}</p>
+                            <p className="text-[12px] mt-1">
+                                {codCapabilityStatus === "approved" && "Your courier workspace is approved to operate COD bookings."}
+                                {codCapabilityStatus === "pending" && "Your COD request is pending superadmin review."}
+                                {codCapabilityStatus === "rejected" && "Your previous COD request was rejected. Update details and re-submit."}
+                                {codCapabilityStatus === "not_requested" && "COD is not enabled yet. Submit a request for superadmin approval."}
+                            </p>
+                            {codCapabilityRequestedAt && (
+                                <p className="text-[11px] mt-2">Requested at: {codCapabilityRequestedAt}</p>
+                            )}
+                            {codCapabilityReviewedAt && (
+                                <p className="text-[11px] mt-1">Reviewed at: {codCapabilityReviewedAt}{codCapabilityReviewedBy ? ` by ${codCapabilityReviewedBy}` : ""}</p>
+                            )}
+                            {codCapabilityDecisionReason && (
+                                <p className="text-[11px] mt-1">Decision note: {codCapabilityDecisionReason}</p>
+                            )}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <Toggle
+                                label="Allow COD At Checkout"
+                                checked={Boolean(servicesCodSettings.acceptCodAtCheckout)}
+                                onChange={(next) => updateServiceCodValue("acceptCodAtCheckout", next)}
+                                description="Expose COD as an option during courier booking checkout."
+                            />
+                            <Toggle
+                                label="Allow Domestic COD"
+                                checked={Boolean(servicesCodSettings.allowCodForDomestic)}
+                                onChange={(next) => updateServiceCodValue("allowCodForDomestic", next)}
+                                description="Keep domestic COD path active once capability is approved."
+                            />
+                            <Toggle
+                                label="Allow International COD"
+                                checked={Boolean(servicesCodSettings.allowCodForInternational)}
+                                onChange={(next) => updateServiceCodValue("allowCodForInternational", next)}
+                                description="Enable international COD only when this route is approved and operationally ready."
+                            />
+                            <Toggle
+                                label="Allow Team Override"
+                                checked={Boolean(servicesCodSettings.allowTeamOverride)}
+                                onChange={(next) => updateServiceCodValue("allowTeamOverride", next)}
+                                description="Use only with explicit COD override permissions for authorized staff."
+                            />
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3">
+                            <Field label="COD Request Note" help="Share readiness details such as SOP, collection controls, and reconciliation process.">
+                                <textarea
+                                    rows={3}
+                                    className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                    value={codRequestNote}
+                                    onChange={(event) => setCodRequestNote(event.target.value)}
+                                    placeholder="COD readiness summary..."
+                                />
+                            </Field>
+
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={submitCodCapabilityRequest}
+                                    disabled={!codCapabilityCanRequest || codRequestBusy}
+                                    className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
+                                >
+                                    {codRequestBusy ? "Submitting..." : (codCapabilityStatus === "rejected" ? "Re-submit COD Request" : "Submit COD Request")}
+                                </button>
+                            </div>
+                        </div>
+                    </SectionCard>
+                </div>
+            );
+        }
+
+        if (activeTab === "labels") {
+            if (!canViewLabels) {
+                return (
+                    <SectionCard title="Label Access" description="Permissions required to view label settings.">
+                        <p className="text-[12px] text-[#6B7280]">
+                            You do not have permission to view label settings. Contact an admin to grant label access.
+                        </p>
+                    </SectionCard>
+                );
+            }
+
+            const labelControlsDisabled = !canManageLabels;
+            const templateOptionsForCategory = (categoryKey) => labelTemplates.filter((template) => {
+                const scope = String(template?.category_scope || template?.categoryScope || "all");
+                return scope === "all" || scope === categoryKey;
+            });
+
+            return (
+                <div className="space-y-4">
+                    <SectionCard title="Label Defaults and Policy" description="Set default label templates and sizes per category, then control bulk print limits and access.">
+                        {labelCatalogError && (
+                            <p className="text-[12px] text-[#B91C1C] mb-2">{labelCatalogError}</p>
+                        )}
+                        {labelCatalogBusy && (
+                            <p className="text-[11px] text-[#6B7280] mb-2">Refreshing label catalog...</p>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="border border-[#E5E7EB] rounded-[10px] p-3">
+                                <p className="text-[13px] font-[700] text-[#111827]">Domestic Defaults</p>
+                                <div className="mt-3 grid grid-cols-1 gap-3">
+                                    <Field label="Default Template">
+                                        <select
+                                            className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
+                                            value={String(labelDefaults?.domestic?.templateId || "")}
+                                            onChange={(e) => updateLabelDefaults("domestic", "templateId", e.target.value ? Number(e.target.value) : null)}
+                                        >
+                                            <option value="">No default template</option>
+                                            {templateOptionsForCategory("domestic").map((template) => (
+                                                <option key={`label-template-dom-${template.id}`} value={template.id}>
+                                                    {template.name}{template.is_active === false ? " (Inactive)" : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label="Default Size">
+                                        <select
+                                            className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
+                                            value={String(labelDefaults?.domestic?.sizeId || "")}
+                                            onChange={(e) => updateLabelDefaults("domestic", "sizeId", e.target.value ? Number(e.target.value) : null)}
+                                        >
+                                            <option value="">No default size</option>
+                                            {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
+                                                <option key={`label-size-dom-${size.id}`} value={size.id}>
+                                                    {size.name} ({formatLabelSize(size)}){size.is_active === false ? " (Inactive)" : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                </div>
+                            </div>
+                            <div className="border border-[#E5E7EB] rounded-[10px] p-3">
+                                <p className="text-[13px] font-[700] text-[#111827]">Logistic Defaults</p>
+                                <div className="mt-3 grid grid-cols-1 gap-3">
+                                    <Field label="Default Template">
+                                        <select
+                                            className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
+                                            value={String(labelDefaults?.logistic?.templateId || "")}
+                                            onChange={(e) => updateLabelDefaults("logistic", "templateId", e.target.value ? Number(e.target.value) : null)}
+                                        >
+                                            <option value="">No default template</option>
+                                            {templateOptionsForCategory("logistic").map((template) => (
+                                                <option key={`label-template-log-${template.id}`} value={template.id}>
+                                                    {template.name}{template.is_active === false ? " (Inactive)" : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label="Default Size">
+                                        <select
+                                            className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                            disabled={labelControlsDisabled}
+                                            value={String(labelDefaults?.logistic?.sizeId || "")}
+                                            onChange={(e) => updateLabelDefaults("logistic", "sizeId", e.target.value ? Number(e.target.value) : null)}
+                                        >
+                                            <option value="">No default size</option>
+                                            {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
+                                                <option key={`label-size-log-${size.id}`} value={size.id}>
+                                                    {size.name} ({formatLabelSize(size)}){size.is_active === false ? " (Inactive)" : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                            <Field label="Bulk Async Threshold">
+                                <input
+                                    type="number"
+                                    min={1}
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    disabled={labelControlsDisabled}
+                                    value={labelPolicy.bulkAsyncThreshold}
+                                    onChange={(e) => updateLabelPolicy("bulkAsyncThreshold", Number(e.target.value || 1))}
+                                />
+                            </Field>
+                            <Field label="Bulk Hard Limit">
+                                <input
+                                    type="number"
+                                    min={1}
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    disabled={labelControlsDisabled}
+                                    value={labelPolicy.bulkHardLimit}
+                                    onChange={(e) => updateLabelPolicy("bulkHardLimit", Number(e.target.value || 1))}
+                                />
+                            </Field>
+                            <Toggle
+                                label="Allow Custom Sizes"
+                                checked={labelPolicy.allowCustomSizes}
+                                onChange={(next) => updateLabelPolicy("allowCustomSizes", next)}
+                                description="If disabled, only system sizes can be used."
+                                disabled={labelControlsDisabled}
+                            />
+                            <Toggle
+                                label="Allow Template Uploads"
+                                checked={labelPolicy.allowTemplateUpload}
+                                onChange={(next) => updateLabelPolicy("allowTemplateUpload", next)}
+                                description="Disable to lock vendors to system templates."
+                                disabled={labelControlsDisabled}
+                            />
+                            <Toggle
+                                label="Allow HTML Templates"
+                                checked={labelPolicy.allowHtmlTemplates}
+                                onChange={(next) => updateLabelPolicy("allowHtmlTemplates", next)}
+                                description="Restrict custom HTML if you only want uploads."
+                                disabled={labelControlsDisabled}
+                            />
+                            <Toggle
+                                label="Allow PDF Backgrounds"
+                                checked={labelPolicy.allowPdfBackground}
+                                onChange={(next) => updateLabelPolicy("allowPdfBackground", next)}
+                                description="Toggle PDF uploads for label backgrounds."
+                                disabled={labelControlsDisabled}
+                            />
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard title="Label Sizes" description="Define thermal or A4 label sizes available for template design.">
+                        {!labelPolicy.allowCustomSizes && (
+                            <p className="text-[11px] text-[#B45309] mb-2">Custom label sizes are disabled by policy.</p>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                            <Field label="Size Name">
+                                <input
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelSizeForm.name}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, name: e.target.value }))}
+                                    placeholder="4x6 Thermal"
+                                />
+                            </Field>
+                            <Field label="Unit">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelSizeForm.unit}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, unit: e.target.value }))}
+                                >
+                                    {LABEL_UNIT_OPTIONS.map((option) => (
+                                        <option key={`label-unit-${option.value}`} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field label={`Width (${labelSizeForm.unit || "mm"})`}>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    step={0.1}
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelSizeForm.widthMm}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, widthMm: e.target.value }))}
+                                />
+                            </Field>
+                            <Field label={`Height (${labelSizeForm.unit || "mm"})`}>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    step={0.1}
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelSizeForm.heightMm}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelSizeForm((prev) => ({ ...prev, heightMm: e.target.value }))}
+                                />
+                            </Field>
+                            <button
+                                type="button"
+                                className="h-[42px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
+                                onClick={createLabelSize}
+                                disabled={labelCatalogBusy || !labelPolicy.allowCustomSizes || labelControlsDisabled}
+                            >
+                                Add Size
+                            </button>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                            {labelSizes.length === 0 && (
+                                <p className="text-[11px] text-[#6B7280]">No label sizes configured yet.</p>
+                            )}
+
+                            {labelSizes.map((size) => {
+                                const draft = labelSizeDrafts[size.id] || {
+                                    name: size.name || "",
+                                    widthMm: size.width_mm || size.widthMm || "",
+                                    heightMm: size.height_mm || size.heightMm || "",
+                                    unit: size.unit || "mm",
+                                    isActive: Boolean(size.is_active ?? true),
+                                    isSystem: Boolean(size.is_system ?? false),
+                                };
+                                const sizeBusy = labelSizeSaveBusyId === size.id;
+
+                                return (
+                                    <div key={`label-size-${size.id}`} className="border border-[#E5E7EB] rounded-[10px] p-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
+                                            <Field label="Name">
+                                                <input
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.name}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelSizeDrafts((prev) => ({
+                                                        ...prev,
+                                                        [size.id]: { ...draft, name: e.target.value },
+                                                    }))}
+                                                />
+                                            </Field>
+                                            <Field label="Unit">
+                                                <select
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.unit || "mm"}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelSizeDrafts((prev) => ({
+                                                        ...prev,
+                                                        [size.id]: { ...draft, unit: e.target.value },
+                                                    }))}
+                                                >
+                                                    {LABEL_UNIT_OPTIONS.map((option) => (
+                                                        <option key={`label-size-unit-${size.id}-${option.value}`} value={option.value}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                            <Field label={`Width (${draft.unit || "mm"})`}>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    step={0.1}
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.widthMm}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelSizeDrafts((prev) => ({
+                                                        ...prev,
+                                                        [size.id]: { ...draft, widthMm: e.target.value },
+                                                    }))}
+                                                />
+                                            </Field>
+                                            <Field label={`Height (${draft.unit || "mm"})`}>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    step={0.1}
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.heightMm}
+                                                    disabled={draft.isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelSizeDrafts((prev) => ({
+                                                        ...prev,
+                                                        [size.id]: { ...draft, heightMm: e.target.value },
+                                                    }))}
+                                                />
+                                            </Field>
+                                            <div className="flex items-center gap-2">
+                                                <label className="inline-flex items-center gap-2 text-[12px] text-[#374151]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={draft.isActive}
+                                                        disabled={draft.isSystem || labelControlsDisabled}
+                                                        onChange={(e) => setLabelSizeDrafts((prev) => ({
+                                                            ...prev,
+                                                            [size.id]: { ...draft, isActive: e.target.checked },
+                                                        }))}
+                                                    />
+                                                    Active
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    className="h-[34px] px-3 rounded-[8px] bg-[#111827] text-white text-[12px] font-[700] disabled:opacity-50"
+                                                    onClick={() => saveLabelSize(size.id)}
+                                                    disabled={sizeBusy || draft.isSystem || !labelPolicy.allowCustomSizes || labelControlsDisabled}
+                                                >
+                                                    {sizeBusy ? "Saving" : "Save"}
+                                                </button>
+                                                {!draft.isSystem && (
+                                                    <button
+                                                        type="button"
+                                                        className="h-[34px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[12px] font-[700] disabled:opacity-50"
+                                                        onClick={() => deleteLabelSize(size.id)}
+                                                        disabled={labelControlsDisabled}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {draft.isSystem && (
+                                            <p className="mt-2 text-[11px] text-[#6B7280]">System sizes cannot be edited or removed.</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard title="Label Templates" description="Create templates from HTML or uploaded backgrounds. Use JSON tokens to map shipment fields.">
+                        {!labelPolicy.allowTemplateUpload && (
+                            <p className="text-[11px] text-[#B45309] mb-2">Template uploads are disabled by policy.</p>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+                            <Field label="Template Name">
+                                <input
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.name}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, name: e.target.value }))}
+                                    placeholder="Default Thermal Label"
+                                />
+                            </Field>
+                            <Field label="Type">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.templateType}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, templateType: e.target.value }))}
+                                >
+                                    <option value="builder">Builder (JSON)</option>
+                                    <option value="html" disabled={!labelPolicy.allowHtmlTemplates}>HTML/CSS</option>
+                                    <option value="upload">Upload Background</option>
+                                </select>
+                            </Field>
+                            <Field label="Scope">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.categoryScope}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, categoryScope: e.target.value }))}
+                                >
+                                    <option value="all">All</option>
+                                    <option value="domestic">Domestic</option>
+                                    <option value="logistic">Logistic</option>
+                                </select>
+                            </Field>
+                            <Field label="Size">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.sizeId}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, sizeId: e.target.value }))}
+                                >
+                                    <option value="">Select size</option>
+                                    {activeLabelSizes.map((size) => (
+                                        <option key={`template-size-${size.id}`} value={size.id}>
+                                            {size.name} ({formatLabelSize(size)})
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field label="Orientation">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.orientation}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, orientation: e.target.value }))}
+                                >
+                                    <option value="portrait">Portrait</option>
+                                    <option value="landscape">Landscape</option>
+                                </select>
+                            </Field>
+                            <button
+                                type="button"
+                                className="h-[42px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
+                                onClick={createLabelTemplate}
+                                disabled={labelTemplateUploadBusy || !labelPolicy.allowTemplateUpload || labelControlsDisabled}
+                            >
+                                {labelTemplateUploadBusy ? "Saving" : "Create Template"}
+                            </button>
+                        </div>
+
+                        {labelTemplateForm.templateType === "builder" && (
+                            <div className="mt-3">
+                                <Field label="Builder Schema (JSON array)" help="Use tokens like {{trackingNumber}}, {{sender.name}}, {{recipient.address.city}}">
+                                    <textarea
+                                        rows={4}
+                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                        value={labelTemplateForm.builderSchema}
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, builderSchema: e.target.value }))}
+                                        placeholder='[{"type":"text","x":12,"y":14,"value":"{{trackingNumber}}"}]'
+                                    />
+                                </Field>
+                            </div>
+                        )}
+
+                        {labelTemplateForm.templateType === "html" && (
+                            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                <Field label="HTML Template" help="Tokens map to shipment data, e.g. {{trackingNumber}}">
+                                    <textarea
+                                        rows={6}
+                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                        value={labelTemplateForm.htmlTemplate}
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, htmlTemplate: e.target.value }))}
+                                    />
+                                </Field>
+                                <Field label="CSS (optional)">
+                                    <textarea
+                                        rows={6}
+                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                        value={labelTemplateForm.cssTemplate}
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, cssTemplate: e.target.value }))}
+                                    />
+                                </Field>
+                            </div>
+                        )}
+
+                        {labelTemplateForm.templateType === "upload" && (
+                            <div className="mt-3">
+                                <Field label="Background File" help="Upload PDF, PNG, or JPG to use as the label background.">
+                                    <input
+                                        type="file"
+                                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                                        className="w-full"
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setLabelTemplateForm((prev) => ({
+                                            ...prev,
+                                            backgroundFile: e.target.files?.[0] || null,
+                                        }))}
+                                    />
+                                </Field>
+                            </div>
+                        )}
+
+                        {labelTemplateForm.templateType !== "upload" && (
+                            <div className="mt-3">
+                                <Field label="Field Overrides (JSON)" help="Optional JSON object to override token values at render time.">
+                                    <textarea
+                                        rows={3}
+                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                        value={labelTemplateForm.fieldOverrides}
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, fieldOverrides: e.target.value }))}
+                                    />
+                                </Field>
+                            </div>
+                        )}
+
+                        <div className="mt-4 space-y-2">
+                            {labelTemplates.length === 0 && (
+                                <p className="text-[11px] text-[#6B7280]">No label templates yet. Create one above.</p>
+                            )}
+
+                            {labelTemplates.map((template) => {
+                                const draft = labelTemplateDrafts[template.id] || {
+                                    name: template.name || "",
+                                    categoryScope: template.category_scope || "all",
+                                    sizeId: template.size_id ? String(template.size_id) : "",
+                                    orientation: template.orientation || "portrait",
+                                    isActive: Boolean(template.is_active ?? true),
+                                    isSystem: Boolean(template.is_system ?? false),
+                                };
+                                const templateBusy = labelTemplateSaveBusyId === template.id;
+                                const isSystem = Boolean(draft.isSystem);
+
+                                return (
+                                    <div key={`label-template-${template.id}`} className="border border-[#E5E7EB] rounded-[10px] p-3">
+                                        <div className="grid grid-cols-1 lg:grid-cols-7 gap-3 items-end">
+                                            <Field label="Name">
+                                                <input
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.name}
+                                                    disabled={isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelTemplateDrafts((prev) => ({
+                                                        ...prev,
+                                                        [template.id]: { ...draft, name: e.target.value },
+                                                    }))}
+                                                />
+                                            </Field>
+                                            <Field label="Type">
+                                                <input
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB] bg-[#F9FAFB]"
+                                                    value={titleCase(template.template_type || "")}
+                                                    disabled={true}
+                                                />
+                                            </Field>
+                                            <Field label="Scope">
+                                                <select
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.categoryScope}
+                                                    disabled={isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelTemplateDrafts((prev) => ({
+                                                        ...prev,
+                                                        [template.id]: { ...draft, categoryScope: e.target.value },
+                                                    }))}
+                                                >
+                                                    <option value="all">All</option>
+                                                    <option value="domestic">Domestic</option>
+                                                    <option value="logistic">Logistic</option>
+                                                </select>
+                                            </Field>
+                                            <Field label="Size">
+                                                <select
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.sizeId}
+                                                    disabled={isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelTemplateDrafts((prev) => ({
+                                                        ...prev,
+                                                        [template.id]: { ...draft, sizeId: e.target.value },
+                                                    }))}
+                                                >
+                                                    <option value="">Unassigned</option>
+                                                    {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
+                                                        <option key={`template-size-${template.id}-${size.id}`} value={size.id}>
+                                                            {size.name} ({formatLabelSize(size)})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                            <Field label="Orientation">
+                                                <select
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.orientation}
+                                                    disabled={isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelTemplateDrafts((prev) => ({
+                                                        ...prev,
+                                                        [template.id]: { ...draft, orientation: e.target.value },
+                                                    }))}
+                                                >
+                                                    <option value="portrait">Portrait</option>
+                                                    <option value="landscape">Landscape</option>
+                                                </select>
+                                            </Field>
+                                            <div className="flex items-center gap-2">
+                                                <label className="inline-flex items-center gap-2 text-[12px] text-[#374151]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={draft.isActive}
+                                                        disabled={isSystem || labelControlsDisabled}
+                                                        onChange={(e) => setLabelTemplateDrafts((prev) => ({
+                                                            ...prev,
+                                                            [template.id]: { ...draft, isActive: e.target.checked },
+                                                        }))}
+                                                    />
+                                                    Active
+                                                </label>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    className="h-[34px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700] text-[#374151] disabled:opacity-50"
+                                                    onClick={() => previewLabelTemplate(template.id, draft.sizeId || template.size_id)}
+                                                    disabled={labelPreviewBusyId === template.id}
+                                                >
+                                                    {labelPreviewBusyId === template.id ? "Previewing" : "Preview"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="h-[34px] px-3 rounded-[8px] bg-[#111827] text-white text-[12px] font-[700] disabled:opacity-50"
+                                                    onClick={() => saveLabelTemplate(template.id)}
+                                                    disabled={templateBusy || isSystem || !labelPolicy.allowTemplateUpload || labelControlsDisabled}
+                                                >
+                                                    {templateBusy ? "Saving" : "Save"}
+                                                </button>
+                                                {!isSystem && (
+                                                    <button
+                                                        type="button"
+                                                        className="h-[34px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[12px] font-[700] disabled:opacity-50"
+                                                        onClick={() => deleteLabelTemplate(template.id)}
+                                                        disabled={labelControlsDisabled}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <p className="mt-2 text-[11px] text-[#6B7280]">
+                                            Template ID: {template.id} • Category: {titleCase(template.category_scope || "all")}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </SectionCard>
+                </div>
             );
         }
 

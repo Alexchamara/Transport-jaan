@@ -57,19 +57,32 @@ const GOVERNANCE_POLICY_KEYS = [
     "quote_runtime_floor_price_guardrail",
 ];
 
-const Summary = () => {
-    const { props } = usePage();
+const Summary = ({
+    inline = false,
+    pagePropsOverride = null,
+    formStateOverride = null,
+    showEditLinks = null,
+    showHero = null,
+}) => {
+    const { props: inertiaProps } = usePage();
+    const resolvedProps = pagePropsOverride || inertiaProps;
     const {
         formData,
         pricingPreview = null,
         errors = {},
-        countries = [],
-        serviceLevels = [],
-    } = props;
+    } = resolvedProps;
+    const allowEditLinks = showEditLinks ?? !inline;
+    const showHeroSection = showHero ?? !inline;
     const hasErrors = Object.keys(errors).length > 0;
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const initialData = useMemo(() => (formData ? JSON.parse(JSON.stringify(formData)) : null), [formData]);
+    const initialData = useMemo(() => {
+        if (formStateOverride) {
+            return JSON.parse(JSON.stringify(formStateOverride));
+        }
+
+        return formData ? JSON.parse(JSON.stringify(formData)) : null;
+    }, [formData, formStateOverride]);
     const [formState, setFormState] = useState(initialData);
 
     useEffect(() => {
@@ -82,51 +95,34 @@ const Summary = () => {
         }
     }, []);
 
-    const [displayCurrency, setDisplayCurrency] = useState(() => initialData?.reviewContext?.displayCurrency || initialData?.shipment?.currency || "LKR");
+    const [displayCurrency, setDisplayCurrency] = useState(() => initialData?.reviewContext?.displayCurrency || "LKR");
 
     useEffect(() => {
         if (initialData) {
-            setDisplayCurrency(initialData.reviewContext?.displayCurrency || initialData.shipment?.currency || "USD");
+            setDisplayCurrency(initialData.reviewContext?.displayCurrency || "LKR");
         }
     }, [initialData]);
 
-    const updateNestedField = (path, value) => {
-        setFormState((previous) => {
-            if (!previous) {
-                return previous;
-            }
-
-            const next = { ...previous };
-            const keys = path.split('.');
-            let cursor = next;
-
-            keys.forEach((key, index) => {
-                if (index === keys.length - 1) {
-                    cursor[key] = value;
-                    return;
-                }
-
-                const current = cursor[key];
-                if (Array.isArray(current)) {
-                    cursor[key] = [...current];
-                } else {
-                    cursor[key] = current ? { ...current } : {};
-                }
-                cursor = cursor[key];
-            });
-
-            return next;
-        });
-    };
-
-    const handleCurrencyChange = (value) => {
-        const nextCurrency = value || "USD";
-        setDisplayCurrency(nextCurrency);
-        updateNestedField('shipment.currency', nextCurrency);
-        updateNestedField('reviewContext.displayCurrency', nextCurrency);
-    };
-
     if (!formState) {
+        if (inline) {
+            return (
+                <div className="rounded-2xl border border-[#E3EAF5] bg-white p-6 text-center shadow-sm">
+                    <h2 className="text-base font-semibold text-[#0B1739]">No summary available</h2>
+                    <p className="mt-2 text-xs text-[#5B6887]">
+                        Start by creating a courier request and selecting your services.
+                    </p>
+                    {allowEditLinks && (
+                        <Link
+                            href="/couriers/create"
+                            className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4b93]"
+                        >
+                            Go to courier form
+                        </Link>
+                    )}
+                </div>
+            );
+        }
+
         return (
             <div className="min-h-screen flex flex-col bg-[#F4F7FB] text-[#0B1739]">
                 <Head title="Courier Summary" />
@@ -172,10 +168,23 @@ const Summary = () => {
         }
     }, [displayCurrency]);
 
+    const lkrFormatter = useMemo(() => {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "LKR",
+            minimumFractionDigits: 2,
+        });
+    }, []);
+
     const formatCurrency = (value = 0) => {
         const numericValue = Number(value) || 0;
         const convertedValue = displayCurrency === "LKR" ? numericValue * USD_TO_LKR_RATE : numericValue;
         return currencyFormatter.format(convertedValue);
+    };
+
+    const formatDeclaredValue = (value = 0) => {
+        const numericValue = Number(value) || 0;
+        return lkrFormatter.format(numericValue);
     };
 
     const selectedQuotesMap = useMemo(() => {
@@ -198,6 +207,13 @@ const Summary = () => {
     };
 
     const insuranceLabel = formState.shipment?.insurance ? "Yes" : "No";
+    const codEnabled = Boolean(formState.shipment?.codEnabled);
+    const codAmount = formState.shipment?.codAmount !== undefined && formState.shipment?.codAmount !== null && formState.shipment?.codAmount !== ""
+        ? Number(formState.shipment.codAmount)
+        : null;
+    const codPaymentMethodLabel = formState.shipment?.codPaymentMethod
+        ? String(formState.shipment.codPaymentMethod).replaceAll("_", " ")
+        : "—";
     const totalEstimateDisplay = formatCurrency(totalPriceUSD);
     const governanceAdjustments = useMemo(() => {
         if (!Array.isArray(pricingPreview?.policyAdjustments)) {
@@ -215,14 +231,65 @@ const Summary = () => {
     );
     const pricingPreviewFinalTotal = Number(pricingPreview?.totalEstimatedUsd || 0);
     const pricingPreviewBeforeGovernance = pricingPreviewFinalTotal - governanceNetImpact;
+    const pricingPreviewCodDetails = pricingPreview?.codDetails || null;
+    const pricingPreviewCodFeeBase = pricingPreviewCodDetails?.feeBaseAmount !== null
+        && pricingPreviewCodDetails?.feeBaseAmount !== undefined
+        ? Number(pricingPreviewCodDetails.feeBaseAmount)
+        : null;
+    const pricingPreviewCodFeeBaseSource = pricingPreviewCodDetails?.feeBaseSource === 'requested_cod_amount'
+        ? 'Requested COD amount'
+        : pricingPreviewCodDetails?.feeBaseSource === 'declared_value'
+            ? 'Declared value'
+            : null;
+
+    const resolveShipmentServiceLevel = (payload) => {
+        const candidates = [];
+        (payload?.reviewContext?.selectedQuotes || []).forEach((quote) => {
+            candidates.push(quote?.serviceLevel);
+            candidates.push(quote?.serviceLabel);
+        });
+        (payload?.packages || []).forEach((pkg) => {
+            candidates.push(pkg?.serviceLevel);
+        });
+        candidates.push(payload?.shipment?.serviceLevel);
+
+        for (const candidate of candidates) {
+            if (typeof candidate === "string" && candidate.trim() !== "") {
+                return candidate.trim();
+            }
+        }
+
+        return "standard";
+    };
+
+    const resolveShipmentCurrency = (payload) => {
+        const candidate = payload?.shipment?.currency
+            || payload?.reviewContext?.displayCurrency
+            || displayCurrency
+            || "LKR";
+        return String(candidate || "LKR").toUpperCase();
+    };
 
     const handleConfirm = () => {
         if (!formState || isSubmitting) {
             return;
         }
 
-        router.post('/couriers', formState, {
+        const payload = JSON.parse(JSON.stringify(formState));
+        payload.shipment = payload.shipment || {};
+        payload.reviewContext = payload.reviewContext || {};
+        payload.shipment.currency = resolveShipmentCurrency(payload);
+        payload.shipment.serviceLevel = resolveShipmentServiceLevel(payload);
+        payload.shipment.codEnabled = Boolean(payload.shipment.codEnabled);
+        if (!payload.shipment.codEnabled) {
+            payload.shipment.codAmount = null;
+            payload.shipment.codPaymentMethod = null;
+        }
+        payload.reviewContext.displayCurrency = payload.reviewContext.displayCurrency || payload.shipment.currency;
+
+        router.post('/couriers', payload, {
             preserveScroll: false,
+            preserveState: !inline,
             onStart: () => setIsSubmitting(true),
             onSuccess: scrollToTop,
             onError: scrollToTop,
@@ -230,31 +297,40 @@ const Summary = () => {
         });
     };
 
+    const mainClassName = inline ? "" : "container mx-auto px-4 -mt-16 mb-16 flex-1";
+    const cardClassName = inline
+        ? "rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm poppins"
+        : "bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins";
+
     return (
-        <div className="min-h-screen flex flex-col bg-[#F4F7FB] text-[#0B1739]">
-            <Head title="Courier Summary" />
-            <Header />
+        <div className={inline ? "text-[#0B1739]" : "min-h-screen flex flex-col bg-[#F4F7FB] text-[#0B1739]"}>
+            {!inline && <Head title="Courier Summary" />}
+            {!inline && <Header />}
 
-            <section className="bg-[#0B1739] text-white">
-                <div className="container mx-auto px-4 py-12">
-                    <p className="uppercase tracking-wide text-xs text-[#6FB3FF]">Courier Service</p>
-                    <h1 className="text-3xl md:text-4xl font-semibold mt-3">Review your shipment</h1>
-                    <p className="mt-4 max-w-2xl text-sm md:text-base text-white/80">
-                        Confirm sender and recipient information, shipment preferences, and selected courier services before final submission.
-                    </p>
-                    <div className="mt-6">
-                        <Link
-                            href="/couriers/details"
-                            className="inline-flex items-center gap-2 text-xs md:text-sm text-white/70 underline-offset-4 hover:text-white hover:underline transition"
-                        >
-                            ← Edit shipment details
-                        </Link>
+            {!inline && showHeroSection && (
+                <section className="bg-[#0B1739] text-white">
+                    <div className="container mx-auto px-4 py-12">
+                        <p className="uppercase tracking-wide text-xs text-[#6FB3FF]">Courier Service</p>
+                        <h1 className="text-3xl md:text-4xl font-semibold mt-3">Review your shipment</h1>
+                        <p className="mt-4 max-w-2xl text-sm md:text-base text-white/80">
+                            Confirm sender and recipient information, shipment preferences, and selected courier services before final submission.
+                        </p>
+                        {allowEditLinks && (
+                            <div className="mt-6">
+                                <Link
+                                    href="/couriers/details"
+                                    className="inline-flex items-center gap-2 text-xs md:text-sm text-white/70 underline-offset-4 hover:text-white hover:underline transition"
+                                >
+                                    ← Edit shipment details
+                                </Link>
+                            </div>
+                        )}
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
-            <main className="container mx-auto px-4 -mt-16 mb-16 flex-1">
-                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
+            <main className={mainClassName}>
+                <div className={cardClassName}>
                     {hasErrors && (
                         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                             <p className="font-semibold">We couldn't submit the courier request.</p>
@@ -275,17 +351,19 @@ const Summary = () => {
                     <div className="mb-10">
                         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment progress</h2>
+                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment prog</h2>
                                 <p className="mt-2 text-sm text-[#5B6887]">
                                     All steps are complete. Review the details below before you finalize the request.
                                 </p>
                             </div>
-                            <Link
-                                href="/couriers/details"
-                                className="inline-flex items-center gap-2 rounded-lg border border-[#0955AC] px-4 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
-                            >
-                                ← Modify details
-                            </Link>
+                            {allowEditLinks && (
+                                <Link
+                                    href="/couriers/details"
+                                    className="inline-flex items-center gap-2 rounded-lg border border-[#0955AC] px-4 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
+                                >
+                                    ← Modify details
+                                </Link>
+                            )}
                         </div>
 
                         <div className="mt-8 flex flex-col gap-6">
@@ -363,6 +441,17 @@ const Summary = () => {
                                     <p><span className="font-semibold">Assigned Vendor ID:</span> {pricingPreview.assignment.vendorUserId}</p>
                                 )}
                             </div>
+                            {pricingPreviewCodDetails && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">COD Pricing Base</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        <p><span className="font-semibold">COD Enabled:</span> {pricingPreviewCodDetails.codEnabled ? 'Yes' : 'No'}</p>
+                                        <p><span className="font-semibold">Fee Base Source:</span> {pricingPreviewCodFeeBaseSource || '—'}</p>
+                                        <p><span className="font-semibold">Fee Base Amount:</span> {pricingPreviewCodFeeBase !== null && Number.isFinite(pricingPreviewCodFeeBase) ? pricingPreviewCodFeeBase.toFixed(2) : '—'} USD</p>
+                                        <p><span className="font-semibold">Requested COD Amount:</span> {pricingPreviewCodDetails.requestedCodAmount !== null && pricingPreviewCodDetails.requestedCodAmount !== undefined ? Number(pricingPreviewCodDetails.requestedCodAmount).toFixed(2) : '—'} USD</p>
+                                    </div>
+                                </div>
+                            )}
                             {pricingPreview.reason && (
                                 <p className="mt-3 text-sm text-[#1E40AF]"><span className="font-semibold">Reason:</span> {pricingPreview.reason}</p>
                             )}
@@ -432,25 +521,14 @@ const Summary = () => {
                     <section className="mt-8 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
                         <h3 className="text-lg font-semibold text-[#0B1739]">Shipment preferences</h3>
                         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 text-sm text-[#5B6887]">
-                            <p><span className="font-medium text-[#0B1739]">Preferred service level:</span> {formState.shipment?.serviceLevel || "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Pickup date:</span> {formState.shipment?.pickupDate || "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
-                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatCurrency(Number(formState.shipment.estimatedValue)) : "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Route distance:</span> {formState.shipment?.distanceKm ? `${formState.shipment.distanceKm} km` : "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Currency:</span> {displayCurrency}</p>
-                            <p><span className="font-medium text-[#0B1739]">Logistic unit type:</span> {formState.shipment?.logisticDimensions?.unitType || "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Logistic unit count:</span> {formState.shipment?.logisticDimensions?.unitCount || "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Route class:</span> {formState.shipment?.logisticDimensions?.routeClass || "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">Handling class:</span> {formState.shipment?.logisticDimensions?.handlingClass || "—"}</p>
-                            <p><span className="font-medium text-[#0B1739]">W2W mode:</span> {formState.shipment?.logisticDimensions?.w2wMode || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatDeclaredValue(Number(formState.shipment.estimatedValue)) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Cash on delivery:</span> {codEnabled ? "Enabled" : "Disabled"}</p>
+                            <p><span className="font-medium text-[#0B1739]">COD amount:</span> {codEnabled && codAmount !== null ? formatDeclaredValue(codAmount) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">COD payment method:</span> {codEnabled ? codPaymentMethodLabel : "—"}</p>
                         </div>
-                        {formState.shipment?.deliveryNotes && (
-                            <div className="mt-4 rounded-lg bg-white p-4 text-sm text-[#5B6887]">
-                                <p className="font-medium text-[#0B1739]">Delivery notes</p>
-                                <p className="mt-2 leading-relaxed">{formState.shipment.deliveryNotes}</p>
-                            </div>
-                        )}
                     </section>
 
                     <section className="mt-8 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
@@ -492,7 +570,7 @@ const Summary = () => {
                                                     ? `${pkg.lengthCm} × ${pkg.widthCm} × ${pkg.heightCm} cm`
                                                     : "—"}
                                             </p>
-                                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {pkg.declaredValue ? formatCurrency(Number(pkg.declaredValue)) : "—"}</p>
+                                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {pkg.declaredValue ? formatDeclaredValue(Number(pkg.declaredValue)) : "—"}</p>
                                             <p><span className="font-medium text-[#0B1739]">Type:</span> {pkg.packageType || "—"}</p>
                                             {volumetricInfo && (
                                                 <p><span className="font-medium text-[#0B1739]">Billable weight:</span> {volumetricInfo}</p>
@@ -539,9 +617,8 @@ const Summary = () => {
                             type="button"
                             onClick={handleConfirm}
                             disabled={isSubmitting}
-                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${
-                                isSubmitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                            }`}
+                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                }`}
                         >
                             {isSubmitting ? 'Submitting courier request...' : 'Confirm & Submit'}
                         </button>
@@ -552,7 +629,7 @@ const Summary = () => {
                 </div>
             </main>
 
-            <Footer />
+            {!inline && <Footer />}
         </div>
     );
 };

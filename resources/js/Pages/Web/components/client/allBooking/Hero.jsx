@@ -320,6 +320,16 @@ const Hero = ({
     const getExportRows = (bookings) => {
         return bookings.map((booking) => {
             const amount = parseFloat(booking.total_amount ?? booking.amount ?? 0) || 0;
+            const isCourier = booking.booking_type === 'courier' || booking.type === 'courier' || booking.type === 'shipment';
+            const codEnabled = isCourier ? Boolean(booking.cod_enabled) : false;
+            const codAmountNumber = Number(booking.cod_amount);
+            const codAmount = codEnabled && booking.cod_amount !== null && booking.cod_amount !== undefined && booking.cod_amount !== '' && Number.isFinite(codAmountNumber)
+                ? codAmountNumber.toFixed(2)
+                : '';
+            const codMethod = codEnabled && booking.cod_payment_method
+                ? String(booking.cod_payment_method).replaceAll('_', ' ')
+                : '';
+
             return {
                 Type: booking.booking_type || "booking",
                 Service:
@@ -343,6 +353,9 @@ const Hero = ({
                     booking.tracking_reference ||
                     booking.id ||
                     "",
+                CodEnabled: codEnabled ? 'Yes' : '',
+                CodAmount: codAmount,
+                CodMethod: codMethod,
             };
         });
     };
@@ -532,7 +545,9 @@ const Hero = ({
         }
     };
 
-    const isCourierBooking = selectedBookingDetails?.booking_type === 'courier';
+    const isCourierBooking = selectedBookingDetails?.booking_type === 'courier'
+        || selectedBookingDetails?.type === 'courier'
+        || selectedBookingDetails?.type === 'shipment';
     const courierSender = isCourierBooking ? (selectedBookingDetails?.sender || null) : null;
     const courierRecipient = isCourierBooking ? (selectedBookingDetails?.recipient || null) : null;
     const courierTrackingRef = isCourierBooking
@@ -574,6 +589,27 @@ const Hero = ({
             || courierRecipient?.address?.line1
             || selectedBookingDetails?.dropoff_location
             || 'N/A')
+        : null;
+    const courierCurrency = isCourierBooking
+        ? String(selectedBookingDetails?.currency || 'LKR').toUpperCase()
+        : 'LKR';
+    const courierDeclaredValue = isCourierBooking
+        && selectedBookingDetails?.declared_value !== undefined
+        && selectedBookingDetails?.declared_value !== null
+        && selectedBookingDetails?.declared_value !== ''
+        ? Number(selectedBookingDetails.declared_value)
+        : null;
+    const courierCodEnabled = isCourierBooking
+        ? Boolean(selectedBookingDetails?.cod_enabled)
+        : false;
+    const courierCodAmount = courierCodEnabled
+        && selectedBookingDetails?.cod_amount !== undefined
+        && selectedBookingDetails?.cod_amount !== null
+        && selectedBookingDetails?.cod_amount !== ''
+        ? Number(selectedBookingDetails.cod_amount)
+        : null;
+    const courierCodPaymentMethod = courierCodEnabled && selectedBookingDetails?.cod_payment_method
+        ? String(selectedBookingDetails.cod_payment_method).replaceAll('_', ' ')
         : null;
     const billToName = isCourierBooking
         ? courierSenderName
@@ -986,6 +1022,16 @@ const Hero = ({
                                                                         </div>
                                                                     )}
                                                                 </div>
+                                                                {(booking.booking_type === 'courier' || booking.type === 'courier' || booking.type === 'shipment') && Boolean(booking.cod_enabled) && (
+                                                                    <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                                                                        <span>COD enabled</span>
+                                                                        {booking.cod_amount !== null && booking.cod_amount !== undefined && booking.cod_amount !== '' && Number.isFinite(Number(booking.cod_amount)) && (
+                                                                            <span>
+                                                                                • {Number(booking.cod_amount).toFixed(2)} {String(booking.currency || 'LKR').toUpperCase()}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
@@ -1665,6 +1711,30 @@ const Hero = ({
                                                             <span className="text-slate-600">Packages:</span>
                                                             <span className="font-semibold text-slate-900">{selectedBookingDetails.package_count} {selectedBookingDetails.package_count === 1 ? 'package' : 'packages'}</span>
                                                         </div>
+                                                    )}
+                                                    {courierDeclaredValue !== null && Number.isFinite(courierDeclaredValue) && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Declared Value:</span>
+                                                            <span className="font-semibold text-slate-900">{courierDeclaredValue.toFixed(2)} {courierCurrency}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Cash on Delivery:</span>
+                                                        <span className={`font-semibold ${courierCodEnabled ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                                            {courierCodEnabled ? 'Enabled' : 'Disabled'}
+                                                        </span>
+                                                    </div>
+                                                    {courierCodEnabled && (
+                                                        <>
+                                                            <div className="flex justify-between gap-2">
+                                                                <span className="text-slate-600">COD Amount:</span>
+                                                                <span className="font-semibold text-slate-900">{courierCodAmount !== null && Number.isFinite(courierCodAmount) ? `${courierCodAmount.toFixed(2)} ${courierCurrency}` : 'N/A'}</span>
+                                                            </div>
+                                                            <div className="flex justify-between gap-2">
+                                                                <span className="text-slate-600">COD Method:</span>
+                                                                <span className="font-semibold text-slate-900 capitalize">{courierCodPaymentMethod || 'N/A'}</span>
+                                                            </div>
+                                                        </>
                                                     )}
                                                 </div>
                                             </div>
@@ -2365,6 +2435,36 @@ const Hero = ({
                                                                     {new Date(selectedBookingDetails.delivery_date).toLocaleDateString()}
                                                                 </td>
                                                             </tr>
+                                                        )}
+                                                        {courierDeclaredValue !== null && Number.isFinite(courierDeclaredValue) && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Declared Value</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {courierDeclaredValue.toFixed(2)} {courierCurrency}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Cash on Delivery</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {courierCodEnabled ? 'Enabled' : 'Disabled'}
+                                                            </td>
+                                                        </tr>
+                                                        {courierCodEnabled && (
+                                                            <>
+                                                                <tr>
+                                                                    <td className="p-3 text-slate-600">COD Amount</td>
+                                                                    <td className="p-3 text-right font-medium text-slate-900">
+                                                                        {courierCodAmount !== null && Number.isFinite(courierCodAmount) ? `${courierCodAmount.toFixed(2)} ${courierCurrency}` : 'N/A'}
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td className="p-3 text-slate-600">COD Method</td>
+                                                                    <td className="p-3 text-right font-medium text-slate-900 capitalize">
+                                                                        {courierCodPaymentMethod || 'N/A'}
+                                                                    </td>
+                                                                </tr>
+                                                            </>
                                                         )}
                                                     </tbody>
                                                 </table>

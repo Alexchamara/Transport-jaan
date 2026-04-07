@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Courier;
 
+use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\ServiceCategory;
@@ -144,6 +145,36 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         $this->assertEqualsWithDelta(70.0, $result['estimatedCost'], 0.01);
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 20.0);
+    }
+
+    public function test_cod_fee_uses_requested_cod_amount_when_cod_booking_is_enabled(): void
+    {
+        $vendor = $this->createDomesticVendorWithPolicyModules([
+            'codFee' => [
+                'enabled' => true,
+                'flatFee' => 0,
+                'percentOfDeclaredValue' => 10,
+                'minFee' => 0,
+                'maxFee' => null,
+            ],
+        ]);
+
+        $this->enableVendorDomesticCodCheckout((int) $vendor->id);
+        $this->approveVendorCodCapability((int) $vendor->id);
+
+        $result = $this->submitShipment([
+            'shipment' => [
+                'estimatedValue' => 100,
+                'codEnabled' => true,
+                'codAmount' => 300,
+                'codPaymentMethod' => 'cash',
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta(80.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 30.0);
+        $this->assertEqualsWithDelta(300.0, (float) ($result['pricingExplanation']['codDetails']['feeBaseAmount'] ?? 0), 0.01);
+        $this->assertSame('requested_amount', (string) ($result['pricingExplanation']['codDetails']['feeBaseSource'] ?? ''));
     }
 
     public function test_minimum_shipment_guardrail_sets_floor_total(): void
@@ -424,6 +455,96 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             $this->pricingExplanationSnapshot($first['pricingExplanation']),
             $this->pricingExplanationSnapshot($second['pricingExplanation'])
         );
+    }
+
+    public function test_cod_enabled_booking_requires_vendor_cod_capability_approval(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'codFee' => [
+                'enabled' => true,
+                'flatFee' => 2,
+                'percentOfDeclaredValue' => 3,
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        $payload = $this->buildPayload([
+            'shipment' => [
+                'codEnabled' => true,
+                'codAmount' => 300,
+                'codPaymentMethod' => 'cash',
+            ],
+        ]);
+        $csrfToken = 'advanced-policy-test-token-cod-capability-required';
+
+        $response = $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
+
+        $response->assertSessionHasErrors('shipment.codEnabled');
+        $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
+    }
+
+    public function test_cod_enabled_booking_persists_cod_fields_when_vendor_capability_is_approved(): void
+    {
+        $vendor = $this->createDomesticVendorWithPolicyModules([
+            'codFee' => [
+                'enabled' => true,
+                'flatFee' => 2,
+                'percentOfDeclaredValue' => 3,
+            ],
+        ]);
+        $this->enableVendorDomesticCodCheckout((int) $vendor->id);
+        $capability = $this->approveVendorCodCapability((int) $vendor->id);
+
+        $result = $this->submitShipment([
+            'shipment' => [
+                'codEnabled' => true,
+                'codAmount' => 300,
+                'codPaymentMethod' => 'cash',
+            ],
+        ]);
+
+        $shipment = $result['shipment'];
+        $this->assertTrue((bool) $shipment->is_cod_enabled);
+        $this->assertEqualsWithDelta(300.0, (float) ($shipment->cod_requested_amount ?? 0), 0.01);
+        $this->assertSame('cash', (string) $shipment->cod_requested_method);
+        $this->assertSame((int) $capability->id, (int) ($shipment->cod_capability_id ?? 0));
+    }
+
+    public function test_cod_enabled_booking_is_blocked_for_international_routes(): void
+    {
+        $vendor = $this->createLogisticVendorWithPolicyModules([
+            'codFee' => [
+                'enabled' => true,
+                'flatFee' => 2,
+                'percentOfDeclaredValue' => 3,
+            ],
+        ]);
+        $this->enableVendorDomesticCodCheckout((int) $vendor->id);
+        $this->approveVendorCodCapability((int) $vendor->id);
+
+        $user = User::factory()->create();
+        $payload = $this->buildPayload([
+            'sender' => [
+                'address' => [
+                    'country' => 'US',
+                ],
+            ],
+            'shipment' => [
+                'codEnabled' => true,
+                'codAmount' => 300,
+                'codPaymentMethod' => 'cash',
+            ],
+        ]);
+        $csrfToken = 'advanced-policy-test-token-cod-domestic-only';
+
+        $response = $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken]);
+
+        $response->assertSessionHasErrors('shipment.codEnabled');
+        $this->assertSame(0, CourierShipment::query()->where('requested_by_user_id', $user->id)->count());
     }
 
     public function test_pricing_explanation_payload_snapshot_is_stable_for_remote_and_minimum_rules(): void
@@ -721,8 +842,54 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         return [
             'estimatedCost' => (float) ($shipment->estimated_cost ?? 0),
+            'shipment' => $shipment->fresh(),
             'pricingExplanation' => $pricingExplanation,
         ];
+    }
+
+    private function enableVendorDomesticCodCheckout(int $vendorId): void
+    {
+        $settings = VendorCourierSetting::query()
+            ->where('vendor_user_id', $vendorId)
+            ->value('settings');
+        $settings = is_array($settings) ? $settings : [];
+
+        $services = is_array($settings['services'] ?? null) ? $settings['services'] : [];
+        $cod = is_array($services['cod'] ?? null) ? $services['cod'] : [];
+
+        $services['cod'] = array_replace([
+            'acceptCodAtCheckout' => false,
+            'allowCodForDomestic' => true,
+            'allowCodForInternational' => false,
+            'allowTeamOverride' => false,
+        ], $cod, [
+            'acceptCodAtCheckout' => true,
+            'allowCodForDomestic' => true,
+            'allowCodForInternational' => false,
+        ]);
+
+        $settings['services'] = $services;
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $settings]
+        );
+    }
+
+    private function approveVendorCodCapability(int $vendorId): CourierVendorCodCapability
+    {
+        return CourierVendorCodCapability::query()->updateOrCreate(
+            [
+                'vendor_user_id' => $vendorId,
+                'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            ],
+            [
+                'status' => CourierVendorCodCapability::STATUS_APPROVED,
+                'requested_at' => now()->subHour(),
+                'reviewed_at' => now(),
+                'approved_at' => now(),
+            ]
+        );
     }
 
     private function buildPayload(array $overrides = []): array
