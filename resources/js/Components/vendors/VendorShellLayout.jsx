@@ -289,7 +289,7 @@ const VendorShellLayout = ({
         });
 
         setShowModal(false);
-        router.visit(`/vendor/profile?step=2&service=${slug}`);
+        router.visit(route('vendor.profile.step2', { service: slug }));
     };
 
     const handleModalCancel = () => {

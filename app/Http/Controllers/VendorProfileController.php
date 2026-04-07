@@ -59,7 +59,27 @@ class VendorProfileController extends Controller
     /**
      * Show the vendor registration page
      */
-    public function index()
+    public function index(Request $request)
+    {
+        return $this->renderProfilePage($request, null);
+    }
+
+    public function step1(Request $request)
+    {
+        return $this->renderProfilePage($request, 1);
+    }
+
+    public function step2(Request $request)
+    {
+        return $this->renderProfilePage($request, 2);
+    }
+
+    public function step3(Request $request)
+    {
+        return $this->renderProfilePage($request, 3);
+    }
+
+    private function renderProfilePage(Request $request, ?int $forcedStep = null)
     {
         $user = Auth::user();
 
@@ -77,11 +97,18 @@ class VendorProfileController extends Controller
             ->get()
             ->keyBy('service_sub_category_id');
 
+        $requestedStep = (int) $request->query('step', 0);
+        $initialStep = in_array($forcedStep, [1, 2, 3], true)
+            ? $forcedStep
+            : (in_array($requestedStep, [1, 2, 3], true) ? $requestedStep : 1);
+
         return Inertia::render('Web/home/vendors/allBookings/VendorProfile', [
             'vendorProfile' => $vendorProfile,
             'serviceCategories' => $serviceCategories,
             'vendorRegistrations' => $vendorRegistrations,
             'user' => $user,
+            'initialStep' => $initialStep,
+            'selectedServiceSlug' => (string) $request->query('service', ''),
             'canEdit' => !$vendorProfile || $vendorProfile->canEdit(),
             'isRevisionRequested' => $vendorProfile?->isRevisionRequested() ?? false,
             'isRejected' => $vendorProfile?->isRejected() ?? false,
