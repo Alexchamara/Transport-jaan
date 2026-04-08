@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'cod_integrity' => [
+        'monitor' => [
+            'scan_chunk_size' => (int) env('COURIER_COD_INTEGRITY_MONITOR_CHUNK_SIZE', 100),
+        ],
+        'alerts' => [
+            'enabled' => (bool) env('COURIER_COD_INTEGRITY_ALERTS_ENABLED', true),
+            'dedupe_window_minutes' => (int) env('COURIER_COD_INTEGRITY_ALERT_DEDUPE_MINUTES', 30),
+            'emails_csv' => (string) env('COURIER_COD_INTEGRITY_ALERT_EMAILS', ''),
+            'webhook_url' => (string) env('COURIER_COD_INTEGRITY_ALERT_WEBHOOK_URL', ''),
+        ],
+    ],
+
     'phase7' => [
         'canary_window_hours' => (int) env('COURIER_PHASE7_CANARY_WINDOW_HOURS', 24),
         'thresholds' => [

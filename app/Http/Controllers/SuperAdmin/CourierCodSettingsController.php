@@ -7,6 +7,7 @@ use App\Models\Courier\CourierCodSettlementSetting;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\CourierVendorCodIntegrityIncident;
+use App\Services\Courier\CourierCodIntegrityAlertService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -489,6 +490,12 @@ class CourierCodSettingsController extends Controller
             ]
         );
 
+        $this->codIntegrityAlerts()->incidentOpened($incident, [
+            'source' => 'superadmin_cod_settlement',
+            'trigger' => 'manual_open',
+            'actor_user_id' => $actorId > 0 ? $actorId : null,
+        ]);
+
         return back()->with('success', 'COD integrity incident opened. Capability actions are now locked until resolution.');
     }
 
@@ -547,6 +554,12 @@ class CourierCodSettingsController extends Controller
             ]
         );
 
+        $this->codIntegrityAlerts()->incidentAssigned($incident, [
+            'source' => 'superadmin_cod_settlement',
+            'trigger' => 'manual_assign',
+            'actor_user_id' => $actorId > 0 ? $actorId : null,
+        ]);
+
         return back()->with('success', 'Integrity incident assigned and moved to investigating status.');
     }
 
@@ -600,6 +613,14 @@ class CourierCodSettingsController extends Controller
                 'incident_status' => $resolutionStatus,
             ]
         );
+
+        $this->codIntegrityAlerts()->incidentResolved($incident, [
+            'source' => 'superadmin_cod_settlement',
+            'trigger' => $resolutionStatus === CourierVendorCodIntegrityIncident::STATUS_DISMISSED
+                ? 'manual_dismiss'
+                : 'manual_resolve',
+            'actor_user_id' => $actorId > 0 ? $actorId : null,
+        ]);
 
         return back()->with('success', 'Integrity incident updated successfully.');
     }
@@ -811,5 +832,10 @@ class CourierCodSettingsController extends Controller
 
         return CourierVendorCodCapability::STATUS_LABELS[$normalized]
             ?? ucwords(str_replace('_', ' ', $normalized));
+    }
+
+    private function codIntegrityAlerts(): CourierCodIntegrityAlertService
+    {
+        return app(CourierCodIntegrityAlertService::class);
     }
 }
