@@ -968,6 +968,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     const handleRouteTypeChange = (routeType) => {
         const nextRouteType = routeType === "international" ? "international" : "domestic";
+        const targetCreateUrl = flowRoutes.createByFlow[nextRouteType] || `/couriers/${nextRouteType}/create`;
 
         if (nextRouteType === selectedRouteType) {
             return;
@@ -977,8 +978,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         const hasRouteInput = JSON.stringify(data) !== JSON.stringify(baseline);
 
         if (shouldLockRouteType) {
-            const targetCreateUrl = flowRoutes.createByFlow[nextRouteType] || `/couriers/${nextRouteType}/create`;
-
             if (hasRouteInput) {
                 setRouteSwitchPrompt({
                     nextRouteType,
@@ -994,7 +993,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }
 
         if (hasRouteInput) {
-            setRouteSwitchPrompt({ nextRouteType });
+            setRouteSwitchPrompt({
+                nextRouteType,
+                targetCreateUrl,
+            });
+            return;
+        }
+
+        if (typeof window !== "undefined") {
+            window.location.assign(targetCreateUrl);
             return;
         }
 
