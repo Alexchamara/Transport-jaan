@@ -130,7 +130,6 @@ const HeaderTwo = () => {
                         >
                             <svg
                                 className="w-7 h-7 sm:w-8 sm:h-8"
-                                International
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -156,7 +155,6 @@ const HeaderTwo = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    International
                     <img
                         src={bell}
                         className="size-[18px] md:w-[24px] md:h-[23px]"
@@ -242,332 +240,329 @@ const HeaderTwo = () => {
                     )}
                 </div>
             </div>
-        </div>
 
-            {/* Mobile overlay menu */ }
-    {
-        isMenuOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
-                <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col relative animate-slide-in">
-                    <div className="flex justify-between items-center mb-8">
-                        {/* Back to Dashboard Button */}
-                        <Link
-                            href={route("clientAllBookings")}
-                            onClick={toggleMenu}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Back to Dashboard"
-                        >
-                            <ArrowLeft className="w-6 h-6 text-gray-600" />
-                        </Link>
-
-                        <button
-                            onClick={toggleMenu}
-                            className="p-2 text-gray-600 hover:text-[#EF3826] focus:outline-none z-50"
-                        >
-                            <svg
-                                className="w-7 h-7"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+            {/* Mobile overlay menu */}
+            {isMenuOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
+                    <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col relative animate-slide-in">
+                        <div className="flex justify-between items-center mb-8">
+                            {/* Back to Dashboard Button */}
+                            <Link
+                                href={route("clientAllBookings")}
+                                onClick={toggleMenu}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Back to Dashboard"
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </button>
-                    </div>
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </Link>
 
-                    {/* Navigation */}
-                    <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
-                        {/* Vehicle Rental */}
-                        <div className="relative">
                             <button
-                                type="button"
-                                onClick={() => toggleDropdown("vehicle")}
-                                className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
-                                aria-expanded={openDropdown.vehicle}
-                                aria-controls="vehicle-dropdown"
+                                onClick={toggleMenu}
+                                className="p-2 text-gray-600 hover:text-[#EF3826] focus:outline-none z-50"
                             >
-                                Vehicle Rental
-                                <img
-                                    src={downArrow}
-                                    alt="dropdown"
-                                    className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.vehicle
-                                            ? "rotate-180"
-                                            : ""
-                                        }`}
-                                />
-                            </button>
-                            {openDropdown.vehicle && (
-                                <div
-                                    id="vehicle-dropdown"
-                                    className="ml-4 mt-1 flex flex-col space-y-1"
+                                <svg
+                                    className="w-7 h-7"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
                                 >
-                                    <Link
-                                        href="/multiModel/plan-journey?tab=rental&subTab=land"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Land
-                                    </Link>
-                                    <Link
-                                        href="/multiModel/plan-journey?tab=rental&subTab=air"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Air
-                                    </Link>
-                                    <Link
-                                        href="/multiModel/plan-journey?tab=rental&subTab=sea"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Sea
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Ticket Booking */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => toggleDropdown("ticket")}
-                                className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
-                                aria-expanded={openDropdown.ticket}
-                                aria-controls="ticket-dropdown"
-                            >
-                                Ticket Booking
-                                <img
-                                    src={downArrow}
-                                    alt="dropdown"
-                                    className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.ticket
-                                            ? "rotate-180"
-                                            : ""
-                                        }`}
-                                />
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
                             </button>
-                            {openDropdown.ticket && (
-                                <div
-                                    id="ticket-dropdown"
-                                    className="ml-4 mt-1 flex flex-col space-y-1"
+                        </div>
+
+                        {/* Navigation */}
+                        <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
+                            {/* Vehicle Rental */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDropdown("vehicle")}
+                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
+                                    aria-expanded={openDropdown.vehicle}
+                                    aria-controls="vehicle-dropdown"
                                 >
-                                    <Link
-                                        href="/multiModel/plan-journey?tab=ticket&subTab=flight"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Flight
-                                    </Link>
-                                    <Link
-                                        href="/multiModel/plan-journey?tab=ticket&subTab=train"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Train
-                                    </Link>
-                                    <Link
-                                        href="/multiModel/plan-journey?tab=ticket&subTab=bus"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Bus
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Courier Booking */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => toggleDropdown("courier")}
-                                className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
-                                aria-expanded={openDropdown.courier}
-                                aria-controls="courier-dropdown"
-                            >
-                                Courier Booking
-                                <img
-                                    src={downArrow}
-                                    alt="dropdown"
-                                    className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.courier
-                                            ? "rotate-180"
-                                            : ""
-                                        }`}
-                                />
-                            </button>
-                            {openDropdown.courier && (
-                                <div
-                                    id="courier-dropdown"
-                                    className="ml-4 mt-1 flex flex-col space-y-1"
-                                >
-                                    <Link
-                                        href="/courierBookingDashboard"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        Domestic
-                                    </Link>
-                                    <Link
-                                        href="/courierBookingDashboard"
-                                        className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                    >
-                                        International
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
-                        <Link
-                            href="/warehouseList"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                setOpenDropdown((prev) => ({ ...prev, profile: false }));
-                            }}
-                            className="hover:text-[#0955AC]"
-                        >
-                            Warehouse Booking
-                        </Link>
-                        <Link
-                            href="/freightBookingDashboard"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                setOpenDropdown((prev) => ({ ...prev, profile: false }));
-                            }}
-                            className="hover:text-[#0955AC]"
-                        >
-                            Freight Booking
-                        </Link>
-                        <Link
-                            href="/clientDashboardSettings"
-                            className="hover:text-[#0955AC]"
-                        >
-                            Settings
-                        </Link>
-
-                        {/* ---------- Scroll-to-section links (Home, About Us, …) ---------- */}
-                        <div className="border-t pt-4 space-y-3">
-                            <div
-                                className="hover:text-[#0955AC] cursor-pointer"
-                                onClick={() => handleScrollTo("home")}
-                            >
-                                Home
-                            </div>
-                            <div
-                                className="hover:text-[#0955AC] cursor-pointer"
-                                onClick={() => handleScrollTo("about")}
-                            >
-                                About Us
-                            </div>
-                            <div
-                                className="hover:text-[#0955AC] cursor-pointer"
-                                onClick={() => handleScrollTo("services")}
-                            >
-                                Our Services
-                            </div>
-                            <div
-                                className="hover:text-[#0955AC] cursor-pointer"
-                                onClick={() => handleScrollTo("blog")}
-                            >
-                                Blog
-                            </div>
-                            <div
-                                className="hover:text-[#0955AC] cursor-pointer"
-                                onClick={() => handleScrollTo("contact")}
-                            >
-                                Contact Us
-                            </div>
-                        </div>
-                    </nav>
-
-                    {/* Auth / Dashboard section */}
-                    <div className="border-t pt-10 flex flex-col space-y-2 mt-auto">
-                        {auth?.user ? (
-                            <>
-                                {auth.user.role_type === "driver" && (
-                                    <Link
-                                        href="/driver/dashboard"
-                                        className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                    >
-                                        Driver Dashboard
-                                    </Link>
-                                )}
-                                {auth.user.role_type === "user" && (
-                                    <Link
-                                        href="/user/view"
-                                        className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                    >
-                                        User Dashboard
-                                    </Link>
-                                )}
-                                {["admin", "superadmin"].includes(
-                                    auth.user.role_type
-                                ) && (
-                                        <Link
-                                            href="/admin"
-                                            className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
-                                        >
-                                            Admin Dashboard
-                                        </Link>
-                                    )}
-                                {auth.user.role_type === "freight" && (
-                                    <Link
-                                        href="/freight/dashboard"
-                                        className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
-                                    >
-                                        Freight Dashboard
-                                    </Link>
-                                )}
-
-                                <div className="flex items-center gap-2 mt-2">
-                                    <div className="h-7 w-7 border border-black rounded-full overflow-hidden flex justify-center items-center text-[14px]">
-                                        {auth.user.image ? (
-                                            <img
-                                                src={auth.user.image}
-                                                className="h-full w-full object-cover"
-                                                alt="Profile"
-                                            />
-                                        ) : (
-                                            <span>
-                                                {auth.user.name
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
+                                    Vehicle Rental
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className="w-[8px] h-[5px]"
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.vehicle
+                                            ? "rotate-180"
+                                            : ""
+                                            }`}
                                     />
-                                </div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="bg-[#EF3826] w-full h-[40px] hover:bg-red-700 px-3 py-2 rounded text-white text-[12px] font-bold mt-2"
-                                >
-                                    Logout
                                 </button>
-                            </>
-                        ) : (
-                            <>
-                                <Link
-                                    href="/signin"
-                                    className="h-[40px] border-2 border-[#0955AC] rounded-[10px] px-3 py-2 text-[#0955AC] text-[12px] font-bold hover:bg-[#0955AC] hover:text-white flex justify-center items-center"
-                                >
-                                    Login
-                                </Link>
-                                <Link
-                                    href="/signup"
-                                    className="bg-[#0955AC] h-[40px] rounded-[10px] border-2 border-[#0955AC] px-3 py-2 text-white font-bold text-[12px] flex justify-center items-center"
-                                >
-                                    Register
-                                </Link>
-                            </>
-                        )}
-                    </div>
-                </div>
+                                {openDropdown.vehicle && (
+                                    <div
+                                        id="vehicle-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/multiModel/plan-journey?tab=rental&subTab=land"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Land
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey?tab=rental&subTab=air"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Air
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey?tab=rental&subTab=sea"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Sea
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
 
-                {/* Click outside to close */}
-                <div className="flex-1" onClick={toggleMenu} />
-            </div>
-        )
-    }
+                            {/* Ticket Booking */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDropdown("ticket")}
+                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
+                                    aria-expanded={openDropdown.ticket}
+                                    aria-controls="ticket-dropdown"
+                                >
+                                    Ticket Booking
+                                    <img
+                                        src={downArrow}
+                                        alt="dropdown"
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.ticket
+                                            ? "rotate-180"
+                                            : ""
+                                            }`}
+                                    />
+                                </button>
+                                {openDropdown.ticket && (
+                                    <div
+                                        id="ticket-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/multiModel/plan-journey?tab=ticket&subTab=flight"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Flight
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey?tab=ticket&subTab=train"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Train
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey?tab=ticket&subTab=bus"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Bus
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Courier Booking */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDropdown("courier")}
+                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
+                                    aria-expanded={openDropdown.courier}
+                                    aria-controls="courier-dropdown"
+                                >
+                                    Courier Booking
+                                    <img
+                                        src={downArrow}
+                                        alt="dropdown"
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.courier
+                                            ? "rotate-180"
+                                            : ""
+                                            }`}
+                                    />
+                                </button>
+                                {openDropdown.courier && (
+                                    <div
+                                        id="courier-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Domestic
+                                        </Link>
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            International
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            <Link
+                                href="/warehouseList"
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setOpenDropdown((prev) => ({ ...prev, profile: false }));
+                                }}
+                                className="hover:text-[#0955AC]"
+                            >
+                                Warehouse Booking
+                            </Link>
+                            <Link
+                                href="/freightBookingDashboard"
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    setOpenDropdown((prev) => ({ ...prev, profile: false }));
+                                }}
+                                className="hover:text-[#0955AC]"
+                            >
+                                Freight Booking
+                            </Link>
+                            <Link
+                                href="/clientDashboardSettings"
+                                className="hover:text-[#0955AC]"
+                            >
+                                Settings
+                            </Link>
+
+                            {/* ---------- Scroll-to-section links (Home, About Us, …) ---------- */}
+                            <div className="border-t pt-4 space-y-3">
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("home")}
+                                >
+                                    Home
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("about")}
+                                >
+                                    About Us
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("services")}
+                                >
+                                    Our Services
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("blog")}
+                                >
+                                    Blog
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("contact")}
+                                >
+                                    Contact Us
+                                </div>
+                            </div>
+                        </nav>
+
+                        {/* Auth / Dashboard section */}
+                        <div className="border-t pt-10 flex flex-col space-y-2 mt-auto">
+                            {auth?.user ? (
+                                <>
+                                    {auth.user.role_type === "driver" && (
+                                        <Link
+                                            href="/driver/dashboard"
+                                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
+                                        >
+                                            Driver Dashboard
+                                        </Link>
+                                    )}
+                                    {auth.user.role_type === "user" && (
+                                        <Link
+                                            href="/user/view"
+                                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
+                                        >
+                                            User Dashboard
+                                        </Link>
+                                    )}
+                                    {["admin", "superadmin"].includes(
+                                        auth.user.role_type
+                                    ) && (
+                                            <Link
+                                                href="/admin"
+                                                className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
+                                            >
+                                                Admin Dashboard
+                                            </Link>
+                                        )}
+                                    {auth.user.role_type === "freight" && (
+                                        <Link
+                                            href="/freight/dashboard"
+                                            className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
+                                        >
+                                            Freight Dashboard
+                                        </Link>
+                                    )}
+
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <div className="h-7 w-7 border border-black rounded-full overflow-hidden flex justify-center items-center text-[14px]">
+                                            {auth.user.image ? (
+                                                <img
+                                                    src={auth.user.image}
+                                                    className="h-full w-full object-cover"
+                                                    alt="Profile"
+                                                />
+                                            ) : (
+                                                <span>
+                                                    {auth.user.name
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <img
+                                            src={downArrow}
+                                            alt="dropdown"
+                                            className="w-[8px] h-[5px]"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="bg-[#EF3826] w-full h-[40px] hover:bg-red-700 px-3 py-2 rounded text-white text-[12px] font-bold mt-2"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        href="/signin"
+                                        className="h-[40px] border-2 border-[#0955AC] rounded-[10px] px-3 py-2 text-[#0955AC] text-[12px] font-bold hover:bg-[#0955AC] hover:text-white flex justify-center items-center"
+                                    >
+                                        Login
+                                    </Link>
+                                    <Link
+                                        href="/signup"
+                                        className="bg-[#0955AC] h-[40px] rounded-[10px] border-2 border-[#0955AC] px-3 py-2 text-white font-bold text-[12px] flex justify-center items-center"
+                                    >
+                                        Register
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Click outside to close */}
+                    <div className="flex-1" onClick={toggleMenu} />
+                </div>
+            )}
         </header >
     );
 };
