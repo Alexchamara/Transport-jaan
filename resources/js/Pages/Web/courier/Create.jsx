@@ -1558,45 +1558,49 @@ const Create = () => {
                                                 </div>
 
                                                 <div className="mt-4 border-t border-[#E4EAF5] pt-4">
-                                                    <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
-                                                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                                        {DIMENSION_ASSIST_PRESETS.map((preset) => {
-                                                            const hasMatchingBase = itemLength === preset.lengthCm
-                                                                && itemWidth === preset.widthCm;
-                                                            const isActive = preset.prefillHeight
-                                                                ? (hasMatchingBase && itemHeight === preset.heightCm)
-                                                                : hasMatchingBase;
+                                                    {selectedRouteType === "international" && (
+                                                        <>
+                                                            <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                                                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                                {DIMENSION_ASSIST_PRESETS.map((preset) => {
+                                                                    const hasMatchingBase = itemLength === preset.lengthCm
+                                                                        && itemWidth === preset.widthCm;
+                                                                    const isActive = preset.prefillHeight
+                                                                        ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                                                        : hasMatchingBase;
 
-                                                            return (
-                                                                <button
-                                                                    key={`preset-${index}-${preset.id}`}
-                                                                    type="button"
-                                                                    onClick={() => applyDimensionPreset(index, preset)}
-                                                                    className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
-                                                                        ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
-                                                                        : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
-                                                                        }`}
-                                                                >
-                                                                    {isActive && (
-                                                                        <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
-                                                                            ✓
-                                                                        </span>
-                                                                    )}
-                                                                    <div className="flex items-center gap-3">
-                                                                        <img
-                                                                            src={preset.imageSrc}
-                                                                            alt={preset.imageAlt}
-                                                                            className="h-10 w-20 object-contain"
-                                                                        />
-                                                                        <div>
-                                                                            <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
-                                                                            <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                                    return (
+                                                                        <button
+                                                                            key={`preset-${index}-${preset.id}`}
+                                                                            type="button"
+                                                                            onClick={() => applyDimensionPreset(index, preset)}
+                                                                            className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                                                                ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                                                                : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                                                                }`}
+                                                                        >
+                                                                            {isActive && (
+                                                                                <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                                                                    ✓
+                                                                                </span>
+                                                                            )}
+                                                                            <div className="flex items-center gap-3">
+                                                                                <img
+                                                                                    src={preset.imageSrc}
+                                                                                    alt={preset.imageAlt}
+                                                                                    className="h-10 w-20 object-contain"
+                                                                                />
+                                                                                <div>
+                                                                                    <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                                                                    <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
+                                                    )}
 
                                                     <div className="mt-5">
                                                         <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
