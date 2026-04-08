@@ -130,7 +130,6 @@ const HeaderTwo = () => {
                         >
                             <svg
                                 className="w-7 h-7 sm:w-8 sm:h-8"
-                                International
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -156,7 +155,6 @@ const HeaderTwo = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    International
                     <img
                         src={bell}
                         className="size-[18px] md:w-[24px] md:h-[23px]"
@@ -243,6 +241,20 @@ const HeaderTwo = () => {
                 </div>
             </div>
 
+            {/* Mobile overlay menu */}
+            {isMenuOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
+                    <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col relative animate-slide-in">
+                        <div className="flex justify-between items-center mb-8">
+                            {/* Back to Dashboard Button */}
+                            <Link
+                                href={route("clientAllBookings")}
+                                onClick={toggleMenu}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Back to Dashboard"
+                            >
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </Link>
             {/* Mobile overlay menu */}
             {isMenuOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
@@ -565,7 +577,7 @@ const HeaderTwo = () => {
                     <div className="flex-1" onClick={toggleMenu} />
                 </div>
             )}
-        </header>
+        </header >
     );
 };
 

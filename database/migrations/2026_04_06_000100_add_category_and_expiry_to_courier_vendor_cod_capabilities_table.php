@@ -26,12 +26,6 @@ return new class extends Migration
             });
         }
 
-        if ($this->indexExists('courier_vendor_cod_capabilities', 'cvc_vendor_unique')) {
-            Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
-                $table->dropUnique('cvc_vendor_unique');
-            });
-        }
-
         if (!$this->indexExists('courier_vendor_cod_capabilities', 'cvc_category_status_requested_idx')) {
             Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
                 $table->index(['category', 'status', 'requested_at'], 'cvc_category_status_requested_idx');
@@ -75,13 +69,16 @@ return new class extends Migration
             || Schema::hasColumn('courier_vendor_cod_capabilities', 'expires_at')) {
             Schema::table('courier_vendor_cod_capabilities', function (Blueprint $table) {
                 $drops = [];
+
                 if (Schema::hasColumn('courier_vendor_cod_capabilities', 'category')) {
                     $drops[] = 'category';
                 }
+
                 if (Schema::hasColumn('courier_vendor_cod_capabilities', 'expires_at')) {
                     $drops[] = 'expires_at';
                 }
-                if (count($drops) > 0) {
+
+                if (!empty($drops)) {
                     $table->dropColumn($drops);
                 }
             });

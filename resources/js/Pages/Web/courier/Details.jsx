@@ -20,11 +20,11 @@ const Details = ({
     packageDetailsReadOnly = false,
     renderAsForm = true,
     showBackLink = true,
-    backHref = "/couriers/create",
+    backHref = null,
     onBackClick = null,
     showEmptyState = true,
     scrollOnSubmit = true,
-    submitRoute = "/couriers/details",
+    submitRoute = null,
     onSubmitOverride = null,
     hideSubmit = false,
 }) => {
@@ -39,6 +39,14 @@ const Details = ({
         senderProfile = null,
         errors = {},
     } = resolvedProps;
+    const resolvedFlowRoutes = resolvedProps.flowRoutes && typeof resolvedProps.flowRoutes === "object"
+        ? resolvedProps.flowRoutes
+        : {};
+    const resolvedBackHref = backHref || resolvedFlowRoutes.create || "/couriers/create";
+    const resolvedSubmitRoute = submitRoute
+        || resolvedFlowRoutes.detailsStore
+        || resolvedFlowRoutes.details
+        || "/couriers/details";
 
     const initialForm = useMemo(() => {
         if (!formData) {
@@ -460,7 +468,7 @@ const Details = ({
             return;
         }
 
-        post(submitRoute, {
+        post(resolvedSubmitRoute, {
             preserveScroll: false,
             onStart: () => setSubmitError(""),
             onSuccess: () => {
@@ -492,7 +500,7 @@ const Details = ({
                     </p>
                     {showBackLink && !onBackClick && (
                         <Link
-                            href={backHref}
+                            href={resolvedBackHref}
                             className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4b93]"
                         >
                             Go to courier form
@@ -522,7 +530,7 @@ const Details = ({
                             Start by creating a courier request and selecting your services.
                         </p>
                         <Link
-                            href={backHref}
+                            href={resolvedBackHref}
                             className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
                         >
                             Go to courier form
@@ -1602,7 +1610,7 @@ const Details = ({
                             )}
                             {showBackLink && !onBackClick && (
                                 <Link
-                                    href={backHref}
+                                    href={resolvedBackHref}
                                     className="text-xs text-[#5B6887] hover:text-[#0955AC] transition"
                                 >
                                     ← Go back to package selection
