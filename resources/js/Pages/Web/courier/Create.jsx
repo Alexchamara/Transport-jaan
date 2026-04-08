@@ -4,6 +4,10 @@ import { createPortal } from "react-dom";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
+import dimensionGuideIcon from "../assets/landingPages/box.svg";
+import presetPalletOneImage from "../assets/courierService/size-pallet-1.svg";
+import presetPalletTwoImage from "../assets/courierService/size-pallet-2.svg";
+import presetMovingBoxImage from "../assets/courierService/size-moving-box.svg";
 import DetailsForm from "./Details";
 import SummaryView from "./Summary";
 import {
@@ -23,23 +27,10 @@ const COUNTRY_LABELS = {
     SG: "Singapore",
 };
 
-const SRI_LANKAN_CITIES = [
-    "Colombo",
-    "Kandy",
-    "Galle",
-    "Gampaha",
-    "Kalutara",
-    "Kurunegala",
-    "Matara",
-    "Jaffna",
-    "Negombo",
-    "Anuradhapura",
-    "Badulla",
-    "Ratnapura",
-];
-
 const DOMESTIC_COUNTRY_CODE = "LK";
 const DOMESTIC_COUNTRY_LABEL = COUNTRY_LABELS[DOMESTIC_COUNTRY_CODE] || DOMESTIC_COUNTRY_CODE;
+const LOCATION_API_BASE = "/api/location";
+const GOOGLE_MAPS_PLACES_SCRIPT_ID = "google-maps-places-script";
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
 const CENTIMETERS_PER_YARD = 91.44;
@@ -59,6 +50,42 @@ const SHIPMENT_TYPE_OPTIONS = [
     { value: "perishable", label: "Perishable" },
     { value: "fragile", label: "Fragile" },
     { value: "other", label: "Other" },
+];
+
+const DIMENSION_ASSIST_PRESETS = [
+    {
+        id: "pallet-1",
+        label: "Pallet 1",
+        sizeLabel: "120 x 80 cm",
+        lengthCm: 120,
+        widthCm: 80,
+        heightCm: null,
+        prefillHeight: false,
+        imageSrc: presetPalletOneImage,
+        imageAlt: "Pallet 1 size example",
+    },
+    {
+        id: "pallet-2",
+        label: "Pallet 2",
+        sizeLabel: "120 x 100 cm",
+        lengthCm: 120,
+        widthCm: 100,
+        heightCm: null,
+        prefillHeight: false,
+        imageSrc: presetPalletTwoImage,
+        imageAlt: "Pallet 2 size example",
+    },
+    {
+        id: "moving-box",
+        label: "Moving box",
+        sizeLabel: "75 x 35 x 35 cm",
+        lengthCm: 75,
+        widthCm: 35,
+        heightCm: 35,
+        prefillHeight: true,
+        imageSrc: presetMovingBoxImage,
+        imageAlt: "Moving box size example",
+    },
 ];
 
 const QUOTE_TIER_OPTIONS = [
@@ -170,6 +197,7 @@ const Create = () => {
                     widthCm: "",
                     heightCm: "",
                     dimensionUnit: "cm",
+                    nonStackable: false,
                     declaredValue: "",
                     description: "",
                     courierProvider: "",
@@ -196,6 +224,48 @@ const Create = () => {
         senderCountry: initialForm.sender.address.country || "",
         recipientCountry: initialForm.recipient.address.country || "",
     });
+    const [domesticSelections, setDomesticSelections] = useState({
+        senderProvinceId: "",
+        senderDistrictId: "",
+        recipientProvinceId: "",
+        recipientDistrictId: "",
+    });
+    const [domesticLookups, setDomesticLookups] = useState({
+        provinces: [],
+        senderDistricts: [],
+        recipientDistricts: [],
+        senderCities: [],
+        recipientCities: [],
+        loading: {
+            provinces: false,
+            senderDistricts: false,
+            recipientDistricts: false,
+            senderCities: false,
+            recipientCities: false,
+        },
+    });
+    const [locationLookupError, setLocationLookupError] = useState("");
+    const domesticLookupCacheRef = useRef({
+        provincesByCountry: {},
+        districtsByProvince: {},
+        citiesByDistrict: {},
+    });
+    const domesticProvinceRequestRef = useRef(false);
+    const googleMapsApiKey = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
+    const [googlePlacesReady, setGooglePlacesReady] = useState(
+        () => typeof window !== "undefined" && Boolean(window.google?.maps?.places)
+    );
+    const [googlePlacesError, setGooglePlacesError] = useState("");
+    const [googlePlacePredictions, setGooglePlacePredictions] = useState({
+        sender: [],
+        recipient: [],
+    });
+    const googlePlacesScriptLoadingRef = useRef(false);
+    const googleAutocompleteServiceRef = useRef(null);
+    const googlePlacesServiceRef = useRef(null);
+    const googlePlacesHostNodeRef = useRef(null);
+    const googleAutocompleteSessionTokenRef = useRef(null);
+    const googlePredictionSequenceRef = useRef({ sender: 0, recipient: 0 });
 
     const POLICY_ADJUSTMENT_LABELS = {
         remote_area_surcharge: "Remote area surcharge",
@@ -206,7 +276,7 @@ const Create = () => {
         cod_fee: "COD fee",
         minimum_shipment_guardrail: "Minimum shipment guardrail",
         speed_eta_tier_multiplier: "Speed/ETA tier multiplier",
-        logistic_dimensions_engine: "Logistic dimensions engine",
+        international_dimensions_engine: "International dimensions engine",
         quote_runtime_discount_applied: "Quote runtime discount applied",
         quote_runtime_discount_ceiling_guardrail: "Quote runtime discount ceiling guardrail",
         quote_runtime_floor_price_guardrail: "Quote runtime floor-price guardrail",
@@ -234,6 +304,25 @@ const Create = () => {
         setData("packages", nextPackages);
     };
 
+    const applyDimensionPreset = (index, preset) => {
+        if (!preset) {
+            return;
+        }
+
+        const nextPackages = data.packages.map((item, idx) => (
+            idx === index
+                ? {
+                    ...item,
+                    lengthCm: String(preset.lengthCm),
+                    widthCm: String(preset.widthCm),
+                    heightCm: preset.prefillHeight ? String(preset.heightCm) : "",
+                }
+                : item
+        ));
+
+        setData("packages", nextPackages);
+    };
+
     const updateAddressCountry = (party, countryCode) => {
         const currentParty = party === "recipient" ? data.recipient : data.sender;
 
@@ -246,10 +335,106 @@ const Create = () => {
         });
     };
 
-    const cityOptions = useMemo(
-        () => SRI_LANKAN_CITIES.map((city) => ({ value: city, label: city })),
-        []
+    const provinceOptions = useMemo(
+        () => (domesticLookups.provinces || []).map((province) => ({
+            value: String(province.id),
+            label: province.nameEn,
+        })),
+        [domesticLookups.provinces]
     );
+
+    const senderDistrictOptions = useMemo(
+        () => (domesticLookups.senderDistricts || []).map((district) => ({
+            value: String(district.id),
+            label: district.nameEn,
+        })),
+        [domesticLookups.senderDistricts]
+    );
+
+    const recipientDistrictOptions = useMemo(
+        () => (domesticLookups.recipientDistricts || []).map((district) => ({
+            value: String(district.id),
+            label: district.nameEn,
+        })),
+        [domesticLookups.recipientDistricts]
+    );
+
+    const senderCityOptions = useMemo(
+        () => (domesticLookups.senderCities || [])
+            .map((city) => ({
+                value: city.nameEn,
+                label: city.displayName || city.nameEn,
+            }))
+            .filter((option) => option.value && option.label),
+        [domesticLookups.senderCities]
+    );
+
+    const recipientCityOptions = useMemo(
+        () => (domesticLookups.recipientCities || [])
+            .map((city) => ({
+                value: city.nameEn,
+                label: city.displayName || city.nameEn,
+            }))
+            .filter((option) => option.value && option.label),
+        [domesticLookups.recipientCities]
+    );
+
+    const senderGoogleCityOptions = useMemo(
+        () => (googlePlacePredictions.sender || []).map((prediction) => ({
+            value: prediction.mainText || prediction.description,
+            label: prediction.description,
+            source: "google",
+            placeId: prediction.placeId,
+        })),
+        [googlePlacePredictions.sender]
+    );
+
+    const recipientGoogleCityOptions = useMemo(
+        () => (googlePlacePredictions.recipient || []).map((prediction) => ({
+            value: prediction.mainText || prediction.description,
+            label: prediction.description,
+            source: "google",
+            placeId: prediction.placeId,
+        })),
+        [googlePlacePredictions.recipient]
+    );
+
+    const setDomesticLoading = (key, loadingState) => {
+        setDomesticLookups((previous) => ({
+            ...previous,
+            loading: {
+                ...previous.loading,
+                [key]: loadingState,
+            },
+        }));
+    };
+
+    const fetchLocationOptions = async (endpoint, loadingKey) => {
+        setDomesticLoading(loadingKey, true);
+
+        try {
+            const response = await fetch(`${LOCATION_API_BASE}${endpoint}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                },
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error("Location lookup request failed.");
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            setLocationLookupError("");
+            return Array.isArray(payload?.data) ? payload.data : [];
+        } catch (error) {
+            setLocationLookupError("Unable to load Sri Lanka locations right now. Please try again.");
+            return [];
+        } finally {
+            setDomesticLoading(loadingKey, false);
+        }
+    };
 
     const countryOptions = useMemo(
         () => countries.map((code) => ({
@@ -290,8 +475,148 @@ const Create = () => {
         }) || null;
     };
 
-    const handleLocationInputBlur = () => {
-        window.setTimeout(() => setActiveLocationField(null), 120);
+    const findGoogleAddressComponent = (components, type) => {
+        return (components || []).find((component) =>
+            Array.isArray(component?.types) && component.types.includes(type)
+        ) || null;
+    };
+
+    const resolveGoogleCityName = (components, fallback = "") => {
+        const cityTypes = [
+            "locality",
+            "postal_town",
+            "sublocality_level_1",
+            "administrative_area_level_3",
+            "administrative_area_level_2",
+        ];
+
+        for (const type of cityTypes) {
+            const component = findGoogleAddressComponent(components, type);
+            if (component?.long_name) {
+                return component.long_name;
+            }
+        }
+
+        return fallback;
+    };
+
+    const ensureGooglePlacesServices = () => {
+        if (typeof window === "undefined" || !window.google?.maps?.places) {
+            return false;
+        }
+
+        if (!googleAutocompleteServiceRef.current) {
+            googleAutocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+        }
+
+        if (!googlePlacesServiceRef.current) {
+            if (!googlePlacesHostNodeRef.current && typeof document !== "undefined") {
+                googlePlacesHostNodeRef.current = document.createElement("div");
+            }
+
+            if (googlePlacesHostNodeRef.current) {
+                googlePlacesServiceRef.current = new window.google.maps.places.PlacesService(googlePlacesHostNodeRef.current);
+            }
+        }
+
+        return Boolean(googleAutocompleteServiceRef.current && googlePlacesServiceRef.current);
+    };
+
+    const clearGooglePredictions = (party) => {
+        setGooglePlacePredictions((previous) => ({
+            ...previous,
+            [party]: [],
+        }));
+    };
+
+    const requestGoogleCityPredictions = (party, inputValue) => {
+        const query = String(inputValue || "").trim();
+        if (query.length < 2) {
+            clearGooglePredictions(party);
+            return;
+        }
+
+        if (!googlePlacesReady || !ensureGooglePlacesServices()) {
+            clearGooglePredictions(party);
+            return;
+        }
+
+        const nextSequence = (googlePredictionSequenceRef.current[party] || 0) + 1;
+        googlePredictionSequenceRef.current[party] = nextSequence;
+
+        if (
+            !googleAutocompleteSessionTokenRef.current
+            && window.google?.maps?.places?.AutocompleteSessionToken
+        ) {
+            googleAutocompleteSessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+        }
+
+        const requestPayload = {
+            input: query,
+            componentRestrictions: {
+                country: DOMESTIC_COUNTRY_CODE.toLowerCase(),
+            },
+            sessionToken: googleAutocompleteSessionTokenRef.current || undefined,
+        };
+
+        googleAutocompleteServiceRef.current.getPlacePredictions(
+            requestPayload,
+            (predictions, status) => {
+                if (googlePredictionSequenceRef.current[party] !== nextSequence) {
+                    return;
+                }
+
+                const okStatus = window.google?.maps?.places?.PlacesServiceStatus?.OK || "OK";
+                if (status !== okStatus || !Array.isArray(predictions)) {
+                    clearGooglePredictions(party);
+                    return;
+                }
+
+                const mappedPredictions = predictions
+                    .filter((prediction) => prediction?.place_id)
+                    .map((prediction) => ({
+                        placeId: prediction.place_id,
+                        description: prediction.description || "",
+                        mainText: prediction.structured_formatting?.main_text || prediction.description || "",
+                    }));
+
+                setGooglePlacePredictions((previous) => ({
+                    ...previous,
+                    [party]: mappedPredictions,
+                }));
+            }
+        );
+    };
+
+    const fetchGooglePlaceDetails = (placeId) => {
+        if (!placeId || !googlePlacesReady || !ensureGooglePlacesServices()) {
+            return Promise.resolve(null);
+        }
+
+        return new Promise((resolve) => {
+            googlePlacesServiceRef.current.getDetails(
+                {
+                    placeId,
+                    fields: ["address_components", "formatted_address", "name"],
+                    sessionToken: googleAutocompleteSessionTokenRef.current || undefined,
+                },
+                (place, status) => {
+                    const okStatus = window.google?.maps?.places?.PlacesServiceStatus?.OK || "OK";
+                    if (status === okStatus && place) {
+                        resolve(place);
+                        return;
+                    }
+
+                    resolve(null);
+                }
+            );
+        });
+    };
+
+    const handleLocationInputBlur = (fieldKey) => {
+        window.setTimeout(() => {
+            setActiveLocationField((current) => (current === fieldKey ? null : current));
+        }, 120);
     };
 
     const updateAddressCity = (party, cityName) => {
@@ -309,14 +634,86 @@ const Create = () => {
         });
     };
 
+    const updateAddressPostalCode = (party, postalCode) => {
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                postalCode,
+            },
+        });
+    };
+
     const handleCitySearchChange = (party, fieldKey, value) => {
         setLocationSearch((previous) => ({
             ...previous,
             [fieldKey]: value,
         }));
 
-        const match = matchLocationOption(cityOptions, value);
-        updateAddressCity(party, match ? match.value : "");
+        updateAddressCity(party, value);
+
+        if (selectedRouteType === "domestic") {
+            requestGoogleCityPredictions(party, value);
+        }
+
+        const options = party === "recipient" ? recipientCityOptions : senderCityOptions;
+        const match = matchLocationOption(options, value);
+        if (match) {
+            updateAddressCity(party, match.value);
+        }
+    };
+
+    const handleGoogleCitySelect = async (party, fieldKey, option) => {
+        if (!option?.placeId) {
+            return;
+        }
+
+        const place = await fetchGooglePlaceDetails(option.placeId);
+        const components = Array.isArray(place?.address_components) ? place.address_components : [];
+
+        const cityName = resolveGoogleCityName(components, option.value || option.label || "");
+        const stateComponent = findGoogleAddressComponent(components, "administrative_area_level_1");
+        const postalComponent = findGoogleAddressComponent(components, "postal_code");
+        const countryComponent = findGoogleAddressComponent(components, "country");
+
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                city: cityName,
+                state: stateComponent?.long_name || currentParty.address.state,
+                postalCode: postalComponent?.long_name || currentParty.address.postalCode,
+                country: selectedRouteType === "domestic"
+                    ? DOMESTIC_COUNTRY_CODE
+                    : (countryComponent?.short_name || currentParty.address.country),
+            },
+        });
+
+        setLocationSearch((previous) => ({
+            ...previous,
+            [fieldKey]: cityName,
+        }));
+
+        clearGooglePredictions(party);
+        setActiveLocationField(null);
+        googleAutocompleteSessionTokenRef.current = null;
+    };
+
+    const handleCityFieldFocus = (party, activeFieldKey, currentValue) => {
+        setActiveLocationField(activeFieldKey);
+
+        if (selectedRouteType !== "domestic") {
+            return;
+        }
+
+        const query = String(currentValue || "").trim();
+        if (query.length >= 2) {
+            requestGoogleCityPredictions(party, query);
+        }
     };
 
     const handleCountrySearchChange = (party, fieldKey, value) => {
@@ -351,6 +748,137 @@ const Create = () => {
         setActiveLocationField(null);
     };
 
+    const resetDomesticLookups = () => {
+        setDomesticSelections({
+            senderProvinceId: "",
+            senderDistrictId: "",
+            recipientProvinceId: "",
+            recipientDistrictId: "",
+        });
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            senderDistricts: [],
+            recipientDistricts: [],
+            senderCities: [],
+            recipientCities: [],
+        }));
+
+        setLocationLookupError("");
+        setGooglePlacesError("");
+        setGooglePlacePredictions({ sender: [], recipient: [] });
+        googleAutocompleteSessionTokenRef.current = null;
+    };
+
+    const handleDomesticProvinceChange = async (party, provinceId) => {
+        const districtField = party === "recipient" ? "recipientDistrictId" : "senderDistrictId";
+        const provinceField = party === "recipient" ? "recipientProvinceId" : "senderProvinceId";
+        const cityField = party === "recipient" ? "recipientCity" : "senderCity";
+        const districtsField = party === "recipient" ? "recipientDistricts" : "senderDistricts";
+        const citiesField = party === "recipient" ? "recipientCities" : "senderCities";
+        const districtsLoadingKey = party === "recipient" ? "recipientDistricts" : "senderDistricts";
+
+        setDomesticSelections((previous) => ({
+            ...previous,
+            [provinceField]: provinceId,
+            [districtField]: "",
+        }));
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [districtsField]: [],
+            [citiesField]: [],
+        }));
+
+        setLocationSearch((previous) => ({
+            ...previous,
+            [cityField]: "",
+        }));
+
+        updateAddressCity(party, "");
+        updateAddressState(party, "");
+
+        if (!provinceId) {
+            return;
+        }
+
+        const cachedDistricts = domesticLookupCacheRef.current.districtsByProvince[provinceId] || null;
+        if (cachedDistricts) {
+            setDomesticLookups((previous) => ({
+                ...previous,
+                [districtsField]: cachedDistricts,
+            }));
+            return;
+        }
+
+        const districts = await fetchLocationOptions(
+            `/districts?province_id=${encodeURIComponent(provinceId)}`,
+            districtsLoadingKey
+        );
+
+        domesticLookupCacheRef.current.districtsByProvince[provinceId] = districts;
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [districtsField]: districts,
+        }));
+    };
+
+    const handleDomesticDistrictChange = async (party, districtId) => {
+        const districtField = party === "recipient" ? "recipientDistrictId" : "senderDistrictId";
+        const cityField = party === "recipient" ? "recipientCity" : "senderCity";
+        const districtsField = party === "recipient" ? "recipientDistricts" : "senderDistricts";
+        const citiesField = party === "recipient" ? "recipientCities" : "senderCities";
+        const citiesLoadingKey = party === "recipient" ? "recipientCities" : "senderCities";
+
+        setDomesticSelections((previous) => ({
+            ...previous,
+            [districtField]: districtId,
+        }));
+
+        setLocationSearch((previous) => ({
+            ...previous,
+            [cityField]: "",
+        }));
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [citiesField]: [],
+        }));
+
+        const selectedDistrict = (domesticLookups[districtsField] || []).find(
+            (district) => String(district.id) === String(districtId)
+        );
+
+        updateAddressCity(party, "");
+        updateAddressState(party, selectedDistrict?.nameEn || "");
+
+        if (!districtId) {
+            return;
+        }
+
+        const cachedCities = domesticLookupCacheRef.current.citiesByDistrict[districtId] || null;
+        if (cachedCities) {
+            setDomesticLookups((previous) => ({
+                ...previous,
+                [citiesField]: cachedCities,
+            }));
+            return;
+        }
+
+        const cities = await fetchLocationOptions(
+            `/cities?district_id=${encodeURIComponent(districtId)}&limit=1000`,
+            citiesLoadingKey
+        );
+
+        domesticLookupCacheRef.current.citiesByDistrict[districtId] = cities;
+
+        setDomesticLookups((previous) => ({
+            ...previous,
+            [citiesField]: cities,
+        }));
+    };
+
     const resetForRouteType = (nextRouteType) => {
         const nextForm = buildEmptyForm(nextRouteType);
         setData(nextForm);
@@ -360,6 +888,7 @@ const Create = () => {
             senderCountry: nextForm.sender.address.country || "",
             recipientCountry: nextForm.recipient.address.country || "",
         });
+        resetDomesticLookups();
         setActiveLocationField(null);
         setActivePackageIndex(0);
         setDisplayCurrency("LKR");
@@ -472,6 +1001,7 @@ const Create = () => {
                 widthCm: "",
                 heightCm: "",
                 dimensionUnit: "cm",
+                nonStackable: false,
                 declaredValue: "",
                 description: "",
                 courierProvider: "",
@@ -498,6 +1028,171 @@ const Create = () => {
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
     const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
     const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
+
+    useEffect(() => {
+        if (selectedRouteType !== "domestic") {
+            return;
+        }
+
+        if (googlePlacesReady) {
+            ensureGooglePlacesServices();
+            return;
+        }
+
+        if (!googleMapsApiKey) {
+            console.error("Google Places disabled: VITE_GOOGLE_MAPS_API_KEY is missing at runtime.");
+            setGooglePlacesError("Google city suggestions unavailable: missing VITE_GOOGLE_MAPS_API_KEY. Using local lookup fallback.");
+            return;
+        }
+
+        let cancelled = false;
+
+        const markReady = async () => {
+            if (cancelled) {
+                return;
+            }
+
+            if (window.google?.maps?.places) {
+                ensureGooglePlacesServices();
+                setGooglePlacesReady(true);
+                setGooglePlacesError("");
+                return;
+            }
+
+            if (window.google?.maps?.importLibrary) {
+                try {
+                    await window.google.maps.importLibrary("places");
+                    if (!cancelled) {
+                        ensureGooglePlacesServices();
+                        setGooglePlacesReady(true);
+                        setGooglePlacesError("");
+                    }
+                    return;
+                } catch (error) {
+                    console.error("Failed to load Google Places library:", error);
+                    if (!cancelled) {
+                        const importMessage =
+                            error instanceof Error && error.message
+                                ? error.message
+                                : "unable to import places library";
+                        setGooglePlacesError(`Google city suggestions unavailable: ${importMessage}. Using local lookup fallback.`);
+                    }
+                }
+            }
+
+            if (!cancelled) {
+                setGooglePlacesError("Google city suggestions unavailable: places library is not available in loaded Google Maps runtime. Using local lookup fallback.");
+            }
+        };
+
+        if (window.google?.maps?.places) {
+            void markReady();
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        if (window.google?.maps && !window.google?.maps?.places) {
+            void markReady();
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        const onLoad = () => {
+            googlePlacesScriptLoadingRef.current = false;
+            void markReady();
+        };
+
+        const onError = () => {
+            googlePlacesScriptLoadingRef.current = false;
+            if (!cancelled) {
+                setGooglePlacesError("Google city suggestions unavailable: failed to load Google Maps JavaScript API script. Check API key restrictions and enabled APIs. Using local lookup fallback.");
+            }
+        };
+
+        const existingScript = document.getElementById(GOOGLE_MAPS_PLACES_SCRIPT_ID);
+        if (existingScript) {
+            existingScript.addEventListener("load", onLoad);
+            existingScript.addEventListener("error", onError);
+            void markReady();
+
+            return () => {
+                cancelled = true;
+                existingScript.removeEventListener("load", onLoad);
+                existingScript.removeEventListener("error", onError);
+            };
+        }
+
+        if (!googlePlacesScriptLoadingRef.current) {
+            googlePlacesScriptLoadingRef.current = true;
+
+            const script = document.createElement("script");
+            script.id = GOOGLE_MAPS_PLACES_SCRIPT_ID;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}&libraries=places`;
+            script.async = true;
+            script.defer = true;
+            script.addEventListener("load", onLoad);
+            script.addEventListener("error", onError);
+            document.head.appendChild(script);
+
+            return () => {
+                cancelled = true;
+                script.removeEventListener("load", onLoad);
+                script.removeEventListener("error", onError);
+            };
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedRouteType, googleMapsApiKey, googlePlacesReady]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "domestic") {
+            return;
+        }
+
+        if ((domesticLookups.provinces || []).length > 0) {
+            return;
+        }
+
+        const cachedProvinces = domesticLookupCacheRef.current.provincesByCountry[DOMESTIC_COUNTRY_CODE] || null;
+        if (cachedProvinces && cachedProvinces.length > 0) {
+            setDomesticLookups((previous) => ({
+                ...previous,
+                provinces: cachedProvinces,
+            }));
+            return;
+        }
+
+        if (domesticProvinceRequestRef.current) {
+            return;
+        }
+
+        domesticProvinceRequestRef.current = true;
+
+        const loadDomesticProvinces = async () => {
+            const provinces = await fetchLocationOptions(
+                `/provinces?country_iso2=${encodeURIComponent(DOMESTIC_COUNTRY_CODE)}`,
+                "provinces"
+            );
+
+            domesticLookupCacheRef.current.provincesByCountry[DOMESTIC_COUNTRY_CODE] = provinces;
+            domesticProvinceRequestRef.current = false;
+
+            setDomesticLookups((previous) => ({
+                ...previous,
+                provinces,
+            }));
+
+            if (!provinces.length) {
+                domesticProvinceRequestRef.current = false;
+            }
+        };
+
+        loadDomesticProvinces();
+    }, [selectedRouteType, domesticLookups.provinces.length]);
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -675,7 +1370,14 @@ const Create = () => {
         const recipientAddress = data.recipient?.address || {};
         const hasRouteLocations = selectedRouteType === "domestic"
             ? Boolean(senderAddress.city && recipientAddress.city)
-            : Boolean(senderAddress.country && recipientAddress.country);
+            : Boolean(
+                senderAddress.country
+                && senderAddress.city
+                && senderAddress.postalCode
+                && recipientAddress.country
+                && recipientAddress.city
+                && recipientAddress.postalCode
+            );
 
         const hasShipmentType = Boolean(data.shipment?.shipmentType);
         const needsShipmentDescription = data.shipment?.shipmentType === "other";
@@ -692,7 +1394,14 @@ const Create = () => {
         });
 
         return hasRouteLocations && hasShipmentType && hasShipmentDescription && packagesHaveNumbers && hasPaymentOption;
-    }, [data.packages, data.sender, data.recipient, data.shipment, selectedRouteType, hasPaymentOption]);
+    }, [
+        data.packages,
+        data.sender,
+        data.recipient,
+        data.shipment,
+        selectedRouteType,
+        hasPaymentOption,
+    ]);
 
     const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
@@ -1054,14 +1763,14 @@ const Create = () => {
                                             <p>Tier Multiplier: x{Number(recentPricingExplanation.speedEtaTier.priceMultiplier || 1).toFixed(2)} {recentPricingExplanation.speedEtaTier.enforceTierPricingMultiplier ? "(enforced)" : "(display only)"}</p>
                                         </div>
                                     )}
-                                    {recentPricingExplanation.logisticDimensions && (
+                                    {recentPricingExplanation.internationalDimensions && (
                                         <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
-                                            <p>Logistic Unit Type: {recentPricingExplanation.logisticDimensions.unitType || "—"}</p>
-                                            <p>Route Class: {recentPricingExplanation.logisticDimensions.routeClass || "—"}</p>
-                                            <p>Handling Class: {recentPricingExplanation.logisticDimensions.handlingClass || "—"}</p>
-                                            <p>W2W Mode: {recentPricingExplanation.logisticDimensions.w2wMode || "—"}</p>
-                                            <p>Unit Count: {recentPricingExplanation.logisticDimensions.unitCount || "—"}</p>
-                                            <p>Combined Multiplier: x{Number(recentPricingExplanation.logisticDimensions.totalMultiplier || 1).toFixed(2)}</p>
+                                            <p>International Unit Type: {recentPricingExplanation.internationalDimensions.unitType || "—"}</p>
+                                            <p>Route Class: {recentPricingExplanation.internationalDimensions.routeClass || "—"}</p>
+                                            <p>Handling Class: {recentPricingExplanation.internationalDimensions.handlingClass || "—"}</p>
+                                            <p>W2W Mode: {recentPricingExplanation.internationalDimensions.w2wMode || "—"}</p>
+                                            <p>Unit Count: {recentPricingExplanation.internationalDimensions.unitCount || "—"}</p>
+                                            <p>Combined Multiplier: x{Number(recentPricingExplanation.internationalDimensions.totalMultiplier || 1).toFixed(2)}</p>
                                         </div>
                                     )}
                                     {Array.isArray(recentPricingExplanation.policyAdjustments) && recentPricingExplanation.policyAdjustments.length > 0 && (
@@ -1135,6 +1844,9 @@ const Create = () => {
                                         : "cm";
                                     const weightFactor = weightUnit === "oz" ? OUNCES_PER_KILOGRAM : 1;
                                     const dimensionFactor = DIMENSION_UNIT_FACTORS[dimensionUnit] || 1;
+                                    const itemLength = Number(item.lengthCm) || 0;
+                                    const itemWidth = Number(item.widthCm) || 0;
+                                    const itemHeight = Number(item.heightCm) || 0;
 
                                     return (
                                         <div
@@ -1161,81 +1873,179 @@ const Create = () => {
                                                         Locations*
                                                     </label>
                                                     <div
-                                                        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-3" : "xl:grid-cols-2"
+                                                        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-4" : "xl:grid-cols-2"
                                                             }`}
                                                     >
-                                                        {selectedRouteType === "domestic" && (
-                                                            <div>
-                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
-                                                                <select
-                                                                    value={DOMESTIC_COUNTRY_CODE}
-                                                                    disabled
-                                                                    className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
-                                                                >
-                                                                    <option value={DOMESTIC_COUNTRY_CODE}>
-                                                                        {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
-                                                                    </option>
-                                                                </select>
-                                                            </div>
-                                                        )}
                                                         {selectedRouteType === "domestic" ? (
                                                             <>
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
+                                                                    <select
+                                                                        value={DOMESTIC_COUNTRY_CODE}
+                                                                        disabled
+                                                                        className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
+                                                                    >
+                                                                        <option value={DOMESTIC_COUNTRY_CODE}>
+                                                                            {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
+                                                                        </option>
+                                                                    </select>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup province</label>
+                                                                    <select
+                                                                        value={domesticSelections.senderProvinceId}
+                                                                        onChange={(event) => handleDomesticProvinceChange("sender", event.target.value)}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.provinces ? "Loading provinces..." : "Select Pickup Province (optional)"}
+                                                                        </option>
+                                                                        {provinceOptions.map((option) => (
+                                                                            <option key={`pickup-province-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup district</label>
+                                                                    <select
+                                                                        value={domesticSelections.senderDistrictId}
+                                                                        onChange={(event) => handleDomesticDistrictChange("sender", event.target.value)}
+                                                                        disabled={!domesticSelections.senderProvinceId || domesticLookups.loading.senderDistricts}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#F5F7FB] disabled:text-[#8C97B0]"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.senderDistricts ? "Loading districts..." : "Select Pickup District (optional)"}
+                                                                        </option>
+                                                                        {senderDistrictOptions.map((option) => (
+                                                                            <option key={`pickup-district-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
                                                                 <div>
                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
                                                                     <div className="relative">
                                                                         <input
                                                                             value={locationSearch.senderCity}
                                                                             onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`sender-city-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
+                                                                            onFocus={() => handleCityFieldFocus("sender", `sender-city-${index}`, locationSearch.senderCity)}
+                                                                            onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Pickup City"
+                                                                            placeholder={googlePlacesReady ? "Search Pickup City (Google)" : "Enter Pickup City"}
                                                                         />
                                                                         {activeLocationField === `sender-city-${index}` && (
                                                                             <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(cityOptions, locationSearch.senderCity).map((option) => (
-                                                                                    <button
-                                                                                        key={`pickup-city-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("sender", "senderCity", option, "city");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+                                                                                {(senderGoogleCityOptions.length > 0
+                                                                                    ? senderGoogleCityOptions
+                                                                                    : filterLocationOptions(senderCityOptions, locationSearch.senderCity)).length > 0 ? (
+                                                                                    (senderGoogleCityOptions.length > 0
+                                                                                        ? senderGoogleCityOptions
+                                                                                        : filterLocationOptions(senderCityOptions, locationSearch.senderCity)).map((option, optionIndex) => (
+                                                                                            <button
+                                                                                                key={`pickup-city-${index}-${option.source || "local"}-${option.placeId || option.value}-${optionIndex}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    if (option.source === "google") {
+                                                                                                        void handleGoogleCitySelect("sender", "senderCity", option);
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    handleLocationSelect("sender", "senderCity", option, "city");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))
+                                                                                ) : (
+                                                                                    <p className="px-3 py-2 text-sm text-[#6B7893]">No cities found. You can still type your city manually.</p>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                     </div>
                                                                 </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination province</label>
+                                                                    <select
+                                                                        value={domesticSelections.recipientProvinceId}
+                                                                        onChange={(event) => handleDomesticProvinceChange("recipient", event.target.value)}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.provinces ? "Loading provinces..." : "Select Destination Province (optional)"}
+                                                                        </option>
+                                                                        {provinceOptions.map((option) => (
+                                                                            <option key={`destination-province-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
+                                                                <div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination district</label>
+                                                                    <select
+                                                                        value={domesticSelections.recipientDistrictId}
+                                                                        onChange={(event) => handleDomesticDistrictChange("recipient", event.target.value)}
+                                                                        disabled={!domesticSelections.recipientProvinceId || domesticLookups.loading.recipientDistricts}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none disabled:cursor-not-allowed disabled:bg-[#F5F7FB] disabled:text-[#8C97B0]"
+                                                                    >
+                                                                        <option value="">
+                                                                            {domesticLookups.loading.recipientDistricts ? "Loading districts..." : "Select Destination District (optional)"}
+                                                                        </option>
+                                                                        {recipientDistrictOptions.map((option) => (
+                                                                            <option key={`destination-district-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+
                                                                 <div>
                                                                     <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
                                                                     <div className="relative">
                                                                         <input
                                                                             value={locationSearch.recipientCity}
                                                                             onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
+                                                                            onFocus={() => handleCityFieldFocus("recipient", `recipient-city-${index}`, locationSearch.recipientCity)}
+                                                                            onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
                                                                             className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Destination City"
+                                                                            placeholder={googlePlacesReady ? "Search Destination City (Google)" : "Enter Destination City"}
                                                                         />
                                                                         {activeLocationField === `recipient-city-${index}` && (
                                                                             <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(cityOptions, locationSearch.recipientCity).map((option) => (
-                                                                                    <button
-                                                                                        key={`destination-city-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("recipient", "recipientCity", option, "city");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+                                                                                {(recipientGoogleCityOptions.length > 0
+                                                                                    ? recipientGoogleCityOptions
+                                                                                    : filterLocationOptions(recipientCityOptions, locationSearch.recipientCity)).length > 0 ? (
+                                                                                    (recipientGoogleCityOptions.length > 0
+                                                                                        ? recipientGoogleCityOptions
+                                                                                        : filterLocationOptions(recipientCityOptions, locationSearch.recipientCity)).map((option, optionIndex) => (
+                                                                                            <button
+                                                                                                key={`destination-city-${index}-${option.source || "local"}-${option.placeId || option.value}-${optionIndex}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    if (option.source === "google") {
+                                                                                                        void handleGoogleCitySelect("recipient", "recipientCity", option);
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    handleLocationSelect("recipient", "recipientCity", option, "city");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))
+                                                                                ) : (
+                                                                                    <p className="px-3 py-2 text-sm text-[#6B7893]">No cities found. You can still type your city manually.</p>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -1243,69 +2053,126 @@ const Create = () => {
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <div>
-                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            value={locationSearch.senderCountry}
-                                                                            onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`sender-country-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Pickup"
-                                                                        />
-                                                                        {activeLocationField === `sender-country-${index}` && (
-                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(countryOptions, locationSearch.senderCountry).map((option) => (
-                                                                                    <button
-                                                                                        key={`pickup-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("sender", "senderCountry", option, "country");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+                                                                <div className="space-y-3 sm:col-span-2 xl:col-span-2">
+                                                                    <p className="text-sm font-semibold text-[#0B1739]">From</p>
+                                                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={locationSearch.senderCountry}
+                                                                                    onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
+                                                                                    onFocus={() => setActiveLocationField(`sender-country-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`sender-country-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder="Select pickup country"
+                                                                                />
+                                                                                {activeLocationField === `sender-country-${index}` && (
+                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                        {filterLocationOptions(countryOptions, locationSearch.senderCountry).map((option) => (
+                                                                                            <button
+                                                                                                key={`pickup-${index}-${option.value}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    handleLocationSelect("sender", "senderCountry", option, "country");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        )}
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
+                                                                            <input
+                                                                                value={data.sender?.address?.city || ""}
+                                                                                onChange={(event) => updateAddressCity("sender", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter pickup city"
+                                                                            />
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup postal code*</label>
+                                                                            <input
+                                                                                value={data.sender?.address?.postalCode || ""}
+                                                                                onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter pickup postal code"
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                <div>
-                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            value={locationSearch.recipientCountry}
-                                                                            onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
-                                                                            onBlur={handleLocationInputBlur}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Destination"
-                                                                        />
-                                                                        {activeLocationField === `recipient-country-${index}` && (
-                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(countryOptions, locationSearch.recipientCountry).map((option) => (
-                                                                                    <button
-                                                                                        key={`destination-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("recipient", "recipientCountry", option, "country");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
+
+                                                                <div className="space-y-3 sm:col-span-2 xl:col-span-2">
+                                                                    <p className="text-sm font-semibold text-[#0B1739]">To</p>
+                                                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={locationSearch.recipientCountry}
+                                                                                    onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
+                                                                                    onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`recipient-country-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder="Select destination country"
+                                                                                />
+                                                                                {activeLocationField === `recipient-country-${index}` && (
+                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                        {filterLocationOptions(countryOptions, locationSearch.recipientCountry).map((option) => (
+                                                                                            <button
+                                                                                                key={`destination-${index}-${option.value}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    handleLocationSelect("recipient", "recipientCountry", option, "country");
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {option.label}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        )}
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
+                                                                            <input
+                                                                                value={data.recipient?.address?.city || ""}
+                                                                                onChange={(event) => updateAddressCity("recipient", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter destination city"
+                                                                            />
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination postal code*</label>
+                                                                            <input
+                                                                                value={data.recipient?.address?.postalCode || ""}
+                                                                                onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Enter destination postal code"
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </>
                                                         )}
                                                     </div>
+                                                    {selectedRouteType === "domestic" && locationLookupError && (
+                                                        <p className="text-sm text-red-500">{locationLookupError}</p>
+                                                    )}
+                                                    {selectedRouteType === "domestic" && googlePlacesError && (
+                                                        <p className="text-sm text-amber-600">{googlePlacesError}</p>
+                                                    )}
                                                 </div>
 
                                                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
@@ -1343,9 +2210,11 @@ const Create = () => {
                                                     </div>
 
                                                     <div>
-                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                            Dimensions *
-                                                        </label>
+                                                        <div className="mb-2 flex items-center gap-2">
+                                                            <label className="block text-sm font-medium text-[#0B1739]">
+                                                                Dimensions *
+                                                            </label>
+                                                        </div>
 
                                                         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
                                                             <input
@@ -1415,6 +2284,79 @@ const Create = () => {
                                                                     </option>
                                                                 ))}
                                                             </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 border-t border-[#E4EAF5] pt-4">
+                                                    <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                                                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                        {DIMENSION_ASSIST_PRESETS.map((preset) => {
+                                                            const hasMatchingBase = itemLength === preset.lengthCm
+                                                                && itemWidth === preset.widthCm;
+                                                            const isActive = preset.prefillHeight
+                                                                ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                                                : hasMatchingBase;
+
+                                                            return (
+                                                                <button
+                                                                    key={`preset-${index}-${preset.id}`}
+                                                                    type="button"
+                                                                    onClick={() => applyDimensionPreset(index, preset)}
+                                                                    className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                                                        ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                                                        : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                                                        }`}
+                                                                >
+                                                                    {isActive && (
+                                                                        <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                                                            ✓
+                                                                        </span>
+                                                                    )}
+                                                                    <div className="flex items-center gap-3">
+                                                                        <img
+                                                                            src={preset.imageSrc}
+                                                                            alt={preset.imageAlt}
+                                                                            className="h-10 w-20 object-contain"
+                                                                        />
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                                                            <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <div className="mt-5">
+                                                        <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
+                                                        <div className="mt-3 flex items-center gap-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(item.nonStackable)}
+                                                                onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                            />
+                                                            <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+
+                                                            <div className="group relative">
+                                                                <button
+                                                                    type="button"
+                                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
+                                                                    aria-label="Why do we need this information"
+                                                                >
+                                                                    ?
+                                                                </button>
+
+                                                                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                                                                    <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
+                                                                    <p className="font-semibold">Why do we need this information?</p>
+                                                                    <p className="mt-2 leading-6">
+                                                                        Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1700,7 +2642,7 @@ const Create = () => {
                                                     );
 
                                                     const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
-                                                    const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
+                                                    const internationalProviders = activePackageQuotes.providers.filter(p => p.category === 'international');
                                                     const currentPackage = data.packages[activePackageQuotes.packageIndex];
 
                                                     const cheapestByTierInGroup = (providers, tierId) => {
@@ -1989,16 +2931,16 @@ const Create = () => {
                                                     };
 
                                                     const hasDomestic = domesticProviders.length > 0;
-                                                    const hasLogistic = logisticProviders.length > 0;
-                                                    const preferredCategory = selectedRouteType === 'international' ? 'logistic' : 'domestic';
+                                                    const hasInternational = internationalProviders.length > 0;
+                                                    const preferredCategory = selectedRouteType === 'international' ? 'international' : 'domestic';
                                                     const currentCategory = preferredCategory === 'domestic'
                                                         ? (hasDomestic ? 'domestic' : null)
-                                                        : (hasLogistic ? 'logistic' : null);
+                                                        : (hasInternational ? 'international' : null);
 
                                                     return (
                                                         <div className="space-y-3">
                                                             {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
-                                                            {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'International', '#0955AC', '#F0F7FF')}
+                                                            {currentCategory === 'international' && renderCategoryTable(internationalProviders, 'International', '#0955AC', '#F0F7FF')}
                                                             {!currentCategory && (
                                                                 <div className="rounded-lg border border-dashed border-[#B8C5E0] bg-white px-5 py-6 text-sm text-[#5B6887]">
                                                                     No {selectedRouteType} courier providers are currently available for this package.
@@ -2142,7 +3084,7 @@ const Create = () => {
                                                     {serviceDetailsModal.providerName} · {serviceDetailsModal.tierLabel}
                                                 </h3>
                                                 <p className="mt-1 text-xs text-[#6B7893]">
-                                                    {serviceDetailsModal.providerCategory === "logistic" ? "International" : "Domestic"} service
+                                                    {serviceDetailsModal.providerCategory === "international" ? "International" : "Domestic"} service
                                                     {serviceDetailsModal.packageIndex !== null ? ` for Package ${serviceDetailsModal.packageIndex + 1}` : ""}
                                                 </p>
                                             </div>
@@ -2308,3 +3250,6 @@ const Create = () => {
 };
 
 export default Create;
+
+
+

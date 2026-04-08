@@ -95,7 +95,7 @@ class CourierPricingGovernanceTest extends TestCase
                     'pricing' => [
                         'localization' => ['baseCurrency' => 'LKR'],
                         'formula' => ['handlingFee' => 5],
-                        'categories' => ['domestic' => [], 'logistic' => []],
+                        'categories' => ['domestic' => [], 'international' => []],
                         'governance' => [
                             'domestic' => [
                                 'approverRoles' => ['courier_admin'],
@@ -104,7 +104,7 @@ class CourierPricingGovernanceTest extends TestCase
                                         'category' => 'domestic',
                                         'localization' => ['baseCurrency' => 'LKR'],
                                         'formula' => ['handlingFee' => 99],
-                                        'categories' => ['domestic' => [], 'logistic' => []],
+                                        'categories' => ['domestic' => [], 'international' => []],
                                     ],
                                     'requestedAt' => now()->subMinute()->toDateTimeString(),
                                     'requestedBy' => $vendor->id,
@@ -145,7 +145,7 @@ class CourierPricingGovernanceTest extends TestCase
                     'pricing' => [
                         'localization' => ['baseCurrency' => 'LKR'],
                         'formula' => ['handlingFee' => 5],
-                        'categories' => ['domestic' => [], 'logistic' => []],
+                        'categories' => ['domestic' => [], 'international' => []],
                         'governance' => [
                             'domestic' => [
                                 'approverRoles' => ['courier_dispatcher'],
@@ -154,7 +154,7 @@ class CourierPricingGovernanceTest extends TestCase
                                         'category' => 'domestic',
                                         'localization' => ['baseCurrency' => 'LKR'],
                                         'formula' => ['handlingFee' => 99],
-                                        'categories' => ['domestic' => [], 'logistic' => []],
+                                        'categories' => ['domestic' => [], 'international' => []],
                                     ],
                                     'requestedAt' => now()->subMinute()->toDateTimeString(),
                                     'requestedBy' => $vendor->id,
@@ -198,7 +198,7 @@ class CourierPricingGovernanceTest extends TestCase
                     'pricing' => [
                         'localization' => ['baseCurrency' => 'LKR'],
                         'formula' => ['handlingFee' => 5],
-                        'categories' => ['domestic' => [], 'logistic' => []],
+                        'categories' => ['domestic' => [], 'international' => []],
                         'governance' => [
                             'domestic' => [
                                 'approverRoles' => ['courier_dispatcher'],
@@ -207,7 +207,7 @@ class CourierPricingGovernanceTest extends TestCase
                                         'category' => 'domestic',
                                         'localization' => ['baseCurrency' => 'LKR'],
                                         'formula' => ['handlingFee' => 99],
-                                        'categories' => ['domestic' => [], 'logistic' => []],
+                                        'categories' => ['domestic' => [], 'international' => []],
                                     ],
                                     'requestedAt' => now()->subMinute()->toDateTimeString(),
                                     'requestedBy' => $actor->id,
@@ -248,13 +248,13 @@ class CourierPricingGovernanceTest extends TestCase
                     'pricing' => [
                         'localization' => [
                             'domestic' => ['baseCurrency' => 'LKR'],
-                            'logistic' => ['baseCurrency' => 'LKR'],
+                            'international' => ['baseCurrency' => 'LKR'],
                         ],
                         'formula' => [
                             'domestic' => ['handlingFee' => 99],
-                            'logistic' => ['handlingFee' => 5],
+                            'international' => ['handlingFee' => 5],
                         ],
-                        'categories' => ['domestic' => [], 'logistic' => []],
+                        'categories' => ['domestic' => [], 'international' => []],
                         'governance' => [
                             'domestic' => [
                                 'approverRoles' => ['courier_dispatcher'],
@@ -329,13 +329,13 @@ class CourierPricingGovernanceTest extends TestCase
                     'pricing' => [
                         'localization' => [
                             'domestic' => ['baseCurrency' => 'LKR'],
-                            'logistic' => ['baseCurrency' => 'LKR'],
+                            'international' => ['baseCurrency' => 'LKR'],
                         ],
                         'formula' => [
                             'domestic' => ['handlingFee' => 5],
-                            'logistic' => ['handlingFee' => 5],
+                            'international' => ['handlingFee' => 5],
                         ],
-                        'categories' => ['domestic' => [], 'logistic' => []],
+                        'categories' => ['domestic' => [], 'international' => []],
                         'governance' => [
                             'domestic' => [
                                 'scheduledPublish' => [
@@ -464,3 +464,4 @@ class CourierPricingGovernanceTest extends TestCase
             ->post(route('courierService.settings.update'), $payload + ['_token' => $csrfToken]);
     }
 }
+

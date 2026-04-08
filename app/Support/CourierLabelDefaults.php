@@ -12,7 +12,7 @@ class CourierLabelDefaults
                     'templateId' => null,
                     'sizeId' => null,
                 ],
-                'logistic' => [
+                'international' => [
                     'templateId' => null,
                     'sizeId' => null,
                 ],

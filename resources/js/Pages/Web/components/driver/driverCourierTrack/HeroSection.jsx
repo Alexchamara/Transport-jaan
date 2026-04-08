@@ -15,11 +15,11 @@ const HeroSection = () => {
                     <p className="poppins py-5 md:w-1/2 text-[12px]/[20px] md:text-[18px]/[20px] font-[400] text-[#FFFFFF] text-justify mb-10 md:mb-20">
                         Experience hassle-free delivery to over 200 countries
                         with our fast, secure, and affordable courier services.
-                        From same-day deliveries to logistic freight, we
+                        From same-day deliveries to international freight, we
                         offer a range of solutions to suit your needs. Start
                         shipping today with just a few clicks. journeys.
                     </p>
-                </div>                
+                </div>
             </div>
         </div>
     );

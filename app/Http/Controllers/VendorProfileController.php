@@ -853,10 +853,10 @@ class VendorProfileController extends Controller
             $slug = strtolower(trim((string) $subCategory->slug));
             $name = strtolower(trim((string) $subCategory->name));
 
-            if ($slug === 'international' || $name === 'international') {
-                $subCategory->slug = 'logistic';
-                $subCategory->name = 'Logistic';
-                $subCategory->description = 'Logistic courier services';
+            if ($slug === 'logistic' || $name === 'logistic') {
+                $subCategory->slug = 'international';
+                $subCategory->name = 'International';
+                $subCategory->description = 'International courier services';
             }
 
             if (is_array($subCategory->required_fields ?? null)) {
@@ -879,7 +879,7 @@ class VendorProfileController extends Controller
             }
 
             if (isset($field['label']) && is_string($field['label'])) {
-                $field['label'] = str_ireplace('International', 'Logistic', $field['label']);
+                $field['label'] = str_ireplace('Logistic', 'International', $field['label']);
             }
 
             return $field;

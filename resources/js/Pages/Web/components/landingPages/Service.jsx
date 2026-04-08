@@ -178,7 +178,7 @@ const Service = () => {
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
                                     Send documents and parcels locally or
-                                    through logistic routes with fast pickup, reliable
+                                    through international routes with fast pickup, reliable
                                     delivery, and real-time tracking.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">

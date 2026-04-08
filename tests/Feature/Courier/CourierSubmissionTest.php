@@ -38,6 +38,7 @@ class CourierSubmissionTest extends TestCase
     public function test_review_step_redirects_to_details_with_quote_selection_payload(): void
     {
         $client = User::factory()->create();
+        $csrfToken = 'test-token-review-step';
 
         $payload = [
             'sender' => [
@@ -95,7 +96,9 @@ class CourierSubmissionTest extends TestCase
             ],
         ];
 
-        $response = $this->actingAs($client)->post(route('couriers.review'), $payload);
+        $response = $this->actingAs($client)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('couriers.review'), $payload + ['_token' => $csrfToken]);
 
         $response->assertRedirect(route('couriers.details'));
         $response->assertSessionHas('courier_preview');
