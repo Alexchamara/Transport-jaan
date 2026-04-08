@@ -69,7 +69,7 @@ class VendorCourierDashboardController extends Controller
         $this->middleware('service.permission:courier.settings.update')->only(['updateSettings', 'pricingImportPreview', 'pricingImportApply', 'requestCodCapability']);
 
         $this->middleware('service.permission:courier.profile.view')->only(['profile']);
-        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'removeProfileLogo']);
+        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'updateOwnerProfile', 'removeOwnerProfileImage', 'removeProfileLogo']);
     }
 
     private const BOOKING_STATUS_OPTIONS = [
@@ -1446,7 +1446,7 @@ class VendorCourierDashboardController extends Controller
             abort(403, 'Courier service registration approval is required to access profile.');
         }
 
-        $allowedModules = ['company', 'security', 'compliance', 'services', 'activity'];
+        $allowedModules = ['company', 'owner', 'security', 'compliance', 'services', 'activity'];
         $moduleFromQuery = (string) $request->query('tab', '');
         $selectedModule = in_array((string) $module, $allowedModules, true)
             ? (string) $module
@@ -1461,9 +1461,9 @@ class VendorCourierDashboardController extends Controller
                     (int) $request->attributes->get('service_workspace_id'),
                     $actorUserId
                 ),
-                'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
-                'twoFactorVerifiedAt' => (string) $request->session()->get('courier_security.two_factor_verified_at', ''),
-                'anomalyDetectedAt' => (string) $request->session()->get('courier_security.anomaly_detected_at', ''),
+                'stepUpVerifiedAt' => $this->formatCourierProfileDateTime($request->session()->get('courier_security.step_up_verified_at', '')),
+                'twoFactorVerifiedAt' => $this->formatCourierProfileDateTime($request->session()->get('courier_security.two_factor_verified_at', '')),
+                'anomalyDetectedAt' => $this->formatCourierProfileDateTime($request->session()->get('courier_security.anomaly_detected_at', '')),
             ],
         ]);
     }
@@ -1504,6 +1504,8 @@ class VendorCourierDashboardController extends Controller
             'section' => ['nullable', 'string'],
             'companyName' => ['required', 'string', 'max:180'],
             'displayName' => ['nullable', 'string', 'max:180'],
+            'ownerName' => ['nullable', 'string', 'max:180'],
+            'ownerAddress' => ['nullable', 'string', 'max:255'],
             'businessRegistrationNo' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
             'taxId' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
             'contactPerson' => ['nullable', 'string', 'max:180'],
@@ -1562,6 +1564,11 @@ class VendorCourierDashboardController extends Controller
                 'email' => (string) ($validated['contactEmail'] ?: $actor->email),
                 'phone' => (string) ($validated['contactPhone'] ?: $actor->phone),
             ]);
+        } elseif ($actor) {
+            $actor->update([
+                'name' => (string) ($validated['ownerName'] ?: $validated['displayName'] ?: $validated['companyName'] ?: $actor->name),
+                'address' => (string) ($validated['ownerAddress'] ?? $actor->address),
+            ]);
         }
 
         if ($request->hasFile('logo')) {
@@ -1610,6 +1617,117 @@ class VendorCourierDashboardController extends Controller
         ]);
 
         return back()->with('success', ucfirst($section) . ' profile section updated successfully.');
+    }
+
+    public function updateOwnerProfile(Request $request)
+    {
+        $actor = $request->user();
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $actorId = (int) $actor->id;
+
+        if (!$this->hasApprovedCourierRegistration($actorId) && !$this->isActiveCourierTeamMember($actorId)) {
+            abort(403, 'Courier service registration approval is required to update profile.');
+        }
+
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $actorId)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership && (int) $membership->vendor_user_id !== $actorId) {
+            abort(403, 'Only courier account owner can update owner profile info.');
+        }
+
+        $validated = $request->validate([
+            'ownerName' => ['nullable', 'string', 'max:180', 'required_without:ownerImage'],
+            'ownerAddress' => ['nullable', 'string', 'max:255'],
+            'ownerCountry' => ['nullable', 'string', 'max:120'],
+            'ownerEmail' => ['nullable', 'email', 'max:180', Rule::unique('users', 'email')->ignore($actorId), 'required_without:ownerImage'],
+            'ownerPhone' => ['nullable', 'string', 'max:50'],
+            'ownerImage' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:3072'],
+        ]);
+
+        $actor->update([
+            'name' => array_key_exists('ownerName', $validated)
+                ? (string) ($validated['ownerName'] ?? '')
+                : (string) $actor->name,
+            'address' => array_key_exists('ownerAddress', $validated)
+                ? (string) ($validated['ownerAddress'] ?? '')
+                : (string) ($actor->address ?? ''),
+            'country' => array_key_exists('ownerCountry', $validated)
+                ? (string) ($validated['ownerCountry'] ?? '')
+                : (string) ($actor->country ?? ''),
+            'email' => array_key_exists('ownerEmail', $validated)
+                ? (string) ($validated['ownerEmail'] ?? '')
+                : (string) $actor->email,
+            'phone' => array_key_exists('ownerPhone', $validated)
+                ? (string) ($validated['ownerPhone'] ?? '')
+                : (string) ($actor->phone ?? ''),
+        ]);
+
+        if ($request->hasFile('ownerImage')) {
+            if (!empty($actor->image)) {
+                Storage::disk('public')->delete($actor->image);
+            }
+
+            $ownerImagePath = $request->file('ownerImage')->store('uploads/vendors/' . $actorId . '/profile', 'public');
+            $actor->update(['image' => $ownerImagePath]);
+        }
+
+        VendorActivityLog::create([
+            'vendor_id' => $actorId,
+            'action' => 'courier_owner_profile_updated',
+            'target_type' => 'user',
+            'target_id' => $actorId,
+            'description' => 'Courier owner profile info updated from profile page.',
+            'metadata' => [
+                'owner_name' => (string) ($validated['ownerName'] ?? $actor->name),
+            ],
+        ]);
+
+        return back()->with('success', 'Owner profile info updated successfully.');
+    }
+
+    public function removeOwnerProfileImage(Request $request)
+    {
+        $actor = $request->user();
+        if (!$actor) {
+            abort(401, 'Authentication required.');
+        }
+
+        $actorId = (int) $actor->id;
+
+        if (!$this->hasApprovedCourierRegistration($actorId) && !$this->isActiveCourierTeamMember($actorId)) {
+            abort(403, 'Courier service registration approval is required to update profile.');
+        }
+
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $actorId)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership && (int) $membership->vendor_user_id !== $actorId) {
+            abort(403, 'Only courier account owner can remove owner profile photo.');
+        }
+
+        if (!empty($actor->image)) {
+            Storage::disk('public')->delete($actor->image);
+            $actor->update(['image' => null]);
+        }
+
+        VendorActivityLog::create([
+            'vendor_id' => $actorId,
+            'action' => 'courier_owner_profile_image_removed',
+            'target_type' => 'user',
+            'target_id' => $actorId,
+            'description' => 'Courier owner profile image removed from profile page.',
+            'metadata' => [],
+        ]);
+
+        return back()->with('success', 'Owner profile picture removed successfully.');
     }
 
     public function removeProfileLogo(Request $request)
@@ -5657,7 +5775,7 @@ class VendorCourierDashboardController extends Controller
                     'id' => $item->id,
                     'action' => $item->action,
                     'description' => $item->description,
-                    'createdAt' => optional($item->created_at)->format('Y-m-d H:i'),
+                    'createdAt' => $this->formatCourierProfileDateTime($item->created_at),
                 ];
             })
             ->values();
@@ -5680,10 +5798,18 @@ class VendorCourierDashboardController extends Controller
             'isTeamUser' => (bool) $isTeamUser,
             'profile' => [
                 'logoUrl' => $profile?->logo
-                    ? asset('storage/' . $profile->logo)
-                    : ($user?->image ? asset('storage/' . $user->image) : null),
+                    ? asset('storage/' . $profile->logo) . '?v=' . urlencode((string) optional($profile?->updated_at)->timestamp)
+                    : ($user?->image ? asset('storage/' . $user->image) . '?v=' . urlencode((string) optional($user?->updated_at)->timestamp) : null),
+                'ownerImageUrl' => $user?->image
+                    ? asset('storage/' . $user->image) . '?v=' . urlencode((string) optional($user?->updated_at)->timestamp)
+                    : null,
                 'companyName' => (string) ($profile?->company_name ?? $user?->name ?? ''),
                 'displayName' => (string) ($settings['profile']['displayName'] ?? $user?->name ?? ''),
+                'ownerName' => (string) ($user?->name ?? ''),
+                'ownerAddress' => (string) ($user?->address ?? ''),
+                'ownerCountry' => (string) ($user?->country ?? ''),
+                'ownerEmail' => (string) ($user?->email ?? ''),
+                'ownerPhone' => (string) ($user?->phone ?? ''),
                 'businessRegistrationNo' => (string) ($profile?->business_registration_no ?? ''),
                 'taxId' => (string) ($profile?->tax_id ?? ''),
                 'website' => (string) ($profile?->website ?? ''),
@@ -5701,7 +5827,7 @@ class VendorCourierDashboardController extends Controller
                 'publicAbout' => (string) ($profile?->description ?? ''),
                 'publicSupportHours' => (string) ($settings['profile']['publicSupportHours'] ?? ''),
                 'status' => (string) ($isTeamUser ? 'active' : ($profile?->submission_status ?? 'draft')),
-                'reviewedAt' => optional($profile?->reviewed_at)->format('Y-m-d H:i'),
+                'reviewedAt' => $this->formatCourierProfileDateTime($profile?->reviewed_at),
                 'adminNotes' => (string) ($isTeamUser ? '' : ($profile?->admin_notes ?? '')),
             ],
             'summary' => [
@@ -5716,12 +5842,33 @@ class VendorCourierDashboardController extends Controller
                     'service' => (string) optional($item->serviceSubCategory)->name,
                     'category' => (string) optional($item->serviceCategory)->name,
                     'status' => (string) $item->status,
-                    'submittedAt' => optional($item->submitted_at)->format('Y-m-d H:i'),
-                    'reviewedAt' => optional($item->reviewed_at)->format('Y-m-d H:i'),
+                    'submittedAt' => $this->formatCourierProfileDateTime($item->submitted_at),
+                    'reviewedAt' => $this->formatCourierProfileDateTime($item->reviewed_at),
                 ];
             })->values(),
             'activity' => $activities,
         ];
+    }
+
+    private function formatCourierProfileDateTime($value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        $timezone = (string) config('app.display_timezone', config('app.timezone', 'UTC'));
+
+        try {
+            if ($value instanceof Carbon) {
+                return $value->copy()->setTimezone($timezone)->format('Y-m-d H:i');
+            }
+
+            return Carbon::parse((string) $value, 'UTC')
+                ->setTimezone($timezone)
+                ->format('Y-m-d H:i');
+        } catch (\Throwable) {
+            return (string) $value;
+        }
     }
 
     private function trackingNumber(CourierShipment $shipment): string

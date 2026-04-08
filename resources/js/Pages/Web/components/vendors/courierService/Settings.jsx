@@ -664,7 +664,8 @@ const DEFAULT_SETTINGS = {
             enabled: true,
             deviceTrust: {
                 enabled: true,
-                enforceForRoles: [],
+                enforceForRoles: ["courier_owner", "courier_admin"],
+                enforceForUserIds: [],
                 trustDurationDays: 30,
             },
             concurrentSessions: {
@@ -683,15 +684,15 @@ const DEFAULT_SETTINGS = {
             },
             anomalyDetection: {
                 enabled: true,
-                rapidSwitchMinutes: 45,
-                clearStepUpOnAnomaly: true,
+                rapidSwitchMinutes: 120,
+                clearStepUpOnAnomaly: false,
                 ipAllowList: [],
                 ipDenyList: [],
             },
             stepUp: {
                 enabled: true,
-                ttlMinutes: 20,
-                twoFactorTtlMinutes: 20,
+                ttlMinutes: 120,
+                twoFactorTtlMinutes: 120,
                 sensitiveRouteNames: [
                     "courierService.team.access.update",
                     "courierService.team.bulk",
@@ -715,6 +716,7 @@ const DEFAULT_SETTINGS = {
             mandatory2FA: {
                 enabled: true,
                 roles: ["courier_owner", "courier_admin"],
+                userIds: [],
                 forSensitiveActions: true,
             },
         },
@@ -4056,6 +4058,25 @@ const Settings = () => {
         }));
     };
 
+    const toggleSessionSecurityRole = (groupKey, roleName) => {
+        const currentRoles = settings.team?.sessionSecurity?.[groupKey]?.roles;
+        const roleList = Array.isArray(currentRoles) ? currentRoles : [];
+        const nextRoles = roleList.includes(roleName)
+            ? roleList.filter((role) => role !== roleName)
+            : [...roleList, roleName];
+
+        updateSessionSecurityNested(groupKey, "roles", nextRoles);
+    };
+
+    const updateSessionSecurityUserIds = (groupKey, key, rawValue) => {
+        const ids = String(rawValue || "")
+            .split(/[,\s]+/)
+            .map((value) => Number.parseInt(value, 10))
+            .filter((value, index, array) => Number.isInteger(value) && value > 0 && array.indexOf(value) === index);
+
+        updateSessionSecurityNested(groupKey, key, ids);
+    };
+
     const certifyAccessReview = async (reviewId, keepAccess) => {
         setTemporaryAccessActionBusyId(`access_review_${reviewId}_${keepAccess ? "keep" : "revoke"}`);
 
@@ -5784,7 +5805,7 @@ const Settings = () => {
             }
 
             return (
-                <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
+                <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-5">
                     <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
                         <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
                         <div className="space-y-2">
@@ -6814,8 +6835,8 @@ const Settings = () => {
                                                                 {tiers.map((tier, tierIndex) => {
                                                                     const tierRow = tier && typeof tier === "object" ? tier : {};
                                                                     return (
-                                                                        <div key={`tier-${contractIndex}-${tierIndex}`} className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                                        <div key={`tier-${contractIndex}-${tierIndex}`} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155] pb-1">
                                                                                 <input
                                                                                     type="checkbox"
                                                                                     checked={Boolean(tierRow.enabled ?? true)}
@@ -6829,14 +6850,14 @@ const Settings = () => {
                                                                                 />
                                                                                 Active
                                                                             </label>
-                                                                            <Field label="Min Volume"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.minVolume || 0)} onChange={(e) => {
+                                                                            <Field label="Min Volume"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.minVolume || 0)} onChange={(e) => {
                                                                                 const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                                 const nextTiers = [...tiers];
                                                                                 nextTiers[tierIndex] = { ...tierRow, minVolume: Number(e.target.value || 0) };
                                                                                 nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
                                                                                 updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
                                                                             }} /></Field>
-                                                                            <Field label="Max Volume"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={tierRow.maxVolume === null || tierRow.maxVolume === undefined ? "" : Number(tierRow.maxVolume || 0)} onChange={(e) => {
+                                                                            <Field label="Max Volume"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={tierRow.maxVolume === null || tierRow.maxVolume === undefined ? "" : Number(tierRow.maxVolume || 0)} onChange={(e) => {
                                                                                 const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                                 const nextTiers = [...tiers];
                                                                                 nextTiers[tierIndex] = { ...tierRow, maxVolume: e.target.value === "" ? null : Number(e.target.value || 0) };
@@ -6844,7 +6865,7 @@ const Settings = () => {
                                                                                 updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
                                                                             }} /></Field>
                                                                             <Field label="Adjustment Type">
-                                                                                <select className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(tierRow.adjustmentType || "percent_off")} onChange={(e) => {
+                                                                                <select className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(tierRow.adjustmentType || "percent_off")} onChange={(e) => {
                                                                                     const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                                     const nextTiers = [...tiers];
                                                                                     nextTiers[tierIndex] = { ...tierRow, adjustmentType: e.target.value };
@@ -6857,7 +6878,7 @@ const Settings = () => {
                                                                                     <option value="multiplier">Multiplier</option>
                                                                                 </select>
                                                                             </Field>
-                                                                            <Field label="Adjustment Value"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.adjustmentValue || 0)} onChange={(e) => {
+                                                                            <Field label="Adjustment Value"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.adjustmentValue || 0)} onChange={(e) => {
                                                                                 const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                                 const nextTiers = [...tiers];
                                                                                 nextTiers[tierIndex] = { ...tierRow, adjustmentValue: Number(e.target.value || 0) };
@@ -6867,7 +6888,7 @@ const Settings = () => {
                                                                             <div className="flex items-end">
                                                                                 <button
                                                                                     type="button"
-                                                                                    className="h-[26px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700]"
+                                                                                    className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700]"
                                                                                     onClick={() => {
                                                                                         const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
                                                                                         const nextTiers = tiers.filter((_, idx) => idx !== tierIndex);
@@ -7143,26 +7164,26 @@ const Settings = () => {
                                         </p>
                                     )}
                                     <div className="mt-2 overflow-x-auto">
-                                        <table className="w-full min-w-[900px] text-[12px]">
+                                        <table className="w-max min-w-[1100px] text-[11px]">
                                             <thead>
                                                 <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                    <th className="px-2 py-2">Label</th>
-                                                    <th className="px-2 py-2">Service Level</th>
-                                                    <th className="px-2 py-2">SLA Days</th>
-                                                    <th className="px-2 py-2">Base Price</th>
-                                                    <th className="px-2 py-2">Per Kg</th>
-                                                    <th className="px-2 py-2">Min Price</th>
-                                                    <th className="px-2 py-2">Priority Mult.</th>
-                                                    <th className="px-2 py-2">Action</th>
+                                                    <th className="px-2 py-2 min-w-[140px]">Label</th>
+                                                    <th className="px-2 py-2 min-w-[180px]">Service Level</th>
+                                                    <th className="px-2 py-2 min-w-[90px]">SLA Days</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Base Price</th>
+                                                    <th className="px-2 py-2 min-w-[90px]">Per Kg</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Min Price</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Priority Mult.</th>
+                                                    <th className="px-2 py-2 min-w-[80px]">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {activePricingRows.map((row, index) => (
                                                     <tr key={`${activePricingCategory}-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
-                                                        <td className="px-2 py-2">
+                                                        <td className="px-2 py-3"><input className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
+                                                        <td className="px-2 py-3 min-w-[180px]">
                                                             <select
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                                className="h-[44px] w-full min-w-[160px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                                 value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
                                                                 onChange={(e) => updatePricingTier(activePricingCategory, index, "serviceLevelKey", e.target.value)}
                                                             >
@@ -7171,13 +7192,13 @@ const Settings = () => {
                                                                 ))}
                                                             </select>
                                                         </td>
-                                                        <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-2">
-                                                            <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
+                                                        <td className="px-2 py-3"><input type="number" min={1} className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                                        <td className="px-2 py-3">
+                                                            <button type="button" className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
                                                                 Remove
                                                             </button>
                                                         </td>
@@ -7485,32 +7506,32 @@ const Settings = () => {
                                     <p className="text-[11px] text-[#64748B] mt-1">When enabled, booking runtime requires a matching lane rule by origin zone, destination zone, service level, and distance band (if configured).</p>
 
                                     <div className="mt-2 overflow-x-auto">
-                                        <table className="w-full min-w-[1700px] text-[12px]">
+                                        <table className="w-max min-w-[2100px] text-[11px]">
                                             <thead>
                                                 <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                    <th className="px-2 py-2">Origin Zone</th>
-                                                    <th className="px-2 py-2">Destination Zone</th>
-                                                    <th className="px-2 py-2">Service Level</th>
-                                                    <th className="px-2 py-2">Distance From (km)</th>
-                                                    <th className="px-2 py-2">Distance To (km)</th>
-                                                    <th className="px-2 py-2">Included Km</th>
-                                                    <th className="px-2 py-2">Per Km</th>
-                                                    <th className="px-2 py-2">Distance Fee</th>
-                                                    <th className="px-2 py-2">Distance Mult.</th>
-                                                    <th className="px-2 py-2">Base Price</th>
-                                                    <th className="px-2 py-2">Per Kg</th>
-                                                    <th className="px-2 py-2">Min Price</th>
-                                                    <th className="px-2 py-2">Priority Mult.</th>
-                                                    <th className="px-2 py-2">Active</th>
-                                                    <th className="px-2 py-2">Action</th>
+                                                    <th className="px-2 py-2 min-w-[160px]">Origin Zone</th>
+                                                    <th className="px-2 py-2 min-w-[160px]">Destination Zone</th>
+                                                    <th className="px-2 py-2 min-w-[160px]">Service Level</th>
+                                                    <th className="px-2 py-2 min-w-[130px]">Distance From (km)</th>
+                                                    <th className="px-2 py-2 min-w-[130px]">Distance To (km)</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Included Km</th>
+                                                    <th className="px-2 py-2 min-w-[90px]">Per Km</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Distance Fee</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Distance Mult.</th>
+                                                    <th className="px-2 py-2 min-w-[100px]">Base Price</th>
+                                                    <th className="px-2 py-2 min-w-[90px]">Per Kg</th>
+                                                    <th className="px-2 py-2 min-w-[100px]">Min Price</th>
+                                                    <th className="px-2 py-2 min-w-[110px]">Priority Mult.</th>
+                                                    <th className="px-2 py-2 min-w-[70px]">Active</th>
+                                                    <th className="px-2 py-2 min-w-[80px]">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {activeLaneRows.map((row, index) => (
                                                     <tr key={`${activePricingCategory}-lane-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-2">
+                                                        <td className="px-2 py-3 min-w-[160px]">
                                                             <select
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                                className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                                 value={String(row?.originZone || "*")}
                                                                 onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "originZone", String(e.target.value || "*"))}
                                                             >
@@ -7519,9 +7540,9 @@ const Settings = () => {
                                                                 ))}
                                                             </select>
                                                         </td>
-                                                        <td className="px-2 py-2">
+                                                        <td className="px-2 py-3 min-w-[160px]">
                                                             <select
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                                className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                                 value={String(row?.destinationZone || "*")}
                                                                 onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "destinationZone", String(e.target.value || "*"))}
                                                             >
@@ -7530,9 +7551,9 @@ const Settings = () => {
                                                                 ))}
                                                             </select>
                                                         </td>
-                                                        <td className="px-2 py-2">
+                                                        <td className="px-2 py-3 min-w-[160px]">
                                                             <select
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
+                                                                className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
                                                                 value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
                                                                 onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "serviceLevelKey", e.target.value)}
                                                             >
@@ -7541,17 +7562,17 @@ const Settings = () => {
                                                                 ))}
                                                             </select>
                                                         </td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceFromKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceFromKm", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={row?.distanceToKm === null || row?.distanceToKm === undefined || row?.distanceToKm === "" ? "" : Number(row?.distanceToKm || 0)} placeholder="No limit" onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceToKm", e.target.value === "" ? null : Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceBaseKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceBaseKm", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKmPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKmPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceSurcharge || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceSurcharge", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceMultiplier", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-2">
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceFromKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceFromKm", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={row?.distanceToKm === null || row?.distanceToKm === undefined || row?.distanceToKm === "" ? "" : Number(row?.distanceToKm || 0)} placeholder="No limit" onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceToKm", e.target.value === "" ? null : Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceBaseKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceBaseKm", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKmPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKmPrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceSurcharge || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceSurcharge", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceMultiplier", Number(e.target.value || 1))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
+                                                        <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
+                                                        <td className="px-2 py-3">
                                                             <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                                                 <input
                                                                     type="checkbox"
@@ -7561,8 +7582,8 @@ const Settings = () => {
                                                                 Active
                                                             </label>
                                                         </td>
-                                                        <td className="px-2 py-2">
-                                                            <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingLaneRule(activePricingCategory, index)}>
+                                                        <td className="px-2 py-3">
+                                                            <button type="button" className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingLaneRule(activePricingCategory, index)}>
                                                                 Remove
                                                             </button>
                                                         </td>
@@ -7995,8 +8016,8 @@ const Settings = () => {
                                                         min={5}
                                                         max={720}
                                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(settings.team?.sessionSecurity?.anomalyDetection?.rapidSwitchMinutes || 45)}
-                                                        onChange={(e) => updateSessionSecurityNested("anomalyDetection", "rapidSwitchMinutes", Number(e.target.value || 45))}
+                                                        value={Number(settings.team?.sessionSecurity?.anomalyDetection?.rapidSwitchMinutes || 120)}
+                                                        onChange={(e) => updateSessionSecurityNested("anomalyDetection", "rapidSwitchMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
                                             </div>
@@ -8011,6 +8032,11 @@ const Settings = () => {
                                                     label="Enable Geo/IP Anomaly Detection"
                                                     checked={Boolean(settings.team?.sessionSecurity?.anomalyDetection?.enabled)}
                                                     onChange={(next) => updateSessionSecurityNested("anomalyDetection", "enabled", next)}
+                                                />
+                                                <Toggle
+                                                    label="Keep Step-up Valid After Anomaly"
+                                                    checked={!Boolean(settings.team?.sessionSecurity?.anomalyDetection?.clearStepUpOnAnomaly)}
+                                                    onChange={(next) => updateSessionSecurityNested("anomalyDetection", "clearStepUpOnAnomaly", !next)}
                                                 />
                                                 <Toggle
                                                     label="Enable Step-up for Risky Actions"
@@ -8031,8 +8057,8 @@ const Settings = () => {
                                                         min={5}
                                                         max={120}
                                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.ttlMinutes || 20)}
-                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "ttlMinutes", Number(e.target.value || 20))}
+                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.ttlMinutes || 120)}
+                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "ttlMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
                                                 <Field label="2FA TTL (minutes)">
@@ -8041,10 +8067,90 @@ const Settings = () => {
                                                         min={5}
                                                         max={120}
                                                         className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.twoFactorTtlMinutes || 20)}
-                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "twoFactorTtlMinutes", Number(e.target.value || 20))}
+                                                        value={Number(settings.team?.sessionSecurity?.stepUp?.twoFactorTtlMinutes || 120)}
+                                                        onChange={(e) => updateSessionSecurityNested("stepUp", "twoFactorTtlMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
+                                            </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                                <p className="text-[12px] font-[700] text-[#111827] mb-1">Targeting: All Team Roles or Selected Members</p>
+                                                <p className="text-[11px] text-[#6B7280] mb-2">Use roles for broad policy and user IDs for specific employee exceptions.</p>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                        <p className="text-[11px] font-[700] text-[#111827] mb-2">Mandatory 2FA Roles</p>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                                            {(teamRoleOptions || []).map((roleName) => {
+                                                                const selected = Boolean(settings.team?.sessionSecurity?.mandatory2FA?.roles?.includes(roleName));
+                                                                return (
+                                                                    <label key={`mfa-role-${roleName}`} className="inline-flex items-center gap-2 text-[11px] text-[#374151]">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selected}
+                                                                            onChange={() => toggleSessionSecurityRole("mandatory2FA", roleName)}
+                                                                        />
+                                                                        <span>{titleCase(roleName)}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                        <p className="text-[11px] font-[700] text-[#111827] mb-2">Trusted Device Enforcement Roles</p>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                                            {(teamRoleOptions || []).map((roleName) => {
+                                                                const selected = Boolean(settings.team?.sessionSecurity?.deviceTrust?.enforceForRoles?.includes(roleName));
+                                                                const currentRoles = settings.team?.sessionSecurity?.deviceTrust?.enforceForRoles;
+                                                                const roleList = Array.isArray(currentRoles) ? currentRoles : [];
+                                                                return (
+                                                                    <label key={`trust-role-${roleName}`} className="inline-flex items-center gap-2 text-[11px] text-[#374151]">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selected}
+                                                                            onChange={() => updateSessionSecurityNested(
+                                                                                "deviceTrust",
+                                                                                "enforceForRoles",
+                                                                                roleList.includes(roleName)
+                                                                                    ? roleList.filter((role) => role !== roleName)
+                                                                                    : [...roleList, roleName],
+                                                                            )}
+                                                                        />
+                                                                        <span>{titleCase(roleName)}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                                                    <Field label="Mandatory 2FA for Selected User IDs (comma separated)">
+                                                        <input
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            placeholder="e.g. 30, 45, 78"
+                                                            value={(settings.team?.sessionSecurity?.mandatory2FA?.userIds || []).join(", ")}
+                                                            onChange={(e) => updateSessionSecurityUserIds("mandatory2FA", "userIds", e.target.value)}
+                                                        />
+                                                    </Field>
+                                                    <Field label="Trusted Device for Selected User IDs (comma separated)">
+                                                        <input
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            placeholder="e.g. 30, 45, 78"
+                                                            value={(settings.team?.sessionSecurity?.deviceTrust?.enforceForUserIds || []).join(", ")}
+                                                            onChange={(e) => updateSessionSecurityUserIds("deviceTrust", "enforceForUserIds", e.target.value)}
+                                                        />
+                                                    </Field>
+                                                </div>
+
+                                                <div className="mt-2">
+                                                    <Toggle
+                                                        label="Require 2FA For Sensitive Actions"
+                                                        checked={Boolean(settings.team?.sessionSecurity?.mandatory2FA?.forSensitiveActions)}
+                                                        onChange={(next) => updateSessionSecurityNested("mandatory2FA", "forSensitiveActions", next)}
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2">

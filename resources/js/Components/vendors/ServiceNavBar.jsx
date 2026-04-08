@@ -117,7 +117,7 @@ const ServiceNavBar = ({
         });
 
         setShowModal(false);
-        router.visit(`/vendor/profile?step=2&service=${serviceSlug}`);
+        router.visit(route('vendor.profile.step2', { service: serviceSlug }));
     };
 
     const handleCancel = () => {

@@ -10,6 +10,7 @@ import NotificationDropdown from "../components/vendors/warehouse/NotificationDr
 import { API_BASE_URL } from "../../../config/api";
 
 const Header = () => {
+    const { url } = usePage();
     const page = usePage();
     const { auth } = page.props;
     const currentUrl = String(page.url || "");

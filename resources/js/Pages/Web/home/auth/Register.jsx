@@ -24,6 +24,8 @@ const Register = ({ role = "client" }) => {
         remember: false,
     });
 
+    const phoneErrorMessage = phoneValidationError || errors.phone || "";
+
     // Phone validation using libphonenumber-js library
     const validatePhone = (phone) => {
         // Check if phone is empty
@@ -76,9 +78,11 @@ const Register = ({ role = "client" }) => {
         // Validate phone number before submission
         const phoneValidation = validatePhone(data.phone);
         if (!phoneValidation.valid) {
-            alert(phoneValidation.message);
+            setPhoneValidationError(phoneValidation.message);
             return;
         }
+
+        setPhoneValidationError('');
         
         post(route("register.store"), {
             preserveScroll: true,
@@ -244,16 +248,9 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Enter your phone number"
                                                 />
                                             </div>
-                                            {phoneValidationError && (
-                                                <div className="text-red-500 text-sm px-10 mt-1">
-                                                    {phoneValidationError}
-                                                </div>
-                                            )}
-                                            {errors.phone && (
-                                                <div className="text-red-500 text-sm px-10 mt-1">
-                                                    {errors.phone}
-                                                </div>
-                                            )}
+                                            <div className="min-h-[20px] text-red-500 text-sm px-10 mt-1">
+                                                {phoneErrorMessage}
+                                            </div>
                                         </div>
 
                                         <div className="flex flex-col gap-2 mb-6">
@@ -446,16 +443,9 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Enter your phone number"
                                                 />
                                             </div>
-                                            {phoneValidationError && (
-                                                <div className="text-red-500 text-sm px-10 mt-1">
-                                                    {phoneValidationError}
-                                                </div>
-                                            )}
-                                            {errors.phone && (
-                                                <div className="text-red-500 text-sm px-10 mt-1">
-                                                    {errors.phone}
-                                                </div>
-                                            )}
+                                            <div className="min-h-[20px] text-red-500 text-sm px-10 mt-1">
+                                                {phoneErrorMessage}
+                                            </div>
                                         </div>
                                     </div>
 

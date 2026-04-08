@@ -1287,14 +1287,27 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile');
 
+    Route::get('/courierService/profile/owner-info', [VendorCourierDashboardController::class, 'profile'])
+        ->defaults('module', 'owner')
+        ->middleware('service.permission:courier.profile.view')
+        ->name('courierService.profile.owner');
+
     Route::get('/courierService/profile/{module}', [VendorCourierDashboardController::class, 'profile'])
-        ->where('module', 'company|security|compliance|services|activity')
+        ->where('module', 'company|owner|security|compliance|services|activity')
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile.module');
 
     Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
         ->middleware('service.permission:courier.profile.update')
         ->name('courierService.profile.update');
+
+    Route::post('/courierService/profile/owner-info', [VendorCourierDashboardController::class, 'updateOwnerProfile'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.owner.update');
+
+    Route::delete('/courierService/profile/owner-image', [VendorCourierDashboardController::class, 'removeOwnerProfileImage'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.owner.image.remove');
 
     Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
         ->middleware('service.permission:courier.profile.update')
@@ -1757,6 +1770,9 @@ Route::get('/vendors/profile/{userId}', [\App\Http\Controllers\VendorProfileCont
 // Vendor Profile & Service Registration Routes
 Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorProfileController::class, 'index'])->name('index');
+    Route::get('/step-1', [\App\Http\Controllers\VendorProfileController::class, 'step1'])->name('step1');
+    Route::get('/service_registration', [\App\Http\Controllers\VendorProfileController::class, 'step2'])->name('step2');
+    Route::get('/review_&_submit', [\App\Http\Controllers\VendorProfileController::class, 'step3'])->name('step3');
     Route::post('/activity-click', [\App\Http\Controllers\VendorProfileController::class, 'logButtonClick'])->name('activity-click');
     Route::post('/save', [\App\Http\Controllers\VendorProfileController::class, 'saveProfile'])->name('save');
     Route::post('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'saveServiceRegistration'])->name('service.save');

@@ -384,7 +384,7 @@ const TrackingContent = () => {
                 )}
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-[13px]">
+                    <table className="w-max min-w-full text-left text-[13px] whitespace-nowrap">
                         <thead className="bg-[#D8E4F2]">
                             <tr>
                                 <th className="px-3 py-3 font-[700]">Tracking No</th>
@@ -411,7 +411,7 @@ const TrackingContent = () => {
                                         <td className="px-3 py-3">{row.eta || "-"}</td>
                                         <td className="px-3 py-3"><span className={`px-2.5 py-1 rounded-full text-[11px] font-[700] ${slaBadge(row.slaStatus)}`}>{titleCase(row.slaStatus)}</span></td>
                                         <td className="px-3 py-3">
-                                            <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                                 {(row.allowedActions || []).map((action) => (
                                                     <button
                                                         key={action}

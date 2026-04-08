@@ -61,7 +61,7 @@ const categoryColors = {
 };
 
 const VendorProfile = () => {
-    const { vendorProfile, serviceCategories, vendorRegistrations, user, flash, errors: pageErrors, canEdit, isRevisionRequested, canAddNewServices } = usePage().props;
+    const { vendorProfile, serviceCategories, vendorRegistrations, user, flash, errors: pageErrors, canEdit, isRevisionRequested, canAddNewServices, initialStep, selectedServiceSlug } = usePage().props;
 
     // Also check if any individual service has revision_requested
     const hasAnyServiceRevision = vendorRegistrations
@@ -79,7 +79,7 @@ const VendorProfile = () => {
     const isBusiness = user?.vendor_type === "business";
 
     // ─── State ─────────────────────────────────────────────────
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState(initialStep || 1);
     const [saving, setSaving] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [expandedCategories, setExpandedCategories] = useState({});
@@ -392,6 +392,22 @@ const VendorProfile = () => {
     const isApprovedVendor = vendorProfile?.submission_status === "approved";
     const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
 
+    const stepRouteName = (stepNumber) => {
+        if (stepNumber === 1) return "vendor.profile.step1";
+        if (stepNumber === 2) return "vendor.profile.step2";
+        if (stepNumber === 3) return "vendor.profile.step3";
+        return "vendor.profile.index";
+    };
+
+    const navigateToStep = (stepNumber, extraQuery = {}) => {
+        setCurrentStep(stepNumber);
+        router.get(route(stepRouteName(stepNumber)), extraQuery, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     const logButtonActivity = (buttonName, extra = {}) => {
         logVendorButtonClick(buttonName, {
             screen: "vendor_profile",
@@ -422,24 +438,24 @@ const VendorProfile = () => {
     // If profile is submitted or approved, auto-navigate to step 3 (review)
     // If revision_requested, also go to step 3 so vendor sees the banner first
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const stepParam = params.get('step');
-        const serviceParam = params.get('service');
-
-        if (stepParam === '2' || serviceParam) {
+        if (selectedServiceSlug) {
             setCurrentStep(2);
+            return;
+        }
+
+        if (initialStep) {
+            setCurrentStep(initialStep);
             return;
         }
 
         if (vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved" || vendorProfile?.submission_status === "revision_requested") {
             setCurrentStep(3);
         }
-    }, [vendorProfile?.submission_status]);
+    }, [initialStep, selectedServiceSlug, vendorProfile?.submission_status]);
 
     // Auto-expand service category from URL query parameter
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const serviceSlug = params.get('service');
+        const serviceSlug = selectedServiceSlug;
 
         if (serviceSlug && serviceCategories) {
             setCurrentStep(2);
@@ -462,7 +478,7 @@ const VendorProfile = () => {
                 }, 300);
             }
         }
-    }, [serviceCategories]);
+    }, [selectedServiceSlug, serviceCategories]);
 
     // ─── Helpers ──────────────────────────────────────────────
 
@@ -566,7 +582,7 @@ const VendorProfile = () => {
                 setSaving(false);
                 setSuccessMessage("Profile saved!");
                 setTimeout(() => setSuccessMessage(""), 2000);
-                setCurrentStep(2);
+                navigateToStep(2);
             },
             onError: (errors) => {
                 setSaving(false);
@@ -1048,7 +1064,7 @@ const VendorProfile = () => {
                                                     }
                                                 }
 
-                                                setCurrentStep(step.num);
+                                                navigateToStep(step.num);
                                             }}
                                             disabled={isStepDisabled}
                                             className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl transition-all ${isActive
@@ -1911,7 +1927,7 @@ const VendorProfile = () => {
                             {/* Step 2 Actions */}
                             <div className="flex items-center justify-between">
                                 <button
-                                    onClick={() => setCurrentStep(isApprovedVendor ? 3 : 1)}
+                                    onClick={() => navigateToStep(isApprovedVendor ? 3 : 1)}
                                     className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
@@ -1923,7 +1939,7 @@ const VendorProfile = () => {
                                             setErrorMessage("Please register for at least one service before proceeding.");
                                             setTimeout(() => setErrorMessage(""), 4000);
                                         } else {
-                                            setCurrentStep(3);
+                                            navigateToStep(3);
                                         }
                                     }}
                                     className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
@@ -1990,7 +2006,7 @@ const VendorProfile = () => {
                                         </p>
                                     </div>
                                     <button
-                                        onClick={() => setCurrentStep(2)}
+                                        onClick={() => navigateToStep(2)}
                                         className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                                     >
                                         <FileText className="w-3.5 h-3.5" />
@@ -2327,7 +2343,7 @@ const VendorProfile = () => {
                                     </h2>
                                     {(!isReadOnly || needsRevision || canAddNewServices) && (
                                         <button
-                                            onClick={() => setCurrentStep(2)}
+                                            onClick={() => navigateToStep(2)}
                                             className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${needsRevision
                                                     ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                                                     : canAddNewServices
@@ -2415,7 +2431,7 @@ const VendorProfile = () => {
                             <div className="flex items-center justify-between">
                                 {(!isReadOnly || needsRevision) ? (
                                     <button
-                                        onClick={() => setCurrentStep(2)}
+                                        onClick={() => navigateToStep(2)}
                                         className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
                                     >
                                         <ArrowLeft className="w-4 h-4" />

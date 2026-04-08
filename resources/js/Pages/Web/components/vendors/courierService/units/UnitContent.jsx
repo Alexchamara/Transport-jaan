@@ -563,7 +563,7 @@ const UnitContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-[13px]">
+                    <table className="w-max min-w-full text-left text-[13px] whitespace-nowrap">
                         <thead className="bg-[#D8E4F2]">
                             <tr>
                                 <th className="px-3 py-3 font-[700]">
