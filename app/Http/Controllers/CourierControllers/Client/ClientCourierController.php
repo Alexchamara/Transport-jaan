@@ -424,11 +424,13 @@ class ClientCourierController extends Controller
             'has_recent_bill_id' => $request->session()->has('courier_bill_id'),
         ]);
 
-        $serviceLevels = $this->serviceLevelLabelsForCategory('domestic');
+        $flow = $this->resolveBookingFlow((string) $request->route('flow'));
+        $serviceCategory = $this->hasFlowRouteContext($request) ? $flow : 'domestic';
+        $serviceLevels = $this->serviceLevelLabelsForCategory($serviceCategory);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
 
-        return Inertia::render('Web/courier/Create', [
+        return Inertia::render($this->resolveFlowPageComponent($request, 'Create'), [
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
             'countries' => $countries,
@@ -436,6 +438,8 @@ class ClientCourierController extends Controller
             'recentReference' => $request->session()->pull('courier_reference'),
             'recentShipmentId' => $request->session()->pull('courier_bill_id'),
             'recentPricingExplanation' => $request->session()->pull('courier_pricing_explanation'),
+            'bookingFlow' => $this->hasFlowRouteContext($request) ? $flow : null,
+            'flowRoutes' => $this->resolveBookingFlowRoutes($request),
         ]);
     }
 
@@ -551,9 +555,10 @@ class ClientCourierController extends Controller
         $normalized['reviewContext'] = is_array($normalized['reviewContext'] ?? null) ? $normalized['reviewContext'] : [];
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
 
+        $this->assertPayloadMatchesFlowRoute($normalized, $request);
         $request->session()->put('courier_preview', $normalized);
 
-        return redirect()->route('couriers.details');
+        return redirect()->to($this->resolveFlowRoute($request, 'details'));
     }
 
     public function details(Request $request)
@@ -568,11 +573,21 @@ class ClientCourierController extends Controller
             $request->session()->forget('courier_preview');
 
             return redirect()
-                ->route('couriers.create')
+                ->to($this->resolveFlowRoute($request, 'create'))
                 ->with('error', 'Your booking session expired. Please start again.');
         }
 
-        $category = $this->resolvePayloadCategory($formData);
+        if ($this->previewMismatchesScopedFlow($formData, $request)) {
+            $request->session()->forget('courier_preview');
+
+            return redirect()
+                ->to($this->resolveFlowRoute($request, 'create'))
+                ->with('error', 'Flow mismatch detected. Please restart the booking from this URL.');
+        }
+
+        $category = $this->hasFlowRouteContext($request)
+            ? $this->resolveBookingFlow((string) $request->route('flow'))
+            : $this->resolvePayloadCategory($formData);
         $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
         $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
@@ -650,7 +665,7 @@ class ClientCourierController extends Controller
             'package_count' => count((array) ($formData['packages'] ?? [])),
         ]);
 
-        return Inertia::render('Web/courier/Details', [
+        return Inertia::render($this->resolveFlowPageComponent($request, 'Details'), [
             'formData' => $formData,
             'serviceLevels' => $serviceLevels,
             'packageTypes' => $packageTypes,
@@ -658,6 +673,10 @@ class ClientCourierController extends Controller
             'favoriteRecipients' => $favoriteRecipients,
             'favoriteSenders' => $favoriteSenders,
             'senderProfile' => $senderProfile,
+            'bookingFlow' => $this->hasFlowRouteContext($request)
+                ? $this->resolveBookingFlow((string) $request->route('flow'))
+                : null,
+            'flowRoutes' => $this->resolveBookingFlowRoutes($request),
         ]);
     }
 
@@ -749,12 +768,22 @@ class ClientCourierController extends Controller
             $request->session()->forget('courier_preview');
 
             return redirect()
-                ->route('couriers.create')
+                ->to($this->resolveFlowRoute($request, 'create'))
                 ->with('error', 'Your booking session expired. Please start again.');
         }
 
+        if ($this->previewMismatchesScopedFlow($existing, $request)) {
+            $request->session()->forget('courier_preview');
+
+            return redirect()
+                ->to($this->resolveFlowRoute($request, 'create'))
+                ->with('error', 'Flow mismatch detected. Please restart the booking from this URL.');
+        }
+
         $reviewContextInput = null;
-        $category = $this->resolvePayloadCategory($existing);
+        $category = $this->hasFlowRouteContext($request)
+            ? $this->resolveBookingFlow((string) $request->route('flow'))
+            : $this->resolvePayloadCategory($existing);
         $allowedServiceLevels = $this->serviceLevelLabelsForCategory($category);
 
         $validated = $request->validate(
@@ -912,9 +941,10 @@ class ClientCourierController extends Controller
             ?? ($existing['reviewContext']['accountUserId'] ?? Auth::id())
         );
 
+        $this->assertPayloadMatchesFlowRoute($normalized, $request);
         $request->session()->put('courier_preview', $normalized);
 
-        return redirect()->route('couriers.summary');
+        return redirect()->to($this->resolveFlowRoute($request, 'summary'));
     }
 
     public function summary(Request $request)
@@ -928,15 +958,27 @@ class ClientCourierController extends Controller
             $request->session()->forget('courier_preview');
 
             return redirect()
-                ->route('couriers.create')
+                ->to($this->resolveFlowRoute($request, 'create'))
                 ->with('error', 'Your booking session expired. Please start again.');
+        }
+
+        if ($this->previewMismatchesScopedFlow($formData, $request)) {
+            $request->session()->forget('courier_preview');
+
+            return redirect()
+                ->to($this->resolveFlowRoute($request, 'create'))
+                ->with('error', 'Flow mismatch detected. Please restart the booking from this URL.');
         }
 
         $pricingPreview = $this->buildSummaryPricingPreview((array) $formData, $request);
 
-        return Inertia::render('Web/courier/Summary', [
+        return Inertia::render($this->resolveFlowPageComponent($request, 'Summary'), [
             'formData' => $formData,
             'pricingPreview' => $pricingPreview,
+            'bookingFlow' => $this->hasFlowRouteContext($request)
+                ? $this->resolveBookingFlow((string) $request->route('flow'))
+                : null,
+            'flowRoutes' => $this->resolveBookingFlowRoutes($request),
         ]);
     }
 
@@ -1032,8 +1074,16 @@ class ClientCourierController extends Controller
             $request->session()->forget('courier_preview');
 
             return redirect()
-                ->route('couriers.create')
+                ->to($this->resolveFlowRoute($request, 'create'))
                 ->with('error', 'Your booking session expired. Please start again.');
+        }
+
+        if ($this->previewMismatchesScopedFlow($preview, $request)) {
+            $request->session()->forget('courier_preview');
+
+            return redirect()
+                ->to($this->resolveFlowRoute($request, 'create'))
+                ->with('error', 'Flow mismatch detected. Please restart the booking from this URL.');
         }
 
         if (!$this->flowPayloadMatchesSessionPreview((array) $preview, $payload)) {
@@ -1042,7 +1092,7 @@ class ClientCourierController extends Controller
             ]);
 
             return redirect()
-                ->route('couriers.summary')
+                ->to($this->resolveFlowRoute($request, 'summary'))
                 ->with('error', 'Your booking details changed. Please review and submit again.');
         }
 
@@ -1064,6 +1114,7 @@ class ClientCourierController extends Controller
             $payload,
             $this->serviceLevelLabelsForCategory($category)
         );
+        $this->assertPayloadMatchesFlowRoute($payload, $request);
         $this->assertShipmentCodRequestPayload($payload);
         $codRequest = $this->resolveCodBookingPayload($payload);
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
@@ -1224,7 +1275,7 @@ class ClientCourierController extends Controller
         $this->rememberGuestBillAccess($request, (int) $shipment->id);
 
         return redirect()
-            ->route('couriers.create')
+            ->to($this->resolveFlowRoute($request, 'create'))
             ->with('success', 'Courier request submitted successfully.')
             ->with('courier_reference', $shipment->reference)
             ->with('courier_bill_id', $shipment->id);
@@ -1457,6 +1508,89 @@ class ClientCourierController extends Controller
             ->filter()
             ->values()
             ->all();
+    }
+
+    private function hasFlowRouteContext(Request $request): bool
+    {
+        $flow = $request->route('flow');
+
+        return is_string($flow) && in_array($flow, ['domestic', 'international'], true);
+    }
+
+    private function resolveBookingFlow(?string $flow): string
+    {
+        return strtolower((string) $flow) === 'international' ? 'international' : 'domestic';
+    }
+
+    private function resolveFlowPageComponent(Request $request, string $page): string
+    {
+        if (!$this->hasFlowRouteContext($request)) {
+            return "Web/courier/{$page}";
+        }
+
+        $flow = $this->resolveBookingFlow((string) $request->route('flow'));
+
+        return "Web/courier/{$flow}/{$page}";
+    }
+
+    private function resolveBookingFlowRoutes(Request $request): array
+    {
+        $isFlowScopedRoute = $this->hasFlowRouteContext($request);
+        $flow = $this->resolveBookingFlow((string) $request->route('flow'));
+        $basePath = $isFlowScopedRoute ? "/couriers/{$flow}" : '/couriers';
+
+        return [
+            'basePath' => $basePath,
+            'create' => "{$basePath}/create",
+            'review' => "{$basePath}/review",
+            'details' => "{$basePath}/details",
+            'detailsStore' => "{$basePath}/details",
+            'summary' => "{$basePath}/summary",
+            'store' => $basePath,
+            'createByFlow' => [
+                'domestic' => '/couriers/domestic/create',
+                'international' => '/couriers/international/create',
+            ],
+        ];
+    }
+
+    private function resolveFlowRoute(Request $request, string $step, array $extraParameters = []): string
+    {
+        if (!$this->hasFlowRouteContext($request)) {
+            return route("couriers.{$step}", $extraParameters);
+        }
+
+        return route("couriers.flow.{$step}", array_merge([
+            'flow' => $this->resolveBookingFlow((string) $request->route('flow')),
+        ], $extraParameters));
+    }
+
+    private function previewMismatchesScopedFlow($previewPayload, Request $request): bool
+    {
+        if (!$this->hasFlowRouteContext($request) || !is_array($previewPayload)) {
+            return false;
+        }
+
+        $routeFlow = $this->resolveBookingFlow((string) $request->route('flow'));
+        $payloadFlow = $this->resolvePayloadCategory($previewPayload);
+
+        return $payloadFlow !== $routeFlow;
+    }
+
+    private function assertPayloadMatchesFlowRoute(array $payload, Request $request): void
+    {
+        if (!$this->hasFlowRouteContext($request)) {
+            return;
+        }
+
+        $routeFlow = $this->resolveBookingFlow((string) $request->route('flow'));
+        $payloadFlow = $this->resolvePayloadCategory($payload);
+
+        if ($payloadFlow !== $routeFlow) {
+            throw ValidationException::withMessages([
+                'shipment.routeType' => "This URL accepts {$routeFlow} shipments only.",
+            ]);
+        }
     }
 
     private function resolvePayloadCategory(array $payload): string
@@ -3814,7 +3948,7 @@ class ClientCourierController extends Controller
             ]);
 
             return redirect()
-                ->route('couriers.create')
+                ->to($this->resolveFlowRoute($request, 'create'))
                 ->with('error', 'Unable to download that bill from this session.');
         }
 
