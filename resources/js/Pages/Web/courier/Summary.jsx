@@ -71,6 +71,12 @@ const Summary = ({
         pricingPreview = null,
         errors = {},
     } = resolvedProps;
+    const resolvedFlowRoutes = resolvedProps.flowRoutes && typeof resolvedProps.flowRoutes === "object"
+        ? resolvedProps.flowRoutes
+        : {};
+    const createHref = resolvedFlowRoutes.create || "/couriers/create";
+    const detailsHref = resolvedFlowRoutes.details || "/couriers/details";
+    const storeRoute = resolvedFlowRoutes.store || "/couriers";
     const allowEditLinks = showEditLinks ?? !inline;
     const showHeroSection = showHero ?? !inline;
     const hasErrors = Object.keys(errors).length > 0;
@@ -113,7 +119,7 @@ const Summary = ({
                     </p>
                     {allowEditLinks && (
                         <Link
-                            href="/couriers/create"
+                            href={createHref}
                             className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4b93]"
                         >
                             Go to courier form
@@ -134,7 +140,7 @@ const Summary = ({
                             Start by creating a courier request and selecting your services.
                         </p>
                         <Link
-                            href="/couriers/create"
+                            href={createHref}
                             className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
                         >
                             Go to courier form
@@ -287,7 +293,7 @@ const Summary = ({
         }
         payload.reviewContext.displayCurrency = payload.reviewContext.displayCurrency || payload.shipment.currency;
 
-        router.post('/couriers', payload, {
+        router.post(storeRoute, payload, {
             preserveScroll: false,
             preserveState: !inline,
             onStart: () => setIsSubmitting(true),
@@ -318,7 +324,7 @@ const Summary = ({
                         {allowEditLinks && (
                             <div className="mt-6">
                                 <Link
-                                    href="/couriers/details"
+                                    href={detailsHref}
                                     className="inline-flex items-center gap-2 text-xs md:text-sm text-white/70 underline-offset-4 hover:text-white hover:underline transition"
                                 >
                                     ← Edit shipment details
@@ -358,7 +364,7 @@ const Summary = ({
                             </div>
                             {allowEditLinks && (
                                 <Link
-                                    href="/couriers/details"
+                                    href={detailsHref}
                                     className="inline-flex items-center gap-2 rounded-lg border border-[#0955AC] px-4 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
                                 >
                                     ← Modify details

@@ -107,7 +107,7 @@ const QUOTE_TIER_OPTIONS = [
     { id: "priority", label: "Priority", color: "text-purple-700" },
 ];
 
-const Create = () => {
+const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverrides = null }) => {
     const { props } = usePage();
     const packageTypes = props.packageTypes || [];
     const countries = props.countries || [];
@@ -118,6 +118,48 @@ const Create = () => {
     const packageSectionDescription = "Use the quick calculator layout to set locations, weight, and dimensions.";
     const defaultDomesticFromCity = "";
     const defaultDomesticToCity = "";
+    const normalizedForcedRouteType = forcedRouteType === "international"
+        ? "international"
+        : (forcedRouteType === "domestic" ? "domestic" : null);
+    const pageBookingFlow = props.bookingFlow === "international"
+        ? "international"
+        : (props.bookingFlow === "domestic" ? "domestic" : null);
+    const lockedBookingFlow = normalizedForcedRouteType || pageBookingFlow;
+    const shouldLockRouteType = Boolean(lockFlowToUrl || lockedBookingFlow);
+    const flowRoutesFromPage = props.flowRoutes && typeof props.flowRoutes === "object" ? props.flowRoutes : {};
+    const flowRoutesOverride = flowRouteOverrides && typeof flowRouteOverrides === "object" ? flowRouteOverrides : {};
+
+    const normalizePath = (value, fallback) => {
+        const raw = typeof value === "string" ? value.trim() : "";
+        if (!raw) {
+            return fallback;
+        }
+
+        return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+    };
+
+    const fallbackBasePath = `/couriers/${lockedBookingFlow || "domestic"}`;
+    const flowBasePath = normalizePath(
+        flowRoutesOverride.basePath || flowRoutesFromPage.basePath,
+        fallbackBasePath,
+    );
+    const flowRoutes = {
+        basePath: flowBasePath,
+        create: flowRoutesOverride.create || flowRoutesFromPage.create || `${flowBasePath}/create`,
+        review: flowRoutesOverride.review || flowRoutesFromPage.review || `${flowBasePath}/review`,
+        details: flowRoutesOverride.details || flowRoutesFromPage.details || `${flowBasePath}/details`,
+        detailsStore: flowRoutesOverride.detailsStore || flowRoutesFromPage.detailsStore || `${flowBasePath}/details`,
+        summary: flowRoutesOverride.summary || flowRoutesFromPage.summary || `${flowBasePath}/summary`,
+        store: flowRoutesOverride.store || flowRoutesFromPage.store || `${flowBasePath}`,
+        createByFlow: {
+            domestic: flowRoutesOverride.createByFlow?.domestic
+                || flowRoutesFromPage.createByFlow?.domestic
+                || "/couriers/domestic/create",
+            international: flowRoutesOverride.createByFlow?.international
+                || flowRoutesFromPage.createByFlow?.international
+                || "/couriers/international/create",
+        },
+    };
 
     const buildDefaultQuoteFilters = () => ({
         providerSearch: "",
@@ -220,7 +262,7 @@ const Create = () => {
         };
     };
 
-    const initialForm = buildEmptyForm("domestic");
+    const initialForm = buildEmptyForm(lockedBookingFlow || "domestic");
     const {
         data,
         setData,
@@ -452,7 +494,16 @@ const Create = () => {
         }
 
         const nextRouteType = routeSwitchPrompt.nextRouteType;
+        const targetCreateUrl = routeSwitchPrompt.targetCreateUrl;
         setRouteSwitchPrompt(null);
+
+        if (targetCreateUrl) {
+            if (typeof window !== "undefined") {
+                window.location.assign(targetCreateUrl);
+            }
+            return;
+        }
+
         resetForRouteType(nextRouteType);
     };
 
@@ -469,6 +520,23 @@ const Create = () => {
 
         const baseline = buildEmptyForm(selectedRouteType);
         const hasRouteInput = JSON.stringify(data) !== JSON.stringify(baseline);
+
+        if (shouldLockRouteType) {
+            const targetCreateUrl = flowRoutes.createByFlow[nextRouteType] || `/couriers/${nextRouteType}/create`;
+
+            if (hasRouteInput) {
+                setRouteSwitchPrompt({
+                    nextRouteType,
+                    targetCreateUrl,
+                });
+                return;
+            }
+
+            if (typeof window !== "undefined") {
+                window.location.assign(targetCreateUrl);
+            }
+            return;
+        }
 
         if (hasRouteInput) {
             setRouteSwitchPrompt({ nextRouteType });
@@ -896,7 +964,7 @@ const Create = () => {
         }
 
         try {
-            const response = await fetch("/couriers/review", {
+            const response = await fetch(flowRoutes.review, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -945,7 +1013,7 @@ const Create = () => {
         }
 
         try {
-            const response = await fetch("/couriers/details", {
+            const response = await fetch(flowRoutes.detailsStore, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -1103,7 +1171,7 @@ const Create = () => {
                                         Download the courier bill to keep a record of this request.
                                     </span>
                                     <a
-                                        href={`/couriers/${recentShipmentId}/bill`}
+                                        href={`${flowRoutes.basePath}/${recentShipmentId}/bill`}
                                         className="inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4b93]"
                                     >
                                         Download bill
@@ -2307,6 +2375,7 @@ const Create = () => {
                                         favoriteRecipients: props.favoriteRecipients || [],
                                         favoriteSenders: props.favoriteSenders || [],
                                         senderProfile: props.senderProfile || null,
+                                        flowRoutes,
                                         errors: errors || {},
                                     }}
                                 />
@@ -2332,6 +2401,7 @@ const Create = () => {
                                     pagePropsOverride={{
                                         formData: data,
                                         pricingPreview: null,
+                                        flowRoutes,
                                         errors: errors || {},
                                     }}
                                 />
