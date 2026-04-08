@@ -351,7 +351,7 @@ const Summary = ({
                     <div className="mb-10">
                         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment prog</h2>
+                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment progress</h2>
                                 <p className="mt-2 text-sm text-[#5B6887]">
                                     All steps are complete. Review the details below before you finalize the request.
                                 </p>
