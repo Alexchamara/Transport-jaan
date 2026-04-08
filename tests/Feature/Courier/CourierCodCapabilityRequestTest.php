@@ -4,6 +4,7 @@ namespace Tests\Feature\Courier;
 
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\CourierVendorCodCapability;
+use App\Models\Courier\CourierVendorCodIntegrityIncident;
 use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\ServiceWorkspace;
@@ -24,6 +25,8 @@ class CourierCodCapabilityRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->withoutVite();
 
         $this->seed(CourierRbacSeeder::class);
     }
@@ -475,6 +478,347 @@ class CourierCodCapabilityRequestTest extends TestCase
 
         $integrityStatuses = collect($response->json('events') ?? [])->pluck('integrityStatus')->all();
         $this->assertContains('issue', $integrityStatuses);
+    }
+
+    public function test_superadmin_can_open_integrity_incident_for_tampered_chain(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(45),
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $submittedAudit = CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            CourierVendorCodCapability::STATUS_NOT_REQUESTED,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $vendor->id,
+            'Submitted from settings.',
+            [
+                'source' => 'vendor_settings',
+            ]
+        );
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_approved',
+            CourierVendorCodCapability::STATUS_PENDING,
+            CourierVendorCodCapability::STATUS_APPROVED,
+            $superAdmin->id,
+            'Approved by superadmin.',
+            [
+                'source' => 'superadmin_cod_settlement',
+                'expires_at' => now()->addMonths(6)->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('courier_vendor_cod_capability_audits')
+            ->where('id', (int) $submittedAudit->id)
+            ->update([
+                'record_hash' => str_repeat('b', 64),
+            ]);
+
+        $csrfToken = 'cod-open-integrity-incident-token';
+
+        $response = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.capabilities.incidents.open', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'title' => 'Audit hash mismatch detected',
+                'description' => 'Chain verification failed in superadmin queue.',
+                'severity' => CourierVendorCodIntegrityIncident::SEVERITY_CRITICAL,
+                'note' => 'Opening integrity incident for review.',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $incident = CourierVendorCodIntegrityIncident::query()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($incident);
+        $this->assertSame(CourierVendorCodIntegrityIncident::STATUS_OPEN, (string) $incident->status);
+        $this->assertSame(CourierVendorCodIntegrityIncident::SEVERITY_CRITICAL, (string) $incident->severity);
+        $this->assertSame($superAdmin->id, (int) ($incident->created_by_user_id ?? 0));
+        $this->assertGreaterThanOrEqual(1, (int) ($incident->detected_issue_count ?? 0));
+
+        $auditEventType = CourierVendorCodCapabilityAudit::query()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->value('event_type');
+
+        $this->assertSame('cod_integrity_incident_opened', (string) $auditEventType);
+    }
+
+    public function test_superadmin_cannot_approve_tampered_chain_without_incident(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(45),
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $submittedAudit = CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            CourierVendorCodCapability::STATUS_NOT_REQUESTED,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $vendor->id,
+            'Submitted from settings.',
+            [
+                'source' => 'vendor_settings',
+            ]
+        );
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_approved',
+            CourierVendorCodCapability::STATUS_PENDING,
+            CourierVendorCodCapability::STATUS_APPROVED,
+            $superAdmin->id,
+            'Approved by superadmin.',
+            [
+                'source' => 'superadmin_cod_settlement',
+                'expires_at' => now()->addMonths(6)->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('courier_vendor_cod_capability_audits')
+            ->where('id', (int) $submittedAudit->id)
+            ->update([
+                'record_hash' => str_repeat('c', 64),
+            ]);
+
+        $csrfToken = 'cod-approve-integrity-guard-token';
+
+        $response = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->from(route('superadmin.settings.cod-settlement.index'))
+            ->post(route('superadmin.settings.cod-settlement.capabilities.approve', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'note' => 'Trying to approve despite integrity issue.',
+            ]);
+
+        $response->assertRedirect(route('superadmin.settings.cod-settlement.index'));
+        $response->assertSessionHasErrors(['capability']);
+
+        $capability->refresh();
+        $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, (string) $capability->status);
+    }
+
+    public function test_superadmin_can_assign_and_resolve_incident_then_approve(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subHour(),
+            'requested_note' => 'Ready for COD rollout.',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $submittedAudit = CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            CourierVendorCodCapability::STATUS_NOT_REQUESTED,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $vendor->id,
+            'Submitted from settings.',
+            [
+                'source' => 'vendor_settings',
+            ]
+        );
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_approved',
+            CourierVendorCodCapability::STATUS_PENDING,
+            CourierVendorCodCapability::STATUS_APPROVED,
+            $superAdmin->id,
+            'Approved by superadmin.',
+            [
+                'source' => 'superadmin_cod_settlement',
+                'expires_at' => now()->addMonths(6)->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('courier_vendor_cod_capability_audits')
+            ->where('id', (int) $submittedAudit->id)
+            ->update([
+                'record_hash' => str_repeat('d', 64),
+            ]);
+
+        $csrfToken = 'cod-incident-workflow-token';
+
+        $openResponse = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.capabilities.incidents.open', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'title' => 'Integrity mismatch under review',
+                'description' => 'Investigate hash inconsistency before approval.',
+                'severity' => CourierVendorCodIntegrityIncident::SEVERITY_HIGH,
+            ]);
+
+        $openResponse->assertRedirect();
+
+        $incident = CourierVendorCodIntegrityIncident::query()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($incident);
+        $this->assertSame(CourierVendorCodIntegrityIncident::STATUS_OPEN, (string) $incident->status);
+
+        $assignResponse = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.incidents.assign', ['incident' => $incident->id]), [
+                '_token' => $csrfToken,
+                'note' => 'Assigned for immediate triage.',
+            ]);
+
+        $assignResponse->assertRedirect();
+
+        $incident->refresh();
+        $this->assertSame(CourierVendorCodIntegrityIncident::STATUS_INVESTIGATING, (string) $incident->status);
+        $this->assertSame($superAdmin->id, (int) ($incident->assigned_to_user_id ?? 0));
+        $this->assertNotNull($incident->assigned_at);
+
+        $resolveResponse = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.incidents.resolve', ['incident' => $incident->id]), [
+                '_token' => $csrfToken,
+                'resolutionStatus' => CourierVendorCodIntegrityIncident::STATUS_RESOLVED,
+                'resolutionNote' => 'Reviewed chain mismatch and accepted documented exception.',
+            ]);
+
+        $resolveResponse->assertRedirect();
+
+        $incident->refresh();
+        $this->assertSame(CourierVendorCodIntegrityIncident::STATUS_RESOLVED, (string) $incident->status);
+        $this->assertSame($superAdmin->id, (int) ($incident->resolved_by_user_id ?? 0));
+        $this->assertNotNull($incident->resolved_at);
+
+        $approveResponse = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.capabilities.approve', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'note' => 'Approved after incident resolution.',
+            ]);
+
+        $approveResponse->assertRedirect();
+        $approveResponse->assertSessionHas('success');
+
+        $capability->refresh();
+        $this->assertSame(CourierVendorCodCapability::STATUS_APPROVED, (string) $capability->status);
+    }
+
+    public function test_superadmin_index_exposes_active_incident_payload(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(45),
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $submittedAudit = CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            CourierVendorCodCapability::STATUS_NOT_REQUESTED,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $vendor->id,
+            'Submitted from settings.',
+            [
+                'source' => 'vendor_settings',
+            ]
+        );
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_approved',
+            CourierVendorCodCapability::STATUS_PENDING,
+            CourierVendorCodCapability::STATUS_APPROVED,
+            $superAdmin->id,
+            'Approved by superadmin.',
+            [
+                'source' => 'superadmin_cod_settlement',
+                'expires_at' => now()->addMonths(6)->format('Y-m-d H:i:s'),
+            ]
+        );
+
+        DB::table('courier_vendor_cod_capability_audits')
+            ->where('id', (int) $submittedAudit->id)
+            ->update([
+                'record_hash' => str_repeat('e', 64),
+            ]);
+
+        $incident = CourierVendorCodIntegrityIncident::query()->create([
+            'courier_vendor_cod_capability_id' => (int) $capability->id,
+            'vendor_user_id' => (int) $vendor->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'status' => CourierVendorCodIntegrityIncident::STATUS_OPEN,
+            'severity' => CourierVendorCodIntegrityIncident::SEVERITY_HIGH,
+            'title' => 'Integrity mismatch detected',
+            'description' => 'Manual open from operations queue.',
+            'detected_issue_count' => 2,
+            'detected_at' => now()->subMinutes(10),
+            'created_by_user_id' => (int) $superAdmin->id,
+        ]);
+
+        $response = $this->actingAs($superAdmin)
+            ->get(route('superadmin.settings.cod-settlement.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/SuperAdmin/CourierCodSettings')
+            ->has('requests', 1)
+            ->where('requests.0.id', (int) $capability->id)
+            ->where('requests.0.isActionLocked', true)
+            ->where('requests.0.canOpenIncident', false)
+            ->where('requests.0.activeIncident.id', (int) $incident->id)
+            ->where('requests.0.activeIncident.status', CourierVendorCodIntegrityIncident::STATUS_OPEN)
+            ->where('requests.0.activeIncident.title', 'Integrity mismatch detected')
+        );
     }
 
     public function test_vendor_request_rejects_invalid_cod_category(): void

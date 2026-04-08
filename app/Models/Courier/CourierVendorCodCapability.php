@@ -74,6 +74,11 @@ class CourierVendorCodCapability extends Model
         return $this->hasMany(CourierVendorCodCapabilityAudit::class, 'courier_vendor_cod_capability_id');
     }
 
+    public function integrityIncidents()
+    {
+        return $this->hasMany(CourierVendorCodIntegrityIncident::class, 'courier_vendor_cod_capability_id');
+    }
+
     public function categoryLabel(): string
     {
         return self::CATEGORY_LABELS[self::normalizeCategory((string) $this->category)] ?? 'Domestic';

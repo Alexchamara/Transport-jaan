@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierCodSettlementSetting;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
+use App\Models\Courier\CourierVendorCodIntegrityIncident;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class CourierCodSettingsController extends Controller
@@ -66,6 +68,8 @@ class CourierCodSettingsController extends Controller
         $auditEventsByCapability = collect();
         $auditEventCountByCapability = [];
         $auditIntegrityByCapability = [];
+        $activeIncidentByCapability = [];
+        $latestIncidentByCapability = [];
 
         if ($capabilityIds->isNotEmpty()) {
             $audits = CourierVendorCodCapabilityAudit::query()
@@ -98,12 +102,42 @@ class CourierCodSettingsController extends Controller
                     return $integrityIndex['summary'];
                 })
                 ->all();
+
+            $incidents = CourierVendorCodIntegrityIncident::query()
+                ->with(['creator:id,name', 'assignee:id,name', 'resolver:id,name'])
+                ->whereIn('courier_vendor_cod_capability_id', $capabilityIds->all())
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy(static fn (CourierVendorCodIntegrityIncident $incident) => (int) $incident->courier_vendor_cod_capability_id);
+
+            $latestIncidentByCapability = $incidents
+                ->map(fn (Collection $rows) => $rows->first())
+                ->all();
+
+            $activeIncidentByCapability = $incidents
+                ->map(function (Collection $rows) {
+                    return $rows->first(function (CourierVendorCodIntegrityIncident $incident) {
+                        return in_array(
+                            CourierVendorCodIntegrityIncident::normalizeStatus((string) $incident->status),
+                            CourierVendorCodIntegrityIncident::STATUSES_ACTIVE,
+                            true
+                        );
+                    });
+                })
+                ->all();
         }
 
         $requests = collect($paginator->items())
-            ->map(function (CourierVendorCodCapability $capability) use ($auditEventsByCapability, $auditEventCountByCapability, $auditIntegrityByCapability) {
+            ->map(function (CourierVendorCodCapability $capability) use ($auditEventsByCapability, $auditEventCountByCapability, $auditIntegrityByCapability, $activeIncidentByCapability, $latestIncidentByCapability) {
                 $capabilityId = (int) $capability->id;
                 $auditTrail = $auditEventsByCapability->get($capabilityId, collect());
+                $auditIntegrity = $auditIntegrityByCapability[$capabilityId] ?? [
+                    'isValid' => true,
+                    'issueCount' => 0,
+                    'verifiedEvents' => 0,
+                ];
+                $activeIncident = $activeIncidentByCapability[$capabilityId] ?? null;
+                $latestIncident = $latestIncidentByCapability[$capabilityId] ?? null;
 
                 return [
                     'id' => $capabilityId,
@@ -125,11 +159,12 @@ class CourierCodSettingsController extends Controller
                     'decisionReason' => (string) ($capability->decision_reason ?? ''),
                     'auditEventCount' => (int) ($auditEventCountByCapability[$capabilityId] ?? 0),
                     'auditTrail' => $auditTrail->all(),
-                    'auditIntegrity' => $auditIntegrityByCapability[$capabilityId] ?? [
-                        'isValid' => true,
-                        'issueCount' => 0,
-                        'verifiedEvents' => 0,
-                    ],
+                    'auditIntegrity' => $auditIntegrity,
+                    'activeIncident' => $this->serializeIntegrityIncident($activeIncident),
+                    'latestIncident' => $this->serializeIntegrityIncident($latestIncident),
+                    'isActionLocked' => $activeIncident instanceof CourierVendorCodIntegrityIncident,
+                    'canOpenIncident' => !(bool) ($auditIntegrity['isValid'] ?? true)
+                        && !($activeIncident instanceof CourierVendorCodIntegrityIncident),
                 ];
             })
             ->values();
@@ -206,6 +241,8 @@ class CourierCodSettingsController extends Controller
 
     public function approveCapability(Request $request, CourierVendorCodCapability $capability)
     {
+        $this->assertCapabilityDecisionAllowed($capability);
+
         $validated = $request->validate([
             'note' => ['nullable', 'string', 'max:500'],
             'expiresAt' => ['nullable', 'date', 'after:now'],
@@ -247,6 +284,8 @@ class CourierCodSettingsController extends Controller
 
     public function rejectCapability(Request $request, CourierVendorCodCapability $capability)
     {
+        $this->assertCapabilityDecisionAllowed($capability);
+
         $validated = $request->validate([
             'note' => ['required', 'string', 'max:500'],
         ]);
@@ -284,7 +323,7 @@ class CourierCodSettingsController extends Controller
     public function capabilityAuditHistory(Request $request, CourierVendorCodCapability $capability)
     {
         $validated = $request->validate([
-            'eventType' => ['nullable', 'string', 'in:all,cod_capability_request_submitted,cod_capability_approved,cod_capability_rejected'],
+            'eventType' => ['nullable', 'string', 'in:all,cod_capability_request_submitted,cod_capability_approved,cod_capability_rejected,cod_integrity_incident_opened,cod_integrity_incident_assigned,cod_integrity_incident_resolved,cod_integrity_incident_dismissed'],
             'actor' => ['nullable', 'string', 'max:120'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
@@ -323,6 +362,12 @@ class CourierCodSettingsController extends Controller
         $paginator = $query->paginate($perPage)->withQueryString();
 
         $integrityIndex = $this->verifyCapabilityAuditChain((int) $capability->id);
+        $activeIncident = CourierVendorCodIntegrityIncident::query()
+            ->with(['creator:id,name', 'assignee:id,name', 'resolver:id,name'])
+            ->active()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
 
         $events = collect($paginator->items())
             ->map(fn (CourierVendorCodCapabilityAudit $audit) => $this->serializeCapabilityAuditEvent(
@@ -357,7 +402,206 @@ class CourierCodSettingsController extends Controller
                 'to' => $to?->toDateString() ?? '',
             ],
             'integrity' => $integrityIndex['summary'],
+            'activeIncident' => $this->serializeIntegrityIncident($activeIncident),
         ]);
+    }
+
+    public function openIntegrityIncident(Request $request, CourierVendorCodCapability $capability)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'severity' => ['nullable', 'string', 'in:low,medium,high,critical'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $integrityIndex = $this->verifyCapabilityAuditChain((int) $capability->id);
+        $integritySummary = $integrityIndex['summary'];
+
+        if ((bool) ($integritySummary['isValid'] ?? true)) {
+            throw ValidationException::withMessages([
+                'incident' => ['Audit integrity is currently valid. No incident can be opened.'],
+            ]);
+        }
+
+        $existingActive = CourierVendorCodIntegrityIncident::query()
+            ->active()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
+
+        if ($existingActive instanceof CourierVendorCodIntegrityIncident) {
+            throw ValidationException::withMessages([
+                'incident' => ['An unresolved integrity incident already exists for this capability.'],
+            ]);
+        }
+
+        $actorId = (int) optional($request->user())->id ?: null;
+        $severity = CourierVendorCodIntegrityIncident::normalizeSeverity((string) ($validated['severity'] ?? 'high'));
+        $title = trim((string) $validated['title']);
+        $description = trim((string) ($validated['description'] ?? ''));
+        $note = trim((string) ($validated['note'] ?? ''));
+
+        $issueEvents = collect($integrityIndex['events'])
+            ->filter(static fn ($event) => !((bool) data_get($event, 'isValid', false)))
+            ->map(function ($event, $auditId) {
+                return [
+                    'auditId' => (int) $auditId,
+                    'reason' => (string) data_get($event, 'reason', ''),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $incident = CourierVendorCodIntegrityIncident::query()->create([
+            'courier_vendor_cod_capability_id' => (int) $capability->id,
+            'vendor_user_id' => (int) $capability->vendor_user_id,
+            'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
+            'status' => CourierVendorCodIntegrityIncident::STATUS_OPEN,
+            'severity' => $severity,
+            'title' => $title,
+            'description' => $description !== '' ? $description : null,
+            'detected_issue_count' => (int) ($integritySummary['issueCount'] ?? 0),
+            'integrity_snapshot' => [
+                'summary' => $integritySummary,
+                'issues' => $issueEvents,
+            ],
+            'detected_at' => now(),
+            'created_by_user_id' => $actorId > 0 ? $actorId : null,
+            'metadata' => [
+                'source' => 'superadmin_cod_settlement',
+            ],
+        ]);
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_integrity_incident_opened',
+            (string) $capability->status,
+            (string) $capability->status,
+            $actorId > 0 ? $actorId : null,
+            $note !== '' ? $note : null,
+            [
+                'source' => 'superadmin_cod_settlement',
+                'incident_id' => (int) $incident->id,
+                'incident_status' => CourierVendorCodIntegrityIncident::STATUS_OPEN,
+                'incident_severity' => $severity,
+                'incident_issue_count' => (int) ($integritySummary['issueCount'] ?? 0),
+            ]
+        );
+
+        return back()->with('success', 'COD integrity incident opened. Capability actions are now locked until resolution.');
+    }
+
+    public function assignIntegrityIncident(Request $request, CourierVendorCodIntegrityIncident $incident)
+    {
+        $validated = $request->validate([
+            'assignedToUserId' => ['nullable', 'integer', 'exists:users,id'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if (!in_array(
+            CourierVendorCodIntegrityIncident::normalizeStatus((string) $incident->status),
+            CourierVendorCodIntegrityIncident::STATUSES_ACTIVE,
+            true
+        )) {
+            throw ValidationException::withMessages([
+                'incident' => ['Only open or investigating incidents can be assigned.'],
+            ]);
+        }
+
+        $actorId = (int) optional($request->user())->id ?: null;
+        $assigneeId = (int) ($validated['assignedToUserId'] ?? 0);
+
+        if ($assigneeId <= 0 && $actorId > 0) {
+            $assigneeId = $actorId;
+        }
+
+        if ($assigneeId <= 0) {
+            throw ValidationException::withMessages([
+                'assignedToUserId' => ['Provide a valid assignee.'],
+            ]);
+        }
+
+        $incident->fill([
+            'assigned_to_user_id' => $assigneeId,
+            'assigned_at' => now(),
+            'status' => CourierVendorCodIntegrityIncident::STATUS_INVESTIGATING,
+        ]);
+        $incident->save();
+
+        $note = trim((string) ($validated['note'] ?? ''));
+        $capability = $incident->capability()->firstOrFail();
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_integrity_incident_assigned',
+            (string) $capability->status,
+            (string) $capability->status,
+            $actorId > 0 ? $actorId : null,
+            $note !== '' ? $note : null,
+            [
+                'source' => 'superadmin_cod_settlement',
+                'incident_id' => (int) $incident->id,
+                'incident_status' => CourierVendorCodIntegrityIncident::STATUS_INVESTIGATING,
+                'assigned_to_user_id' => $assigneeId,
+            ]
+        );
+
+        return back()->with('success', 'Integrity incident assigned and moved to investigating status.');
+    }
+
+    public function resolveIntegrityIncident(Request $request, CourierVendorCodIntegrityIncident $incident)
+    {
+        $validated = $request->validate([
+            'resolutionStatus' => ['nullable', 'string', 'in:resolved,dismissed'],
+            'resolutionNote' => ['required', 'string', 'max:2000'],
+        ]);
+
+        if (!in_array(
+            CourierVendorCodIntegrityIncident::normalizeStatus((string) $incident->status),
+            CourierVendorCodIntegrityIncident::STATUSES_ACTIVE,
+            true
+        )) {
+            throw ValidationException::withMessages([
+                'incident' => ['Only open or investigating incidents can be resolved.'],
+            ]);
+        }
+
+        $resolutionStatus = CourierVendorCodIntegrityIncident::normalizeStatus((string) ($validated['resolutionStatus'] ?? CourierVendorCodIntegrityIncident::STATUS_RESOLVED));
+        if (!in_array($resolutionStatus, [CourierVendorCodIntegrityIncident::STATUS_RESOLVED, CourierVendorCodIntegrityIncident::STATUS_DISMISSED], true)) {
+            $resolutionStatus = CourierVendorCodIntegrityIncident::STATUS_RESOLVED;
+        }
+
+        $actorId = (int) optional($request->user())->id ?: null;
+        $resolutionNote = trim((string) $validated['resolutionNote']);
+
+        $incident->fill([
+            'status' => $resolutionStatus,
+            'resolved_by_user_id' => $actorId > 0 ? $actorId : null,
+            'resolved_at' => now(),
+            'resolution_note' => $resolutionNote,
+        ]);
+        $incident->save();
+
+        $capability = $incident->capability()->firstOrFail();
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            $resolutionStatus === CourierVendorCodIntegrityIncident::STATUS_DISMISSED
+                ? 'cod_integrity_incident_dismissed'
+                : 'cod_integrity_incident_resolved',
+            (string) $capability->status,
+            (string) $capability->status,
+            $actorId > 0 ? $actorId : null,
+            $resolutionNote,
+            [
+                'source' => 'superadmin_cod_settlement',
+                'incident_id' => (int) $incident->id,
+                'incident_status' => $resolutionStatus,
+            ]
+        );
+
+        return back()->with('success', 'Integrity incident updated successfully.');
     }
 
     private function serializeCapabilityAuditEvent(CourierVendorCodCapabilityAudit $audit, ?array $integrityContext = null): array
@@ -387,6 +631,73 @@ class CourierCodSettingsController extends Controller
             'integrityStatus' => (bool) ($integrityContext['isValid'] ?? true) ? 'valid' : 'issue',
             'integrityReason' => (string) ($integrityContext['reason'] ?? ''),
         ];
+    }
+
+    private function serializeIntegrityIncident(?CourierVendorCodIntegrityIncident $incident): ?array
+    {
+        if (!$incident instanceof CourierVendorCodIntegrityIncident) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $incident->id,
+            'status' => CourierVendorCodIntegrityIncident::normalizeStatus((string) $incident->status),
+            'statusLabel' => $incident->statusLabel(),
+            'severity' => CourierVendorCodIntegrityIncident::normalizeSeverity((string) $incident->severity),
+            'severityLabel' => $incident->severityLabel(),
+            'title' => (string) ($incident->title ?? ''),
+            'description' => (string) ($incident->description ?? ''),
+            'detectedIssueCount' => (int) ($incident->detected_issue_count ?? 0),
+            'detectedAt' => optional($incident->detected_at)->format('Y-m-d H:i:s'),
+            'createdBy' => (string) ($incident->creator->name ?? ''),
+            'assignedTo' => (string) ($incident->assignee->name ?? ''),
+            'assignedAt' => optional($incident->assigned_at)->format('Y-m-d H:i:s'),
+            'resolvedBy' => (string) ($incident->resolver->name ?? ''),
+            'resolvedAt' => optional($incident->resolved_at)->format('Y-m-d H:i:s'),
+            'resolutionNote' => (string) ($incident->resolution_note ?? ''),
+        ];
+    }
+
+    private function assertCapabilityDecisionAllowed(CourierVendorCodCapability $capability): void
+    {
+        $capabilityId = (int) $capability->id;
+
+        $activeIncident = CourierVendorCodIntegrityIncident::query()
+            ->active()
+            ->where('courier_vendor_cod_capability_id', $capabilityId)
+            ->latest('id')
+            ->first();
+
+        if ($activeIncident instanceof CourierVendorCodIntegrityIncident) {
+            throw ValidationException::withMessages([
+                'capability' => ['An unresolved integrity incident is active. Resolve or dismiss it before changing COD capability status.'],
+            ]);
+        }
+
+        $integritySummary = $this->verifyCapabilityAuditChain($capabilityId)['summary'];
+        if ((bool) ($integritySummary['isValid'] ?? true)) {
+            return;
+        }
+
+        $latestIncident = CourierVendorCodIntegrityIncident::query()
+            ->where('courier_vendor_cod_capability_id', $capabilityId)
+            ->latest('id')
+            ->first();
+
+        if (!$latestIncident instanceof CourierVendorCodIntegrityIncident) {
+            throw ValidationException::withMessages([
+                'capability' => ['Audit chain integrity has issues. Open and resolve an integrity incident before changing COD capability status.'],
+            ]);
+        }
+
+        $latestStatus = CourierVendorCodIntegrityIncident::normalizeStatus((string) $latestIncident->status);
+        if (in_array($latestStatus, [CourierVendorCodIntegrityIncident::STATUS_RESOLVED, CourierVendorCodIntegrityIncident::STATUS_DISMISSED], true)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'capability' => ['Audit chain integrity has issues. Open and resolve an integrity incident before changing COD capability status.'],
+        ]);
     }
 
     private function verifyCapabilityAuditChain(int $capabilityId): array
@@ -486,6 +797,10 @@ class CourierCodSettingsController extends Controller
             'cod_capability_request_submitted' => 'Request submitted',
             'cod_capability_approved' => 'Capability approved',
             'cod_capability_rejected' => 'Capability rejected',
+            'cod_integrity_incident_opened' => 'Integrity incident opened',
+            'cod_integrity_incident_assigned' => 'Integrity incident assigned',
+            'cod_integrity_incident_resolved' => 'Integrity incident resolved',
+            'cod_integrity_incident_dismissed' => 'Integrity incident dismissed',
             default => ucwords(str_replace('_', ' ', trim($eventType) !== '' ? $eventType : 'cod_capability_event')),
         };
     }
