@@ -29,6 +29,26 @@ const auditEventAccentMap = {
     cod_capability_rejected: 'bg-[#FF4757]',
 };
 
+const HISTORY_EVENT_OPTIONS = [
+    { value: 'all', label: 'All Events' },
+    { value: 'cod_capability_request_submitted', label: 'Request Submitted' },
+    { value: 'cod_capability_approved', label: 'Capability Approved' },
+    { value: 'cod_capability_rejected', label: 'Capability Rejected' },
+];
+
+const defaultHistoryPagination = {
+    currentPage: 1,
+    lastPage: 1,
+    perPage: 15,
+    total: 0,
+};
+
+const defaultHistoryIntegrity = {
+    isValid: true,
+    issueCount: 0,
+    verifiedEvents: 0,
+};
+
 const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) => {
     const { flash } = usePage().props;
 
@@ -36,6 +56,18 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const [status, setStatus] = useState(filters?.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
     const [actionNotes, setActionNotes] = useState({});
+    const [actionExpiryAt, setActionExpiryAt] = useState({});
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [historyCapability, setHistoryCapability] = useState(null);
+    const [historyEvents, setHistoryEvents] = useState([]);
+    const [historyPagination, setHistoryPagination] = useState(defaultHistoryPagination);
+    const [historyIntegrity, setHistoryIntegrity] = useState(defaultHistoryIntegrity);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState('');
+    const [historyEventTypeFilter, setHistoryEventTypeFilter] = useState('all');
+    const [historyActorFilter, setHistoryActorFilter] = useState('');
+    const [historyFromFilter, setHistoryFromFilter] = useState('');
+    const [historyToFilter, setHistoryToFilter] = useState('');
 
     const {
         data,
@@ -90,18 +122,158 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
             return;
         }
 
+        const payload = {
+            note,
+        };
+
+        if (actionType === 'approve') {
+            const expiresAt = String(actionExpiryAt[capabilityId] || '').trim();
+            if (expiresAt !== '') {
+                payload.expiresAt = expiresAt;
+            }
+        }
+
         router.post(
             actionType === 'approve'
                 ? route('superadmin.settings.cod-settlement.capabilities.approve', { capability: capabilityId })
                 : route('superadmin.settings.cod-settlement.capabilities.reject', { capability: capabilityId }),
-            {
-                note,
-            },
+            payload,
             {
                 preserveState: true,
                 preserveScroll: true,
+                onSuccess: () => {
+                    setActionNotes((prev) => ({
+                        ...prev,
+                        [capabilityId]: '',
+                    }));
+
+                    if (actionType === 'approve') {
+                        setActionExpiryAt((prev) => ({
+                            ...prev,
+                            [capabilityId]: '',
+                        }));
+                    }
+                },
             },
         );
+    };
+
+    const fetchCapabilityHistory = async (capabilityId, page = 1, capabilityFallback = null, filterOverrides = null) => {
+        if (!capabilityId) {
+            return;
+        }
+
+        const resolvedEventType = typeof filterOverrides?.eventType === 'string'
+            ? filterOverrides.eventType
+            : historyEventTypeFilter;
+        const resolvedActor = typeof filterOverrides?.actor === 'string'
+            ? filterOverrides.actor
+            : historyActorFilter;
+        const resolvedFrom = typeof filterOverrides?.from === 'string'
+            ? filterOverrides.from
+            : historyFromFilter;
+        const resolvedTo = typeof filterOverrides?.to === 'string'
+            ? filterOverrides.to
+            : historyToFilter;
+
+        const params = {
+            capability: capabilityId,
+            page,
+            perPage: defaultHistoryPagination.perPage,
+        };
+
+        if (resolvedEventType !== 'all') {
+            params.eventType = resolvedEventType;
+        }
+
+        if (resolvedActor.trim() !== '') {
+            params.actor = resolvedActor.trim();
+        }
+
+        if (resolvedFrom !== '') {
+            params.from = resolvedFrom;
+        }
+
+        if (resolvedTo !== '') {
+            params.to = resolvedTo;
+        }
+
+        setHistoryLoading(true);
+        setHistoryError('');
+
+        try {
+            const response = await fetch(
+                route('superadmin.settings.cod-settlement.capabilities.audit-history', params),
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('Unable to load capability audit history.');
+            }
+
+            const payload = await response.json();
+
+            setHistoryCapability(payload?.capability || capabilityFallback || null);
+            setHistoryEvents(Array.isArray(payload?.events) ? payload.events : []);
+            setHistoryPagination(payload?.pagination || defaultHistoryPagination);
+            setHistoryIntegrity(payload?.integrity || defaultHistoryIntegrity);
+        } catch (error) {
+            setHistoryError(error?.message || 'Unable to load capability audit history.');
+            setHistoryEvents([]);
+            setHistoryPagination(defaultHistoryPagination);
+            setHistoryIntegrity(defaultHistoryIntegrity);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const openHistoryModal = (row) => {
+        const capabilitySummary = {
+            id: row?.id,
+            vendorName: row?.vendorName || 'Unknown vendor',
+            vendorEmail: row?.vendorEmail || '',
+            categoryLabel: row?.categoryLabel || 'Domestic',
+            statusLabel: row?.statusLabel || 'Unknown',
+        };
+
+        setHistoryEventTypeFilter('all');
+        setHistoryActorFilter('');
+        setHistoryFromFilter('');
+        setHistoryToFilter('');
+        setHistoryCapability(capabilitySummary);
+        setHistoryEvents([]);
+        setHistoryPagination(defaultHistoryPagination);
+        setHistoryIntegrity(defaultHistoryIntegrity);
+        setHistoryModalOpen(true);
+
+        fetchCapabilityHistory(row?.id, 1, capabilitySummary, {
+            eventType: 'all',
+            actor: '',
+            from: '',
+            to: '',
+        });
+    };
+
+    const closeHistoryModal = () => {
+        setHistoryModalOpen(false);
+        setHistoryCapability(null);
+        setHistoryEvents([]);
+        setHistoryPagination(defaultHistoryPagination);
+        setHistoryIntegrity(defaultHistoryIntegrity);
+        setHistoryError('');
+    };
+
+    const applyHistoryFilters = () => {
+        fetchCapabilityHistory(historyCapability?.id, 1, historyCapability);
+    };
+
+    const changeHistoryPage = (nextPage) => {
+        fetchCapabilityHistory(historyCapability?.id, nextPage, historyCapability);
     };
 
     return (
@@ -318,6 +490,13 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         placeholder="Optional approval note / required rejection reason"
                                                         className="w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
                                                     />
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={actionExpiryAt[row.id] || ''}
+                                                        onChange={(event) => setActionExpiryAt((prev) => ({ ...prev, [row.id]: event.target.value }))}
+                                                        className="mt-2 w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
+                                                    />
+                                                    <p className="mt-1 text-[10px] text-gray-500">Approval expiry (optional, defaults to +1 year)</p>
                                                 </td>
                                                 <td className="py-3 pr-4 text-gray-300">
                                                     <p>{row.reviewedAt || '-'}</p>
@@ -325,9 +504,25 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                     {row.decisionReason && <p className="text-xs text-gray-400 mt-1">{row.decisionReason}</p>}
                                                     {row.expiresAt && <p className="text-xs text-sky-300 mt-1">Expires: {row.expiresAt}</p>}
 
+                                                    {row.auditIntegrity && (
+                                                        <div className="mt-2">
+                                                            <span
+                                                                className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${row.auditIntegrity?.isValid
+                                                                    ? 'border-emerald-600 bg-emerald-900/20 text-emerald-300'
+                                                                    : 'border-red-600 bg-red-900/20 text-red-300'
+                                                                    }`}
+                                                            >
+                                                                {row.auditIntegrity?.isValid
+                                                                    ? `Chain valid (${Number(row.auditIntegrity?.verifiedEvents || 0)} events)`
+                                                                    : `Chain issue (${Number(row.auditIntegrity?.issueCount || 0)} issue${Number(row.auditIntegrity?.issueCount || 0) === 1 ? '' : 's'})`}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
                                                     <CapabilityAuditTimeline
                                                         events={Array.isArray(row.auditTrail) ? row.auditTrail : []}
                                                         totalCount={Number(row.auditEventCount || 0)}
+                                                        onOpenFullHistory={() => openHistoryModal(row)}
                                                     />
                                                 </td>
                                                 <td className="py-3">
@@ -378,6 +573,176 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                 </div>
                             </div>
                         </div>
+
+                        {historyModalOpen && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                                <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-lg border border-gray-700 bg-[#0A1330] shadow-2xl">
+                                    <div className="flex items-start justify-between border-b border-gray-700 px-6 py-4">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-lg font-semibold text-white">COD Capability Audit History</h3>
+                                                <span
+                                                    className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${historyIntegrity?.isValid
+                                                        ? 'border-emerald-600 bg-emerald-900/20 text-emerald-300'
+                                                        : 'border-red-600 bg-red-900/20 text-red-300'
+                                                        }`}
+                                                >
+                                                    {historyIntegrity?.isValid ? 'Integrity: Valid' : 'Integrity: Issue'}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-400">
+                                                {(historyCapability?.vendorName || 'Unknown vendor')}
+                                                {historyCapability?.vendorEmail ? ` • ${historyCapability.vendorEmail}` : ''}
+                                                {historyCapability?.categoryLabel ? ` • ${historyCapability.categoryLabel}` : ''}
+                                                {historyCapability?.statusLabel ? ` • ${historyCapability.statusLabel}` : ''}
+                                            </p>
+                                            <p className="mt-1 text-[11px] text-gray-500">
+                                                Verified events: {Number(historyIntegrity?.verifiedEvents || 0)}
+                                                {' '}• Issues: {Number(historyIntegrity?.issueCount || 0)}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={closeHistoryModal}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-sm text-white"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+
+                                    <div className="border-b border-gray-700 px-6 py-4">
+                                        <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+                                            <select
+                                                value={historyEventTypeFilter}
+                                                onChange={(event) => setHistoryEventTypeFilter(event.target.value)}
+                                                className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-sm text-white"
+                                            >
+                                                {HISTORY_EVENT_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+
+                                            <input
+                                                type="text"
+                                                value={historyActorFilter}
+                                                onChange={(event) => setHistoryActorFilter(event.target.value)}
+                                                placeholder="Actor name"
+                                                className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-sm text-white"
+                                            />
+
+                                            <input
+                                                type="date"
+                                                value={historyFromFilter}
+                                                onChange={(event) => setHistoryFromFilter(event.target.value)}
+                                                className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-sm text-white"
+                                            />
+
+                                            <input
+                                                type="date"
+                                                value={historyToFilter}
+                                                onChange={(event) => setHistoryToFilter(event.target.value)}
+                                                className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-sm text-white"
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={applyHistoryFilters}
+                                                disabled={historyLoading}
+                                                className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                            >
+                                                Apply Filters
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="max-h-[58vh] overflow-y-auto px-6 py-4">
+                                        {historyLoading && (
+                                            <div className="rounded-md border border-gray-700 bg-[#081028] px-4 py-5 text-sm text-gray-300">
+                                                Loading capability audit history...
+                                            </div>
+                                        )}
+
+                                        {!historyLoading && historyError !== '' && (
+                                            <div className="rounded-md border border-red-700 bg-red-900/20 px-4 py-5 text-sm text-red-300">
+                                                {historyError}
+                                            </div>
+                                        )}
+
+                                        {!historyLoading && historyError === '' && historyEvents.length === 0 && (
+                                            <div className="rounded-md border border-gray-700 bg-[#081028] px-4 py-5 text-sm text-gray-400">
+                                                No events found for the selected filters.
+                                            </div>
+                                        )}
+
+                                        {!historyLoading && historyError === '' && historyEvents.length > 0 && (
+                                            <div className="relative space-y-4 pl-5">
+                                                <div className="absolute bottom-1 left-[9px] top-1 w-px bg-gray-700" />
+
+                                                {historyEvents.map((event) => {
+                                                    const accentClass = auditEventAccentMap[event.eventType] || 'bg-[#AEB9E1]';
+
+                                                    return (
+                                                        <div key={event.id} className="relative rounded-md border border-gray-700 bg-[#081028] px-4 py-3">
+                                                            <span className={`absolute -left-[22px] top-4 h-3.5 w-3.5 rounded-full border-2 border-[#081028] ${accentClass}`} />
+                                                            <div className="flex flex-wrap items-start justify-between gap-2">
+                                                                <p className="text-sm font-semibold text-white">{event.eventLabel || 'Capability event'}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span
+                                                                        className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${event.integrityStatus === 'issue'
+                                                                            ? 'border-red-600 bg-red-900/20 text-red-300'
+                                                                            : 'border-emerald-600 bg-emerald-900/20 text-emerald-300'
+                                                                            }`}
+                                                                    >
+                                                                        {event.integrityStatus === 'issue' ? 'Issue' : 'Valid'}
+                                                                    </span>
+                                                                    <p className="text-xs text-gray-500">{event.createdAt || '-'}</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="mt-1 text-xs text-gray-400">Actor: {event.actorName || 'System'}</p>
+                                                            {event.transitionLabel && <p className="mt-1 text-xs text-gray-300">Transition: {event.transitionLabel}</p>}
+                                                            {event.note && <p className="mt-1 text-xs italic text-gray-400">&quot;{event.note}&quot;</p>}
+                                                            {event.source && <p className="mt-1 text-xs text-gray-500">Source: {event.source}</p>}
+                                                            {event.expiresAt && <p className="mt-1 text-xs text-sky-300">Expiry: {event.expiresAt}</p>}
+                                                            {event.integrityReason && (
+                                                                <p className="mt-1 text-xs text-red-300">
+                                                                    Integrity reason: {String(event.integrityReason).replaceAll('_', ' ')}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between border-t border-gray-700 px-6 py-3 text-xs text-gray-400">
+                                        <p>
+                                            Page {historyPagination?.currentPage || 1} of {historyPagination?.lastPage || 1}
+                                            {' '}({historyPagination?.total || 0} total events)
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                disabled={historyLoading || (historyPagination?.currentPage || 1) <= 1}
+                                                onClick={() => changeHistoryPage((historyPagination?.currentPage || 1) - 1)}
+                                                className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                            >
+                                                Prev
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={historyLoading || (historyPagination?.currentPage || 1) >= (historyPagination?.lastPage || 1)}
+                                                onClick={() => changeHistoryPage((historyPagination?.currentPage || 1) + 1)}
+                                                className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -400,7 +765,7 @@ const StatCard = ({ title, value, color }) => (
     </div>
 );
 
-const CapabilityAuditTimeline = ({ events, totalCount }) => {
+const CapabilityAuditTimeline = ({ events, totalCount, onOpenFullHistory }) => {
     const timelineEvents = Array.isArray(events) ? events : [];
 
     if (timelineEvents.length === 0) {
@@ -438,6 +803,16 @@ const CapabilityAuditTimeline = ({ events, totalCount }) => {
                 <p className="mt-2 text-[11px] text-gray-500">
                     Showing latest {timelineEvents.length} of {Number(totalCount || 0)} events.
                 </p>
+            )}
+
+            {typeof onOpenFullHistory === 'function' && Number(totalCount || 0) > 0 && (
+                <button
+                    type="button"
+                    onClick={onOpenFullHistory}
+                    className="mt-2 rounded-md border border-gray-600 px-2 py-1 text-[11px] font-semibold text-sky-300 hover:bg-sky-900/20"
+                >
+                    View full history
+                </button>
             )}
         </div>
     );

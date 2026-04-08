@@ -74,7 +74,7 @@ class CourierVendorCodCapabilityAudit extends Model
             $note = null;
         }
 
-        $canonicalPayload = self::canonicalize([
+        $canonicalPayload = [
             'capability_id' => (int) $capability->id,
             'vendor_user_id' => (int) $capability->vendor_user_id,
             'service_workspace_id' => (int) ($capability->service_workspace_id ?? 0) ?: null,
@@ -87,12 +87,9 @@ class CourierVendorCodCapabilityAudit extends Model
             'metadata' => is_array($metadata) ? $metadata : [],
             'previous_hash' => $previousHash,
             'created_at' => now()->toDateTimeString(),
-        ]);
+        ];
 
-        $recordHash = hash(
-            'sha256',
-            json_encode($canonicalPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-        );
+        $recordHash = self::computeRecordHash($canonicalPayload);
 
         return self::query()->create([
             'courier_vendor_cod_capability_id' => (int) $capability->id,
@@ -109,6 +106,39 @@ class CourierVendorCodCapabilityAudit extends Model
             'record_hash' => $recordHash,
             'created_at' => now(),
         ]);
+    }
+
+    public static function buildHashPayloadFromAudit(self $audit, ?string $previousHash = null): array
+    {
+        $note = $audit->note !== null ? trim((string) $audit->note) : null;
+        if ($note === '') {
+            $note = null;
+        }
+
+        return [
+            'capability_id' => (int) $audit->courier_vendor_cod_capability_id,
+            'vendor_user_id' => (int) $audit->vendor_user_id,
+            'service_workspace_id' => (int) ($audit->service_workspace_id ?? 0) ?: null,
+            'category' => CourierVendorCodCapability::normalizeCategory((string) $audit->category),
+            'event_type' => trim((string) $audit->event_type) !== '' ? trim((string) $audit->event_type) : 'cod_capability_event',
+            'from_status' => $audit->from_status,
+            'to_status' => $audit->to_status,
+            'actor_user_id' => (int) ($audit->actor_user_id ?? 0) ?: null,
+            'note' => $note,
+            'metadata' => is_array($audit->metadata) ? $audit->metadata : [],
+            'previous_hash' => $previousHash,
+            'created_at' => $audit->created_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    public static function computeRecordHash(array $payload): string
+    {
+        $canonicalPayload = self::canonicalize($payload);
+
+        return hash(
+            'sha256',
+            json_encode($canonicalPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
     }
 
     private static function canonicalize($value)
