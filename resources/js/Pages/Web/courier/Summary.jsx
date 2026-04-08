@@ -35,7 +35,7 @@ const POLICY_ADJUSTMENT_LABELS = {
     cod_fee: "COD fee",
     minimum_shipment_guardrail: "Minimum shipment guardrail",
     speed_eta_tier_multiplier: "Speed/ETA tier multiplier",
-    logistic_dimensions_engine: "Logistic dimensions engine",
+    international_dimensions_engine: "International dimensions engine",
     quote_runtime_discount_applied: "Quote runtime discount applied",
     quote_runtime_discount_ceiling_guardrail: "Quote runtime discount ceiling guardrail",
     quote_runtime_floor_price_guardrail: "Quote runtime floor-price guardrail",
@@ -351,7 +351,7 @@ const Summary = ({
                     <div className="mb-10">
                         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment prog</h2>
+                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment progress</h2>
                                 <p className="mt-2 text-sm text-[#5B6887]">
                                     All steps are complete. Review the details below before you finalize the request.
                                 </p>
@@ -466,16 +466,16 @@ const Summary = ({
                                     </div>
                                 </div>
                             )}
-                            {pricingPreview.logisticDimensions && (
+                            {pricingPreview.internationalDimensions && (
                                 <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
-                                    <p className="font-semibold">Logistic Dimensions Projection</p>
+                                    <p className="font-semibold">International Dimensions Projection</p>
                                     <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
-                                        <p><span className="font-semibold">Unit Type:</span> {pricingPreview.logisticDimensions.unitType || "—"}</p>
-                                        <p><span className="font-semibold">Route Class:</span> {pricingPreview.logisticDimensions.routeClass || "—"}</p>
-                                        <p><span className="font-semibold">Handling Class:</span> {pricingPreview.logisticDimensions.handlingClass || "—"}</p>
-                                        <p><span className="font-semibold">W2W Mode:</span> {pricingPreview.logisticDimensions.w2wMode || "—"}</p>
-                                        <p><span className="font-semibold">Unit Count:</span> {pricingPreview.logisticDimensions.unitCount || "—"}</p>
-                                        <p><span className="font-semibold">Combined Multiplier:</span> x{Number(pricingPreview.logisticDimensions.totalMultiplier || 1).toFixed(2)}</p>
+                                        <p><span className="font-semibold">Unit Type:</span> {pricingPreview.internationalDimensions.unitType || "—"}</p>
+                                        <p><span className="font-semibold">Route Class:</span> {pricingPreview.internationalDimensions.routeClass || "—"}</p>
+                                        <p><span className="font-semibold">Handling Class:</span> {pricingPreview.internationalDimensions.handlingClass || "—"}</p>
+                                        <p><span className="font-semibold">W2W Mode:</span> {pricingPreview.internationalDimensions.w2wMode || "—"}</p>
+                                        <p><span className="font-semibold">Unit Count:</span> {pricingPreview.internationalDimensions.unitCount || "—"}</p>
+                                        <p><span className="font-semibold">Combined Multiplier:</span> x{Number(pricingPreview.internationalDimensions.totalMultiplier || 1).toFixed(2)}</p>
                                     </div>
                                 </div>
                             )}
@@ -635,3 +635,6 @@ const Summary = ({
 };
 
 export default Summary;
+
+
+

@@ -113,8 +113,8 @@ const Header = () => {
                                     {},
                                     {
                                         onError: () =>
-                                            (window.location.href =
-                                                route("logout.alt")),
+                                        (window.location.href =
+                                            route("logout.alt")),
                                         onSuccess: () =>
                                             (window.location.href = "/"),
                                     }
@@ -179,7 +179,6 @@ const Header = () => {
                         >
                             <svg
                                 className="w-7 h-7 sm:w-8 sm:h-8"
-                                fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -205,7 +204,7 @@ const Header = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    {shouldLoadVendorNotifications && (
+                    {auth?.user && shouldLoadVendorNotifications && (
                         <NotificationDropdown
                             notifications={notifications}
                             unreadCount={unreadCount}
@@ -331,11 +330,10 @@ const Header = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.vehicle
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.vehicle
                                                 ? "rotate-180"
                                                 : ""
-                                        }`}
+                                            }`}
                                     />
                                 </button>
                                 {openDropdown.vehicle && (
@@ -378,11 +376,10 @@ const Header = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.ticket
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.ticket
                                                 ? "rotate-180"
                                                 : ""
-                                        }`}
+                                            }`}
                                     />
                                 </button>
                                 {openDropdown.ticket && (
@@ -425,11 +422,10 @@ const Header = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.courier
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.courier
                                                 ? "rotate-180"
                                                 : ""
-                                        }`}
+                                            }`}
                                     />
                                 </button>
                                 {openDropdown.courier && (
@@ -447,7 +443,7 @@ const Header = () => {
                                             href="/courierBookingDashboard"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Logistic
+                                            International
                                         </Link>
                                     </div>
                                 )}
@@ -539,13 +535,13 @@ const Header = () => {
                                     {["admin", "superadmin"].includes(
                                         auth.user.role_type
                                     ) && (
-                                        <Link
-                                            href="/admin"
-                                            className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
-                                        >
-                                            Admin Dashboard
-                                        </Link>
-                                    )}
+                                            <Link
+                                                href="/admin"
+                                                className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
+                                            >
+                                                Admin Dashboard
+                                            </Link>
+                                        )}
                                     {auth.user.role_type === "freight" && (
                                         <Link
                                             href="/freight/dashboard"

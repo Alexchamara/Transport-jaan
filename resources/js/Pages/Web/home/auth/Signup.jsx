@@ -26,10 +26,10 @@ const Signup = () => {
         <div className="bg-[#000000] text-[#FFFFFF] poppins min-h-screen">
             <div className="flex relative justify-center items-center xl:py-10 xl:px-20 px-5 poppins">
                 <h1
-                    className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
+                    className="absolute md:top-[10px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
                     onClick={() => (window.location.href = "/")}
                 >
-                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
+                    <CompanyLogo className="h-[45px] md:h-[60px] xl:h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
                 </h1>
 
                 <div

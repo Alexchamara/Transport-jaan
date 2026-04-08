@@ -706,7 +706,7 @@ class VendorCourierDashboardController extends Controller
             'effectiveAt' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:400'],
             'rollbackVersion' => ['nullable', 'integer', 'min:1'],
-            'pricingCategory' => ['nullable', 'string', 'in:domestic,logistic'],
+            'pricingCategory' => ['nullable', 'string', 'in:domestic,international'],
         ]);
 
         $record = VendorCourierSetting::query()->firstOrCreate(
@@ -726,7 +726,7 @@ class VendorCourierDashboardController extends Controller
         $actorId = (int) optional($request->user())->id ?: null;
         $pricingCategory = (string) ($validated['pricingCategory'] ?? 'domestic');
         $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
-        if (!in_array($pricingCategory, ['domestic', 'logistic'], true)) {
+        if (!in_array($pricingCategory, ['domestic', 'international'], true)) {
             $pricingCategory = 'domestic';
         }
 
@@ -1091,7 +1091,7 @@ class VendorCourierDashboardController extends Controller
         $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
-            'pricingCategory' => ['required', 'string', 'in:domestic,logistic'],
+            'pricingCategory' => ['required', 'string', 'in:domestic,international'],
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv,txt,json,pdf', 'max:15360'],
         ]);
 
@@ -1191,7 +1191,7 @@ class VendorCourierDashboardController extends Controller
         $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
-            'pricingCategory' => ['required', 'string', 'in:domestic,logistic'],
+            'pricingCategory' => ['required', 'string', 'in:domestic,international'],
             'mode' => ['nullable', 'string', Rule::in(['replace', 'merge'])],
             'previewToken' => ['required', 'string', 'max:120'],
             'manualReviewConfirmed' => ['nullable', 'boolean'],
@@ -1362,7 +1362,7 @@ class VendorCourierDashboardController extends Controller
         if (!is_array($pricing['laneMatrix']['enabled'] ?? null)) {
             $pricing['laneMatrix']['enabled'] = [
                 'domestic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
-                'logistic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
+                'international' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
             ];
         }
 
@@ -2716,7 +2716,7 @@ class VendorCourierDashboardController extends Controller
                 return $this->resolveCategory($shipment) === 'Domestic';
             })->count();
 
-            $logisticCount = $total - $domesticCount;
+            $internationalCount = $total - $domesticCount;
 
             $deliveredRate = $total > 0 ? round(($deliveredCount / $total) * 100, 1) : 0;
             $exceptionRate = $total > 0 ? round(($exceptionCount / $total) * 100, 1) : 0;
@@ -2734,10 +2734,10 @@ class VendorCourierDashboardController extends Controller
             $tier = $profile?->client_tier ?: $derivedTier;
 
             $categoryMix = 'Mixed';
-            if ($logisticCount === 0) {
+            if ($internationalCount === 0) {
                 $categoryMix = 'Domestic';
             } elseif ($domesticCount === 0) {
-                $categoryMix = 'Logistic';
+                $categoryMix = 'International';
             }
 
             $lastShipment = optional($items->sortByDesc('created_at')->first()->created_at)->format('Y-m-d H:i');
@@ -2763,7 +2763,7 @@ class VendorCourierDashboardController extends Controller
                 'riskLevel' => $risk,
                 'openExceptions' => $exceptionCount,
                 'domesticCount' => $domesticCount,
-                'logisticCount' => $logisticCount,
+                'internationalCount' => $internationalCount,
             ];
         })->values();
 
@@ -3007,8 +3007,8 @@ class VendorCourierDashboardController extends Controller
             $this->applyDomesticCategoryConstraint($query);
         }
 
-        if ($filters['category'] === 'logistic') {
-            $this->applyLogisticCategoryConstraint($query);
+        if ($filters['category'] === 'international') {
+            $this->applyInternationalCategoryConstraint($query);
         }
     }
 
@@ -3016,7 +3016,7 @@ class VendorCourierDashboardController extends Controller
     {
         return collect([
             ['value' => 'domestic', 'label' => 'Domestic'],
-            ['value' => 'logistic', 'label' => 'Logistic'],
+            ['value' => 'international', 'label' => 'International'],
         ])
             ->filter(fn (array $option) => in_array($option['value'], $approvedCategories, true))
             ->values()
@@ -3027,7 +3027,7 @@ class VendorCourierDashboardController extends Controller
     {
         $normalized = strtolower(trim($category));
 
-        if (!in_array($normalized, ['domestic', 'logistic'], true)) {
+        if (!in_array($normalized, ['domestic', 'international'], true)) {
             return '';
         }
 
@@ -3037,9 +3037,9 @@ class VendorCourierDashboardController extends Controller
     private function applyApprovedCategoryConstraints(Builder $query, array $approvedCategories): void
     {
         $allowDomestic = in_array('domestic', $approvedCategories, true);
-        $allowLogistic = in_array('logistic', $approvedCategories, true);
+        $allowInternational = in_array('international', $approvedCategories, true);
 
-        if ($allowDomestic && $allowLogistic) {
+        if ($allowDomestic && $allowInternational) {
             return;
         }
 
@@ -3048,8 +3048,8 @@ class VendorCourierDashboardController extends Controller
             return;
         }
 
-        if ($allowLogistic) {
-            $this->applyLogisticCategoryConstraint($query);
+        if ($allowInternational) {
+            $this->applyInternationalCategoryConstraint($query);
             return;
         }
 
@@ -3067,7 +3067,7 @@ class VendorCourierDashboardController extends Controller
             });
     }
 
-    private function applyLogisticCategoryConstraint(Builder $query): void
+    private function applyInternationalCategoryConstraint(Builder $query): void
     {
         $query->where(function (Builder $nested) {
             $nested
@@ -3721,7 +3721,7 @@ class VendorCourierDashboardController extends Controller
                     ],
                     'lastSyncedAt' => null,
                 ],
-                'logistic' => [
+                'international' => [
                     'baseCurrency' => 'LKR',
                     'displayCurrency' => 'LKR',
                     'locale' => 'en-LK',
@@ -3744,7 +3744,7 @@ class VendorCourierDashboardController extends Controller
                     'taxPercent' => 0,
                     'roundTo' => 2,
                 ],
-                'logistic' => [
+                'international' => [
                     'volumetricDivisor' => 5000,
                     'useChargeableWeight' => true,
                     'fuelSurchargePercent' => 0,
@@ -3757,15 +3757,15 @@ class VendorCourierDashboardController extends Controller
             'zoneMaster' => $this->defaultPricingZoneMaster(),
             'cityZoneMap' => [
                 'domestic' => [],
-                'logistic' => [],
+                'international' => [],
             ],
             'laneMatrix' => [
                 'enabled' => [
                     'domestic' => false,
-                    'logistic' => false,
+                    'international' => false,
                 ],
                 'domestic' => [],
-                'logistic' => [],
+                'international' => [],
             ],
             'policyModules' => $this->defaultPricingPolicyModules(),
             'categories' => [
@@ -3791,10 +3791,10 @@ class VendorCourierDashboardController extends Controller
                         'priorityMultiplier' => 1,
                     ],
                 ],
-                'logistic' => [
+                'international' => [
                     [
-                        'id' => 'logistic_standard',
-                        'label' => 'Logistic Standard',
+                        'id' => 'international_standard',
+                        'label' => 'International Standard',
                         'serviceLevelKey' => 'two_three_day',
                         'slaDays' => 4,
                         'basePrice' => 1400,
@@ -3803,8 +3803,8 @@ class VendorCourierDashboardController extends Controller
                         'priorityMultiplier' => 1,
                     ],
                     [
-                        'id' => 'logistic_express',
-                        'label' => 'Logistic Express',
+                        'id' => 'international_express',
+                        'label' => 'International Express',
                         'serviceLevelKey' => 'next_day',
                         'slaDays' => 2,
                         'basePrice' => 2200,
@@ -3837,7 +3837,7 @@ class VendorCourierDashboardController extends Controller
         $policy['allowPdfBackground'] = (bool) ($policy['allowPdfBackground'] ?? true);
         $normalized['printPolicy'] = $policy;
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $defaultRow = is_array($normalized['defaults'][$category] ?? null) ? $normalized['defaults'][$category] : [];
             $normalized['defaults'][$category] = [
                 'templateId' => isset($defaultRow['templateId']) ? (int) $defaultRow['templateId'] : null,
@@ -3996,9 +3996,9 @@ class VendorCourierDashboardController extends Controller
                     ],
                 ],
             ],
-            'logisticDimensionsEngine' => [
+            'internationalDimensionsEngine' => [
                 'enabled' => false,
-                'enforceForLogisticOnly' => true,
+                'enforceForInternationalOnly' => true,
                 'unitTypeMultipliers' => [
                     'parcel' => 1.0,
                     'pallet' => 1.18,
@@ -4021,7 +4021,7 @@ class VendorCourierDashboardController extends Controller
                 ],
                 'w2wOption' => [
                     'enabled' => true,
-                    'strictForLogistic' => true,
+                    'strictForInternational' => true,
                     'defaultMode' => 'door_to_door',
                     'minimumUnitCount' => 1,
                     'maximumUnitCount' => null,
@@ -4036,7 +4036,7 @@ class VendorCourierDashboardController extends Controller
 
         return [
             'domestic' => $categoryDefaults,
-            'logistic' => $categoryDefaults,
+            'international' => $categoryDefaults,
         ];
     }
 
@@ -4077,7 +4077,7 @@ class VendorCourierDashboardController extends Controller
                     'sortOrder' => 4,
                 ],
             ],
-            'logistic' => [
+            'international' => [
                 [
                     'key' => 'next_day',
                     'label' => 'Next Day',
@@ -4121,7 +4121,7 @@ class VendorCourierDashboardController extends Controller
                 'versionHistory' => [],
                 'changeLog' => [],
             ],
-            'logistic' => [
+            'international' => [
                 'requireApproval' => false,
                 'approverRoles' => ['courier_owner', 'courier_admin'],
                 'draftVersion' => 1,
@@ -4140,7 +4140,7 @@ class VendorCourierDashboardController extends Controller
     {
         return [
             'domestic' => [],
-            'logistic' => [],
+            'international' => [],
         ];
     }
 
@@ -4150,15 +4150,15 @@ class VendorCourierDashboardController extends Controller
         $pricing = array_replace_recursive($defaults, $pricing);
 
         $localizationInput = is_array($pricing['localization'] ?? null) ? $pricing['localization'] : [];
-        $hasCategoryLocalization = is_array($localizationInput['domestic'] ?? null) || is_array($localizationInput['logistic'] ?? null);
+        $hasCategoryLocalization = is_array($localizationInput['domestic'] ?? null) || is_array($localizationInput['international'] ?? null);
         if (!$hasCategoryLocalization) {
             $localizationInput = [
                 'domestic' => $localizationInput,
-                'logistic' => $localizationInput,
+                'international' => $localizationInput,
             ];
         }
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $localization = array_replace(
                 is_array($defaults['localization'][$category] ?? null) ? $defaults['localization'][$category] : [],
                 is_array($localizationInput[$category] ?? null) ? $localizationInput[$category] : []
@@ -4190,15 +4190,15 @@ class VendorCourierDashboardController extends Controller
         }
 
         $formulaInput = is_array($pricing['formula'] ?? null) ? $pricing['formula'] : [];
-        $hasCategoryFormula = is_array($formulaInput['domestic'] ?? null) || is_array($formulaInput['logistic'] ?? null);
+        $hasCategoryFormula = is_array($formulaInput['domestic'] ?? null) || is_array($formulaInput['international'] ?? null);
         if (!$hasCategoryFormula) {
             $formulaInput = [
                 'domestic' => $formulaInput,
-                'logistic' => $formulaInput,
+                'international' => $formulaInput,
             ];
         }
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $formula = array_replace(
                 is_array($defaults['formula'][$category] ?? null) ? $defaults['formula'][$category] : [],
                 is_array($formulaInput[$category] ?? null) ? $formulaInput[$category] : []
@@ -4232,7 +4232,7 @@ class VendorCourierDashboardController extends Controller
             is_array($pricing['policyModules'] ?? null) ? $pricing['policyModules'] : []
         );
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $items = is_array($pricing['categories'][$category] ?? null) ? $pricing['categories'][$category] : [];
             $allowedServiceKeys = collect($pricing['serviceCatalog'][$category] ?? [])
                 ->map(fn ($item) => (string) ($item['key'] ?? ''))
@@ -4266,15 +4266,15 @@ class VendorCourierDashboardController extends Controller
 
         $governanceInput = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : [];
         $defaultGovernance = $this->defaultPricingGovernance();
-        $hasCategoryGovernance = is_array($governanceInput['domestic'] ?? null) || is_array($governanceInput['logistic'] ?? null);
+        $hasCategoryGovernance = is_array($governanceInput['domestic'] ?? null) || is_array($governanceInput['international'] ?? null);
         if (!$hasCategoryGovernance) {
             $governanceInput = [
                 'domestic' => $governanceInput,
-                'logistic' => $governanceInput,
+                'international' => $governanceInput,
             ];
         }
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $governance = array_replace(
                 is_array($defaultGovernance[$category] ?? null) ? $defaultGovernance[$category] : [],
                 is_array($governanceInput[$category] ?? null) ? $governanceInput[$category] : []
@@ -4321,16 +4321,16 @@ class VendorCourierDashboardController extends Controller
     {
         $defaults = $this->defaultPricingPolicyModules();
         $source = is_array($input) ? $input : [];
-        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['international'] ?? null);
         if (!$hasCategoryShape) {
             $source = [
                 'domestic' => $source,
-                'logistic' => $source,
+                'international' => $source,
             ];
         }
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $row = array_replace_recursive(
                 is_array($defaults[$category] ?? null) ? $defaults[$category] : [],
                 is_array($source[$category] ?? null) ? $source[$category] : []
@@ -4403,7 +4403,7 @@ class VendorCourierDashboardController extends Controller
                     'contracts' => collect($row['customerContractPricing']['contracts'] ?? [])
                         ->map(function ($contract) use ($category) {
                             $item = is_array($contract) ? $contract : [];
-                            $allowedCategories = ['domestic', 'logistic'];
+                            $allowedCategories = ['domestic', 'international'];
                             $normalizedContractCategory = strtolower(trim((string) ($item['category'] ?? '')));
                             if (!in_array($normalizedContractCategory, $allowedCategories, true)) {
                                 $normalizedContractCategory = $category;
@@ -4559,10 +4559,10 @@ class VendorCourierDashboardController extends Controller
                         })
                         ->all(),
                 ],
-                'logisticDimensionsEngine' => [
-                    'enabled' => (bool) ($row['logisticDimensionsEngine']['enabled'] ?? false),
-                    'enforceForLogisticOnly' => (bool) ($row['logisticDimensionsEngine']['enforceForLogisticOnly'] ?? true),
-                    'unitTypeMultipliers' => collect($row['logisticDimensionsEngine']['unitTypeMultipliers'] ?? [])
+                'internationalDimensionsEngine' => [
+                    'enabled' => (bool) ($row['internationalDimensionsEngine']['enabled'] ?? false),
+                    'enforceForInternationalOnly' => (bool) ($row['internationalDimensionsEngine']['enforceForInternationalOnly'] ?? true),
+                    'unitTypeMultipliers' => collect($row['internationalDimensionsEngine']['unitTypeMultipliers'] ?? [])
                         ->mapWithKeys(function ($value, $key) {
                             $normalizedKey = strtolower(trim((string) $key));
                             if ($normalizedKey === '') {
@@ -4572,7 +4572,7 @@ class VendorCourierDashboardController extends Controller
                             return [$normalizedKey => max(0.1, (float) $value)];
                         })
                         ->all(),
-                    'routeClassMultipliers' => collect($row['logisticDimensionsEngine']['routeClassMultipliers'] ?? [])
+                    'routeClassMultipliers' => collect($row['internationalDimensionsEngine']['routeClassMultipliers'] ?? [])
                         ->mapWithKeys(function ($value, $key) {
                             $normalizedKey = strtolower(trim((string) $key));
                             if ($normalizedKey === '') {
@@ -4582,7 +4582,7 @@ class VendorCourierDashboardController extends Controller
                             return [$normalizedKey => max(0.1, (float) $value)];
                         })
                         ->all(),
-                    'handlingClassMultipliers' => collect($row['logisticDimensionsEngine']['handlingClassMultipliers'] ?? [])
+                    'handlingClassMultipliers' => collect($row['internationalDimensionsEngine']['handlingClassMultipliers'] ?? [])
                         ->mapWithKeys(function ($value, $key) {
                             $normalizedKey = strtolower(trim((string) $key));
                             if ($normalizedKey === '') {
@@ -4593,16 +4593,16 @@ class VendorCourierDashboardController extends Controller
                         })
                         ->all(),
                     'w2wOption' => [
-                        'enabled' => (bool) ($row['logisticDimensionsEngine']['w2wOption']['enabled'] ?? true),
-                        'strictForLogistic' => (bool) ($row['logisticDimensionsEngine']['w2wOption']['strictForLogistic'] ?? true),
-                        'defaultMode' => strtolower(trim((string) ($row['logisticDimensionsEngine']['w2wOption']['defaultMode'] ?? ''))),
-                        'minimumUnitCount' => max(1, (int) ($row['logisticDimensionsEngine']['w2wOption']['minimumUnitCount'] ?? 1)),
-                        'maximumUnitCount' => isset($row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'])
-                            && $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'] !== ''
-                            && $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'] !== null
-                            ? max(1, (int) $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'])
+                        'enabled' => (bool) ($row['internationalDimensionsEngine']['w2wOption']['enabled'] ?? true),
+                        'strictForInternational' => (bool) ($row['internationalDimensionsEngine']['w2wOption']['strictForInternational'] ?? true),
+                        'defaultMode' => strtolower(trim((string) ($row['internationalDimensionsEngine']['w2wOption']['defaultMode'] ?? ''))),
+                        'minimumUnitCount' => max(1, (int) ($row['internationalDimensionsEngine']['w2wOption']['minimumUnitCount'] ?? 1)),
+                        'maximumUnitCount' => isset($row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'])
+                            && $row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'] !== ''
+                            && $row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'] !== null
+                            ? max(1, (int) $row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'])
                             : null,
-                        'modeMultipliers' => collect($row['logisticDimensionsEngine']['w2wOption']['modeMultipliers'] ?? [])
+                        'modeMultipliers' => collect($row['internationalDimensionsEngine']['w2wOption']['modeMultipliers'] ?? [])
                             ->mapWithKeys(function ($value, $key) {
                                 $normalizedKey = strtolower(trim((string) $key));
                                 if ($normalizedKey === '') {
@@ -4622,7 +4622,7 @@ class VendorCourierDashboardController extends Controller
 
     private function extractPricingSnapshot(array $pricing, ?string $category = null): array
     {
-        $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : null;
+        $category = in_array((string) $category, ['domestic', 'international'], true) ? (string) $category : null;
 
         if ($category !== null) {
             return [
@@ -4657,10 +4657,10 @@ class VendorCourierDashboardController extends Controller
 
     private function applyPricingSnapshot(array $pricing, array $snapshot, ?string $category = null): array
     {
-        $categoryFromSnapshot = in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'logistic'], true)
+        $categoryFromSnapshot = in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'international'], true)
             ? (string) $snapshot['category']
             : null;
-        $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : $categoryFromSnapshot;
+        $category = in_array((string) $category, ['domestic', 'international'], true) ? (string) $category : $categoryFromSnapshot;
 
         if ($category !== null) {
             $pricing['localization'][$category] = is_array($snapshot['localization'] ?? null) ? $snapshot['localization'] : ($pricing['localization'][$category] ?? []);
@@ -4672,7 +4672,7 @@ class VendorCourierDashboardController extends Controller
                 : ($pricing['cityZoneMap'][$category] ?? []);
             $pricing['laneMatrix']['enabled'] = is_array($pricing['laneMatrix']['enabled'] ?? null) ? $pricing['laneMatrix']['enabled'] : [
                 'domestic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
-                'logistic' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
+                'international' => (bool) ($pricing['laneMatrix']['enabled'] ?? false),
             ];
             $pricing['laneMatrix']['enabled'][$category] = (bool) ($snapshot['laneMatrix']['enabled'] ?? false);
             $pricing['laneMatrix'][$category] = is_array($snapshot['laneMatrix']['rows'] ?? null)
@@ -4700,11 +4700,11 @@ class VendorCourierDashboardController extends Controller
 
     private function normalizePricingZoneMaster(array $input): array
     {
-        $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['logistic'] ?? null);
+        $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['international'] ?? null);
         $flatRows = $isCategoryShape ? [] : (array_values($input) === $input ? $input : []);
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $source = $isCategoryShape
                 ? (is_array($input[$category] ?? null) ? $input[$category] : [])
                 : $flatRows;
@@ -4740,11 +4740,11 @@ class VendorCourierDashboardController extends Controller
 
     private function normalizePricingCityZoneMap(array $input): array
     {
-        $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['logistic'] ?? null);
+        $isCategoryShape = is_array($input['domestic'] ?? null) || is_array($input['international'] ?? null);
         $flatRows = $isCategoryShape ? [] : (array_values($input) === $input ? $input : []);
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $source = $isCategoryShape
                 ? (is_array($input[$category] ?? null) ? $input[$category] : [])
                 : $flatRows;
@@ -4813,7 +4813,7 @@ class VendorCourierDashboardController extends Controller
         $defaults = $this->defaultPricingServiceCatalog();
         $normalized = [];
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $source = is_array($input[$category] ?? null) ? $input[$category] : ($defaults[$category] ?? []);
             $fallback = is_array($defaults[$category] ?? null) ? $defaults[$category] : [];
 
@@ -4871,25 +4871,25 @@ class VendorCourierDashboardController extends Controller
         $normalized = array_replace([
             'enabled' => [
                 'domestic' => false,
-                'logistic' => false,
+                'international' => false,
             ],
             'domestic' => [],
-            'logistic' => [],
+            'international' => [],
         ], $input);
 
         $enabledInput = $normalized['enabled'] ?? false;
         if (!is_array($enabledInput)) {
             $enabledInput = [
                 'domestic' => (bool) $enabledInput,
-                'logistic' => (bool) $enabledInput,
+                'international' => (bool) $enabledInput,
             ];
         }
         $normalized['enabled'] = [
             'domestic' => (bool) ($enabledInput['domestic'] ?? false),
-            'logistic' => (bool) ($enabledInput['logistic'] ?? false),
+            'international' => (bool) ($enabledInput['international'] ?? false),
         ];
 
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $items = is_array($normalized[$category] ?? null) ? $normalized[$category] : [];
             $allowedServiceKeys = collect($serviceCatalog[$category] ?? [])
                 ->map(fn ($item) => (string) ($item['key'] ?? ''))
@@ -4970,7 +4970,7 @@ class VendorCourierDashboardController extends Controller
     private function appendPricingGovernanceLog(array $pricing, string $event, ?int $actorId, array $meta = [], ?string $category = null): array
     {
         $pricing = $this->normalizePricingSettings($pricing);
-        $category = in_array((string) $category, ['domestic', 'logistic'], true) ? (string) $category : 'domestic';
+        $category = in_array((string) $category, ['domestic', 'international'], true) ? (string) $category : 'domestic';
         $governanceByCategory = is_array($pricing['governance'] ?? null) ? $pricing['governance'] : $this->defaultPricingGovernance();
         $governance = is_array($governanceByCategory[$category] ?? null)
             ? $governanceByCategory[$category]
@@ -5004,9 +5004,9 @@ class VendorCourierDashboardController extends Controller
         array $eventMeta = []
     ): array
     {
-        $category = in_array((string) $category, ['domestic', 'logistic'], true)
+        $category = in_array((string) $category, ['domestic', 'international'], true)
             ? (string) $category
-            : (in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'logistic'], true) ? (string) $snapshot['category'] : 'domestic');
+            : (in_array((string) ($snapshot['category'] ?? ''), ['domestic', 'international'], true) ? (string) $snapshot['category'] : 'domestic');
 
         $pricing = $this->applyPricingSnapshot($pricing, $snapshot, $category);
         $governance = is_array($pricing['governance'][$category] ?? null)
@@ -5812,7 +5812,7 @@ class VendorCourierDashboardController extends Controller
 
     private function resolveCategory(CourierShipment $shipment): string
     {
-        if (in_array($shipment->assignment_category, ['domestic', 'logistic'], true)) {
+        if (in_array($shipment->assignment_category, ['domestic', 'international'], true)) {
             return ucfirst($shipment->assignment_category);
         }
 
@@ -5823,7 +5823,7 @@ class VendorCourierDashboardController extends Controller
             return 'Domestic';
         }
 
-        return 'Logistic';
+        return 'International';
     }
 
     private function estimateDeliveryDateTime(CourierShipment $shipment): ?Carbon
@@ -7259,13 +7259,13 @@ class VendorCourierDashboardController extends Controller
                 continue;
             }
 
-            if ($slug === 'logistic') {
-                $categories[] = 'logistic';
+            if ($slug === 'international') {
+                $categories[] = 'international';
             }
         }
 
         return collect($categories)
-            ->filter(fn ($item) => in_array($item, ['domestic', 'logistic'], true))
+            ->filter(fn ($item) => in_array($item, ['domestic', 'international'], true))
             ->unique()
             ->values()
             ->all();
@@ -7273,7 +7273,7 @@ class VendorCourierDashboardController extends Controller
 
     private function enforceApprovedPricingCategoryWriteScope(array $nextPricing, array $currentPricing, array $approvedCategories): array
     {
-        $categories = ['domestic', 'logistic'];
+        $categories = ['domestic', 'international'];
         $next = $nextPricing;
 
         foreach ($categories as $category) {
@@ -7300,7 +7300,7 @@ class VendorCourierDashboardController extends Controller
             if (!is_array($next['laneMatrix']['enabled'] ?? null)) {
                 $next['laneMatrix']['enabled'] = [
                     'domestic' => (bool) ($next['laneMatrix']['enabled'] ?? false),
-                    'logistic' => (bool) ($next['laneMatrix']['enabled'] ?? false),
+                    'international' => (bool) ($next['laneMatrix']['enabled'] ?? false),
                 ];
             }
 
@@ -7328,3 +7328,6 @@ class VendorCourierDashboardController extends Controller
             ->exists();
     }
 }
+
+
+

@@ -50,7 +50,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         $redirectTo = match($role) {
-            'SuperAdmin' => route('superadmin.dashboard'),
+            'SuperAdmin' => route('SuperAdmin.Dashboard'),
             'client' => route('clientAllBookings'),
             'vendor' => $status === 'unverified' ? route('vendorAllBookings') : route('vendorAllBookings'),
             'admin' => route('landingPage.home'),

@@ -11,7 +11,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
         {--vendor= : Normalize only one vendor_user_id}
         {--dry-run : Preview changes without persisting updates}';
 
-    protected $description = 'Normalize courier pricing JSON into domestic/logistic category-scoped structure';
+    protected $description = 'Normalize courier pricing JSON into domestic/international category-scoped structure';
 
     public function handle(): int
     {
@@ -215,9 +215,9 @@ class NormalizeCourierPricingCategoryConfig extends Command
                     ],
                 ],
             ],
-            'logisticDimensionsEngine' => [
+            'internationalDimensionsEngine' => [
                 'enabled' => false,
-                'enforceForLogisticOnly' => true,
+                'enforceForInternationalOnly' => true,
                 'unitTypeMultipliers' => [
                     'parcel' => 1.0,
                     'pallet' => 1.18,
@@ -240,7 +240,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
                 ],
                 'w2wOption' => [
                     'enabled' => true,
-                    'strictForLogistic' => true,
+                    'strictForInternational' => true,
                     'defaultMode' => 'door_to_door',
                     'minimumUnitCount' => 1,
                     'maximumUnitCount' => null,
@@ -254,16 +254,16 @@ class NormalizeCourierPricingCategoryConfig extends Command
         ];
 
         $source = is_array($input) ? $input : [];
-        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['international'] ?? null);
         if (!$hasCategoryShape) {
             $source = [
                 'domestic' => $source,
-                'logistic' => $source,
+                'international' => $source,
             ];
         }
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $row = array_replace_recursive(
                 $defaults,
                 is_array($source[$category] ?? null) ? $source[$category] : []
@@ -336,7 +336,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
                     'contracts' => collect($row['customerContractPricing']['contracts'] ?? [])
                         ->map(function ($contract) use ($category) {
                             $item = is_array($contract) ? $contract : [];
-                            $allowedCategories = ['domestic', 'logistic'];
+                            $allowedCategories = ['domestic', 'international'];
                             $normalizedContractCategory = strtolower(trim((string) ($item['category'] ?? '')));
                             if (!in_array($normalizedContractCategory, $allowedCategories, true)) {
                                 $normalizedContractCategory = $category;
@@ -492,10 +492,10 @@ class NormalizeCourierPricingCategoryConfig extends Command
                         })
                         ->all(),
                 ],
-                'logisticDimensionsEngine' => [
-                    'enabled' => (bool) ($row['logisticDimensionsEngine']['enabled'] ?? false),
-                    'enforceForLogisticOnly' => (bool) ($row['logisticDimensionsEngine']['enforceForLogisticOnly'] ?? true),
-                    'unitTypeMultipliers' => collect($row['logisticDimensionsEngine']['unitTypeMultipliers'] ?? [])
+                'internationalDimensionsEngine' => [
+                    'enabled' => (bool) ($row['internationalDimensionsEngine']['enabled'] ?? false),
+                    'enforceForInternationalOnly' => (bool) ($row['internationalDimensionsEngine']['enforceForInternationalOnly'] ?? true),
+                    'unitTypeMultipliers' => collect($row['internationalDimensionsEngine']['unitTypeMultipliers'] ?? [])
                         ->mapWithKeys(function ($value, $key) {
                             $normalizedKey = strtolower(trim((string) $key));
                             if ($normalizedKey === '') {
@@ -505,7 +505,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
                             return [$normalizedKey => max(0.1, (float) $value)];
                         })
                         ->all(),
-                    'routeClassMultipliers' => collect($row['logisticDimensionsEngine']['routeClassMultipliers'] ?? [])
+                    'routeClassMultipliers' => collect($row['internationalDimensionsEngine']['routeClassMultipliers'] ?? [])
                         ->mapWithKeys(function ($value, $key) {
                             $normalizedKey = strtolower(trim((string) $key));
                             if ($normalizedKey === '') {
@@ -515,7 +515,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
                             return [$normalizedKey => max(0.1, (float) $value)];
                         })
                         ->all(),
-                    'handlingClassMultipliers' => collect($row['logisticDimensionsEngine']['handlingClassMultipliers'] ?? [])
+                    'handlingClassMultipliers' => collect($row['internationalDimensionsEngine']['handlingClassMultipliers'] ?? [])
                         ->mapWithKeys(function ($value, $key) {
                             $normalizedKey = strtolower(trim((string) $key));
                             if ($normalizedKey === '') {
@@ -526,16 +526,16 @@ class NormalizeCourierPricingCategoryConfig extends Command
                         })
                         ->all(),
                     'w2wOption' => [
-                        'enabled' => (bool) ($row['logisticDimensionsEngine']['w2wOption']['enabled'] ?? true),
-                        'strictForLogistic' => (bool) ($row['logisticDimensionsEngine']['w2wOption']['strictForLogistic'] ?? true),
-                        'defaultMode' => strtolower(trim((string) ($row['logisticDimensionsEngine']['w2wOption']['defaultMode'] ?? ''))),
-                        'minimumUnitCount' => max(1, (int) ($row['logisticDimensionsEngine']['w2wOption']['minimumUnitCount'] ?? 1)),
-                        'maximumUnitCount' => isset($row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'])
-                            && $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'] !== ''
-                            && $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'] !== null
-                            ? max(1, (int) $row['logisticDimensionsEngine']['w2wOption']['maximumUnitCount'])
+                        'enabled' => (bool) ($row['internationalDimensionsEngine']['w2wOption']['enabled'] ?? true),
+                        'strictForInternational' => (bool) ($row['internationalDimensionsEngine']['w2wOption']['strictForInternational'] ?? true),
+                        'defaultMode' => strtolower(trim((string) ($row['internationalDimensionsEngine']['w2wOption']['defaultMode'] ?? ''))),
+                        'minimumUnitCount' => max(1, (int) ($row['internationalDimensionsEngine']['w2wOption']['minimumUnitCount'] ?? 1)),
+                        'maximumUnitCount' => isset($row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'])
+                            && $row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'] !== ''
+                            && $row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'] !== null
+                            ? max(1, (int) $row['internationalDimensionsEngine']['w2wOption']['maximumUnitCount'])
                             : null,
-                        'modeMultipliers' => collect($row['logisticDimensionsEngine']['w2wOption']['modeMultipliers'] ?? [])
+                        'modeMultipliers' => collect($row['internationalDimensionsEngine']['w2wOption']['modeMultipliers'] ?? [])
                             ->mapWithKeys(function ($value, $key) {
                                 $normalizedKey = strtolower(trim((string) $key));
                                 if ($normalizedKey === '') {
@@ -570,16 +570,16 @@ class NormalizeCourierPricingCategoryConfig extends Command
         ];
 
         $source = is_array($input) ? $input : [];
-        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['international'] ?? null);
         if (!$hasCategoryShape) {
             $source = [
                 'domestic' => $source,
-                'logistic' => $source,
+                'international' => $source,
             ];
         }
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $row = array_replace($defaults, is_array($source[$category] ?? null) ? $source[$category] : []);
             $base = strtoupper((string) ($row['baseCurrency'] ?? 'LKR'));
             $display = strtoupper((string) ($row['displayCurrency'] ?? $base));
@@ -621,16 +621,16 @@ class NormalizeCourierPricingCategoryConfig extends Command
         ];
 
         $source = is_array($input) ? $input : [];
-        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['international'] ?? null);
         if (!$hasCategoryShape) {
             $source = [
                 'domestic' => $source,
-                'logistic' => $source,
+                'international' => $source,
             ];
         }
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $row = array_replace($defaults, is_array($source[$category] ?? null) ? $source[$category] : []);
             $normalized[$category] = [
                 'volumetricDivisor' => max(1, (int) ($row['volumetricDivisor'] ?? 5000)),
@@ -648,11 +648,11 @@ class NormalizeCourierPricingCategoryConfig extends Command
     private function normalizeZoneMaster($input): array
     {
         $source = is_array($input) ? $input : [];
-        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['international'] ?? null);
         $flatRows = $hasCategoryShape ? [] : (array_values($source) === $source ? $source : []);
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $rows = $hasCategoryShape
                 ? (is_array($source[$category] ?? null) ? $source[$category] : [])
                 : $flatRows;
@@ -695,16 +695,16 @@ class NormalizeCourierPricingCategoryConfig extends Command
         ];
 
         $source = is_array($input) ? $input : [];
-        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['logistic'] ?? null);
+        $hasCategoryShape = is_array($source['domestic'] ?? null) || is_array($source['international'] ?? null);
         if (!$hasCategoryShape) {
             $source = [
                 'domestic' => $source,
-                'logistic' => $source,
+                'international' => $source,
             ];
         }
 
         $normalized = [];
-        foreach (['domestic', 'logistic'] as $category) {
+        foreach (['domestic', 'international'] as $category) {
             $row = array_replace($defaults, is_array($source[$category] ?? null) ? $source[$category] : []);
             $normalized[$category] = [
                 'requireApproval' => (bool) ($row['requireApproval'] ?? false),
@@ -738,7 +738,7 @@ class NormalizeCourierPricingCategoryConfig extends Command
         if (!is_array($enabled)) {
             $enabled = [
                 'domestic' => (bool) $enabled,
-                'logistic' => (bool) $enabled,
+                'international' => (bool) $enabled,
             ];
         }
 
@@ -778,10 +778,10 @@ class NormalizeCourierPricingCategoryConfig extends Command
         return [
             'enabled' => [
                 'domestic' => (bool) ($enabled['domestic'] ?? false),
-                'logistic' => (bool) ($enabled['logistic'] ?? false),
+                'international' => (bool) ($enabled['international'] ?? false),
             ],
             'domestic' => $normalizeRows($source['domestic'] ?? [], 'domestic'),
-            'logistic' => $normalizeRows($source['logistic'] ?? [], 'logistic'),
+            'international' => $normalizeRows($source['international'] ?? [], 'international'),
         ];
     }
 
@@ -828,3 +828,6 @@ class NormalizeCourierPricingCategoryConfig extends Command
         return json_encode($left) === json_encode($right);
     }
 }
+
+
+

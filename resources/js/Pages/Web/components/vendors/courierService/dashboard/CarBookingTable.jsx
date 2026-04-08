@@ -62,7 +62,7 @@ const tableData = [
         id: "D-OR1004",
         date: "Aug 26, 2025",
         recipient: "Nimal Perera",
-        serviceType: "Logistic",
+        serviceType: "International",
         route: "Colombo → Chennai",
         slotDate: "Aug 31, 2025",
         slotTime: "09:00 AM",
@@ -97,8 +97,8 @@ const tableData = [
 ];
 
 const CarBookingTable = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     return (
         <div className="py-10">
@@ -163,52 +163,52 @@ const CarBookingTable = () => {
             </div>
 
             <div>
-{tableData.map((row, index) => (
-    <div
-        key={index}
-        className={`grid grid-cols-8 border-b-[1.5px] border-[#00000033] h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
-    >
-        <div>{row.id}</div>
-        <div>{row.date}</div>
-        <div>{row.recipient}</div>
-        <div>
-            <h1>{row.serviceType}</h1>
-            <div className="w-[77px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                {row.packageBadge}
-            </div>
-        </div>
-        <div>{row.route}</div>
-        <div className="text-[14px] font-[500] text-[#939392]">
-            <div className="flex flex-row gap-2 justify-start items-center">
-                <h1>Date</h1>
-                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text:[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                    {row.slotDate}
-                </div>
-            </div>
-            <div className="flex flex-row gap-4 justify-start items-center">
-                <h1>Time</h1>
-                <div className="w-[70px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                    {row.slotTime}
-                </div>
-            </div>
-        </div>
-        <div className="flex flex-col justify-center items-center">
-            <h1>{row.price}</h1>
-            <div
-                className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                style={{ border: `0.5px solid ${row.paymentColor}`, backgroundColor: row.paymentBg }}
-            >
-                {row.paymentStatus}
-            </div>
-        </div>
-        <div
-            className="w-[52px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-            style={{ backgroundColor: row.statusBg, border: `1px solid ${row.statusBorder}`, color: row.statusText }}
-        >
-            {row.status}
-        </div>
-    </div>
-))}
+                {tableData.map((row, index) => (
+                    <div
+                        key={index}
+                        className={`grid grid-cols-8 border-b-[1.5px] border-[#00000033] h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
+                    >
+                        <div>{row.id}</div>
+                        <div>{row.date}</div>
+                        <div>{row.recipient}</div>
+                        <div>
+                            <h1>{row.serviceType}</h1>
+                            <div className="w-[77px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                {row.packageBadge}
+                            </div>
+                        </div>
+                        <div>{row.route}</div>
+                        <div className="text-[14px] font-[500] text-[#939392]">
+                            <div className="flex flex-row gap-2 justify-start items-center">
+                                <h1>Date</h1>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text:[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    {row.slotDate}
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-4 justify-start items-center">
+                                <h1>Time</h1>
+                                <div className="w-[70px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    {row.slotTime}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col justify-center items-center">
+                            <h1>{row.price}</h1>
+                            <div
+                                className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                style={{ border: `0.5px solid ${row.paymentColor}`, backgroundColor: row.paymentBg }}
+                            >
+                                {row.paymentStatus}
+                            </div>
+                        </div>
+                        <div
+                            className="w-[52px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                            style={{ backgroundColor: row.statusBg, border: `1px solid ${row.statusBorder}`, color: row.statusText }}
+                        >
+                            {row.status}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

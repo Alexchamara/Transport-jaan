@@ -66,8 +66,8 @@ const HeaderTwo = () => {
                                     {},
                                     {
                                         onError: () =>
-                                            (window.location.href =
-                                                route("logout.alt")),
+                                        (window.location.href =
+                                            route("logout.alt")),
                                         onSuccess: () =>
                                             (window.location.href = "/"),
                                     }
@@ -130,7 +130,7 @@ const HeaderTwo = () => {
                         >
                             <svg
                                 className="w-7 h-7 sm:w-8 sm:h-8"
-                                fill="none"
+                                International
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
@@ -156,91 +156,90 @@ const HeaderTwo = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <img
-                            src={bell}
-                            className="size-[18px] md:w-[24px] md:h-[23px]"
-                            alt="Notifications"
-                        />
-                    </div>
-                    <div className="relative">
-                        <button
-                            type="button"
-                            className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center cursor-pointer"
-                            onClick={() => toggleDropdown("profile")}
-                            aria-label="Open profile menu"
-                        >
-                            {auth?.user?.image ? (
-                                <img
-                                    src={auth.user.image}
-                                    className="size-[18px] md:size-[55px] object-cover"
-                                    alt="Profile"
-                                />
-                            ) : (
-                                <img
-                                    src={proPic}
-                                    className="size-[18px] md:size-[55px]"
-                                    alt="Profile"
-                                />
-                            )}
-                        </button>
-                        {openDropdown.profile && (
-                            <>
-                                <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
-                                />
-                                <div className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 min-w-[250px] overflow-hidden">
-                                    {auth?.user && (
-                                        <div className="px-4 py-3 border-b border-gray-100">
-                                            <p className="text-sm font-semibold text-gray-800 truncate">{auth.user.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
-                                        </div>
-                                    )}
-                                    {auth?.user ? (
-                                        <>
-                                            <Link
-                                                href="/clientDashboardSettings"
-                                                onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
-                                                className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                            >
-                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                </svg>
-                                                My Profile
-                                            </Link>
-
-                                            <button
-                                                onClick={(e) => {
-                                                    setOpenDropdown(prev => ({ ...prev, profile: false }));
-                                                    handleLogout(e);
-                                                }}
-                                                className="w-full text-left flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                                            >
-                                                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                </svg>
-                                                Logout
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Link
-                                                href="/signin"
-                                                onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
-                                                className="flex items-center gap-2 px-4 py-3 text-sm text-[#0955AC] hover:bg-blue-50 transition-colors"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5m0 0l-5-5m5 5H3" />
-                                                </svg>
-                                                Login
-                                            </Link>
-                                        </>
-                                    )}
-                                </div>
-                            </>
+                    International
+                    <img
+                        src={bell}
+                        className="size-[18px] md:w-[24px] md:h-[23px]"
+                        alt="Notifications"
+                    />
+                </div>
+                <div className="relative">
+                    <button
+                        type="button"
+                        className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center cursor-pointer"
+                        onClick={() => toggleDropdown("profile")}
+                        aria-label="Open profile menu"
+                    >
+                        {auth?.user?.image ? (
+                            <img
+                                src={auth.user.image}
+                                className="size-[18px] md:size-[55px] object-cover"
+                                alt="Profile"
+                            />
+                        ) : (
+                            <img
+                                src={proPic}
+                                className="size-[18px] md:size-[55px]"
+                                alt="Profile"
+                            />
                         )}
-                    </div>
+                    </button>
+                    {openDropdown.profile && (
+                        <>
+                            <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
+                            />
+                            <div className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 min-w-[250px] overflow-hidden">
+                                {auth?.user && (
+                                    <div className="px-4 py-3 border-b border-gray-100">
+                                        <p className="text-sm font-semibold text-gray-800 truncate">{auth.user.name}</p>
+                                        <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
+                                    </div>
+                                )}
+                                {auth?.user ? (
+                                    <>
+                                        <Link
+                                            href="/clientDashboardSettings"
+                                            onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
+                                            className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                            My Profile
+                                        </Link>
+
+                                        <button
+                                            onClick={(e) => {
+                                                setOpenDropdown(prev => ({ ...prev, profile: false }));
+                                                handleLogout(e);
+                                            }}
+                                            className="w-full text-left flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                            </svg>
+                                            Logout
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link
+                                            href="/signin"
+                                            onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
+                                            className="flex items-center gap-2 px-4 py-3 text-sm text-[#0955AC] hover:bg-blue-50 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5m0 0l-5-5m5 5H3" />
+                                            </svg>
+                                            Login
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -294,11 +293,10 @@ const HeaderTwo = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.vehicle
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.vehicle
+                                            ? "rotate-180"
+                                            : ""
+                                            }`}
                                     />
                                 </button>
                                 {openDropdown.vehicle && (
@@ -341,11 +339,10 @@ const HeaderTwo = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.ticket
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.ticket
+                                            ? "rotate-180"
+                                            : ""
+                                            }`}
                                     />
                                 </button>
                                 {openDropdown.ticket && (
@@ -388,11 +385,10 @@ const HeaderTwo = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.courier
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.courier
+                                            ? "rotate-180"
+                                            : ""
+                                            }`}
                                     />
                                 </button>
                                 {openDropdown.courier && (
@@ -410,7 +406,7 @@ const HeaderTwo = () => {
                                             href="/courierBookingDashboard"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Logistic
+                                            International
                                         </Link>
                                     </div>
                                 )}
@@ -501,13 +497,13 @@ const HeaderTwo = () => {
                                     {["admin", "superadmin"].includes(
                                         auth.user.role_type
                                     ) && (
-                                        <Link
-                                            href="/admin"
-                                            className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
-                                        >
-                                            Admin Dashboard
-                                        </Link>
-                                    )}
+                                            <Link
+                                                href="/admin"
+                                                className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
+                                            >
+                                                Admin Dashboard
+                                            </Link>
+                                        )}
                                     {auth.user.role_type === "freight" && (
                                         <Link
                                             href="/freight/dashboard"

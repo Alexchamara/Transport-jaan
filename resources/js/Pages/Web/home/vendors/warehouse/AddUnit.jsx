@@ -19,11 +19,11 @@ const initialState = {
   total_area: '',
   capacity: '',
   type: '',
-  
+
   // Pricing
   pricing_model: '',
   price: '',
-  
+
   // Detailed Pricing
   monthly_rate: '',
   security_deposit: '',
@@ -32,14 +32,14 @@ const initialState = {
   total_amount: '',
   tax_amount: '',
   final_amount: '',
-  
+
   // Features & Media
   amenities: [],
   images: [],
   documents: [],
   // special single file
   terms_pdf: null,
-  
+
   // Terms & Status
   terms_conditions: '',
   is_active: true,
@@ -95,7 +95,7 @@ const AddUnit = () => {
   const mapScriptLoadedRef = useRef(false);
   const autoInputRef = useRef(null);
   const autocompleteRef = useRef(null);
-  const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const googleApiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
 
   // Calculate pricing totals automatically
   const calculatePricingTotals = () => {
@@ -118,7 +118,7 @@ const AddUnit = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => {
@@ -127,18 +127,18 @@ const AddUnit = () => {
         return newErrors;
       });
     }
-    
+
     if (type === 'file') {
       if (name === 'images') {
         const list = Array.from(files || []);
-        
+
         // Validate file count
         const totalImages = imageFiles.length + list.length;
         if (totalImages > 20) {
           setErrors(prev => ({ ...prev, images: 'You can upload a maximum of 20 images.' }));
           return;
         }
-        
+
         // Validate file sizes
         const maxSize = 50 * 1024 * 1024; // 50MB in bytes
         const invalidFiles = list.filter(file => file.size > maxSize);
@@ -146,7 +146,7 @@ const AddUnit = () => {
           setErrors(prev => ({ ...prev, images: `Some images are too large. Maximum size is 50MB per image.` }));
           return;
         }
-        
+
         // Validate file types
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         const invalidTypes = list.filter(file => !allowedTypes.includes(file.type));
@@ -154,14 +154,14 @@ const AddUnit = () => {
           setErrors(prev => ({ ...prev, images: 'Only JPEG, PNG, GIF, and WebP images are allowed.' }));
           return;
         }
-        
+
         const nextFiles = [...imageFiles, ...list];
         setImageFiles(nextFiles);
         const newUrls = list.map((f) => URL.createObjectURL(f));
         setImagePreviews((prev) => [...prev, ...newUrls]);
         // keep minimal in form to serialize counts
         setForm((prev) => ({ ...prev, images: nextFiles }));
-        
+
         // Clear image error if images are added
         if (nextFiles.length > 0 && errors.images) {
           setErrors(prev => {
@@ -172,14 +172,14 @@ const AddUnit = () => {
         }
       } else if (name === 'documents') {
         const list = Array.from(files || []);
-        
+
         // Validate file count
         const totalDocs = documentFiles.length + list.length;
         if (totalDocs > 20) {
           setErrors(prev => ({ ...prev, documents: 'You can upload a maximum of 20 documents.' }));
           return;
         }
-        
+
         // Validate file sizes
         const maxSize = 50 * 1024 * 1024; // 50MB in bytes
         const invalidFiles = list.filter(file => file.size > maxSize);
@@ -187,7 +187,7 @@ const AddUnit = () => {
           setErrors(prev => ({ ...prev, documents: `Some documents are too large. Maximum size is 50MB per document.` }));
           return;
         }
-        
+
         // Validate file types
         const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
         const invalidTypes = list.filter(file => !allowedTypes.includes(file.type));
@@ -195,13 +195,13 @@ const AddUnit = () => {
           setErrors(prev => ({ ...prev, documents: 'Only PDF, DOC, DOCX, and TXT files are allowed.' }));
           return;
         }
-        
+
         const nextFiles = [...documentFiles, ...list];
         setDocumentFiles(nextFiles);
         setForm((prev) => ({ ...prev, documents: nextFiles }));
       } else if (name === 'terms_pdf') {
         const file = files && files[0] ? files[0] : null;
-        
+
         if (file) {
           // Validate file size
           const maxSize = 50 * 1024 * 1024; // 50MB in bytes
@@ -209,18 +209,18 @@ const AddUnit = () => {
             setErrors(prev => ({ ...prev, terms_pdf: 'Terms PDF file is too large. Maximum size is 50MB.' }));
             return;
           }
-          
+
           // Validate file type
           if (file.type !== 'application/pdf') {
             setErrors(prev => ({ ...prev, terms_pdf: 'Only PDF files are allowed for terms and conditions.' }));
             return;
           }
         }
-        
+
         setTermsPdfFile(file);
         setForm((prev) => ({ ...prev, terms_pdf: file }));
         if (file) setTermsPdfUrl(URL.createObjectURL(file));
-        
+
         // Clear terms error if PDF is uploaded (and no inline terms required)
         if (file && errors.terms_conditions) {
           setErrors(prev => {
@@ -234,7 +234,7 @@ const AddUnit = () => {
       setForm((prev) => ({ ...prev, [name]: checked }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
-      
+
       // Special handling for terms_conditions - clear error if user types and has content
       if (name === 'terms_conditions' && value.trim() && errors.terms_conditions) {
         setErrors(prev => {
@@ -333,10 +333,10 @@ const AddUnit = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate form
     const validationErrors = validateForm();
-    
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       // Show error messages in modal
@@ -345,7 +345,7 @@ const AddUnit = () => {
       setShowErrorModal(true);
       return;
     }
-    
+
     // Clear any previous errors
     setErrors({});
     setShowConfirmModal(true);
@@ -353,7 +353,7 @@ const AddUnit = () => {
 
   const confirmSubmit = async () => {
     setShowConfirmModal(false);
-    
+
     // Clear form immediately after confirmation
     setForm(initialState);
     setImageFiles([]);
@@ -361,7 +361,7 @@ const AddUnit = () => {
     setDocumentFiles([]);
     setTermsPdfFile(null);
     setTermsPdfUrl('');
-    
+
     try {
       const data = new FormData();
       // append primitives
@@ -375,7 +375,7 @@ const AddUnit = () => {
       data.append('type', form.type);
       data.append('pricing_model', form.pricing_model);
       data.append('price', form.price || '');
-      
+
       // Detailed pricing fields
       data.append('monthly_rate', form.monthly_rate || '');
       data.append('security_deposit', form.security_deposit || '');
@@ -384,7 +384,7 @@ const AddUnit = () => {
       data.append('total_amount', form.total_amount || '');
       data.append('tax_amount', form.tax_amount || '');
       data.append('final_amount', form.final_amount || '');
-      
+
       data.append('terms_conditions', form.terms_conditions || '');
       data.append('is_active', form.is_active ? '1' : '0');
       data.append('amenities', JSON.stringify(form.amenities || []));
@@ -439,7 +439,7 @@ const AddUnit = () => {
           if (!place || !place.geometry) return;
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
-          setForm((prev) => ({...prev, address: place.formatted_address || prev.address, latitude: lat, longitude: lng }));
+          setForm((prev) => ({ ...prev, address: place.formatted_address || prev.address, latitude: lat, longitude: lng }));
         });
       }
     };
@@ -480,7 +480,7 @@ const AddUnit = () => {
       if (url) URL.revokeObjectURL(url);
       return arr;
     });
-    
+
     // Check if we need to show image error after removal
     const remainingImages = imageFiles.filter((_, i) => i !== index);
     if (remainingImages.length === 0) {
@@ -515,7 +515,7 @@ const AddUnit = () => {
         </div>
       </div> */}
       {/* end of header section */}
-      
+
       {/* Breadcrumb navigation */}
       <div className="pt-6">
         <div
@@ -537,13 +537,13 @@ const AddUnit = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label htmlFor="name" className="block text-[14px] font-[600] text-[#000000]">Warehouse Name *</label>
-                <input 
-                  id="name" 
-                  name="name" 
-                  className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] text-[14px]" 
-                  value={form.name} 
-                  onChange={handleChange} 
-                  placeholder="e.g., Central Cold Storage A" 
+                <input
+                  id="name"
+                  name="name"
+                  className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] text-[14px]"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="e.g., Central Cold Storage A"
                   required
                 />
                 {errors.name && <div className="text-[#DC2626] text-[12px] mt-1">{errors.name}</div>}
@@ -587,14 +587,14 @@ const AddUnit = () => {
 
               <div className="space-y-2 col-span-full">
                 <label htmlFor="description" className="block text-[14px] font-[600] text-[#000000]">Description</label>
-                <textarea 
-                  id="description" 
-                  name="description" 
+                <textarea
+                  id="description"
+                  name="description"
                   rows="3"
-                  className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] text-[14px]" 
-                  value={form.description} 
-                  onChange={handleChange} 
-                  placeholder="Describe your warehouse facility, special features, location benefits, etc." 
+                  className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] text-[14px]"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="Describe your warehouse facility, special features, location benefits, etc."
                 />
                 {errors.description && <div className="text-[#DC2626] text-[12px] mt-1">{errors.description}</div>}
               </div>
@@ -625,60 +625,60 @@ const AddUnit = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <label htmlFor="latitude" className="block text-[14px] font-medium text-gray-700">Latitude</label>
-                <input 
-                  id="latitude" 
-                  type="number" 
-                  name="latitude" 
+                <input
+                  id="latitude"
+                  type="number"
+                  name="latitude"
                   step="0.000001"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  value={form.latitude} 
-                  onChange={handleChange} 
-                  placeholder="e.g., 6.9271" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.latitude}
+                  onChange={handleChange}
+                  placeholder="e.g., 6.9271"
                 />
                 {errors.latitude && <div className="text-[#DC2626] text-[12px] mt-1">{errors.latitude}</div>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="longitude" className="block text-[14px] font-medium text-gray-700">Longitude</label>
-                <input 
-                  id="longitude" 
-                  type="number" 
-                  name="longitude" 
+                <input
+                  id="longitude"
+                  type="number"
+                  name="longitude"
                   step="0.000001"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  value={form.longitude} 
-                  onChange={handleChange} 
-                  placeholder="e.g., 79.8612" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.longitude}
+                  onChange={handleChange}
+                  placeholder="e.g., 79.8612"
                 />
                 {errors.longitude && <div className="text-[#DC2626] text-[12px] mt-1">{errors.longitude}</div>}
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="total_area" className="block text-[14px] font-medium text-gray-700">Total Area (sqft)</label>
-                <input 
-                  id="total_area" 
-                  type="number" 
-                  name="total_area" 
-                  min="0" 
+                <input
+                  id="total_area"
+                  type="number"
+                  name="total_area"
+                  min="0"
                   step="0.01"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  value={form.total_area} 
-                  onChange={handleChange} 
-                  placeholder="e.g., 2500" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.total_area}
+                  onChange={handleChange}
+                  placeholder="e.g., 2500"
                 />
                 {errors.total_area && <div className="text-[#DC2626] text-[12px] mt-1">{errors.total_area}</div>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="capacity" className="block text-[14px] font-medium text-gray-700">Capacity (units)</label>
-                <input 
-                  id="capacity" 
-                  type="number" 
-                  name="capacity" 
-                  min="0" 
+                <input
+                  id="capacity"
+                  type="number"
+                  name="capacity"
+                  min="0"
                   step="0.01"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  value={form.capacity} 
-                  onChange={handleChange} 
-                  placeholder="e.g., 5000" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.capacity}
+                  onChange={handleChange}
+                  placeholder="e.g., 5000"
                 />
                 {errors.capacity && <div className="text-[#DC2626] text-[12px] mt-1">{errors.capacity}</div>}
               </div>
@@ -702,28 +702,28 @@ const AddUnit = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
                 <label htmlFor="price" className="block text-[14px] font-medium text-gray-700">Basic Price (Legacy)</label>
-                <input 
-                  id="price" 
-                  type="number" 
-                  name="price" 
-                  min="0" 
+                <input
+                  id="price"
+                  type="number"
+                  name="price"
+                  min="0"
                   step="0.01"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                  value={form.price} 
-                  onChange={handleChange} 
-                  placeholder="e.g., 15.50" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={form.price}
+                  onChange={handleChange}
+                  placeholder="e.g., 15.50"
                 />
                 {errors.price && <div className="text-[#DC2626] text-[12px] mt-1">{errors.price}</div>}
               </div>
               <div className="space-y-2">
                 <label className="block text-[14px] font-medium text-gray-700">Status</label>
                 <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input 
-                    type="checkbox" 
-                    name="is_active" 
-                    checked={form.is_active} 
-                    onChange={handleChange} 
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                  <input
+                    type="checkbox"
+                    name="is_active"
+                    checked={form.is_active}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Active Warehouse</span>
                 </label>
@@ -736,7 +736,7 @@ const AddUnit = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="monthly_rate" className="block text-[14px] font-medium text-gray-700">Monthly Rate ($) *</label>
-                  <input 
+                  <input
                     id="monthly_rate"
                     type="number"
                     name="monthly_rate"
@@ -750,10 +750,10 @@ const AddUnit = () => {
                   />
                   {errors.monthly_rate && <div className="text-red-600 text-sm mt-1">{errors.monthly_rate}</div>}
                 </div>
-                
+
                 <div className="space-y-2">
                   <label htmlFor="security_deposit" className="block text-[14px] font-medium text-gray-700">Security Deposit ($)</label>
-                  <input 
+                  <input
                     id="security_deposit"
                     type="number"
                     name="security_deposit"
@@ -769,7 +769,7 @@ const AddUnit = () => {
 
                 <div className="space-y-2">
                   <label htmlFor="setup_fee" className="block text-[14px] font-medium text-gray-700">Setup Fee ($)</label>
-                  <input 
+                  <input
                     id="setup_fee"
                     type="number"
                     name="setup_fee"
@@ -785,7 +785,7 @@ const AddUnit = () => {
 
                 <div className="space-y-2">
                   <label htmlFor="tax_rate" className="block text-[14px] font-medium text-gray-700">Tax Rate (%)</label>
-                  <input 
+                  <input
                     id="tax_rate"
                     type="number"
                     name="tax_rate"
@@ -803,7 +803,7 @@ const AddUnit = () => {
                 {/* Calculated fields - read only with gray background */}
                 <div className="space-y-2">
                   <label htmlFor="total_amount" className="block text-[14px] font-medium text-gray-700">Total Amount (before tax) ($)</label>
-                  <input 
+                  <input
                     id="total_amount"
                     type="number"
                     name="total_amount"
@@ -816,7 +816,7 @@ const AddUnit = () => {
 
                 <div className="space-y-2">
                   <label htmlFor="tax_amount" className="block text-[14px] font-medium text-gray-700">Tax Amount ($)</label>
-                  <input 
+                  <input
                     id="tax_amount"
                     type="number"
                     name="tax_amount"
@@ -829,7 +829,7 @@ const AddUnit = () => {
 
                 <div className="space-y-2 md:col-span-2">
                   <label htmlFor="final_amount" className="block text-[14px] font-medium text-gray-700">Final Amount (total incl. tax) ($)</label>
-                  <input 
+                  <input
                     id="final_amount"
                     type="number"
                     name="final_amount"
@@ -858,11 +858,11 @@ const AddUnit = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {amenityOptions.map((amenity) => (
                 <label key={amenity} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={form.amenities.includes(amenity)}
                     onChange={() => handleAmenityChange(amenity)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">{amenity}</span>
                 </label>
@@ -875,14 +875,14 @@ const AddUnit = () => {
             <h2 className="text-[18px] font-[400] text-gray-800 mb-6">Terms & Conditions *</h2>
             <div className="space-y-2">
               <label htmlFor="terms_conditions" className="block text-[14px] font-medium text-gray-700">Inline Terms (optional if PDF provided)</label>
-              <textarea 
-                id="terms_conditions" 
-                name="terms_conditions" 
+              <textarea
+                id="terms_conditions"
+                name="terms_conditions"
                 rows="6"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                value={form.terms_conditions} 
-                onChange={handleChange} 
-                placeholder="Enter terms and conditions for warehouse rental..." 
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={form.terms_conditions}
+                onChange={handleChange}
+                placeholder="Enter terms and conditions for warehouse rental..."
               />
               {errors.terms_conditions && <div className="text-[#DC2626] text-[12px] mt-1">{errors.terms_conditions}</div>}
             </div>
@@ -972,15 +972,15 @@ const AddUnit = () => {
               Please review all information before submitting your warehouse for approval.
             </p>
             <div className="flex justify-end gap-3">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="w-[100px] h-[40px] border border-[#7B7B7A] text-[#7B7B7A] font-[600] rounded-[6px] text-[14px] hover:bg-gray-50"
                 onClick={() => (window.location.href = '/vendors/warehouse/units')}
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="w-[120px] h-[40px] bg-[#0955AC] text-[#FFFFFF] font-[600] rounded-[6px] text-[14px] hover:bg-[#0844A0]"
               >
                 Save Warehouse

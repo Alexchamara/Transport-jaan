@@ -173,9 +173,9 @@ class ServiceProviderController extends Controller
                 $requiredFields = is_array($subCat?->required_fields ?? null) ? $subCat->required_fields : [];
 
                 if (strcasecmp($serviceCategory, 'Courier Services') === 0) {
-                    if (strcasecmp($serviceSubCategoryName, 'International') === 0 || strcasecmp($serviceSubCategorySlug, 'international') === 0) {
-                        $serviceSubCategoryName = 'Logistic';
-                        $serviceSubCategorySlug = 'logistic';
+                    if (strcasecmp($serviceSubCategoryName, 'Logistic') === 0 || strcasecmp($serviceSubCategorySlug, 'logistic') === 0) {
+                        $serviceSubCategoryName = 'International';
+                        $serviceSubCategorySlug = 'international';
                     }
 
                     $requiredFields = $this->normalizeCourierRequiredFields($requiredFields);
@@ -777,7 +777,7 @@ class ServiceProviderController extends Controller
             }
 
             if (isset($field['label']) && is_string($field['label'])) {
-                $field['label'] = str_ireplace('International', 'Logistic', $field['label']);
+                $field['label'] = str_ireplace('Logistic', 'International', $field['label']);
             }
 
             return $field;

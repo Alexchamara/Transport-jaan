@@ -166,7 +166,7 @@ class VendorCourierLabelController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:160'],
             'templateType' => ['required', 'string', Rule::in(CourierLabelService::TEMPLATE_TYPES)],
-            'categoryScope' => ['nullable', 'string', Rule::in(['all', 'domestic', 'logistic'])],
+            'categoryScope' => ['nullable', 'string', Rule::in(['all', 'domestic', 'international'])],
             'sizeId' => ['nullable', 'integer'],
             'orientation' => ['nullable', 'string', Rule::in(['portrait', 'landscape'])],
             'builderSchema' => ['nullable', 'array'],
@@ -244,7 +244,7 @@ class VendorCourierLabelController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:160'],
             'templateType' => ['required', 'string', Rule::in(CourierLabelService::TEMPLATE_TYPES)],
-            'categoryScope' => ['nullable', 'string', Rule::in(['all', 'domestic', 'logistic'])],
+            'categoryScope' => ['nullable', 'string', Rule::in(['all', 'domestic', 'international'])],
             'sizeId' => ['nullable', 'integer'],
             'orientation' => ['nullable', 'string', Rule::in(['portrait', 'landscape'])],
             'builderSchema' => ['nullable', 'array'],

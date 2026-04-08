@@ -6,6 +6,7 @@ use App\Models\Courier\CourierAddress;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierSetting;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\ServiceWorkspace;
@@ -13,7 +14,7 @@ use App\Models\User;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use Database\Seeders\CourierRbacSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
@@ -21,13 +22,14 @@ use Tests\TestCase;
 
 class CourierTeamAccessAuthorizationTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->withoutVite();
+        $this->withoutMiddleware(ValidateCsrfToken::class);
         Carbon::setTestNow(Carbon::create(2026, 3, 30, 10, 0, 0, 'UTC'));
         $this->seed(CourierRbacSeeder::class);
     }

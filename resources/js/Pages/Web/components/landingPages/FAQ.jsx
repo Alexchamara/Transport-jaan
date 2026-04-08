@@ -30,8 +30,8 @@ const faqData = [
 // FAQ data array
 const faqDataTwo = [
     {
-        question: "Do you support logistic shipments?",
-        answer: "Yes. Our courier and freight services support both domestic and logistic shipments via air and sea transport.",
+        question: "Do you support international shipments?",
+        answer: "Yes. Our courier and freight services support both domestic and international shipments via air and sea transport.",
     },
     {
         question: "Is warehouse storage available for short-term use?",
@@ -91,18 +91,16 @@ const FAQ = () => {
                         {faqData.map((faq, idx) => (
                             <div
                                 key={idx}
-                                className={`w-auto text-justify ${
-                                    openIndex === idx
+                                className={`w-auto text-justify ${openIndex === idx
                                         ? "border-[1px] border-[#0955AC] rounded-[10px]"
                                         : ""
-                                }`}
+                                    }`}
                             >
                                 <div
-                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${
-                                        openIndex === idx
+                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${openIndex === idx
                                             ? ""
                                             : "border-[1px] border-[#0955AC] rounded-[10px] box-shadow"
-                                    } flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
+                                        } flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
                                     onClick={() => handleToggle(idx)}
                                 >
                                     <h1 className="text-[12px] xl:text-[16px]">
@@ -111,11 +109,10 @@ const FAQ = () => {
                                     <img
                                         src={upArrow}
                                         alt="Toggle FAQ"
-                                        className={`transition-transform duration-200 ${
-                                            openIndex === idx
+                                        className={`transition-transform duration-200 ${openIndex === idx
                                                 ? "rotate-180"
                                                 : ""
-                                        }`}
+                                            }`}
                                     />
                                 </div>
                                 {openIndex === idx && (
@@ -132,18 +129,16 @@ const FAQ = () => {
                         {faqDataTwo.map((faq, idx) => (
                             <div
                                 key={idx}
-                                className={`w-auto text-justify ${
-                                    openIndexTwo === idx
+                                className={`w-auto text-justify ${openIndexTwo === idx
                                         ? "border-[1px] border-[#0955AC] rounded-[10px]"
                                         : ""
-                                }`}
+                                    }`}
                             >
                                 <div
-                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${
-                                        openIndexTwo === idx
+                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${openIndexTwo === idx
                                             ? ""
                                             : "border-[1px] border-[#0955AC] rounded-[10px] box-shadow"
-                                    } flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
+                                        } flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
                                     onClick={() => handleToggleTwo(idx)}
                                 >
                                     <h1 className="text-[12px] xl:text-[16px]">
@@ -152,11 +147,10 @@ const FAQ = () => {
                                     <img
                                         src={upArrow}
                                         alt="Toggle FAQ"
-                                        className={`transition-transform duration-200 ${
-                                            openIndexTwo === idx
+                                        className={`transition-transform duration-200 ${openIndexTwo === idx
                                                 ? "rotate-180"
                                                 : ""
-                                        }`}
+                                            }`}
                                     />
                                 </div>
                                 {openIndexTwo === idx && (
