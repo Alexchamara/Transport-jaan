@@ -71,6 +71,9 @@ class DatabaseSeeder extends Seeder
 
             // Service-scoped RBAC
             CourierRbacSeeder::class,
+
+            // Normalized location master data
+            LocationSriLankaSeeder::class,
         ]);
     }
 }
