@@ -54,6 +54,14 @@ const CourierShipmentDetail = () => {
     const { shipment } = usePage().props;
     const statusInfo = statusMap[shipment.status] || statusMap.pending;
     const StatusIcon = statusInfo.icon;
+    const codEnabled = Boolean(shipment.codEnabled);
+    const codAmount = shipment.codAmount !== null && shipment.codAmount !== undefined && Number.isFinite(Number(shipment.codAmount))
+        ? Number(shipment.codAmount)
+        : null;
+    const codPaymentMethod = shipment.codPaymentMethod
+        ? String(shipment.codPaymentMethod).replaceAll('_', ' ')
+        : null;
+    const codPolicySnapshot = shipment.codPolicySnapshot || null;
 
     const handleDownloadBill = () => {
         window.open(`/couriers/${shipment.id}/bill`, '_blank');
@@ -343,6 +351,33 @@ const CourierShipmentDetail = () => {
                                             </span>
                                         </div>
                                     )}
+                                    <div className="pt-3 border-t space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Cash on Delivery</span>
+                                            <span className={`font-semibold ${codEnabled ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                                {codEnabled ? 'Enabled' : 'Disabled'}
+                                            </span>
+                                        </div>
+                                        {codEnabled && (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">COD Amount</span>
+                                                    <span className="font-semibold">
+                                                        {codAmount !== null ? `$${codAmount.toFixed(2)} ${shipment.currencyCode || 'USD'}` : '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">COD Payment Method</span>
+                                                    <span className="font-semibold capitalize">{codPaymentMethod || '—'}</span>
+                                                </div>
+                                                {codPolicySnapshot && (
+                                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
+                                                        COD policy snapshot applied at booking time.
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

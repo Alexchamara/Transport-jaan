@@ -473,6 +473,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
         
         Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
+
+        Route::get('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'index'])->name('cod-settlement.index');
+        Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])->name('cod-settlement.update');
+        Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])->name('cod-settlement.capabilities.approve');
+        Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])->name('cod-settlement.capabilities.reject');
         
         Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
         Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');
@@ -1196,7 +1201,7 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->name('courierService.settingsPage');
 
     Route::get('/courierService/settingsPage/{module}', [VendorCourierDashboardController::class, 'settings'])
-        ->where('module', 'business|operations|sla|tracking|notifications|integrations|labels|pricing|team')
+        ->where('module', 'business|operations|sla|tracking|notifications|integrations|services|labels|pricing|team')
         ->middleware('service.permission:courier.settings.view')
         ->name('courierService.settings.module');
 
@@ -1213,6 +1218,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
     Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
         ->middleware('service.permission:courier.settings.update')
         ->name('courierService.settings.update');
+
+    Route::post('/courierService/settingsPage/services/cod/request', [VendorCourierDashboardController::class, 'requestCodCapability'])
+        ->middleware('service.permission:courier.settings.update')
+        ->name('courierService.settings.services.cod.request');
 
     Route::get('/courierService/labels/sizes', [VendorCourierLabelController::class, 'listSizes'])
         ->middleware('service.permission:courier.labels.view')

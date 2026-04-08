@@ -451,6 +451,146 @@ class CourierSubmissionTest extends TestCase
             ->assertRedirect(route('couriers.summary'));
     }
 
+    public function test_details_store_rejects_cod_for_international_routes(): void
+    {
+        $user = User::factory()->create();
+        $csrfToken = 'test-token-details-cod-international-block';
+
+        $reviewStagePreview = [
+            'sender' => [
+                'name' => '',
+                'address' => [
+                    'line1' => '',
+                    'city' => '',
+                    'country' => 'LK',
+                ],
+            ],
+            'recipient' => [
+                'name' => '',
+                'address' => [
+                    'line1' => '',
+                    'city' => '',
+                    'country' => 'LK',
+                ],
+            ],
+            'shipment' => [
+                'serviceLevel' => 'Same Day',
+                'currency' => 'LKR',
+            ],
+            'packages' => [
+                [
+                    'label' => 'Package 1',
+                    'packageType' => 'parcel',
+                    'courierProvider' => 'vendor-1-domestic',
+                    'serviceLevel' => 'economy',
+                    'quantity' => 1,
+                    'weightKg' => 2.5,
+                ],
+            ],
+            'reviewContext' => [
+                'displayCurrency' => 'LKR',
+                'totalPriceUSD' => 12.5,
+                'selectedQuotes' => [
+                    [
+                        'packageIndex' => 0,
+                        'providerId' => 'vendor-1-domestic',
+                        'providerName' => 'Test Provider',
+                        'serviceLevel' => 'economy',
+                        'serviceLabel' => 'Economy',
+                        'priceUSD' => 12.5,
+                    ],
+                ],
+            ],
+        ];
+
+        $detailsPayload = [
+            'sender' => [
+                'name' => 'Alex Sender',
+                'email' => 'alex.sender@example.com',
+                'phone' => '+94-77-123-4567',
+                'company' => 'Sender Co',
+                'address' => [
+                    'line1' => '123 Main Street',
+                    'line2' => 'Suite 5',
+                    'city' => 'Colombo',
+                    'state' => 'Western',
+                    'postalCode' => '10000',
+                    'country' => 'LK',
+                    'instructions' => 'Ring the bell twice',
+                ],
+            ],
+            'recipient' => [
+                'name' => 'Riya Recipient',
+                'email' => 'riya.recipient@example.com',
+                'phone' => '+1-202-555-0101',
+                'company' => 'Recipient Co',
+                'address' => [
+                    'line1' => '1600 Pennsylvania Ave NW',
+                    'line2' => '',
+                    'city' => 'Washington',
+                    'state' => 'DC',
+                    'postalCode' => '20500',
+                    'country' => 'US',
+                    'instructions' => 'Front desk',
+                ],
+            ],
+            'shipment' => [
+                'pickupDate' => now()->addDay()->toDateString(),
+                'pickupWindowStart' => '09:00',
+                'pickupWindowEnd' => '13:00',
+                'serviceLevel' => 'Same Day',
+                'currency' => 'LKR',
+                'insurance' => true,
+                'deliveryNotes' => 'Leave at reception',
+                'estimatedValue' => 1250,
+                'codEnabled' => true,
+                'codAmount' => 600,
+                'codPaymentMethod' => 'cash',
+            ],
+            'packages' => [
+                [
+                    'label' => 'Product Samples',
+                    'packageType' => 'parcel',
+                    'courierProvider' => 'vendor-1-domestic',
+                    'serviceLevel' => 'economy',
+                    'quantity' => 1,
+                    'weightKg' => 5.25,
+                    'lengthCm' => 40,
+                    'widthCm' => 30,
+                    'heightCm' => 25,
+                    'declaredValue' => 1250,
+                    'description' => 'Fragile promotional material',
+                ],
+            ],
+            'reviewContext' => [
+                'displayCurrency' => 'LKR',
+                'totalPriceUSD' => 45.75,
+                'selectedQuotes' => [
+                    [
+                        'packageIndex' => 0,
+                        'providerId' => 'vendor-1-domestic',
+                        'providerName' => 'Test Provider',
+                        'serviceLevel' => 'economy',
+                        'serviceLabel' => 'Economy',
+                        'eta' => '2-3 business days',
+                        'description' => 'Test quote',
+                        'priceUSD' => 45.75,
+                        'weight' => 5.25,
+                        'billableWeight' => 5.25,
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->withSession([
+                '_token' => $csrfToken,
+                'courier_preview' => $reviewStagePreview,
+            ])
+            ->post(route('couriers.details.store'), $detailsPayload + ['_token' => $csrfToken])
+            ->assertSessionHasErrors('shipment.codEnabled');
+    }
+
     public function test_summary_redirects_to_create_when_preview_session_is_corrupt(): void
     {
         Log::spy();

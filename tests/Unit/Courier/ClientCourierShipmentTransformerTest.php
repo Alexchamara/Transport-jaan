@@ -35,6 +35,9 @@ class ClientCourierShipmentTransformerTest extends TestCase
         $this->assertEqualsWithDelta(10.75, $result['amount'], 0.01);
         $this->assertEqualsWithDelta(7.0, $result['weight'], 0.01);
         $this->assertSame('parcel, document', strtolower((string) $result['package_type']));
+        $this->assertTrue($result['cod_enabled']);
+        $this->assertEqualsWithDelta(350.0, (float) $result['cod_amount'], 0.01);
+        $this->assertSame('cash', $result['cod_payment_method']);
     }
 
     public function test_for_detail_returns_nested_addresses_with_instructions(): void
@@ -53,6 +56,11 @@ class ClientCourierShipmentTransformerTest extends TestCase
         $this->assertCount(2, $result['packages']);
         $this->assertCount(1, $result['trackingEvents']);
         $this->assertSame('in_transit', $result['trackingEvents'][0]['status']);
+        $this->assertTrue($result['codEnabled']);
+        $this->assertEqualsWithDelta(350.0, (float) $result['codAmount'], 0.01);
+        $this->assertSame('cash', $result['codPaymentMethod']);
+        $this->assertIsArray($result['codPolicySnapshot']);
+        $this->assertTrue($result['codPolicySnapshot']['allowCodForDomestic']);
     }
 
     public function test_for_dashboard_returns_summary_card_fields(): void
@@ -70,6 +78,9 @@ class ClientCourierShipmentTransformerTest extends TestCase
         $this->assertEqualsWithDelta(10.75, $result['totalCost'], 0.01);
         $this->assertEqualsWithDelta(7.0, $result['totalWeight'], 0.01);
         $this->assertSame('in_transit', $result['latestTracking']['status']);
+        $this->assertTrue($result['codEnabled']);
+        $this->assertEqualsWithDelta(350.0, (float) $result['codAmount'], 0.01);
+        $this->assertSame('cash', $result['codPaymentMethod']);
     }
 
     private function makeShipmentFixture(): CourierShipment
@@ -158,6 +169,13 @@ class ClientCourierShipmentTransformerTest extends TestCase
         $shipment->pickup_window_end = Carbon::parse('2026-03-25 12:00:00');
         $shipment->insurance_required = true;
         $shipment->declared_value = 500.00;
+        $shipment->is_cod_enabled = true;
+        $shipment->cod_requested_amount = 350.00;
+        $shipment->cod_requested_method = 'cash';
+        $shipment->cod_policy_snapshot = [
+            'allowCodForDomestic' => true,
+            'allowCodForInternational' => false,
+        ];
         $shipment->currency_code = 'USD';
         $shipment->estimated_cost = 10.75;
         $shipment->actual_cost = null;

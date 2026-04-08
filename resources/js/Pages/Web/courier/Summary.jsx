@@ -207,6 +207,13 @@ const Summary = ({
     };
 
     const insuranceLabel = formState.shipment?.insurance ? "Yes" : "No";
+    const codEnabled = Boolean(formState.shipment?.codEnabled);
+    const codAmount = formState.shipment?.codAmount !== undefined && formState.shipment?.codAmount !== null && formState.shipment?.codAmount !== ""
+        ? Number(formState.shipment.codAmount)
+        : null;
+    const codPaymentMethodLabel = formState.shipment?.codPaymentMethod
+        ? String(formState.shipment.codPaymentMethod).replaceAll("_", " ")
+        : "—";
     const totalEstimateDisplay = formatCurrency(totalPriceUSD);
     const governanceAdjustments = useMemo(() => {
         if (!Array.isArray(pricingPreview?.policyAdjustments)) {
@@ -224,6 +231,16 @@ const Summary = ({
     );
     const pricingPreviewFinalTotal = Number(pricingPreview?.totalEstimatedUsd || 0);
     const pricingPreviewBeforeGovernance = pricingPreviewFinalTotal - governanceNetImpact;
+    const pricingPreviewCodDetails = pricingPreview?.codDetails || null;
+    const pricingPreviewCodFeeBase = pricingPreviewCodDetails?.feeBaseAmount !== null
+        && pricingPreviewCodDetails?.feeBaseAmount !== undefined
+        ? Number(pricingPreviewCodDetails.feeBaseAmount)
+        : null;
+    const pricingPreviewCodFeeBaseSource = pricingPreviewCodDetails?.feeBaseSource === 'requested_cod_amount'
+        ? 'Requested COD amount'
+        : pricingPreviewCodDetails?.feeBaseSource === 'declared_value'
+            ? 'Declared value'
+            : null;
 
     const resolveShipmentServiceLevel = (payload) => {
         const candidates = [];
@@ -263,6 +280,11 @@ const Summary = ({
         payload.reviewContext = payload.reviewContext || {};
         payload.shipment.currency = resolveShipmentCurrency(payload);
         payload.shipment.serviceLevel = resolveShipmentServiceLevel(payload);
+        payload.shipment.codEnabled = Boolean(payload.shipment.codEnabled);
+        if (!payload.shipment.codEnabled) {
+            payload.shipment.codAmount = null;
+            payload.shipment.codPaymentMethod = null;
+        }
         payload.reviewContext.displayCurrency = payload.reviewContext.displayCurrency || payload.shipment.currency;
 
         router.post('/couriers', payload, {
@@ -419,6 +441,17 @@ const Summary = ({
                                     <p><span className="font-semibold">Assigned Vendor ID:</span> {pricingPreview.assignment.vendorUserId}</p>
                                 )}
                             </div>
+                            {pricingPreviewCodDetails && (
+                                <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white p-4 text-sm text-[#1E3A8A]">
+                                    <p className="font-semibold">COD Pricing Base</p>
+                                    <div className="mt-2 grid grid-cols-1 gap-1 md:grid-cols-2">
+                                        <p><span className="font-semibold">COD Enabled:</span> {pricingPreviewCodDetails.codEnabled ? 'Yes' : 'No'}</p>
+                                        <p><span className="font-semibold">Fee Base Source:</span> {pricingPreviewCodFeeBaseSource || '—'}</p>
+                                        <p><span className="font-semibold">Fee Base Amount:</span> {pricingPreviewCodFeeBase !== null && Number.isFinite(pricingPreviewCodFeeBase) ? pricingPreviewCodFeeBase.toFixed(2) : '—'} USD</p>
+                                        <p><span className="font-semibold">Requested COD Amount:</span> {pricingPreviewCodDetails.requestedCodAmount !== null && pricingPreviewCodDetails.requestedCodAmount !== undefined ? Number(pricingPreviewCodDetails.requestedCodAmount).toFixed(2) : '—'} USD</p>
+                                    </div>
+                                </div>
+                            )}
                             {pricingPreview.reason && (
                                 <p className="mt-3 text-sm text-[#1E40AF]"><span className="font-semibold">Reason:</span> {pricingPreview.reason}</p>
                             )}
@@ -492,6 +525,9 @@ const Summary = ({
                             <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
                             <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
                             <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatDeclaredValue(Number(formState.shipment.estimatedValue)) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Cash on delivery:</span> {codEnabled ? "Enabled" : "Disabled"}</p>
+                            <p><span className="font-medium text-[#0B1739]">COD amount:</span> {codEnabled && codAmount !== null ? formatDeclaredValue(codAmount) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">COD payment method:</span> {codEnabled ? codPaymentMethodLabel : "—"}</p>
                         </div>
                     </section>
 
