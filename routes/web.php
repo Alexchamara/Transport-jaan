@@ -485,6 +485,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])->name('cod-settlement.update');
         Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])->name('cod-settlement.capabilities.approve');
         Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])->name('cod-settlement.capabilities.reject');
+        Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])->name('cod-settlement.capabilities.audit-history');
         
         Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
         Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');

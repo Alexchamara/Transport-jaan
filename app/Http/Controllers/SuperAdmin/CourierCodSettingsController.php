@@ -9,6 +9,7 @@ use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 class CourierCodSettingsController extends Controller
@@ -64,6 +65,7 @@ class CourierCodSettingsController extends Controller
 
         $auditEventsByCapability = collect();
         $auditEventCountByCapability = [];
+        $auditIntegrityByCapability = [];
 
         if ($capabilityIds->isNotEmpty()) {
             $audits = CourierVendorCodCapabilityAudit::query()
@@ -83,10 +85,23 @@ class CourierCodSettingsController extends Controller
                     ->take(8)
                     ->map(fn (CourierVendorCodCapabilityAudit $audit) => $this->serializeCapabilityAuditEvent($audit))
                     ->values());
+
+            $auditIntegrityByCapability = $audits
+                ->groupBy(static fn (CourierVendorCodCapabilityAudit $audit) => (int) $audit->courier_vendor_cod_capability_id)
+                ->map(function (Collection $events) {
+                    $integrityIndex = $this->buildAuditIntegrityIndex(
+                        $events
+                            ->sortBy(static fn (CourierVendorCodCapabilityAudit $audit) => (int) $audit->id)
+                            ->values()
+                    );
+
+                    return $integrityIndex['summary'];
+                })
+                ->all();
         }
 
         $requests = collect($paginator->items())
-            ->map(function (CourierVendorCodCapability $capability) use ($auditEventsByCapability, $auditEventCountByCapability) {
+            ->map(function (CourierVendorCodCapability $capability) use ($auditEventsByCapability, $auditEventCountByCapability, $auditIntegrityByCapability) {
                 $capabilityId = (int) $capability->id;
                 $auditTrail = $auditEventsByCapability->get($capabilityId, collect());
 
@@ -110,6 +125,11 @@ class CourierCodSettingsController extends Controller
                     'decisionReason' => (string) ($capability->decision_reason ?? ''),
                     'auditEventCount' => (int) ($auditEventCountByCapability[$capabilityId] ?? 0),
                     'auditTrail' => $auditTrail->all(),
+                    'auditIntegrity' => $auditIntegrityByCapability[$capabilityId] ?? [
+                        'isValid' => true,
+                        'issueCount' => 0,
+                        'verifiedEvents' => 0,
+                    ],
                 ];
             })
             ->values();
@@ -261,7 +281,86 @@ class CourierCodSettingsController extends Controller
         return back()->with('success', 'COD capability request rejected.');
     }
 
-    private function serializeCapabilityAuditEvent(CourierVendorCodCapabilityAudit $audit): array
+    public function capabilityAuditHistory(Request $request, CourierVendorCodCapability $capability)
+    {
+        $validated = $request->validate([
+            'eventType' => ['nullable', 'string', 'in:all,cod_capability_request_submitted,cod_capability_approved,cod_capability_rejected'],
+            'actor' => ['nullable', 'string', 'max:120'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'perPage' => ['nullable', 'integer', 'min:5', 'max:50'],
+        ]);
+
+        $eventType = trim((string) ($validated['eventType'] ?? 'all'));
+        $actor = trim((string) ($validated['actor'] ?? ''));
+        $from = isset($validated['from']) ? Carbon::parse((string) $validated['from'])->startOfDay() : null;
+        $to = isset($validated['to']) ? Carbon::parse((string) $validated['to'])->endOfDay() : null;
+        $perPage = (int) ($validated['perPage'] ?? 15);
+
+        $query = CourierVendorCodCapabilityAudit::query()
+            ->with(['actor:id,name'])
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->orderByDesc('id');
+
+        if ($eventType !== '' && $eventType !== 'all') {
+            $query->where('event_type', $eventType);
+        }
+
+        if ($actor !== '') {
+            $query->whereHas('actor', function (Builder $builder) use ($actor) {
+                $builder->where('name', 'like', '%' . $actor . '%');
+            });
+        }
+
+        if ($from !== null) {
+            $query->where('created_at', '>=', $from);
+        }
+
+        if ($to !== null) {
+            $query->where('created_at', '<=', $to);
+        }
+
+        $paginator = $query->paginate($perPage)->withQueryString();
+
+        $integrityIndex = $this->verifyCapabilityAuditChain((int) $capability->id);
+
+        $events = collect($paginator->items())
+            ->map(fn (CourierVendorCodCapabilityAudit $audit) => $this->serializeCapabilityAuditEvent(
+                $audit,
+                $integrityIndex['events'][(int) $audit->id] ?? null
+            ))
+            ->values();
+
+        $capability->loadMissing(['vendor:id,name,email']);
+
+        return response()->json([
+            'capability' => [
+                'id' => (int) $capability->id,
+                'vendorName' => (string) ($capability->vendor->name ?? ''),
+                'vendorEmail' => (string) ($capability->vendor->email ?? ''),
+                'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
+                'categoryLabel' => $capability->categoryLabel(),
+                'status' => (string) $capability->status,
+                'statusLabel' => $capability->statusLabel(),
+            ],
+            'events' => $events,
+            'pagination' => [
+                'currentPage' => $paginator->currentPage(),
+                'lastPage' => $paginator->lastPage(),
+                'perPage' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+            'filters' => [
+                'eventType' => $eventType !== '' ? $eventType : 'all',
+                'actor' => $actor,
+                'from' => $from?->toDateString() ?? '',
+                'to' => $to?->toDateString() ?? '',
+            ],
+            'integrity' => $integrityIndex['summary'],
+        ]);
+    }
+
+    private function serializeCapabilityAuditEvent(CourierVendorCodCapabilityAudit $audit, ?array $integrityContext = null): array
     {
         $fromStatus = (string) ($audit->from_status ?? '');
         $toStatus = (string) ($audit->to_status ?? '');
@@ -285,7 +384,100 @@ class CourierCodSettingsController extends Controller
             'source' => (string) data_get($audit->metadata, 'source', ''),
             'expiresAt' => (string) data_get($audit->metadata, 'expires_at', ''),
             'createdAt' => optional($audit->created_at)->format('Y-m-d H:i:s'),
+            'integrityStatus' => (bool) ($integrityContext['isValid'] ?? true) ? 'valid' : 'issue',
+            'integrityReason' => (string) ($integrityContext['reason'] ?? ''),
         ];
+    }
+
+    private function verifyCapabilityAuditChain(int $capabilityId): array
+    {
+        if ($capabilityId <= 0) {
+            return [
+                'events' => [],
+                'summary' => [
+                    'isValid' => true,
+                    'issueCount' => 0,
+                    'verifiedEvents' => 0,
+                ],
+            ];
+        }
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, CourierVendorCodCapabilityAudit> $audits */
+        $audits = CourierVendorCodCapabilityAudit::query()
+            ->where('courier_vendor_cod_capability_id', $capabilityId)
+            ->orderBy('id')
+            ->get();
+
+        return $this->buildAuditIntegrityIndex($audits);
+    }
+
+    private function buildAuditIntegrityIndex(Collection $audits): array
+    {
+        if ($audits->isEmpty()) {
+            return [
+                'events' => [],
+                'summary' => [
+                    'isValid' => true,
+                    'issueCount' => 0,
+                    'verifiedEvents' => 0,
+                ],
+            ];
+        }
+
+        $expectedPreviousHash = null;
+        $eventIntegrity = [];
+        $issueCount = 0;
+
+        foreach ($audits as $audit) {
+            /** @var CourierVendorCodCapabilityAudit $audit */
+            $storedPreviousHash = $this->normalizeHash((string) ($audit->previous_hash ?? ''));
+            $storedRecordHash = $this->normalizeHash((string) ($audit->record_hash ?? ''));
+
+            $linkValid = $storedPreviousHash === $expectedPreviousHash;
+
+            $computedRecordHash = CourierVendorCodCapabilityAudit::computeRecordHash(
+                CourierVendorCodCapabilityAudit::buildHashPayloadFromAudit($audit, $storedPreviousHash)
+            );
+
+            $hashValid = $storedRecordHash !== null && hash_equals($storedRecordHash, $computedRecordHash);
+
+            $reason = '';
+            if (!$linkValid && !$hashValid) {
+                $reason = 'previous_hash_and_record_hash_mismatch';
+            } elseif (!$linkValid) {
+                $reason = 'previous_hash_mismatch';
+            } elseif (!$hashValid) {
+                $reason = 'record_hash_mismatch';
+            }
+
+            $isValid = $reason === '';
+            if (!$isValid) {
+                $issueCount++;
+            }
+
+            $eventIntegrity[(int) $audit->id] = [
+                'isValid' => $isValid,
+                'reason' => $reason,
+            ];
+
+            $expectedPreviousHash = $storedRecordHash;
+        }
+
+        return [
+            'events' => $eventIntegrity,
+            'summary' => [
+                'isValid' => $issueCount === 0,
+                'issueCount' => $issueCount,
+                'verifiedEvents' => $audits->count(),
+            ],
+        ];
+    }
+
+    private function normalizeHash(string $value): ?string
+    {
+        $normalized = strtolower(trim($value));
+
+        return $normalized !== '' ? $normalized : null;
     }
 
     private function auditEventLabel(string $eventType): string
