@@ -636,7 +636,7 @@ class VendorCourierDashboardController extends Controller
         ]);
     }
 
-    public function settings(Request $request, ?string $module = null, ?string $teamTopic = null, ?string $pricingTopic = null)
+    public function settings(Request $request, ?string $module = null, ?string $teamTopic = null, ?string $pricingTopic = null, ?string $pricingCategory = null)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
         $workspaceId = (int) $request->attributes->get('service_workspace_id');
@@ -704,6 +704,18 @@ class VendorCourierDashboardController extends Controller
             $mergedSettings['services'] = $this->normalizeCourierServiceSettings($mergedSettings['services']);
         }
         $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
+
+        $selectedPricingCategory = in_array('domestic', $approvedPricingCategories, true)
+            ? 'domestic'
+            : (in_array('international', $approvedPricingCategories, true) ? 'international' : 'domestic');
+
+        $requestedPricingCategory = strtolower((string) ($pricingCategory ?? $request->query('category', '')));
+        if (
+            in_array($requestedPricingCategory, ['domestic', 'international'], true)
+            && in_array($requestedPricingCategory, $approvedPricingCategories, true)
+        ) {
+            $selectedPricingCategory = $requestedPricingCategory;
+        }
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
         $roleModel = app(CourierRoleModelService::class);
@@ -777,6 +789,7 @@ class VendorCourierDashboardController extends Controller
             'initialSettingsModule' => $selectedModule,
             'initialTeamAccessTopic' => $selectedTeamTopic,
             'initialPricingTopic' => $selectedPricingTopic,
+            'initialPricingCategory' => $selectedPricingCategory,
             'teamPermissionOptions' => Permission::query()
                 ->where('name', 'like', 'courier.%')
                 ->orderBy('name')
@@ -826,9 +839,9 @@ class VendorCourierDashboardController extends Controller
         return $this->settings($request, 'team', $topic);
     }
 
-    public function settingsPricingTopic(Request $request, string $topic)
+    public function settingsPricingTopic(Request $request, string $topic, ?string $category = null)
     {
-        return $this->settings($request, 'pricing', null, $topic);
+        return $this->settings($request, 'pricing', null, $topic, $category);
     }
 
     public function updateSettings(Request $request)

@@ -3051,7 +3051,7 @@ class ClientCourierController extends Controller
             ],
             'codFee' => [
                 'enabled' => false,
-                'domesticOnly' => false,
+                'domesticOnly' => true,
                 'flatFee' => 0,
                 'percentOfDeclaredValue' => 0,
                 'minFee' => 0,
@@ -3416,7 +3416,7 @@ class ClientCourierController extends Controller
         }
 
         $codPolicy = is_array($policyModules['codFee'] ?? null) ? $policyModules['codFee'] : [];
-        $codInScopeCategory = !((bool) ($codPolicy['domesticOnly'] ?? false)) || $category === 'domestic';
+        $codInScopeCategory = $category === 'domestic';
         if ((bool) ($codPolicy['enabled'] ?? false) && $codInScopeCategory && $codFeeBaseAmount > 0) {
             $flatFee = max(0, (float) ($codPolicy['flatFee'] ?? 0)) * $flatFeeFactor;
             $percentFee = $codFeeBaseAmount * (max(0, (float) ($codPolicy['percentOfDeclaredValue'] ?? 0)) / 100) * $percentBaseFactor;

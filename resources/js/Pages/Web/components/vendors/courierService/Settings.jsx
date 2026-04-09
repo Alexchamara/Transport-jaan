@@ -972,6 +972,7 @@ const Settings = () => {
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const initialPricingTopic = String(props.initialPricingTopic || "currency-formula");
+    const initialPricingCategory = String(props.initialPricingCategory || "").toLowerCase();
     const incomingCodCapability = props.courierCodCapability && typeof props.courierCodCapability === "object"
         ? props.courierCodCapability
         : {};
@@ -985,7 +986,7 @@ const Settings = () => {
         : ["domestic", "international"];
     const visiblePricingCategoryOptions = [
         { key: "domestic", label: "Domestic" },
-        { key: "international", label: "international" },
+        { key: "international", label: "International" },
     ].filter((item) => approvedPricingCategories.includes(item.key));
     const defaultPricingCategory = visiblePricingCategoryOptions[0]?.key || "domestic";
 
@@ -1517,7 +1518,13 @@ const Settings = () => {
         ticketRef: "",
         reason: "",
     });
-    const [activePricingCategory, setActivePricingCategory] = useState(defaultPricingCategory);
+    const [activePricingCategory, setActivePricingCategory] = useState(() => {
+        if (approvedPricingCategories.includes(initialPricingCategory)) {
+            return initialPricingCategory;
+        }
+
+        return defaultPricingCategory;
+    });
     const [pricingPreviewInput, setPricingPreviewInput] = useState({
         weightKg: 3,
         lengthCm: 30,
@@ -1579,6 +1586,68 @@ const Settings = () => {
             setActivePricingCategory(defaultPricingCategory);
         }
     }, [activePricingCategory, approvedPricingCategories, defaultPricingCategory]);
+
+    useEffect(() => {
+        setSettings((prev) => {
+            const pricing = prev.pricing || DEFAULT_SETTINGS.pricing;
+            const policyModules = pricing.policyModules || DEFAULT_SETTINGS.pricing.policyModules;
+            const categoryPolicy = (policyModules && typeof policyModules[activePricingCategory] === "object")
+                ? policyModules[activePricingCategory]
+                : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory];
+            const customerContractPricing = (categoryPolicy && typeof categoryPolicy.customerContractPricing === "object")
+                ? categoryPolicy.customerContractPricing
+                : DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].customerContractPricing;
+            const contracts = Array.isArray(customerContractPricing.contracts)
+                ? customerContractPricing.contracts
+                : [];
+
+            let hasChanges = false;
+            const normalizedContracts = contracts.map((contract) => {
+                const row = contract && typeof contract === "object" ? contract : {};
+                const rowCategory = String(row.category || "").toLowerCase();
+                const rowCategories = Array.isArray(row.categories)
+                    ? row.categories.map((item) => String(item || "").toLowerCase()).filter(Boolean)
+                    : [];
+
+                const isAlreadyScoped = rowCategory === activePricingCategory
+                    && rowCategories.length === 1
+                    && rowCategories[0] === activePricingCategory;
+
+                if (isAlreadyScoped) {
+                    return row;
+                }
+
+                hasChanges = true;
+
+                return {
+                    ...row,
+                    category: activePricingCategory,
+                    categories: [activePricingCategory],
+                };
+            });
+
+            if (!hasChanges) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                pricing: {
+                    ...pricing,
+                    policyModules: {
+                        ...policyModules,
+                        [activePricingCategory]: {
+                            ...categoryPolicy,
+                            customerContractPricing: {
+                                ...customerContractPricing,
+                                contracts: normalizedContracts,
+                            },
+                        },
+                    },
+                },
+            };
+        });
+    }, [activePricingCategory]);
 
     useEffect(() => {
         setPricingImportResult(null);
@@ -4545,19 +4614,56 @@ const Settings = () => {
     };
 
     const navigatePricingTopic = (topicKey, options = {}) => {
-        const { syncUrl = true } = options;
+        const { syncUrl = true, category = activePricingCategory } = options;
 
         if (!PRICING_TOPIC_CONFIG.some((topic) => topic.key === topicKey)) {
             return;
         }
 
+        const resolvedCategory = approvedPricingCategories.includes(category)
+            ? category
+            : defaultPricingCategory;
+
         setActivePricingTopic(topicKey);
+        if (resolvedCategory) {
+            setActivePricingCategory(resolvedCategory);
+        }
 
         if (!syncUrl) {
             return;
         }
 
-        router.get(route("courierService.settings.pricing.topic", { topic: topicKey }), {}, {
+        router.get(route("courierService.settings.pricing.topic", {
+            topic: topicKey,
+            category: resolvedCategory,
+        }), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const navigatePricingCategory = (categoryKey, options = {}) => {
+        const { syncUrl = true } = options;
+
+        if (!approvedPricingCategories.includes(categoryKey)) {
+            return;
+        }
+
+        setActivePricingCategory(categoryKey);
+
+        if (!syncUrl) {
+            return;
+        }
+
+        const topicKey = PRICING_TOPIC_CONFIG.some((topic) => topic.key === activePricingTopic)
+            ? activePricingTopic
+            : "currency-formula";
+
+        router.get(route("courierService.settings.pricing.topic", {
+            topic: topicKey,
+            category: categoryKey,
+        }), {}, {
             preserveScroll: true,
             preserveState: true,
             replace: true,
@@ -5822,28 +5928,55 @@ const Settings = () => {
             }
 
             return (
-                <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-5">
-                    <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                        <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
-                        <div className="space-y-2">
-                            {PRICING_TOPIC_CONFIG.map((topic) => (
-                                <button
-                                    key={topic.key}
-                                    type="button"
-                                    onClick={() => navigatePricingTopic(topic.key)}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${activePricingTopic === topic.key
-                                            ? "bg-[#0955AC] text-white"
-                                            : "bg-[#F3F4F6] text-[#374151]"
-                                        }`}
-                                >
-                                    <span>{topic.label}</span>
-                                </button>
-                            ))}
+                <div className="space-y-4">
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide">Pricing Category</p>
+                                <p className="text-[12px] text-[#475569] mt-1">Switch between Domestic and International pricing using URL-based tabs.</p>
+                            </div>
+                            <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
+                                {visiblePricingCategoryOptions.map((item) => (
+                                    <button
+                                        key={`pricing-category-tab-${item.key}`}
+                                        type="button"
+                                        className={`h-[30px] px-4 rounded-[6px] text-[12px] font-[700] transition-colors ${activePricingCategory === item.key ? "bg-[#0955AC] text-white" : "text-[#475569] hover:text-[#1F2937]"}`}
+                                        onClick={() => navigatePricingCategory(item.key)}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                        {visiblePricingCategoryOptions.length === 1 && (
+                            <p className="mt-2 text-[11px] text-[#64748B]">
+                                Pricing is currently available only for {titleCase(visiblePricingCategoryOptions[0].key)} based on super admin service approval.
+                            </p>
+                        )}
                     </div>
 
-                    <SectionCard title="Advanced Pricing" description="Configure domestic/international rate cards, localized currency display, and formula controls for correct quote calculations.">
-                        <div className="space-y-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-5">
+                        <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                            <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
+                            <div className="space-y-2">
+                                {PRICING_TOPIC_CONFIG.map((topic) => (
+                                    <button
+                                        key={topic.key}
+                                        type="button"
+                                        onClick={() => navigatePricingTopic(topic.key, { category: activePricingCategory })}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${activePricingTopic === topic.key
+                                                ? "bg-[#0955AC] text-white"
+                                                : "bg-[#F3F4F6] text-[#374151]"
+                                            }`}
+                                    >
+                                        <span>{topic.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <SectionCard title="Advanced Pricing" description={`Configure ${titleCase(activePricingCategory)} rate cards, localized currency display, and formula controls for accurate quote calculations.`}>
+                            <div className="space-y-4">
                             {activePricingTopic === "currency-formula" && (
                                 <div id="pricing-topic-currency-formula" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-24">
                                     <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
@@ -6085,164 +6218,173 @@ const Settings = () => {
                                             </div>
                                         </div>
 
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
-                                            <p className="text-[12px] font-[700] text-[#111827]">International Dimensions Engine</p>
-                                            <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
-                                            <div className="mt-2 flex flex-wrap gap-3">
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activeInternationalDimensionsEngine?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enabled", e.target.checked)}
-                                                    />
-                                                    Enable
-                                                </label>
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activeInternationalDimensionsEngine?.enforceForInternationalOnly)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enforceForInternationalOnly", e.target.checked)}
-                                                    />
-                                                    Enforce for International category only
-                                                </label>
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(
-                                                            activePricingCategory,
-                                                            "internationalDimensionsEngine",
-                                                            "w2wOption",
-                                                            {
-                                                                ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                enabled: e.target.checked,
-                                                            },
-                                                        )}
-                                                    />
-                                                    Enable W2W mode engine
-                                                </label>
-                                            </div>
-
-                                            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                                <Field label="Unit Type Multipliers (key: value)">
-                                                    <textarea
-                                                        rows={5}
-                                                        className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                        value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.unitTypeMultipliers || {})}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "unitTypeMultipliers", parseMultiplierMapInput(e.target.value))}
-                                                        placeholder={"parcel: 1.0\npallet: 1.18\ncrate: 1.24"}
-                                                    />
-                                                </Field>
-                                                <Field label="Route Class Multipliers (key: value)">
-                                                    <textarea
-                                                        rows={5}
-                                                        className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                        value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.routeClassMultipliers || {})}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "routeClassMultipliers", parseMultiplierMapInput(e.target.value))}
-                                                        placeholder={"standard: 1.0\nexpress_corridor: 1.12\nremote_corridor: 1.22"}
-                                                    />
-                                                </Field>
-                                                <Field label="Handling Class Multipliers (key: value)">
-                                                    <textarea
-                                                        rows={5}
-                                                        className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                        value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.handlingClassMultipliers || {})}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "handlingClassMultipliers", parseMultiplierMapInput(e.target.value))}
-                                                        placeholder={"standard: 1.0\nfragile: 1.08\nhazardous: 1.2"}
-                                                    />
-                                                </Field>
-                                            </div>
-
-                                            <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-3">
-                                                <p className="text-[11px] font-[700] text-[#111827]">W2W Option Policy</p>
-                                                <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                        {activePricingCategory === "international" ? (
+                                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
+                                                <p className="text-[12px] font-[700] text-[#111827]">International Dimensions Engine</p>
+                                                <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
+                                                <div className="mt-2 flex flex-wrap gap-3">
                                                     <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                                         <input
                                                             type="checkbox"
-                                                            checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.strictForInternational)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "internationalDimensionsEngine",
-                                                                "w2wOption",
-                                                                {
-                                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                    strictForInternational: e.target.checked,
-                                                                },
-                                                            )}
+                                                            checked={Boolean(activeInternationalDimensionsEngine?.enabled)}
+                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enabled", e.target.checked)}
                                                         />
-                                                        Strict for international
+                                                        Enable
                                                     </label>
-                                                    <Field label="Default Mode">
+                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
                                                         <input
-                                                            className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                            value={String(activeInternationalDimensionsEngine?.w2wOption?.defaultMode || "")}
+                                                            type="checkbox"
+                                                            checked={Boolean(activeInternationalDimensionsEngine?.enforceForInternationalOnly)}
+                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enforceForInternationalOnly", e.target.checked)}
+                                                        />
+                                                        Enforce for International category only
+                                                    </label>
+                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.enabled)}
                                                             onChange={(e) => updatePricingPolicyModule(
                                                                 activePricingCategory,
                                                                 "internationalDimensionsEngine",
                                                                 "w2wOption",
                                                                 {
                                                                     ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                    defaultMode: String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+                                                                    enabled: e.target.checked,
                                                                 },
                                                             )}
                                                         />
-                                                    </Field>
-                                                    <Field label="Min Unit Count">
-                                                        <input
-                                                            type="number"
-                                                            min={1}
-                                                            step="1"
-                                                            className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                            value={Number(activeInternationalDimensionsEngine?.w2wOption?.minimumUnitCount || 1)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "internationalDimensionsEngine",
-                                                                "w2wOption",
-                                                                {
-                                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                    minimumUnitCount: Number(e.target.value || 1),
-                                                                },
-                                                            )}
+                                                        Enable W2W mode engine
+                                                    </label>
+                                                </div>
+
+                                                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                    <Field label="Unit Type Multipliers (key: value)">
+                                                        <textarea
+                                                            rows={5}
+                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.unitTypeMultipliers || {})}
+                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "unitTypeMultipliers", parseMultiplierMapInput(e.target.value))}
+                                                            placeholder={"parcel: 1.0\npallet: 1.18\ncrate: 1.24"}
                                                         />
                                                     </Field>
-                                                    <Field label="Max Unit Count (optional)">
-                                                        <input
-                                                            type="number"
-                                                            min={1}
-                                                            step="1"
-                                                            className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                            value={activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === null || activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === undefined ? "" : Number(activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount || 1)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "internationalDimensionsEngine",
-                                                                "w2wOption",
-                                                                {
-                                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                    maximumUnitCount: e.target.value === "" ? null : Number(e.target.value || 1),
-                                                                },
-                                                            )}
+                                                    <Field label="Route Class Multipliers (key: value)">
+                                                        <textarea
+                                                            rows={5}
+                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.routeClassMultipliers || {})}
+                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "routeClassMultipliers", parseMultiplierMapInput(e.target.value))}
+                                                            placeholder={"standard: 1.0\nexpress_corridor: 1.12\nremote_corridor: 1.22"}
+                                                        />
+                                                    </Field>
+                                                    <Field label="Handling Class Multipliers (key: value)">
+                                                        <textarea
+                                                            rows={5}
+                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.handlingClassMultipliers || {})}
+                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "handlingClassMultipliers", parseMultiplierMapInput(e.target.value))}
+                                                            placeholder={"standard: 1.0\nfragile: 1.08\nhazardous: 1.2"}
                                                         />
                                                     </Field>
                                                 </div>
-                                                <Field label="W2W Mode Multipliers (key: value)">
-                                                    <textarea
-                                                        rows={4}
-                                                        className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                        value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.w2wOption?.modeMultipliers || {})}
-                                                        onChange={(e) => updatePricingPolicyModule(
-                                                            activePricingCategory,
-                                                            "internationalDimensionsEngine",
-                                                            "w2wOption",
-                                                            {
-                                                                ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                modeMultipliers: parseMultiplierMapInput(e.target.value),
-                                                            },
-                                                        )}
-                                                        placeholder={"door_to_door: 1.15\nport_to_port: 0.92\nhybrid: 1.0"}
-                                                    />
-                                                </Field>
+
+                                                <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-3">
+                                                    <p className="text-[11px] font-[700] text-[#111827]">W2W Option Policy</p>
+                                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.strictForInternational)}
+                                                                onChange={(e) => updatePricingPolicyModule(
+                                                                    activePricingCategory,
+                                                                    "internationalDimensionsEngine",
+                                                                    "w2wOption",
+                                                                    {
+                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
+                                                                        strictForInternational: e.target.checked,
+                                                                    },
+                                                                )}
+                                                            />
+                                                            Strict for international
+                                                        </label>
+                                                        <Field label="Default Mode">
+                                                            <input
+                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={String(activeInternationalDimensionsEngine?.w2wOption?.defaultMode || "")}
+                                                                onChange={(e) => updatePricingPolicyModule(
+                                                                    activePricingCategory,
+                                                                    "internationalDimensionsEngine",
+                                                                    "w2wOption",
+                                                                    {
+                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
+                                                                        defaultMode: String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
+                                                                    },
+                                                                )}
+                                                            />
+                                                        </Field>
+                                                        <Field label="Min Unit Count">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                step="1"
+                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={Number(activeInternationalDimensionsEngine?.w2wOption?.minimumUnitCount || 1)}
+                                                                onChange={(e) => updatePricingPolicyModule(
+                                                                    activePricingCategory,
+                                                                    "internationalDimensionsEngine",
+                                                                    "w2wOption",
+                                                                    {
+                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
+                                                                        minimumUnitCount: Number(e.target.value || 1),
+                                                                    },
+                                                                )}
+                                                            />
+                                                        </Field>
+                                                        <Field label="Max Unit Count (optional)">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                step="1"
+                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === null || activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === undefined ? "" : Number(activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount || 1)}
+                                                                onChange={(e) => updatePricingPolicyModule(
+                                                                    activePricingCategory,
+                                                                    "internationalDimensionsEngine",
+                                                                    "w2wOption",
+                                                                    {
+                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
+                                                                        maximumUnitCount: e.target.value === "" ? null : Number(e.target.value || 1),
+                                                                    },
+                                                                )}
+                                                            />
+                                                        </Field>
+                                                    </div>
+                                                    <Field label="W2W Mode Multipliers (key: value)">
+                                                        <textarea
+                                                            rows={4}
+                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
+                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.w2wOption?.modeMultipliers || {})}
+                                                            onChange={(e) => updatePricingPolicyModule(
+                                                                activePricingCategory,
+                                                                "internationalDimensionsEngine",
+                                                                "w2wOption",
+                                                                {
+                                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
+                                                                    modeMultipliers: parseMultiplierMapInput(e.target.value),
+                                                                },
+                                                            )}
+                                                            placeholder={"door_to_door: 1.15\nport_to_port: 0.92\nhybrid: 1.0"}
+                                                        />
+                                                    </Field>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <div className="rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 md:col-span-2">
+                                                <p className="text-[12px] font-[700] text-[#0F172A]">International Dimensions Engine</p>
+                                                <p className="text-[11px] text-[#64748B] mt-1">
+                                                    This module is available only in the International pricing category. Switch to the International tab to configure it.
+                                                </p>
+                                            </div>
+                                        )}
 
                                         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
                                             <p className="text-[12px] font-[700] text-[#111827]">Remote Area Surcharge</p>
@@ -6335,34 +6477,43 @@ const Settings = () => {
                                             </Field>
                                         </div>
 
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
-                                            <p className="text-[12px] font-[700] text-[#111827]">COD and Minimum Charge Guardrail</p>
-                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingPolicyModules.codFee?.enabled)}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "enabled", e.target.checked)}
-                                                />
-                                                Enable COD Fee
-                                            </label>
-                                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                                <Field label="COD Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.flatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "flatFee", Number(e.target.value || 0))} /></Field>
-                                                <Field label="COD % Declared"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.percentOfDeclaredValue || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "percentOfDeclaredValue", Number(e.target.value || 0))} /></Field>
-                                                <Field label="COD Min Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.minFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "minFee", Number(e.target.value || 0))} /></Field>
-                                                <Field label="COD Max Fee (optional)"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={activePricingPolicyModules.codFee?.maxFee === null || activePricingPolicyModules.codFee?.maxFee === undefined ? "" : Number(activePricingPolicyModules.codFee?.maxFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "maxFee", e.target.value === "" ? null : Number(e.target.value || 0))} /></Field>
+                                        {activePricingCategory === "domestic" ? (
+                                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
+                                                <p className="text-[12px] font-[700] text-[#111827]">COD and Minimum Charge Guardrail</p>
+                                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(activePricingPolicyModules.codFee?.enabled)}
+                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "enabled", e.target.checked)}
+                                                    />
+                                                    Enable COD Fee
+                                                </label>
+                                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                                    <Field label="COD Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.flatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "flatFee", Number(e.target.value || 0))} /></Field>
+                                                    <Field label="COD % Declared"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.percentOfDeclaredValue || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "percentOfDeclaredValue", Number(e.target.value || 0))} /></Field>
+                                                    <Field label="COD Min Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.minFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "minFee", Number(e.target.value || 0))} /></Field>
+                                                    <Field label="COD Max Fee (optional)"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={activePricingPolicyModules.codFee?.maxFee === null || activePricingPolicyModules.codFee?.maxFee === undefined ? "" : Number(activePricingPolicyModules.codFee?.maxFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "maxFee", e.target.value === "" ? null : Number(e.target.value || 0))} /></Field>
+                                                </div>
+                                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(activePricingPolicyModules.minimumShipmentCharge?.enabled)}
+                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "enabled", e.target.checked)}
+                                                    />
+                                                    Enforce Minimum Shipment Charge
+                                                </label>
+                                                <Field label="Minimum Total">
+                                                    <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
+                                                </Field>
                                             </div>
-                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingPolicyModules.minimumShipmentCharge?.enabled)}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "enabled", e.target.checked)}
-                                                />
-                                                Enforce Minimum Shipment Charge
-                                            </label>
-                                            <Field label="Minimum Total">
-                                                <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
-                                            </Field>
-                                        </div>
+                                        ) : (
+                                            <div className="rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                                                <p className="text-[12px] font-[700] text-[#0F172A]">COD Fee Guardrail</p>
+                                                <p className="text-[11px] text-[#64748B] mt-1">
+                                                    COD capability and COD fee policies are available only in the Domestic pricing category.
+                                                </p>
+                                            </div>
+                                        )}
 
                                         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
                                             <p className="text-[12px] font-[700] text-[#111827]">Quote Runtime Governance Guardrails</p>
@@ -6693,24 +6844,10 @@ const Settings = () => {
                                                                     placeholder="102, 204, 305"
                                                                 />
                                                             </Field>
-                                                            <Field label="Contract Category">
-                                                                <select
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={String(contractRow.category || activePricingCategory)}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = {
-                                                                            ...contractRow,
-                                                                            category: e.target.value,
-                                                                            categories: [e.target.value],
-                                                                        };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                >
-                                                                    {visiblePricingCategoryOptions.map((option) => (
-                                                                        <option key={`contract-category-option-${option.key}`} value={option.key}>{option.label}</option>
-                                                                    ))}
-                                                                </select>
+                                                            <Field label="Contract Category (Locked)">
+                                                                <div className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] bg-[#F8FAFC] px-2 text-[12px] text-[#334155] flex items-center">
+                                                                    {titleCase(activePricingCategory)}
+                                                                </div>
                                                             </Field>
                                                             <Field label="Effective From">
                                                                 <input
@@ -7157,29 +7294,10 @@ const Settings = () => {
                                 <div id="pricing-topic-rate-cards" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <p className="text-[13px] font-[700] text-[#111827]">Rate Cards</p>
-                                        <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
-                                            {visiblePricingCategoryOptions.map((item) => (
-                                                <button
-                                                    key={item.key}
-                                                    type="button"
-                                                    className={`h-[28px] px-3 rounded-[6px] text-[11px] font-[700] ${activePricingCategory === item.key ? "bg-[#0955AC] text-white" : "text-[#475569]"}`}
-                                                    onClick={() => setActivePricingCategory(item.key)}
-                                                >
-                                                    {item.label}
-                                                </button>
-                                            ))}
-                                        </div>
+                                        <span className="inline-flex items-center h-[28px] px-3 rounded-[999px] bg-[#EFF6FF] text-[#1E3A8A] text-[11px] font-[700]">
+                                            {titleCase(activePricingCategory)}
+                                        </span>
                                     </div>
-                                    {visiblePricingCategoryOptions.length === 1 && (
-                                        <p className="mt-2 text-[11px] text-[#64748B]">
-                                            Pricing is currently available only for {titleCase(visiblePricingCategoryOptions[0].key)} based on super admin service approval.
-                                        </p>
-                                    )}
-                                    {visiblePricingCategoryOptions.length === 0 && (
-                                        <p className="mt-2 text-[11px] text-[#B45309]">
-                                            No approved courier pricing category found. Ask super admin to approve Domestic and/or international courier registration.
-                                        </p>
-                                    )}
                                     <div className="mt-2 overflow-x-auto">
                                         <table className="w-max min-w-[1100px] text-[11px]">
                                             <thead>
@@ -7645,8 +7763,9 @@ const Settings = () => {
                                 </div>
                             )}
 
-                        </div>
-                    </SectionCard>
+                            </div>
+                        </SectionCard>
+                    </div>
                 </div>
             );
         }
