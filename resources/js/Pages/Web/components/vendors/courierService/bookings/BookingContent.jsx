@@ -226,6 +226,11 @@ const BookingContent = () => {
             return;
         }
 
+        if (!Boolean(codModalBooking?.canCodOverride) && Number.isFinite(requested) && requested - amount > 0.01) {
+            setFeedback({ type: "error", message: "You do not have permission to record a COD amount below the requested value." });
+            return;
+        }
+
         router.post(
             route("courierService.bookings.lifecycle", codModalBooking.id),
             { action: "cod_collected", codCollectedAmount: amount },

@@ -10,6 +10,7 @@ class CourierSensitiveActionApprovalService
 {
     public const ACTION_HIGH_VALUE_CANCELLATION = 'high_value_cancellation';
     public const ACTION_REFUND = 'refund';
+    public const ACTION_COD_OVERRIDE = 'cod_override';
     public const ACTION_OWNERSHIP_TRANSFER = 'ownership_transfer';
     public const ACTION_CLIENT_LIST_EXPORT = 'client_list_export';
 
@@ -32,6 +33,13 @@ class CourierSensitiveActionApprovalService
                     'requiredApprovals' => 1,
                 ],
                 self::ACTION_REFUND => [
+                    'enabled' => true,
+                    'level1MinAmount' => 25000,
+                    'level2MinAmount' => 100000,
+                    'requiredApprovalsLevel1' => 1,
+                    'requiredApprovalsLevel2' => 2,
+                ],
+                self::ACTION_COD_OVERRIDE => [
                     'enabled' => true,
                     'level1MinAmount' => 25000,
                     'level2MinAmount' => 100000,
@@ -72,6 +80,13 @@ class CourierSensitiveActionApprovalService
                     'level2MinAmount' => max(0, (float) ($actions[self::ACTION_REFUND]['level2MinAmount'] ?? $defaults['sensitiveActions'][self::ACTION_REFUND]['level2MinAmount'])),
                     'requiredApprovalsLevel1' => max(1, min(3, (int) ($actions[self::ACTION_REFUND]['requiredApprovalsLevel1'] ?? $defaults['sensitiveActions'][self::ACTION_REFUND]['requiredApprovalsLevel1']))),
                     'requiredApprovalsLevel2' => max(1, min(3, (int) ($actions[self::ACTION_REFUND]['requiredApprovalsLevel2'] ?? $defaults['sensitiveActions'][self::ACTION_REFUND]['requiredApprovalsLevel2']))),
+                ],
+                self::ACTION_COD_OVERRIDE => [
+                    'enabled' => (bool) ($actions[self::ACTION_COD_OVERRIDE]['enabled'] ?? $defaults['sensitiveActions'][self::ACTION_COD_OVERRIDE]['enabled']),
+                    'level1MinAmount' => max(0, (float) ($actions[self::ACTION_COD_OVERRIDE]['level1MinAmount'] ?? $defaults['sensitiveActions'][self::ACTION_COD_OVERRIDE]['level1MinAmount'])),
+                    'level2MinAmount' => max(0, (float) ($actions[self::ACTION_COD_OVERRIDE]['level2MinAmount'] ?? $defaults['sensitiveActions'][self::ACTION_COD_OVERRIDE]['level2MinAmount'])),
+                    'requiredApprovalsLevel1' => max(1, min(3, (int) ($actions[self::ACTION_COD_OVERRIDE]['requiredApprovalsLevel1'] ?? $defaults['sensitiveActions'][self::ACTION_COD_OVERRIDE]['requiredApprovalsLevel1']))),
+                    'requiredApprovalsLevel2' => max(1, min(3, (int) ($actions[self::ACTION_COD_OVERRIDE]['requiredApprovalsLevel2'] ?? $defaults['sensitiveActions'][self::ACTION_COD_OVERRIDE]['requiredApprovalsLevel2']))),
                 ],
                 self::ACTION_OWNERSHIP_TRANSFER => [
                     'enabled' => (bool) ($actions[self::ACTION_OWNERSHIP_TRANSFER]['enabled'] ?? $defaults['sensitiveActions'][self::ACTION_OWNERSHIP_TRANSFER]['enabled']),
@@ -144,6 +159,34 @@ class CourierSensitiveActionApprovalService
                     'thresholdLevel' => 'level_1',
                     'amount' => $amount,
                     'reason' => 'Refund requires approval above threshold.',
+                ];
+            }
+
+            return $base;
+        }
+
+        if ($actionKey === self::ACTION_COD_OVERRIDE) {
+            $amount = (float) ($context['amount'] ?? 0);
+            $l1 = (float) ($actionPolicy['level1MinAmount'] ?? 0);
+            $l2 = (float) ($actionPolicy['level2MinAmount'] ?? 0);
+
+            if ($amount >= $l2) {
+                return [
+                    'required' => true,
+                    'requiredApprovals' => (int) ($actionPolicy['requiredApprovalsLevel2'] ?? 2),
+                    'thresholdLevel' => 'level_2',
+                    'amount' => $amount,
+                    'reason' => 'High-value COD override requires multi-level approval.',
+                ];
+            }
+
+            if ($amount >= $l1) {
+                return [
+                    'required' => true,
+                    'requiredApprovals' => (int) ($actionPolicy['requiredApprovalsLevel1'] ?? 1),
+                    'thresholdLevel' => 'level_1',
+                    'amount' => $amount,
+                    'reason' => 'COD override requires approval above threshold.',
                 ];
             }
 

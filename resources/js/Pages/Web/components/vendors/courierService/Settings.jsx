@@ -587,6 +587,13 @@ const DEFAULT_SETTINGS = {
                     requiredApprovalsLevel1: 1,
                     requiredApprovalsLevel2: 2,
                 },
+                cod_override: {
+                    enabled: true,
+                    level1MinAmount: 25000,
+                    level2MinAmount: 100000,
+                    requiredApprovalsLevel1: 1,
+                    requiredApprovalsLevel2: 2,
+                },
                 ownership_transfer: {
                     enabled: true,
                     requiredApprovals: 2,
@@ -8338,7 +8345,7 @@ const Settings = () => {
                                 >
                                     <div>
                                         <p className="text-[14px] font-[700] text-[#111827]">Approval and Dual Control</p>
-                                        <p className="text-[12px] text-[#6B7280] mt-1">Require maker-checker approvals for high-risk actions (cancellation, refunds, ownership transfer, and full client exports).</p>
+                                        <p className="text-[12px] text-[#6B7280] mt-1">Require maker-checker approvals for high-risk actions (cancellation, refunds, COD overrides, ownership transfer, and full client exports).</p>
                                     </div>
                                     <ChevronDown size={16} className={`text-[#6B7280] transition-transform ${teamPolicyPanels.approvalDualControl ? "rotate-180" : ""}`} />
                                 </button>
@@ -8449,6 +8456,54 @@ const Settings = () => {
                                                                 className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
                                                                 value={settings.team?.approvalControl?.sensitiveActions?.refund?.requiredApprovalsLevel2 ?? 2}
                                                                 onChange={(e) => updateApprovalActionControl("refund", "requiredApprovalsLevel2", Number(e.target.value || 2))}
+                                                            />
+                                                        </Field>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                    <Toggle
+                                                        label="COD Override Approval"
+                                                        checked={Boolean(settings.team?.approvalControl?.sensitiveActions?.cod_override?.enabled)}
+                                                        onChange={(next) => updateApprovalActionControl("cod_override", "enabled", next)}
+                                                    />
+                                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                                        <Field label="Level 1 Min (LKR)">
+                                                            <input
+                                                                type="number"
+                                                                min={0}
+                                                                className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={settings.team?.approvalControl?.sensitiveActions?.cod_override?.level1MinAmount ?? 25000}
+                                                                onChange={(e) => updateApprovalActionControl("cod_override", "level1MinAmount", Number(e.target.value || 0))}
+                                                            />
+                                                        </Field>
+                                                        <Field label="L1 Approvals">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                max={3}
+                                                                className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={settings.team?.approvalControl?.sensitiveActions?.cod_override?.requiredApprovalsLevel1 ?? 1}
+                                                                onChange={(e) => updateApprovalActionControl("cod_override", "requiredApprovalsLevel1", Number(e.target.value || 1))}
+                                                            />
+                                                        </Field>
+                                                        <Field label="Level 2 Min (LKR)">
+                                                            <input
+                                                                type="number"
+                                                                min={0}
+                                                                className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={settings.team?.approvalControl?.sensitiveActions?.cod_override?.level2MinAmount ?? 100000}
+                                                                onChange={(e) => updateApprovalActionControl("cod_override", "level2MinAmount", Number(e.target.value || 0))}
+                                                            />
+                                                        </Field>
+                                                        <Field label="L2 Approvals">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                max={3}
+                                                                className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={settings.team?.approvalControl?.sensitiveActions?.cod_override?.requiredApprovalsLevel2 ?? 2}
+                                                                onChange={(e) => updateApprovalActionControl("cod_override", "requiredApprovalsLevel2", Number(e.target.value || 2))}
                                                             />
                                                         </Field>
                                                     </div>
