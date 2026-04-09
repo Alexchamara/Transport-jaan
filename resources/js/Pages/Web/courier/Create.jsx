@@ -36,9 +36,10 @@ const SRI_LANKAN_CITIES = [
 
 const DOMESTIC_COUNTRY_CODE = "LK";
 const DOMESTIC_COUNTRY_LABEL = "Sri Lanka";
-const POSTAL_LOOKUP_DEBOUNCE_MS = 450;
-const POSTAL_LOOKUP_MIN_CITY_LENGTH = 2;
-const POSTAL_PREFIX_LOOKUP_MIN_LENGTH = 1;
+const POSTAL_LOOKUP_DEBOUNCE_MS = 300;
+const POSTAL_LOOKUP_MIN_CITY_LENGTH = 3;
+const POSTAL_PREFIX_LOOKUP_MIN_LENGTH = 2;
+const CITY_PREFIX_LOOKUP_MIN_LENGTH = 2;
 const POSTAL_CITY_MISMATCH_MESSAGE = "The postal code you entered doesn't match our database. Please retry using a valid postal code.";
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
@@ -1040,7 +1041,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return;
         }
 
-        if (normalizedCity.length < 1 || normalizedCountry.length !== 2) {
+        if (normalizedCity.length < CITY_PREFIX_LOOKUP_MIN_LENGTH || normalizedCountry.length !== 2) {
             setPostalCitySuggestions((previous) => ({
                 ...previous,
                 [party]: [],

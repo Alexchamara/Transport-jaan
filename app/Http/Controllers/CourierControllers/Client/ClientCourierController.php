@@ -670,7 +670,8 @@ class ClientCourierController extends Controller
         }
 
         $baseUrl = rtrim((string) config('services.zipcodebase.base_url', 'https://app.zipcodebase.com/api/v1'), '/');
-        $timeoutSeconds = max(2, (int) config('services.zipcodebase.timeout', 10));
+        $configuredTimeout = (int) config('services.zipcodebase.timeout', 10);
+        $timeoutSeconds = max(2, min($configuredTimeout, 5));
         $country = strtoupper((string) $validated['country']);
         $query = [
             'city' => trim((string) $validated['city']),
@@ -678,14 +679,45 @@ class ClientCourierController extends Controller
             'limit' => (int) ($validated['limit'] ?? 10),
             'apikey' => $apiKey,
         ];
+        $isShortCityPrefix = mb_strlen($query['city']) <= 4;
 
         if (!empty($validated['state'])) {
             $query['state_name'] = trim((string) $validated['state']);
         }
 
-        $cityCandidates = $this->resolvePostalLookupCityCandidates($query['city'], $country);
+        $cityCandidates = $this->resolvePostalLookupCityCandidates($query['city']);
 
         try {
+            if ($isShortCityPrefix) {
+                $fastSuggestions = $this->searchOpenDataPostalCitySuggestionsByCityPrefix(
+                    $query['city'],
+                    $country,
+                    max((int) $query['limit'], 1) * 3
+                );
+
+                $fastPostalCodes = collect($fastSuggestions)
+                    ->map(fn ($item) => trim((string) ($item['postalCode'] ?? '')))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->take((int) $query['limit'])
+                    ->all();
+
+                if (!empty($fastPostalCodes)) {
+                    return response()->json([
+                        'postalCodes' => $fastPostalCodes,
+                        'meta' => [
+                            'city' => $query['city'],
+                            'matchedCity' => $query['city'],
+                            'country' => $query['country'],
+                            'count' => count($fastPostalCodes),
+                            'attemptedCities' => [$query['city']],
+                            'source' => 'opendatasoft-geonames-fast',
+                        ],
+                    ]);
+                }
+            }
+
             $matchedCity = $query['city'];
             $postalCodes = [];
             $hadSuccessfulResponse = false;
@@ -714,6 +746,36 @@ class ClientCourierController extends Controller
                 }
             }
 
+            if (empty($postalCodes)) {
+                $fallbackSuggestions = $this->searchOpenDataPostalCitySuggestionsByCityPrefix(
+                    $query['city'],
+                    $country,
+                    max((int) $query['limit'], 1) * 3
+                );
+
+                $fallbackPostalCodes = collect($fallbackSuggestions)
+                    ->map(fn ($item) => trim((string) ($item['postalCode'] ?? '')))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->take((int) $query['limit'])
+                    ->all();
+
+                if (!empty($fallbackPostalCodes)) {
+                    return response()->json([
+                        'postalCodes' => $fallbackPostalCodes,
+                        'meta' => [
+                            'city' => $query['city'],
+                            'matchedCity' => $query['city'],
+                            'country' => $query['country'],
+                            'count' => count($fallbackPostalCodes),
+                            'attemptedCities' => $cityCandidates,
+                            'source' => 'opendatasoft-geonames',
+                        ],
+                    ]);
+                }
+            }
+
             if (!$hadSuccessfulResponse) {
                 return response()->json([
                     'message' => 'Postal code lookup failed.',
@@ -729,6 +791,7 @@ class ClientCourierController extends Controller
                     'country' => $query['country'],
                     'count' => count($postalCodes),
                     'attemptedCities' => $cityCandidates,
+                    'source' => 'zipcodebase',
                 ],
             ]);
         } catch (\Throwable $exception) {
@@ -776,56 +839,53 @@ class ClientCourierController extends Controller
         $countryCode = strtoupper((string) $validated['country']);
         $limit = (int) ($validated['limit'] ?? 20);
         $isCityLookup = $cityPrefix !== '';
+        $isShortPrefixLookup = $isCityLookup
+            ? mb_strlen($cityPrefix) <= 4
+            : mb_strlen($postalCodePrefix) <= 3;
 
-        $localSuggestions = $isCityLookup
-            ? $this->searchLocalPostalCitySuggestionsByCity($cityPrefix, $countryCode, $limit)
-            : $this->searchLocalPostalCitySuggestions($postalCodePrefix, $countryCode, $limit);
+        $queryCandidates = $isCityLookup
+            ? $this->resolvePostalLookupCityCandidates($cityPrefix)
+            : [$postalCodePrefix];
 
-        if (!empty($localSuggestions) || $countryCode === 'LK') {
-            $exactMatch = $isCityLookup
-                ? collect($localSuggestions)->first(
-                    fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
-                )
-                : collect($localSuggestions)->first(
-                    fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
-                );
-            $cities = collect($localSuggestions)
-                ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
+        $queryCandidates = collect($queryCandidates)
+            ->map(fn ($candidate) => trim((string) $candidate))
+            ->filter()
+            ->unique()
+            ->values()
+            ->take($isShortPrefixLookup ? 1 : 3)
+            ->all();
 
+        if (empty($queryCandidates)) {
             return response()->json([
-                'city' => $isCityLookup
-                    ? ($cityPrefix !== '' ? $cityPrefix : null)
-                    : (is_array($exactMatch) ? ($exactMatch['city'] ?? null) : null),
-                'cities' => $cities,
-                'suggestions' => $localSuggestions,
+                'city' => $isCityLookup ? ($cityPrefix !== '' ? $cityPrefix : null) : null,
+                'cities' => [],
+                'suggestions' => [],
                 'meta' => [
                     'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
                     'city' => $cityPrefix !== '' ? $cityPrefix : null,
                     'country' => $countryCode,
-                    'count' => count($localSuggestions),
-                    'exactMatch' => is_array($exactMatch),
+                    'count' => 0,
+                    'exactMatch' => false,
                     'queryType' => $isCityLookup ? 'city' : 'postalCode',
-                    'source' => 'location-db',
+                    'source' => 'zipcodebase',
                 ],
             ]);
         }
 
-        if (!$isCityLookup && $postalCodePrefix !== '' && $countryCode !== 'LK') {
-            $openDataSuggestions = $this->searchOpenDataPostalCitySuggestionsByPrefix(
-                $postalCodePrefix,
-                $countryCode,
-                $limit
-            );
+        if ($isShortPrefixLookup) {
+            $fastSuggestions = $isCityLookup
+                ? $this->searchOpenDataPostalCitySuggestionsByCityPrefix($cityPrefix, $countryCode, $limit)
+                : $this->searchOpenDataPostalCitySuggestionsByPrefix($postalCodePrefix, $countryCode, $limit);
 
-            if (!empty($openDataSuggestions)) {
-                $exactMatch = collect($openDataSuggestions)->first(
-                    fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
-                );
-                $cities = collect($openDataSuggestions)
+            if (!empty($fastSuggestions)) {
+                $fastExactMatch = $isCityLookup
+                    ? collect($fastSuggestions)->first(
+                        fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                    )
+                    : collect($fastSuggestions)->first(
+                        fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                    );
+                $fastCities = collect($fastSuggestions)
                     ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
                     ->filter()
                     ->unique()
@@ -833,17 +893,19 @@ class ClientCourierController extends Controller
                     ->all();
 
                 return response()->json([
-                    'city' => is_array($exactMatch) ? ($exactMatch['city'] ?? null) : null,
-                    'cities' => $cities,
-                    'suggestions' => $openDataSuggestions,
+                    'city' => $isCityLookup
+                        ? (is_array($fastExactMatch) ? ($fastExactMatch['city'] ?? $cityPrefix) : $cityPrefix)
+                        : (is_array($fastExactMatch) ? ($fastExactMatch['city'] ?? null) : null),
+                    'cities' => $fastCities,
+                    'suggestions' => collect($fastSuggestions)->values()->take($limit)->all(),
                     'meta' => [
-                        'postalCode' => $postalCodePrefix,
-                        'city' => null,
+                        'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
+                        'city' => $cityPrefix !== '' ? $cityPrefix : null,
                         'country' => $countryCode,
-                        'count' => count($openDataSuggestions),
-                        'exactMatch' => is_array($exactMatch),
-                        'queryType' => 'postalCode',
-                        'source' => 'opendatasoft-geonames',
+                        'count' => count($fastSuggestions),
+                        'exactMatch' => is_array($fastExactMatch),
+                        'queryType' => $isCityLookup ? 'city' : 'postalCode',
+                        'source' => 'opendatasoft-geonames-fast',
                     ],
                 ]);
             }
@@ -859,55 +921,115 @@ class ClientCourierController extends Controller
         }
 
         $baseUrl = rtrim((string) config('services.zipcodebase.base_url', 'https://app.zipcodebase.com/api/v1'), '/');
-        $timeoutSeconds = max(2, (int) config('services.zipcodebase.timeout', 10));
-
-        $query = $isCityLookup
-            ? [
-                'city' => $cityPrefix,
-                'country' => $countryCode,
-                'limit' => $limit,
-                'apikey' => $apiKey,
-            ]
-            : [
-                'codes' => $postalCodePrefix,
-                'country' => $countryCode,
-                'apikey' => $apiKey,
-            ];
+        $configuredTimeout = (int) config('services.zipcodebase.timeout', 10);
+        $timeoutSeconds = max(2, min($configuredTimeout, 5));
 
         try {
-            $response = Http::acceptJson()
-                ->timeout($timeoutSeconds)
-                ->withHeaders(['apikey' => $apiKey])
-                ->get($baseUrl . ($isCityLookup ? '/code/city' : '/search'), $query);
+            $matchedQuery = $queryCandidates[0];
+            $suggestions = [];
+            $hadSuccessfulResponse = false;
+            $lastErrorStatus = null;
 
-            if (!$response->successful()) {
+            foreach ($queryCandidates as $candidate) {
+                $query = $isCityLookup
+                    ? [
+                        'city' => $candidate,
+                        'country' => $countryCode,
+                        'limit' => $limit,
+                        'apikey' => $apiKey,
+                    ]
+                    : [
+                        'codes' => $candidate,
+                        'country' => $countryCode,
+                        'apikey' => $apiKey,
+                    ];
+
+                $response = Http::acceptJson()
+                    ->timeout($timeoutSeconds)
+                    ->withHeaders(['apikey' => $apiKey])
+                    ->get($baseUrl . ($isCityLookup ? '/code/city' : '/search'), $query);
+
+                if (!$response->successful()) {
+                    $lastErrorStatus = $response->status();
+                    continue;
+                }
+
+                $hadSuccessfulResponse = true;
+
+                if ($isCityLookup) {
+                    $postalCodes = $this->extractPostalCodesFromLookupResponse($response->json());
+
+                    $candidateSuggestions = collect($postalCodes)
+                        ->map(function ($postalCode) use ($candidate) {
+                            return [
+                                'postalCode' => trim((string) $postalCode),
+                                'city' => $candidate,
+                            ];
+                        })
+                        ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+                        ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
+                        ->values()
+                        ->all();
+                } else {
+                    $candidateSuggestions = $this->extractPostalCitySuggestionsFromLookupResponse(
+                        $response->json(),
+                        $query['codes'],
+                        $query['country']
+                    );
+                }
+
+                if (!empty($candidateSuggestions)) {
+                    $matchedQuery = $candidate;
+                    $suggestions = $candidateSuggestions;
+                    break;
+                }
+            }
+
+            if (!$hadSuccessfulResponse) {
                 return response()->json([
                     'message' => 'City lookup failed.',
                     'city' => null,
                     'cities' => [],
-                ], $response->status() >= 500 ? 502 : 422);
+                ], ($lastErrorStatus !== null && $lastErrorStatus >= 500) ? 502 : 422);
             }
 
-            if ($isCityLookup) {
-                $postalCodes = $this->extractPostalCodesFromLookupResponse($response->json());
+            if (empty($suggestions)) {
+                $fallbackSuggestions = $isCityLookup
+                    ? $this->searchOpenDataPostalCitySuggestionsByCityPrefix($cityPrefix, $countryCode, $limit)
+                    : $this->searchOpenDataPostalCitySuggestionsByPrefix($postalCodePrefix, $countryCode, $limit);
 
-                $suggestions = collect($postalCodes)
-                    ->map(function ($postalCode) use ($cityPrefix) {
-                        return [
-                            'postalCode' => trim((string) $postalCode),
-                            'city' => $cityPrefix,
-                        ];
-                    })
-                    ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
-                    ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
-                    ->values()
-                    ->all();
-            } else {
-                $suggestions = $this->extractPostalCitySuggestionsFromLookupResponse(
-                    $response->json(),
-                    $query['codes'],
-                    $query['country']
-                );
+                if (!empty($fallbackSuggestions)) {
+                    $fallbackExactMatch = $isCityLookup
+                        ? collect($fallbackSuggestions)->first(
+                            fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                        )
+                        : collect($fallbackSuggestions)->first(
+                            fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                        );
+                    $fallbackCities = collect($fallbackSuggestions)
+                        ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all();
+
+                    return response()->json([
+                        'city' => $isCityLookup
+                            ? (is_array($fallbackExactMatch) ? ($fallbackExactMatch['city'] ?? $cityPrefix) : $cityPrefix)
+                            : (is_array($fallbackExactMatch) ? ($fallbackExactMatch['city'] ?? null) : null),
+                        'cities' => $fallbackCities,
+                        'suggestions' => collect($fallbackSuggestions)->values()->take($limit)->all(),
+                        'meta' => [
+                            'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
+                            'city' => $cityPrefix !== '' ? $cityPrefix : null,
+                            'country' => $countryCode,
+                            'count' => count($fallbackSuggestions),
+                            'exactMatch' => is_array($fallbackExactMatch),
+                            'queryType' => $isCityLookup ? 'city' : 'postalCode',
+                            'source' => 'opendatasoft-geonames',
+                        ],
+                    ]);
+                }
             }
 
             $suggestions = collect($suggestions)
@@ -938,11 +1060,12 @@ class ClientCourierController extends Controller
                 'meta' => [
                     'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
                     'city' => $cityPrefix !== '' ? $cityPrefix : null,
-                    'country' => $query['country'],
+                    'country' => $countryCode,
                     'count' => count($suggestions),
                     'exactMatch' => is_array($exactMatch),
                     'queryType' => $isCityLookup ? 'city' : 'postalCode',
                     'source' => 'zipcodebase',
+                    'matchedQuery' => $matchedQuery,
                 ],
             ]);
         } catch (\Throwable $exception) {
@@ -976,15 +1099,22 @@ class ClientCourierController extends Controller
             return [];
         }
 
-        $timeoutSeconds = max(2, (int) config('services.opendatasoft_geonames.timeout', 8));
+        $configuredTimeout = (int) config('services.opendatasoft_geonames.timeout', 8);
+        $timeoutSeconds = max(2, min($configuredTimeout, 5));
         $normalizedPrefix = str_replace('"', '\\"', $prefix);
         $where = 'country_code="' . $country . '" AND startswith(postal_code,"' . $normalizedPrefix . '")';
-        $cacheKey = 'courier:postal-prefix:opendatasoft:'
+        $requestLimit = min(max($limit, 1) * 2, 60);
+        $cacheKey = 'courier:postal-prefix:opendatasoft:v3:'
             . strtolower($country)
             . ':' . strtolower($normalizedPrefix)
             . ':' . max($limit, 1);
 
-        $results = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($baseUrl, $timeoutSeconds, $where, $limit) {
+        $cachedResults = Cache::get($cacheKey);
+        $results = is_array($cachedResults) && !empty($cachedResults)
+            ? $cachedResults
+            : [];
+
+        if (empty($results)) {
             try {
                 $response = Http::acceptJson()
                     ->timeout($timeoutSeconds)
@@ -992,24 +1122,23 @@ class ClientCourierController extends Controller
                         'select' => 'country_code,postal_code,place_name',
                         'where' => $where,
                         'order_by' => 'postal_code',
-                        'limit' => max($limit, 1) * 3,
+                        'limit' => $requestLimit,
                     ]);
 
-                if (!$response->successful()) {
-                    return [];
+                if ($response->successful()) {
+                    $payload = $response->json();
+                    $results = is_array($payload['results'] ?? null)
+                        ? $payload['results']
+                        : [];
+
+                    if (!empty($results)) {
+                        Cache::put($cacheKey, $results, now()->addMinutes(30));
+                    }
                 }
-
-                $payload = $response->json();
-
-                return is_array($payload['results'] ?? null)
-                    ? $payload['results']
-                    : [];
             } catch (\Throwable $exception) {
                 report($exception);
-
-                return [];
             }
-        });
+        }
 
         return collect($results)
             ->filter(fn ($item) => is_array($item))
@@ -1021,6 +1150,161 @@ class ClientCourierController extends Controller
             })
             ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
             ->unique(fn ($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
+            ->values()
+            ->take($limit)
+            ->all();
+    }
+
+    private function searchOpenDataPostalCitySuggestionsByCityPrefix(string $cityPrefix, string $countryCode, int $limit): array
+    {
+        $prefix = trim($cityPrefix);
+        if ($prefix === '' || $limit < 1) {
+            return [];
+        }
+
+        $country = strtoupper(trim($countryCode));
+        if (strlen($country) !== 2) {
+            return [];
+        }
+
+        $baseUrl = trim((string) config(
+            'services.opendatasoft_geonames.base_url',
+            'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-postal-code/records'
+        ));
+        if ($baseUrl === '') {
+            return [];
+        }
+
+        $configuredTimeout = (int) config('services.opendatasoft_geonames.timeout', 8);
+        $timeoutSeconds = max(2, min($configuredTimeout, 5));
+        $escapedPrefix = str_replace('"', '\\"', $prefix);
+        $coarsePrefix = strlen($escapedPrefix) > 3
+            ? substr($escapedPrefix, 0, 3)
+            : $escapedPrefix;
+        $requestLimit = min(max($limit, 1) * 3, 80);
+        $prefixVariants = collect([
+            $escapedPrefix,
+            ucfirst(strtolower($escapedPrefix)),
+            strtoupper($escapedPrefix),
+            $coarsePrefix,
+            ucfirst(strtolower($coarsePrefix)),
+            strtoupper($coarsePrefix),
+        ])
+            ->filter(fn ($value) => trim((string) $value) !== '')
+            ->unique()
+            ->values();
+
+        $startsWithConditions = $prefixVariants
+            ->map(fn ($variant) => 'startswith(place_name,"' . $variant . '")')
+            ->implode(' OR ');
+
+        if ($startsWithConditions === '') {
+            return [];
+        }
+
+        $where = 'country_code="' . $country . '" AND (' . $startsWithConditions . ')';
+        $cacheKey = 'courier:city-prefix:opendatasoft:v3:'
+            . strtolower($country)
+            . ':' . strtolower($prefix)
+            . ':' . max($limit, 1);
+
+        $cachedResults = Cache::get($cacheKey);
+        $results = is_array($cachedResults) && !empty($cachedResults)
+            ? $cachedResults
+            : [];
+
+        if (empty($results)) {
+            try {
+                $queryVariants = [
+                    [
+                        'select' => 'country_code,postal_code,place_name',
+                        'where' => $where,
+                        'order_by' => 'place_name,postal_code',
+                        'limit' => $requestLimit,
+                    ],
+                    [
+                        'select' => 'country_code,postal_code,place_name',
+                        'where' => 'country_code="' . $country . '"',
+                        'search' => $prefix,
+                        'order_by' => 'place_name,postal_code',
+                        'limit' => $requestLimit,
+                    ],
+                ];
+
+                foreach ($queryVariants as $query) {
+                    $response = Http::acceptJson()
+                        ->timeout($timeoutSeconds)
+                        ->get(rtrim($baseUrl, '/'), $query);
+
+                    if (!$response->successful()) {
+                        continue;
+                    }
+
+                    $payload = $response->json();
+                    $candidateResults = is_array($payload['results'] ?? null)
+                        ? $payload['results']
+                        : [];
+
+                    if (!empty($candidateResults)) {
+                        $results = $candidateResults;
+                        break;
+                    }
+                }
+
+                if (!empty($results)) {
+                    Cache::put($cacheKey, $results, now()->addMinutes(30));
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        $normalizedPrefix = strtolower($prefix);
+        $normalizedCoarsePrefix = strlen($normalizedPrefix) > 3
+            ? substr($normalizedPrefix, 0, 3)
+            : $normalizedPrefix;
+
+        return collect($results)
+            ->filter(fn ($item) => is_array($item))
+            ->map(function (array $item) {
+                return [
+                    'postalCode' => trim((string) ($item['postal_code'] ?? '')),
+                    'city' => trim((string) ($item['place_name'] ?? '')),
+                ];
+            })
+            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->filter(function (array $item) use ($normalizedPrefix, $normalizedCoarsePrefix) {
+                $city = strtolower((string) ($item['city'] ?? ''));
+
+                if (str_starts_with($city, $normalizedPrefix) || str_contains($city, $normalizedPrefix)) {
+                    return true;
+                }
+
+                if ($normalizedCoarsePrefix === '') {
+                    return false;
+                }
+
+                return str_starts_with($city, $normalizedCoarsePrefix)
+                    || str_contains($city, $normalizedCoarsePrefix);
+            })
+            ->sortBy(function (array $item) use ($normalizedPrefix, $normalizedCoarsePrefix) {
+                $city = strtolower((string) ($item['city'] ?? ''));
+
+                $rank = '3';
+                if (str_starts_with($city, $normalizedPrefix)) {
+                    $rank = '0';
+                } elseif (str_contains($city, $normalizedPrefix)) {
+                    $rank = '1';
+                } elseif (
+                    $normalizedCoarsePrefix !== ''
+                    && (str_starts_with($city, $normalizedCoarsePrefix) || str_contains($city, $normalizedCoarsePrefix))
+                ) {
+                    $rank = '2';
+                }
+
+                return $rank . '|' . $city . '|' . strtolower((string) $item['postalCode']);
+            })
+            ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
             ->values()
             ->take($limit)
             ->all();
@@ -1171,7 +1455,7 @@ class ClientCourierController extends Controller
             ->all();
     }
 
-    private function resolvePostalLookupCityCandidates(string $city, string $country): array
+    private function resolvePostalLookupCityCandidates(string $city): array
     {
         $normalizedCity = trim(preg_replace('/\s+/', ' ', $city));
         if ($normalizedCity === '') {
@@ -1179,17 +1463,6 @@ class ClientCourierController extends Controller
         }
 
         $candidates = [$normalizedCity];
-        $normalizedCountry = strtoupper(trim($country));
-        $cityKey = strtolower($normalizedCity);
-
-        if ($normalizedCountry === 'LK') {
-            if (str_contains($cityKey, 'jayawardhenepura') || str_contains($cityKey, 'jayewardenepura')) {
-                $candidates[] = 'Sri Jayewardenepura Kotte';
-                $candidates[] = 'Sri Jayawardhenepura Kotte';
-                $candidates[] = 'Kotte';
-                $candidates[] = 'Colombo';
-            }
-        }
 
         return collect($candidates)
             ->map(fn ($candidate) => trim((string) $candidate))
