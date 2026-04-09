@@ -7,6 +7,8 @@ use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierVendorCodCapability;
+use App\Models\Location\LocationCity;
+use App\Models\Location\LocationCountry;
 use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
@@ -16,7 +18,9 @@ use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -77,7 +81,7 @@ class ClientCourierController extends Controller
             })
             ->values();
 
-        $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
+        $countries = $this->resolveSupportedCountryCodes();
 
         // Calculate statistics
         $totalShipments = $shipments->count();
@@ -428,7 +432,7 @@ class ClientCourierController extends Controller
         $serviceCategory = $this->hasFlowRouteContext($request) ? $flow : 'domestic';
         $serviceLevels = $this->serviceLevelLabelsForCategory($serviceCategory);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
-        $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
+        $countries = $this->resolveSupportedCountryCodes();
 
         return Inertia::render($this->resolveFlowPageComponent($request, 'Create'), [
             'serviceLevels' => $serviceLevels,
@@ -441,6 +445,758 @@ class ClientCourierController extends Controller
             'bookingFlow' => $this->hasFlowRouteContext($request) ? $flow : null,
             'flowRoutes' => $this->resolveBookingFlowRoutes($request),
         ]);
+    }
+
+    public function lookupCountries(Request $request)
+    {
+        $validated = $request->validate([
+            'query' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $searchQuery = trim((string) ($validated['query'] ?? ''));
+        $searchQueryUpper = strtoupper($searchQuery);
+        $searchQueryLower = strtolower($searchQuery);
+        $limit = (int) ($validated['limit'] ?? 20);
+
+        $catalog = $this->resolveCountryCatalog();
+
+        $buildSuggestion = function (string $code, string $name, string $iso3 = '', string $nameNative = '') use ($searchQueryLower, $searchQueryUpper) {
+            $normalizedCode = strtoupper(trim($code));
+            $normalizedIso3 = strtoupper(trim($iso3));
+            $normalizedName = trim($name);
+            $normalizedNative = trim($nameNative);
+
+            if ($normalizedCode === '' || $normalizedName === '') {
+                return null;
+            }
+
+            if ($searchQueryLower === '') {
+                return [
+                    'code' => $normalizedCode,
+                    'name' => $normalizedName,
+                    'score' => 5,
+                ];
+            }
+
+            $nameLower = strtolower($normalizedName);
+            $nativeLower = strtolower($normalizedNative);
+
+            if ($normalizedCode === $searchQueryUpper || ($normalizedIso3 !== '' && $normalizedIso3 === $searchQueryUpper)) {
+                $score = 0;
+            } elseif ($nameLower === $searchQueryLower || ($nativeLower !== '' && $nativeLower === $searchQueryLower)) {
+                $score = 1;
+            } elseif (str_starts_with($nameLower, $searchQueryLower)
+                || ($nativeLower !== '' && str_starts_with($nativeLower, $searchQueryLower))
+                || str_starts_with($normalizedCode, $searchQueryUpper)
+                || ($normalizedIso3 !== '' && str_starts_with($normalizedIso3, $searchQueryUpper))) {
+                $score = 2;
+            } elseif (str_contains($nameLower, $searchQueryLower)
+                || ($nativeLower !== '' && str_contains($nativeLower, $searchQueryLower))) {
+                $score = 3;
+            } else {
+                return null;
+            }
+
+            return [
+                'code' => $normalizedCode,
+                'name' => $normalizedName,
+                'score' => $score,
+            ];
+        };
+
+        $suggestions = collect($catalog)
+            ->map(fn (array $entry) => $buildSuggestion(
+                (string) ($entry['code'] ?? ''),
+                (string) ($entry['name'] ?? ''),
+                (string) ($entry['iso3'] ?? ''),
+                (string) ($entry['nameNative'] ?? '')
+            ))
+            ->filter(fn ($entry) => is_array($entry) && $entry['code'] !== '' && $entry['name'] !== '')
+            ->unique(fn (array $entry) => $entry['code'])
+            ->sortBy([
+                ['score', 'asc'],
+                ['name', 'asc'],
+            ])
+            ->values()
+            ->take($limit)
+            ->map(fn (array $entry) => [
+                'code' => $entry['code'],
+                'name' => $entry['name'],
+            ])
+            ->all();
+
+        return response()->json([
+            'suggestions' => $suggestions,
+            'meta' => [
+                'query' => $searchQuery !== '' ? $searchQuery : null,
+                'count' => count($suggestions),
+            ],
+        ]);
+    }
+
+    private function resolveSupportedCountryCodes(): array
+    {
+        return collect($this->resolveCountryCatalog())
+            ->map(fn (array $entry) => strtoupper(trim((string) ($entry['code'] ?? ''))))
+            ->filter(fn (string $code) => strlen($code) === 2)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function resolveCountryCatalog(): array
+    {
+        $databaseCatalog = LocationCountry::query()
+            ->select(['iso2', 'iso3', 'name_en', 'name_native'])
+            ->where('is_active', true)
+            ->orderBy('name_en')
+            ->orderBy('iso2')
+            ->get()
+            ->map(function (LocationCountry $country) {
+                $code = strtoupper(trim((string) ($country->iso2 ?? '')));
+                $iso3 = strtoupper(trim((string) ($country->iso3 ?? '')));
+                $nameEnglish = trim((string) ($country->name_en ?? ''));
+                $nameNative = trim((string) ($country->name_native ?? ''));
+                $name = $nameEnglish !== '' ? $nameEnglish : ($nameNative !== '' ? $nameNative : $code);
+
+                return [
+                    'code' => $code,
+                    'iso3' => $iso3,
+                    'name' => $name,
+                    'nameNative' => $nameNative,
+                ];
+            })
+            ->filter(fn (array $entry) => $entry['code'] !== '' && $entry['name'] !== '')
+            ->values();
+
+        $externalCatalog = Cache::remember('courier:countries:external_catalog', now()->addDay(), function () {
+            $baseUrl = rtrim((string) config('services.restcountries.base_url', 'https://restcountries.com/v3.1'), '/');
+            $timeoutSeconds = max(2, (int) config('services.restcountries.timeout', 8));
+
+            try {
+                $response = Http::acceptJson()
+                    ->timeout($timeoutSeconds)
+                    ->get($baseUrl . '/all', [
+                        'fields' => 'cca2,cca3,name',
+                    ]);
+
+                if (!$response->successful()) {
+                    return [];
+                }
+
+                $payload = $response->json();
+                if (!is_array($payload)) {
+                    return [];
+                }
+
+                return collect($payload)
+                    ->filter(fn ($item) => is_array($item))
+                    ->map(function (array $item) {
+                        $code = strtoupper(trim((string) ($item['cca2'] ?? '')));
+                        $iso3 = strtoupper(trim((string) ($item['cca3'] ?? '')));
+                        $name = trim((string) (($item['name']['common'] ?? '') ?: ''));
+
+                        return [
+                            'code' => $code,
+                            'iso3' => $iso3,
+                            'name' => $name,
+                            'nameNative' => '',
+                        ];
+                    })
+                    ->filter(fn (array $entry) => strlen($entry['code']) === 2 && $entry['name'] !== '')
+                    ->values()
+                    ->all();
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return [];
+            }
+        });
+
+        return $databaseCatalog
+            ->merge(collect($externalCatalog))
+            ->filter(fn ($entry) => is_array($entry))
+            ->map(function (array $entry) {
+                return [
+                    'code' => strtoupper(trim((string) ($entry['code'] ?? ''))),
+                    'iso3' => strtoupper(trim((string) ($entry['iso3'] ?? ''))),
+                    'name' => trim((string) ($entry['name'] ?? '')),
+                    'nameNative' => trim((string) ($entry['nameNative'] ?? '')),
+                ];
+            })
+            ->filter(fn (array $entry) => strlen($entry['code']) === 2 && $entry['name'] !== '')
+            ->unique(fn (array $entry) => $entry['code'])
+            ->sortBy('name')
+            ->values()
+            ->all();
+    }
+
+    public function lookupPostalCodesByCity(Request $request)
+    {
+        $validated = $request->validate([
+            'city' => ['required', 'string', 'max:120'],
+            'country' => ['required', 'string', 'size:2'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'routeType' => ['nullable', 'string', 'in:international'],
+        ]);
+
+        if ($this->hasFlowRouteContext($request)) {
+            if ($this->resolveBookingFlow((string) $request->route('flow')) !== 'international') {
+                return response()->json([
+                    'message' => 'Postal code lookup is available for international bookings only.',
+                    'postalCodes' => [],
+                ], 422);
+            }
+        } else {
+            $isInternationalRequest = strtolower((string) ($validated['routeType'] ?? '')) === 'international';
+
+            if (!$isInternationalRequest) {
+                return response()->json([
+                    'message' => 'Postal code lookup is available for international bookings only.',
+                    'postalCodes' => [],
+                ], 422);
+            }
+        }
+
+        $apiKey = trim((string) config('services.zipcodebase.api_key'));
+        if ($apiKey === '') {
+            return response()->json([
+                'message' => 'Postal code lookup service is not configured.',
+                'postalCodes' => [],
+            ], 503);
+        }
+
+        $baseUrl = rtrim((string) config('services.zipcodebase.base_url', 'https://app.zipcodebase.com/api/v1'), '/');
+        $timeoutSeconds = max(2, (int) config('services.zipcodebase.timeout', 10));
+        $country = strtoupper((string) $validated['country']);
+        $query = [
+            'city' => trim((string) $validated['city']),
+            'country' => $country,
+            'limit' => (int) ($validated['limit'] ?? 10),
+            'apikey' => $apiKey,
+        ];
+
+        if (!empty($validated['state'])) {
+            $query['state_name'] = trim((string) $validated['state']);
+        }
+
+        $cityCandidates = $this->resolvePostalLookupCityCandidates($query['city'], $country);
+
+        try {
+            $matchedCity = $query['city'];
+            $postalCodes = [];
+            $hadSuccessfulResponse = false;
+            $lastErrorStatus = null;
+
+            foreach ($cityCandidates as $candidateCity) {
+                $candidateQuery = $query;
+                $candidateQuery['city'] = $candidateCity;
+
+                $response = Http::acceptJson()
+                    ->timeout($timeoutSeconds)
+                    ->withHeaders(['apikey' => $apiKey])
+                    ->get($baseUrl . '/code/city', $candidateQuery);
+
+                if (!$response->successful()) {
+                    $lastErrorStatus = $response->status();
+                    continue;
+                }
+
+                $hadSuccessfulResponse = true;
+                $postalCodes = $this->extractPostalCodesFromLookupResponse($response->json());
+
+                if (!empty($postalCodes)) {
+                    $matchedCity = $candidateCity;
+                    break;
+                }
+            }
+
+            if (!$hadSuccessfulResponse) {
+                return response()->json([
+                    'message' => 'Postal code lookup failed.',
+                    'postalCodes' => [],
+                ], ($lastErrorStatus !== null && $lastErrorStatus >= 500) ? 502 : 422);
+            }
+
+            return response()->json([
+                'postalCodes' => $postalCodes,
+                'meta' => [
+                    'city' => $query['city'],
+                    'matchedCity' => $matchedCity,
+                    'country' => $query['country'],
+                    'count' => count($postalCodes),
+                    'attemptedCities' => $cityCandidates,
+                ],
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Postal code lookup is temporarily unavailable.',
+                'postalCodes' => [],
+            ], 502);
+        }
+    }
+
+    public function lookupCityByPostalCode(Request $request)
+    {
+        $validated = $request->validate([
+            'postalCode' => ['nullable', 'string', 'max:20', 'required_without:city'],
+            'city' => ['nullable', 'string', 'max:120', 'required_without:postalCode'],
+            'country' => ['required', 'string', 'size:2'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'routeType' => ['nullable', 'string', 'in:international'],
+        ]);
+
+        if ($this->hasFlowRouteContext($request)) {
+            if ($this->resolveBookingFlow((string) $request->route('flow')) !== 'international') {
+                return response()->json([
+                    'message' => 'City lookup is available for international bookings only.',
+                    'city' => null,
+                    'cities' => [],
+                ], 422);
+            }
+        } else {
+            $isInternationalRequest = strtolower((string) ($validated['routeType'] ?? '')) === 'international';
+
+            if (!$isInternationalRequest) {
+                return response()->json([
+                    'message' => 'City lookup is available for international bookings only.',
+                    'city' => null,
+                    'cities' => [],
+                ], 422);
+            }
+        }
+
+        $postalCodePrefix = trim((string) ($validated['postalCode'] ?? ''));
+        $cityPrefix = trim((string) ($validated['city'] ?? ''));
+        $countryCode = strtoupper((string) $validated['country']);
+        $limit = (int) ($validated['limit'] ?? 20);
+        $isCityLookup = $cityPrefix !== '';
+
+        $localSuggestions = $isCityLookup
+            ? $this->searchLocalPostalCitySuggestionsByCity($cityPrefix, $countryCode, $limit)
+            : $this->searchLocalPostalCitySuggestions($postalCodePrefix, $countryCode, $limit);
+
+        if (!empty($localSuggestions) || $countryCode === 'LK') {
+            $exactMatch = $isCityLookup
+                ? collect($localSuggestions)->first(
+                    fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                )
+                : collect($localSuggestions)->first(
+                    fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                );
+            $cities = collect($localSuggestions)
+                ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            return response()->json([
+                'city' => $isCityLookup
+                    ? ($cityPrefix !== '' ? $cityPrefix : null)
+                    : (is_array($exactMatch) ? ($exactMatch['city'] ?? null) : null),
+                'cities' => $cities,
+                'suggestions' => $localSuggestions,
+                'meta' => [
+                    'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
+                    'city' => $cityPrefix !== '' ? $cityPrefix : null,
+                    'country' => $countryCode,
+                    'count' => count($localSuggestions),
+                    'exactMatch' => is_array($exactMatch),
+                    'queryType' => $isCityLookup ? 'city' : 'postalCode',
+                    'source' => 'location-db',
+                ],
+            ]);
+        }
+
+        if (!$isCityLookup && $postalCodePrefix !== '' && $countryCode !== 'LK') {
+            $openDataSuggestions = $this->searchOpenDataPostalCitySuggestionsByPrefix(
+                $postalCodePrefix,
+                $countryCode,
+                $limit
+            );
+
+            if (!empty($openDataSuggestions)) {
+                $exactMatch = collect($openDataSuggestions)->first(
+                    fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                );
+                $cities = collect($openDataSuggestions)
+                    ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return response()->json([
+                    'city' => is_array($exactMatch) ? ($exactMatch['city'] ?? null) : null,
+                    'cities' => $cities,
+                    'suggestions' => $openDataSuggestions,
+                    'meta' => [
+                        'postalCode' => $postalCodePrefix,
+                        'city' => null,
+                        'country' => $countryCode,
+                        'count' => count($openDataSuggestions),
+                        'exactMatch' => is_array($exactMatch),
+                        'queryType' => 'postalCode',
+                        'source' => 'opendatasoft-geonames',
+                    ],
+                ]);
+            }
+        }
+
+        $apiKey = trim((string) config('services.zipcodebase.api_key'));
+        if ($apiKey === '') {
+            return response()->json([
+                'message' => 'Postal/city lookup service is not configured.',
+                'city' => null,
+                'cities' => [],
+            ], 503);
+        }
+
+        $baseUrl = rtrim((string) config('services.zipcodebase.base_url', 'https://app.zipcodebase.com/api/v1'), '/');
+        $timeoutSeconds = max(2, (int) config('services.zipcodebase.timeout', 10));
+
+        $query = $isCityLookup
+            ? [
+                'city' => $cityPrefix,
+                'country' => $countryCode,
+                'limit' => $limit,
+                'apikey' => $apiKey,
+            ]
+            : [
+                'codes' => $postalCodePrefix,
+                'country' => $countryCode,
+                'apikey' => $apiKey,
+            ];
+
+        try {
+            $response = Http::acceptJson()
+                ->timeout($timeoutSeconds)
+                ->withHeaders(['apikey' => $apiKey])
+                ->get($baseUrl . ($isCityLookup ? '/code/city' : '/search'), $query);
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'message' => 'City lookup failed.',
+                    'city' => null,
+                    'cities' => [],
+                ], $response->status() >= 500 ? 502 : 422);
+            }
+
+            if ($isCityLookup) {
+                $postalCodes = $this->extractPostalCodesFromLookupResponse($response->json());
+
+                $suggestions = collect($postalCodes)
+                    ->map(function ($postalCode) use ($cityPrefix) {
+                        return [
+                            'postalCode' => trim((string) $postalCode),
+                            'city' => $cityPrefix,
+                        ];
+                    })
+                    ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+                    ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
+                    ->values()
+                    ->all();
+            } else {
+                $suggestions = $this->extractPostalCitySuggestionsFromLookupResponse(
+                    $response->json(),
+                    $query['codes'],
+                    $query['country']
+                );
+            }
+
+            $suggestions = collect($suggestions)
+                ->values()
+                ->take($limit)
+                ->all();
+
+            $exactMatch = $isCityLookup
+                ? collect($suggestions)->first(
+                    fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                )
+                : collect($suggestions)->first(
+                    fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                );
+            $cities = collect($suggestions)
+                ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            return response()->json([
+                'city' => $isCityLookup
+                    ? ($cityPrefix !== '' ? $cityPrefix : null)
+                    : (is_array($exactMatch) ? ($exactMatch['city'] ?? null) : null),
+                'cities' => $cities,
+                'suggestions' => $suggestions,
+                'meta' => [
+                    'postalCode' => $postalCodePrefix !== '' ? $postalCodePrefix : null,
+                    'city' => $cityPrefix !== '' ? $cityPrefix : null,
+                    'country' => $query['country'],
+                    'count' => count($suggestions),
+                    'exactMatch' => is_array($exactMatch),
+                    'queryType' => $isCityLookup ? 'city' : 'postalCode',
+                    'source' => 'zipcodebase',
+                ],
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'City lookup is temporarily unavailable.',
+                'city' => null,
+                'cities' => [],
+            ], 502);
+        }
+    }
+
+    private function searchOpenDataPostalCitySuggestionsByPrefix(string $postalCodePrefix, string $countryCode, int $limit): array
+    {
+        $prefix = trim($postalCodePrefix);
+        if ($prefix === '' || $limit < 1) {
+            return [];
+        }
+
+        $country = strtoupper(trim($countryCode));
+        if (strlen($country) !== 2) {
+            return [];
+        }
+
+        $baseUrl = trim((string) config(
+            'services.opendatasoft_geonames.base_url',
+            'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/geonames-postal-code/records'
+        ));
+        if ($baseUrl === '') {
+            return [];
+        }
+
+        $timeoutSeconds = max(2, (int) config('services.opendatasoft_geonames.timeout', 8));
+        $normalizedPrefix = str_replace('"', '\\"', $prefix);
+        $where = 'country_code="' . $country . '" AND startswith(postal_code,"' . $normalizedPrefix . '")';
+        $cacheKey = 'courier:postal-prefix:opendatasoft:'
+            . strtolower($country)
+            . ':' . strtolower($normalizedPrefix)
+            . ':' . max($limit, 1);
+
+        $results = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($baseUrl, $timeoutSeconds, $where, $limit) {
+            try {
+                $response = Http::acceptJson()
+                    ->timeout($timeoutSeconds)
+                    ->get(rtrim($baseUrl, '/'), [
+                        'select' => 'country_code,postal_code,place_name',
+                        'where' => $where,
+                        'order_by' => 'postal_code',
+                        'limit' => max($limit, 1) * 3,
+                    ]);
+
+                if (!$response->successful()) {
+                    return [];
+                }
+
+                $payload = $response->json();
+
+                return is_array($payload['results'] ?? null)
+                    ? $payload['results']
+                    : [];
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return [];
+            }
+        });
+
+        return collect($results)
+            ->filter(fn ($item) => is_array($item))
+            ->map(function (array $item) {
+                return [
+                    'postalCode' => trim((string) ($item['postal_code'] ?? '')),
+                    'city' => trim((string) ($item['place_name'] ?? '')),
+                ];
+            })
+            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->unique(fn ($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
+            ->values()
+            ->take($limit)
+            ->all();
+    }
+
+    private function extractPostalCitySuggestionsFromLookupResponse($payload, string $postalCodePrefix, string $country): array
+    {
+        if (!is_array($payload) || !is_array($payload['results'] ?? null)) {
+            return [];
+        }
+
+        $normalizedPostalCodePrefix = trim($postalCodePrefix);
+        $normalizedCountry = strtoupper(trim($country));
+        $results = $payload['results'];
+
+        return collect($results)
+            ->flatMap(function ($items, $code) {
+                if (!is_array($items)) {
+                    return [];
+                }
+
+                return collect($items)
+                    ->filter(fn ($entry) => is_array($entry))
+                    ->map(function (array $entry) use ($code) {
+                        if (trim((string) ($entry['postal_code'] ?? '')) === '') {
+                            $entry['postal_code'] = is_scalar($code) ? (string) $code : '';
+                        }
+
+                        return $entry;
+                    })
+                    ->all();
+            })
+            ->filter(fn ($entry) => is_array($entry))
+            ->filter(function (array $entry) use ($normalizedCountry) {
+                $entryCountry = strtoupper(trim((string) ($entry['country_code'] ?? '')));
+
+                return $entryCountry === '' || $entryCountry === $normalizedCountry;
+            })
+            ->map(function (array $entry) {
+                $postalCode = trim((string) ($entry['postal_code'] ?? ''));
+                $city = trim((string) ($entry['city'] ?? ''));
+
+                if ($city === '') {
+                    $city = trim((string) ($entry['city_en'] ?? ''));
+                }
+
+                return [
+                    'postalCode' => $postalCode,
+                    'city' => $city,
+                ];
+            })
+            ->filter(function ($entry) {
+                return is_array($entry)
+                    && trim((string) ($entry['postalCode'] ?? '')) !== ''
+                    && trim((string) ($entry['city'] ?? '')) !== '';
+            })
+            ->filter(function (array $entry) use ($normalizedPostalCodePrefix) {
+                if ($normalizedPostalCodePrefix === '') {
+                    return true;
+                }
+
+                return str_starts_with((string) $entry['postalCode'], $normalizedPostalCodePrefix);
+            })
+            ->unique(fn ($entry) => strtolower((string) $entry['postalCode']) . '|' . strtolower((string) $entry['city']))
+            ->sortBy(fn ($entry) => (string) ($entry['postalCode'] ?? ''))
+            ->values()
+            ->take(50)
+            ->all();
+    }
+
+    private function searchLocalPostalCitySuggestions(string $postalCodePrefix, string $countryCode, int $limit): array
+    {
+        $prefix = trim($postalCodePrefix);
+        if ($prefix === '' || $limit < 1) {
+            return [];
+        }
+
+        $normalizedCountry = strtoupper(trim($countryCode));
+
+        $rows = LocationCity::query()
+            ->select(['location_cities.postcode', 'location_cities.name_en'])
+            ->join('location_districts', 'location_districts.id', '=', 'location_cities.district_id')
+            ->join('location_provinces', 'location_provinces.id', '=', 'location_districts.province_id')
+            ->join('location_countries', 'location_countries.id', '=', 'location_provinces.country_id')
+            ->whereNotNull('location_cities.postcode')
+            ->where('location_countries.iso2', $normalizedCountry)
+            ->where('location_cities.postcode', 'like', $prefix . '%')
+            ->orderBy('location_cities.postcode')
+            ->orderBy('location_cities.name_en')
+            ->limit(max($limit, 1) * 3)
+            ->get();
+
+        return collect($rows)
+            ->map(function ($row) {
+                return [
+                    'postalCode' => trim((string) ($row->postcode ?? '')),
+                    'city' => trim((string) ($row->name_en ?? '')),
+                ];
+            })
+            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->unique(fn ($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
+            ->values()
+            ->take($limit)
+            ->all();
+    }
+
+    private function searchLocalPostalCitySuggestionsByCity(string $cityPrefix, string $countryCode, int $limit): array
+    {
+        $prefix = trim($cityPrefix);
+        if ($prefix === '' || $limit < 1) {
+            return [];
+        }
+
+        $normalizedCountry = strtoupper(trim($countryCode));
+
+        $rows = LocationCity::query()
+            ->select(['location_cities.postcode', 'location_cities.name_en', 'location_cities.sub_name_en'])
+            ->join('location_districts', 'location_districts.id', '=', 'location_cities.district_id')
+            ->join('location_provinces', 'location_provinces.id', '=', 'location_districts.province_id')
+            ->join('location_countries', 'location_countries.id', '=', 'location_provinces.country_id')
+            ->whereNotNull('location_cities.postcode')
+            ->where('location_countries.iso2', $normalizedCountry)
+            ->where(function ($query) use ($prefix) {
+                $query->where('location_cities.name_en', 'like', $prefix . '%')
+                    ->orWhere('location_cities.sub_name_en', 'like', $prefix . '%');
+            })
+            ->orderBy('location_cities.name_en')
+            ->orderBy('location_cities.postcode')
+            ->limit(max($limit, 1) * 3)
+            ->get();
+
+        return collect($rows)
+            ->map(function ($row) {
+                $city = trim((string) ($row->name_en ?? ''));
+                if ($city === '') {
+                    $city = trim((string) ($row->sub_name_en ?? ''));
+                }
+
+                return [
+                    'postalCode' => trim((string) ($row->postcode ?? '')),
+                    'city' => $city,
+                ];
+            })
+            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
+            ->values()
+            ->take($limit)
+            ->all();
+    }
+
+    private function resolvePostalLookupCityCandidates(string $city, string $country): array
+    {
+        $normalizedCity = trim(preg_replace('/\s+/', ' ', $city));
+        if ($normalizedCity === '') {
+            return [];
+        }
+
+        $candidates = [$normalizedCity];
+        $normalizedCountry = strtoupper(trim($country));
+        $cityKey = strtolower($normalizedCity);
+
+        if ($normalizedCountry === 'LK') {
+            if (str_contains($cityKey, 'jayawardhenepura') || str_contains($cityKey, 'jayewardenepura')) {
+                $candidates[] = 'Sri Jayewardenepura Kotte';
+                $candidates[] = 'Sri Jayawardhenepura Kotte';
+                $candidates[] = 'Kotte';
+                $candidates[] = 'Colombo';
+            }
+        }
+
+        return collect($candidates)
+            ->map(fn ($candidate) => trim((string) $candidate))
+            ->filter()
+            ->unique()
+            ->values()
+            ->take(5)
+            ->all();
     }
 
     public function review(Request $request)
@@ -590,7 +1346,7 @@ class ClientCourierController extends Controller
             : $this->resolvePayloadCategory($formData);
         $serviceLevels = $this->serviceLevelLabelsForCategory($category);
         $packageTypes = ['document', 'parcel', 'freight', 'temperature_controlled'];
-        $countries = ['US', 'CA', 'GB', 'AU', 'LK', 'IN', 'SG'];
+        $countries = $this->resolveSupportedCountryCodes();
         $favoriteRecipients = [];
         $favoriteSenders = [];
         $senderProfile = null;
@@ -708,7 +1464,7 @@ class ClientCourierController extends Controller
         $city = $vendorProfile?->city ?: $user->city;
         $state = $vendorProfile?->state ?: $user->state;
         $postalCode = $vendorProfile?->postal_code ?: $user->postal_code;
-        $country = strtoupper((string) ($vendorProfile?->country ?: $user->country ?: ($countries[0] ?? 'US')));
+        $country = strtoupper((string) ($vendorProfile?->country ?: $user->country ?: ($countries[0] ?? '')));
 
         return [
             'label' => $isBusiness ? 'Same as company profile' : 'Same as profile',
@@ -1464,6 +2220,40 @@ class ClientCourierController extends Controller
         return hash('sha256', json_encode($comparable, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
+    private function extractPostalCodesFromLookupResponse($payload): array
+    {
+        if (!is_array($payload) || !is_array($payload['results'] ?? null)) {
+            return [];
+        }
+
+        $values = [];
+        $stack = [$payload['results']];
+
+        while (!empty($stack)) {
+            $item = array_pop($stack);
+
+            if (is_array($item)) {
+                foreach ($item as $value) {
+                    $stack[] = $value;
+                }
+
+                continue;
+            }
+
+            if (is_scalar($item)) {
+                $values[] = (string) $item;
+            }
+        }
+
+        return collect($values)
+            ->map(fn ($value) => trim($value))
+            ->filter()
+            ->unique()
+            ->values()
+            ->take(100)
+            ->all();
+    }
+
     private function isAllowedStatusTransition(string $from, string $to): bool
     {
         $from = trim(strtolower($from));
@@ -1546,6 +2336,9 @@ class ClientCourierController extends Controller
             'details' => "{$basePath}/details",
             'detailsStore' => "{$basePath}/details",
             'summary' => "{$basePath}/summary",
+            'countrySuggestions' => "{$basePath}/countries/suggestions",
+            'postalByCity' => "{$basePath}/postal-codes/by-city",
+            'cityByPostal' => "{$basePath}/cities/by-postal-code",
             'store' => $basePath,
             'createByFlow' => [
                 'domestic' => '/couriers/domestic/create',
