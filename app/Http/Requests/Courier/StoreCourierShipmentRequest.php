@@ -49,7 +49,6 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
             'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
             'shipment.codEnabled' => ['nullable', 'boolean'],
-            'shipment.codAmount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
             'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
             'shipment.shipmentType' => ['nullable', 'string', 'max:60'],
@@ -101,7 +100,6 @@ class StoreCourierShipmentRequest extends FormRequest
             'recipient.address.line1' => 'recipient address line 1',
             'shipment.pickupDate' => 'pickup date',
             'shipment.codEnabled' => 'cash on delivery option',
-            'shipment.codAmount' => 'cash on delivery amount',
             'shipment.codPaymentMethod' => 'cash on delivery method',
         ];
     }

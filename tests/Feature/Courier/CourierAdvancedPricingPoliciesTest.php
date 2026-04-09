@@ -147,7 +147,7 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 20.0);
     }
 
-    public function test_cod_fee_uses_requested_cod_amount_when_cod_booking_is_enabled(): void
+    public function test_cod_fee_ignores_client_cod_amount_override_and_uses_declared_value_when_cod_booking_is_enabled(): void
     {
         $vendor = $this->createDomesticVendorWithPolicyModules([
             'codFee' => [
@@ -171,9 +171,9 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
             ],
         ]);
 
-        $this->assertEqualsWithDelta(80.0, $result['estimatedCost'], 0.01);
-        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 30.0);
-        $this->assertEqualsWithDelta(300.0, (float) ($result['pricingExplanation']['codDetails']['feeBaseAmount'] ?? 0), 0.01);
+        $this->assertEqualsWithDelta(60.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 10.0);
+        $this->assertEqualsWithDelta(100.0, (float) ($result['pricingExplanation']['codDetails']['feeBaseAmount'] ?? 0), 0.01);
         $this->assertSame('requested_amount', (string) ($result['pricingExplanation']['codDetails']['feeBaseSource'] ?? ''));
     }
 
@@ -512,14 +512,14 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         $shipment = $result['shipment'];
         $this->assertTrue((bool) $shipment->is_cod_enabled);
-        $this->assertEqualsWithDelta(300.0, (float) ($shipment->cod_requested_amount ?? 0), 0.01);
+        $this->assertEqualsWithDelta(100.0, (float) ($shipment->cod_requested_amount ?? 0), 0.01);
         $this->assertSame('cash', (string) $shipment->cod_requested_method);
         $this->assertSame((int) $capability->id, (int) ($shipment->cod_capability_id ?? 0));
     }
 
     public function test_cod_enabled_booking_is_blocked_for_international_routes(): void
     {
-        $vendor = $this->createLogisticVendorWithPolicyModules([
+        $vendor = $this->createInternationalVendorWithPolicyModules([
             'codFee' => [
                 'enabled' => true,
                 'flatFee' => 2,

@@ -792,6 +792,8 @@ const PRICING_TOPIC_CONFIG = [
     { key: "preview", label: "Formula Preview", sectionId: "pricing-topic-preview" },
 ];
 
+const COD_CAPABILITY_CATEGORY_LABEL = "Domestic";
+
 const DEFAULT_SPEED_ETA_TIER_TEMPLATE = {
     enabled: true,
     etaLabel: "Custom Tier",
@@ -4695,12 +4697,13 @@ const Settings = () => {
     const submitCodCapabilityRequest = () => {
         openConfirm({
             title: "Request COD Capability",
-            message: "Submit this courier COD enablement request for superadmin review?",
+            message: "Submit this domestic COD enablement request for superadmin review?",
             confirmText: "Submit Request",
             onConfirm: async () => {
                 setCodRequestBusy(true);
                 try {
                     const payload = await requestJson("POST", route("courierService.settings.services.cod.request"), {
+                        category: "domestic",
                         note: codRequestNote,
                     });
                     setFeedback({ type: "success", message: payload?.message || "COD capability request submitted." });
@@ -4790,6 +4793,8 @@ const Settings = () => {
     const servicesCodSettings = (servicesSettings && typeof servicesSettings.cod === "object")
         ? servicesSettings.cod
         : DEFAULT_SETTINGS.services.cod;
+    const codCapabilityCategoryLabel = COD_CAPABILITY_CATEGORY_LABEL;
+    const codCapabilityRequestedNote = String(incomingCodCapability.requestedNote || "");
     const codCapabilityStatus = String(incomingCodCapability.status || "not_requested");
     const codCapabilityStatusLabel = String(incomingCodCapability.statusLabel || "Not Requested");
     const codCapabilityCanRequest = Boolean(incomingCodCapability.canRequest ?? true);
@@ -4797,6 +4802,11 @@ const Settings = () => {
     const codCapabilityReviewedAt = String(incomingCodCapability.reviewedAt || "");
     const codCapabilityReviewedBy = String(incomingCodCapability.reviewedByName || "");
     const codCapabilityDecisionReason = String(incomingCodCapability.decisionReason || "");
+
+    useEffect(() => {
+        setCodRequestNote(codCapabilityRequestedNote);
+    }, [codCapabilityRequestedNote]);
+
     const codStatusTone = (() => {
         if (codCapabilityStatus === "approved") {
             return "bg-[#ECFDF3] border-[#86EFAC] text-[#166534]";
@@ -5106,13 +5116,15 @@ const Settings = () => {
             return (
                 <div className="space-y-4">
                     <SectionCard title="Service Capabilities" description="Configure operational service behavior and request controlled capability enablement.">
+                        <p className="text-[12px] text-[#6B7280] mb-3">COD capability applies to domestic routes only.</p>
+
                         <div className={`rounded-[10px] border px-4 py-3 ${codStatusTone}`}>
-                            <p className="text-[13px] font-[700]">COD Capability Status: {codCapabilityStatusLabel}</p>
+                            <p className="text-[13px] font-[700]">{codCapabilityCategoryLabel} COD Capability Status: {codCapabilityStatusLabel}</p>
                             <p className="text-[12px] mt-1">
-                                {codCapabilityStatus === "approved" && "Your courier workspace is approved to operate COD bookings."}
-                                {codCapabilityStatus === "pending" && "Your COD request is pending superadmin review."}
-                                {codCapabilityStatus === "rejected" && "Your previous COD request was rejected. Update details and re-submit."}
-                                {codCapabilityStatus === "not_requested" && "COD is not enabled yet. Submit a request for superadmin approval."}
+                                {codCapabilityStatus === "approved" && `Your courier workspace is approved to operate ${codCapabilityCategoryLabel.toLowerCase()} COD bookings.`}
+                                {codCapabilityStatus === "pending" && `Your ${codCapabilityCategoryLabel.toLowerCase()} COD request is pending superadmin review.`}
+                                {codCapabilityStatus === "rejected" && `Your previous ${codCapabilityCategoryLabel.toLowerCase()} COD request was rejected. Update details and re-submit.`}
+                                {codCapabilityStatus === "not_requested" && `${codCapabilityCategoryLabel} COD is not enabled yet. Submit a request for superadmin approval.`}
                             </p>
                             {codCapabilityRequestedAt && (
                                 <p className="text-[11px] mt-2">Requested at: {codCapabilityRequestedAt}</p>
@@ -5139,12 +5151,6 @@ const Settings = () => {
                                 description="Keep domestic COD path active once capability is approved."
                             />
                             <Toggle
-                                label="Allow International COD"
-                                checked={Boolean(servicesCodSettings.allowCodForInternational)}
-                                onChange={(next) => updateServiceCodValue("allowCodForInternational", next)}
-                                description="Enable international COD only when this route is approved and operationally ready."
-                            />
-                            <Toggle
                                 label="Allow Team Override"
                                 checked={Boolean(servicesCodSettings.allowTeamOverride)}
                                 onChange={(next) => updateServiceCodValue("allowTeamOverride", next)}
@@ -5153,7 +5159,7 @@ const Settings = () => {
                         </div>
 
                         <div className="mt-4 grid grid-cols-1 gap-3">
-                            <Field label="COD Request Note" help="Share readiness details such as SOP, collection controls, and reconciliation process.">
+                            <Field label={`${codCapabilityCategoryLabel} COD Request Note`} help="Share readiness details such as SOP, collection controls, and reconciliation process.">
                                 <textarea
                                     rows={3}
                                     className="w-full rounded-[8px] border border-[#D1D5DB]"
@@ -5170,7 +5176,11 @@ const Settings = () => {
                                     disabled={!codCapabilityCanRequest || codRequestBusy}
                                     className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
                                 >
-                                    {codRequestBusy ? "Submitting..." : (codCapabilityStatus === "rejected" ? "Re-submit COD Request" : "Submit COD Request")}
+                                    {codRequestBusy
+                                        ? "Submitting..."
+                                        : (codCapabilityStatus === "rejected"
+                                            ? `Re-submit ${codCapabilityCategoryLabel} COD Request`
+                                            : `Submit ${codCapabilityCategoryLabel} COD Request`)}
                                 </button>
                             </div>
                         </div>

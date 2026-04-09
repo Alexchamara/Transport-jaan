@@ -11,9 +11,8 @@ const STATUS_OPTIONS = [
 ];
 
 const CATEGORY_OPTIONS = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'domestic', label: 'Domestic' },
-    { value: 'international', label: 'International' },
+    { value: 'all', label: 'All Requests' },
+    { value: 'domestic', label: 'Domestic Scope' },
 ];
 
 const statusClassMap = {
@@ -34,7 +33,32 @@ const HISTORY_EVENT_OPTIONS = [
     { value: 'cod_capability_request_submitted', label: 'Request Submitted' },
     { value: 'cod_capability_approved', label: 'Capability Approved' },
     { value: 'cod_capability_rejected', label: 'Capability Rejected' },
+    { value: 'cod_integrity_incident_opened', label: 'Integrity Incident Opened' },
+    { value: 'cod_integrity_incident_assigned', label: 'Integrity Incident Assigned' },
+    { value: 'cod_integrity_incident_resolved', label: 'Integrity Incident Resolved' },
+    { value: 'cod_integrity_incident_dismissed', label: 'Integrity Incident Dismissed' },
 ];
+
+const INCIDENT_SEVERITY_OPTIONS = [
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' },
+    { value: 'critical', label: 'Critical' },
+];
+
+const incidentSeverityClassMap = {
+    low: 'border-sky-600 bg-sky-900/20 text-sky-300',
+    medium: 'border-amber-600 bg-amber-900/20 text-amber-300',
+    high: 'border-orange-600 bg-orange-900/20 text-orange-300',
+    critical: 'border-red-600 bg-red-900/20 text-red-300',
+};
+
+const incidentStatusClassMap = {
+    open: 'border-red-600 bg-red-900/20 text-red-300',
+    investigating: 'border-amber-600 bg-amber-900/20 text-amber-300',
+    resolved: 'border-emerald-600 bg-emerald-900/20 text-emerald-300',
+    dismissed: 'border-gray-600 bg-gray-900/20 text-gray-300',
+};
 
 const defaultHistoryPagination = {
     currentPage: 1,
@@ -55,10 +79,15 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
+    const [fromDate, setFromDate] = useState(filters?.from || '');
+    const [toDate, setToDate] = useState(filters?.to || '');
     const [actionNotes, setActionNotes] = useState({});
     const [actionExpiryAt, setActionExpiryAt] = useState({});
+    const [incidentDrafts, setIncidentDrafts] = useState({});
+    const [incidentResolutionNotes, setIncidentResolutionNotes] = useState({});
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [historyCapability, setHistoryCapability] = useState(null);
+    const [historyActiveIncident, setHistoryActiveIncident] = useState(null);
     const [historyEvents, setHistoryEvents] = useState([]);
     const [historyPagination, setHistoryPagination] = useState(defaultHistoryPagination);
     const [historyIntegrity, setHistoryIntegrity] = useState(defaultHistoryIntegrity);
@@ -89,23 +118,57 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         setSearch(filters?.search || '');
         setStatus(filters?.status || 'all');
         setCategory(filters?.category || 'all');
-    }, [filters?.search, filters?.status, filters?.category]);
+        setFromDate(filters?.from || '');
+        setToDate(filters?.to || '');
+    }, [filters?.search, filters?.status, filters?.category, filters?.from, filters?.to]);
 
     const applyFilters = (nextPage = 1) => {
+        const params = {
+            status,
+            category,
+            search,
+            page: nextPage,
+        };
+
+        if (fromDate !== '') {
+            params.from = fromDate;
+        }
+
+        if (toDate !== '') {
+            params.to = toDate;
+        }
+
         router.get(
             route('superadmin.settings.cod-settlement.index'),
-            {
-                status,
-                category,
-                search,
-                page: nextPage,
-            },
+            params,
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
             },
         );
+    };
+
+    const handleComplianceExport = () => {
+        const params = {
+            status,
+            category,
+        };
+
+        const trimmedSearch = search.trim();
+        if (trimmedSearch !== '') {
+            params.search = trimmedSearch;
+        }
+
+        if (fromDate !== '') {
+            params.from = fromDate;
+        }
+
+        if (toDate !== '') {
+            params.to = toDate;
+        }
+
+        window.location.href = route('superadmin.settings.cod-settlement.compliance-export', params);
     };
 
     const handleSettingsSubmit = (event) => {
@@ -152,6 +215,142 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             ...prev,
                             [capabilityId]: '',
                         }));
+                    }
+                },
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Action failed.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const updateIncidentDraft = (capabilityId, key, value) => {
+        setIncidentDrafts((prev) => {
+            const current = prev[capabilityId] || {
+                title: '',
+                description: '',
+                severity: 'high',
+            };
+
+            return {
+                ...prev,
+                [capabilityId]: {
+                    ...current,
+                    [key]: value,
+                },
+            };
+        });
+    };
+
+    const handleOpenIncident = (row) => {
+        const capabilityId = row?.id;
+        if (!capabilityId) {
+            return;
+        }
+
+        const draft = incidentDrafts[capabilityId] || {
+            title: '',
+            description: '',
+            severity: 'high',
+        };
+
+        const title = String(draft.title || '').trim();
+        if (title === '') {
+            window.alert('Please provide an incident title.');
+            return;
+        }
+
+        const payload = {
+            title,
+            description: String(draft.description || '').trim(),
+            severity: String(draft.severity || 'high'),
+            note: String(actionNotes[capabilityId] || '').trim(),
+        };
+
+        router.post(
+            route('superadmin.settings.cod-settlement.capabilities.incidents.open', { capability: capabilityId }),
+            payload,
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIncidentDrafts((prev) => ({
+                        ...prev,
+                        [capabilityId]: {
+                            title: '',
+                            description: '',
+                            severity: 'high',
+                        },
+                    }));
+                },
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to open incident.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleAssignIncident = (row) => {
+        const incidentId = row?.activeIncident?.id;
+        if (!incidentId) {
+            return;
+        }
+
+        router.post(
+            route('superadmin.settings.cod-settlement.incidents.assign', { incident: incidentId }),
+            {
+                note: String(actionNotes[row.id] || '').trim(),
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to assign incident.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleResolveIncident = (row, resolutionStatus) => {
+        const incidentId = row?.activeIncident?.id;
+        if (!incidentId) {
+            return;
+        }
+
+        const resolutionNote = String(incidentResolutionNotes[row.id] || '').trim();
+        if (resolutionNote === '') {
+            window.alert('Please provide a resolution note before closing the incident.');
+            return;
+        }
+
+        router.post(
+            route('superadmin.settings.cod-settlement.incidents.resolve', { incident: incidentId }),
+            {
+                resolutionStatus,
+                resolutionNote,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIncidentResolutionNotes((prev) => ({
+                        ...prev,
+                        [row.id]: '',
+                    }));
+                },
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to resolve incident.'));
                     }
                 },
             },
@@ -219,11 +418,13 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
             const payload = await response.json();
 
             setHistoryCapability(payload?.capability || capabilityFallback || null);
+            setHistoryActiveIncident(payload?.activeIncident || null);
             setHistoryEvents(Array.isArray(payload?.events) ? payload.events : []);
             setHistoryPagination(payload?.pagination || defaultHistoryPagination);
             setHistoryIntegrity(payload?.integrity || defaultHistoryIntegrity);
         } catch (error) {
             setHistoryError(error?.message || 'Unable to load capability audit history.');
+            setHistoryActiveIncident(null);
             setHistoryEvents([]);
             setHistoryPagination(defaultHistoryPagination);
             setHistoryIntegrity(defaultHistoryIntegrity);
@@ -246,6 +447,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         setHistoryFromFilter('');
         setHistoryToFilter('');
         setHistoryCapability(capabilitySummary);
+        setHistoryActiveIncident(row?.activeIncident || null);
         setHistoryEvents([]);
         setHistoryPagination(defaultHistoryPagination);
         setHistoryIntegrity(defaultHistoryIntegrity);
@@ -262,6 +464,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const closeHistoryModal = () => {
         setHistoryModalOpen(false);
         setHistoryCapability(null);
+        setHistoryActiveIncident(null);
         setHistoryEvents([]);
         setHistoryPagination(defaultHistoryPagination);
         setHistoryIntegrity(defaultHistoryIntegrity);
@@ -289,7 +492,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                     <div className="max-w-7xl mx-auto">
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-white mb-2">Courier COD Settlement</h1>
-                            <p className="text-gray-400">Configure COD settlement policy and review vendor COD capability requests.</p>
+                            <p className="text-gray-400">Configure COD settlement policy and review vendor domestic COD capability requests.</p>
                         </div>
 
                         {flash?.success && (
@@ -408,7 +611,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
                                 <div>
                                     <h2 className="text-xl font-semibold text-white">Vendor COD Capability Requests</h2>
-                                    <p className="text-sm text-gray-400">Approve or reject vendor requests to enable operational COD collection.</p>
+                                    <p className="text-sm text-gray-400">Approve or reject vendor requests to enable domestic COD collection.</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <input
@@ -436,12 +639,31 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                             <option key={option.value} value={option.value}>{option.label}</option>
                                         ))}
                                     </select>
+                                    <input
+                                        type="date"
+                                        value={fromDate}
+                                        onChange={(event) => setFromDate(event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-white"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={toDate}
+                                        onChange={(event) => setToDate(event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-white"
+                                    />
                                     <button
                                         type="button"
                                         onClick={() => applyFilters(1)}
                                         className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white"
                                     >
                                         Apply
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleComplianceExport}
+                                        className="rounded-md border border-sky-500 bg-sky-900/20 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-900/40"
+                                    >
+                                        Export Compliance Package
                                     </button>
                                 </div>
                             </div>
@@ -504,6 +726,26 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                     {row.decisionReason && <p className="text-xs text-gray-400 mt-1">{row.decisionReason}</p>}
                                                     {row.expiresAt && <p className="text-xs text-sky-300 mt-1">Expires: {row.expiresAt}</p>}
 
+                                                    {row.activeIncident && (
+                                                        <div className="mt-2 rounded-md border border-red-700 bg-red-900/10 px-3 py-2">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${incidentStatusClassMap[row.activeIncident?.status] || incidentStatusClassMap.open}`}>
+                                                                    {row.activeIncident?.statusLabel || 'Open'}
+                                                                </span>
+                                                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${incidentSeverityClassMap[row.activeIncident?.severity] || incidentSeverityClassMap.high}`}>
+                                                                    {row.activeIncident?.severityLabel || 'High'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="mt-1 text-xs text-red-200 font-semibold">{row.activeIncident?.title || 'Integrity incident active'}</p>
+                                                            {row.activeIncident?.description && <p className="mt-1 text-[11px] text-red-100">{row.activeIncident.description}</p>}
+                                                            <p className="mt-1 text-[11px] text-red-200/90">
+                                                                Detected: {row.activeIncident?.detectedAt || '-'}
+                                                                {' '}• Issues: {Number(row.activeIncident?.detectedIssueCount || 0)}
+                                                            </p>
+                                                            {row.activeIncident?.assignedTo && <p className="mt-1 text-[11px] text-red-200/90">Assignee: {row.activeIncident.assignedTo}</p>}
+                                                        </div>
+                                                    )}
+
                                                     {row.auditIntegrity && (
                                                         <div className="mt-2">
                                                             <span
@@ -524,24 +766,101 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         totalCount={Number(row.auditEventCount || 0)}
                                                         onOpenFullHistory={() => openHistoryModal(row)}
                                                     />
+
+                                                    {row.canOpenIncident && (
+                                                        <div className="mt-3 rounded-md border border-amber-700 bg-amber-900/10 p-3">
+                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">Open Integrity Incident</p>
+                                                            <input
+                                                                type="text"
+                                                                value={incidentDrafts[row.id]?.title || ''}
+                                                                onChange={(event) => updateIncidentDraft(row.id, 'title', event.target.value)}
+                                                                placeholder="Incident title"
+                                                                className="mt-2 w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
+                                                            />
+                                                            <textarea
+                                                                rows={2}
+                                                                value={incidentDrafts[row.id]?.description || ''}
+                                                                onChange={(event) => updateIncidentDraft(row.id, 'description', event.target.value)}
+                                                                placeholder="Describe the integrity issue and expected response"
+                                                                className="mt-2 w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
+                                                            />
+                                                            <select
+                                                                value={incidentDrafts[row.id]?.severity || 'high'}
+                                                                onChange={(event) => updateIncidentDraft(row.id, 'severity', event.target.value)}
+                                                                className="mt-2 w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
+                                                            >
+                                                                {INCIDENT_SEVERITY_OPTIONS.map((option) => (
+                                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                                ))}
+                                                            </select>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenIncident(row)}
+                                                                className="mt-2 rounded-md bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                                                            >
+                                                                Open Incident
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {row.activeIncident && (
+                                                        <div className="mt-3 rounded-md border border-gray-700 bg-[#081028] p-3">
+                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-300">Incident Response</p>
+                                                            <textarea
+                                                                rows={2}
+                                                                value={incidentResolutionNotes[row.id] || ''}
+                                                                onChange={(event) => setIncidentResolutionNotes((prev) => ({ ...prev, [row.id]: event.target.value }))}
+                                                                placeholder="Resolution note (required to resolve or dismiss)"
+                                                                className="mt-2 w-full rounded-md border border-gray-600 bg-[#03091E] px-2 py-1 text-white"
+                                                            />
+                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleAssignIncident(row)}
+                                                                    className="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                                                                >
+                                                                    Assign To Me
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleResolveIncident(row, 'resolved')}
+                                                                    className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700"
+                                                                >
+                                                                    Resolve Incident
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleResolveIncident(row, 'dismissed')}
+                                                                    className="rounded-md bg-gray-600 px-3 py-1 text-xs font-semibold text-white hover:bg-gray-700"
+                                                                >
+                                                                    Dismiss Incident
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="py-3">
                                                     <div className="flex gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCapabilityAction(row.id, 'approve')}
-                                                            className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700"
+                                                            disabled={Boolean(row.isActionLocked)}
+                                                            className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                         >
                                                             Approve
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCapabilityAction(row.id, 'reject')}
-                                                            className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                                                            disabled={Boolean(row.isActionLocked)}
+                                                            className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                         >
                                                             Reject
                                                         </button>
                                                     </div>
+                                                    {row.isActionLocked && (
+                                                        <p className="mt-2 text-[11px] text-red-300">Actions locked until incident resolution.</p>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
@@ -600,6 +919,12 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                 Verified events: {Number(historyIntegrity?.verifiedEvents || 0)}
                                                 {' '}• Issues: {Number(historyIntegrity?.issueCount || 0)}
                                             </p>
+                                            {historyActiveIncident && (
+                                                <p className="mt-1 text-[11px] text-red-300">
+                                                    Active incident: {historyActiveIncident.title || 'Integrity incident'}
+                                                    {' '}({historyActiveIncident.statusLabel || 'Open'})
+                                                </p>
+                                            )}
                                         </div>
 
                                         <button

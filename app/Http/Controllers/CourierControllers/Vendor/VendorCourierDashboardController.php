@@ -124,6 +124,27 @@ class VendorCourierDashboardController extends Controller
             'event' => 'booking_reopened',
             'nextBookingStatus' => 'new_request',
         ],
+        'cod_collected' => [
+            'status' => null,
+            'event' => 'cod_collected',
+            'nextBookingStatus' => 'confirmed',
+        ],
+        'cod_failed' => [
+            'status' => null,
+            'event' => 'cod_collection_failed',
+            'nextBookingStatus' => 'confirmed',
+        ],
+        'cod_refused' => [
+            'status' => null,
+            'event' => 'cod_collection_refused',
+            'nextBookingStatus' => 'confirmed',
+        ],
+    ];
+
+    private const COD_COLLECTION_ACTIONS = [
+        'cod_collected',
+        'cod_failed',
+        'cod_refused',
     ];
 
     private const BOOKING_ALLOWED_ACTIONS = [
@@ -302,6 +323,7 @@ class VendorCourierDashboardController extends Controller
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
+            'codCollectedAmount' => ['nullable', 'numeric', 'min:0.01'],
         ]);
 
         $this->assertAdvancedPermission(
@@ -334,7 +356,9 @@ class VendorCourierDashboardController extends Controller
             return back()->with('error', (string) $approvalGate['message']);
         }
 
-        $result = $this->applyBookingAction($shipment, $validated['action']);
+        $result = $this->applyBookingAction($shipment, $validated['action'], [
+            'codCollectedAmount' => $validated['codCollectedAmount'] ?? null,
+        ]);
 
         if (!$result['ok']) {
             return back()->with('error', $result['message']);
@@ -371,6 +395,10 @@ class VendorCourierDashboardController extends Controller
 
         $ids = collect($validated['shipmentIds'])->unique()->values();
         $action = $validated['action'];
+
+        if (in_array($action, self::COD_COLLECTION_ACTIONS, true)) {
+            return back()->with('error', 'COD collection actions must be recorded per booking.');
+        }
 
         $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $action);
         if (!$cancelGuard['ok']) {
@@ -417,7 +445,7 @@ class VendorCourierDashboardController extends Controller
         $blockedCount = 0;
 
         foreach ($shipments as $shipment) {
-            $result = $this->applyBookingAction($shipment, $action);
+            $result = $this->applyBookingAction($shipment, $action, []);
 
             if ($result['ok']) {
                 $successCount++;
@@ -555,6 +583,8 @@ class VendorCourierDashboardController extends Controller
             ? (string) $pricingTopic
             : 'currency-formula';
 
+        $selectedCodCategory = CourierVendorCodCapability::CATEGORY_DOMESTIC;
+
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
         }
@@ -627,9 +657,20 @@ class VendorCourierDashboardController extends Controller
             })
             ->values();
 
+        $courierCodCapability = $this->buildCodCapabilityPayload(
+            $request,
+            $vendorId,
+            $workspaceId,
+            CourierVendorCodCapability::CATEGORY_DOMESTIC
+        );
+
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
-            'courierCodCapability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId),
+            'courierCodCapability' => $courierCodCapability,
+            'courierCodCapabilities' => [
+                CourierVendorCodCapability::CATEGORY_DOMESTIC => $courierCodCapability,
+            ],
+            'courierCodCapabilityCategory' => $selectedCodCategory,
             'approvedCourierPricingCategories' => $approvedPricingCategories,
             'initialSettingsModule' => $selectedModule,
             'initialTeamAccessTopic' => $selectedTeamTopic,
@@ -985,8 +1026,6 @@ class VendorCourierDashboardController extends Controller
             'note' => ['nullable', 'string', 'max:500'],
             'category' => ['nullable', 'string', Rule::in([
                 CourierVendorCodCapability::CATEGORY_DOMESTIC,
-                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
-                'logistic',
             ])],
         ]);
 
@@ -2366,7 +2405,16 @@ class VendorCourierDashboardController extends Controller
                 'bookingStatusLabel' => $this->bookingStatusLabel($bookingStatus),
                 'pickupWindow' => $this->formatPickupWindow($shipment),
                 'eta' => optional($estimatedDelivery)->format('Y-m-d H:i'),
-                'allowedActions' => $this->getAllowedBookingActionsForStatus($bookingStatus),
+                'allowedActions' => $this->getAllowedBookingActionsForShipment($shipment, $bookingStatus),
+                'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'codRequestedAmount' => $shipment->cod_requested_amount !== null
+                    ? (float) $shipment->cod_requested_amount
+                    : null,
+                'codCollectionStatus' => $shipment->cod_collection_status,
+                'codCollectedAmount' => $shipment->cod_collected_amount !== null
+                    ? (float) $shipment->cod_collected_amount
+                    : null,
+                'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
                 'confirmHours' => $confirmHours,
             ];
         })->values();
@@ -2450,9 +2498,10 @@ class VendorCourierDashboardController extends Controller
                 'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
                 'perPageOptions' => [10, 20, 50],
                 'actionOptions' => collect(array_keys(self::BOOKING_ACTION_META))
+                    ->reject(fn ($action) => in_array((string) $action, self::COD_COLLECTION_ACTIONS, true))
                     ->map(fn ($action) => [
-                        'value' => $action,
-                        'label' => Str::title(str_replace('_', ' ', $action)),
+                        'value' => (string) $action,
+                        'label' => Str::title(str_replace('_', ' ', (string) $action)),
                     ])
                     ->values(),
             ],
@@ -2725,14 +2774,42 @@ class VendorCourierDashboardController extends Controller
         return self::BOOKING_ALLOWED_ACTIONS[$bookingStatus] ?? [];
     }
 
+    private function getAllowedBookingActionsForShipment(CourierShipment $shipment, string $bookingStatus): array
+    {
+        $actions = $this->getAllowedBookingActionsForStatus($bookingStatus);
+
+        if ($this->canPerformCodCollectionAction($shipment)) {
+            $actions = array_merge($actions, self::COD_COLLECTION_ACTIONS);
+        }
+
+        return array_values(array_unique($actions));
+    }
+
     private function canPerformBookingAction(string $bookingStatus, string $action): bool
     {
         return in_array($action, $this->getAllowedBookingActionsForStatus($bookingStatus), true);
     }
 
-    private function applyBookingAction(CourierShipment $shipment, string $action): array
+    private function canPerformCodCollectionAction(CourierShipment $shipment): bool
+    {
+        if (!(bool) ($shipment->is_cod_enabled ?? false)) {
+            return false;
+        }
+
+        if ((float) ($shipment->cod_requested_amount ?? 0) <= 0) {
+            return false;
+        }
+
+        return (string) $shipment->status === CourierShipment::STATUS_DELIVERED;
+    }
+
+    private function applyBookingAction(CourierShipment $shipment, string $action, array $payload): array
     {
         $shipment->loadMissing('trackingEvents:id,shipment_id,status,recorded_at');
+
+        if (in_array($action, self::COD_COLLECTION_ACTIONS, true)) {
+            return $this->applyCodCollectionAction($shipment, $action, $payload);
+        }
 
         $bookingStatus = $this->resolveBookingStatus($shipment);
 
@@ -2760,6 +2837,101 @@ class VendorCourierDashboardController extends Controller
                 'status' => $meta['event'],
                 'description' => 'Booking action: ' . str_replace('_', ' ', $action),
                 'recorded_at' => now(),
+            ]);
+        });
+
+        return ['ok' => true, 'message' => 'Updated'];
+    }
+
+    private function applyCodCollectionAction(CourierShipment $shipment, string $action, array $payload): array
+    {
+        if (!(bool) ($shipment->is_cod_enabled ?? false)) {
+            return [
+                'ok' => false,
+                'message' => 'COD collection is not enabled for this booking.',
+            ];
+        }
+
+        if ((string) $shipment->status !== CourierShipment::STATUS_DELIVERED) {
+            return [
+                'ok' => false,
+                'message' => 'COD collection can be recorded only after the shipment is delivered.',
+            ];
+        }
+
+        $requestedAmount = $shipment->cod_requested_amount !== null
+            ? (float) $shipment->cod_requested_amount
+            : 0.0;
+
+        if ($requestedAmount <= 0) {
+            return [
+                'ok' => false,
+                'message' => 'COD requested amount is missing for this booking.',
+            ];
+        }
+
+        $collectedAmount = null;
+        $collectionStatus = null;
+        $eventStatus = null;
+        $description = null;
+
+        if ($action === 'cod_collected') {
+            $inputAmount = $payload['codCollectedAmount'] ?? null;
+            $collectedAmount = $inputAmount !== null ? (float) $inputAmount : $requestedAmount;
+
+            if ($collectedAmount <= 0) {
+                return [
+                    'ok' => false,
+                    'message' => 'Enter a valid COD collected amount.',
+                ];
+            }
+
+            if ($collectedAmount - $requestedAmount > 0.01) {
+                return [
+                    'ok' => false,
+                    'message' => 'Collected amount cannot exceed the requested COD amount.',
+                ];
+            }
+
+            $isPartial = $collectedAmount + 0.005 < $requestedAmount;
+            $collectionStatus = $isPartial ? 'partially_collected' : 'collected';
+            $eventStatus = $isPartial ? 'cod_partially_collected' : 'cod_collected';
+            $description = $isPartial ? 'COD partially collected.' : 'COD collected.';
+        } elseif ($action === 'cod_failed') {
+            $collectedAmount = 0.0;
+            $collectionStatus = 'failed';
+            $eventStatus = 'cod_collection_failed';
+            $description = 'COD collection failed.';
+        } elseif ($action === 'cod_refused') {
+            $collectedAmount = 0.0;
+            $collectionStatus = 'refused';
+            $eventStatus = 'cod_collection_refused';
+            $description = 'COD collection refused.';
+        } else {
+            return [
+                'ok' => false,
+                'message' => 'Unsupported COD collection action.',
+            ];
+        }
+
+        $recordedAt = now();
+
+        DB::transaction(function () use ($shipment, $collectedAmount, $collectionStatus, $recordedAt, $eventStatus, $description, $requestedAmount) {
+            $shipment->update([
+                'cod_collection_status' => $collectionStatus,
+                'cod_collected_amount' => $collectedAmount,
+                'cod_collection_recorded_at' => $recordedAt,
+            ]);
+
+            $shipment->trackingEvents()->create([
+                'status' => $eventStatus,
+                'description' => $description,
+                'recorded_at' => $recordedAt,
+                'meta' => [
+                    'requestedAmount' => $requestedAmount,
+                    'collectedAmount' => $collectedAmount,
+                    'collectionStatus' => $collectionStatus,
+                ],
             ]);
         });
 
@@ -3769,6 +3941,11 @@ class VendorCourierDashboardController extends Controller
             unset($cod['allowCodForLogistic']);
         }
 
+        $cod['acceptCodAtCheckout'] = (bool) ($cod['acceptCodAtCheckout'] ?? false);
+        $cod['allowCodForDomestic'] = (bool) ($cod['allowCodForDomestic'] ?? false);
+        $cod['allowCodForInternational'] = false;
+        $cod['allowTeamOverride'] = (bool) ($cod['allowTeamOverride'] ?? false);
+
         $normalized['cod'] = $cod;
 
         return $normalized;
@@ -3776,10 +3953,7 @@ class VendorCourierDashboardController extends Controller
 
     private function buildCodCapabilityPayload(Request $request, int $vendorId, int $workspaceId, ?string $category = null): array
     {
-        $resolvedCategory = CourierVendorCodCapability::normalizeCategory(
-            $category
-                ?? (string) $request->query('codCategory', CourierVendorCodCapability::CATEGORY_DOMESTIC)
-        );
+        $resolvedCategory = CourierVendorCodCapability::CATEGORY_DOMESTIC;
 
         $capability = CourierVendorCodCapability::query()
             ->where('vendor_user_id', $vendorId)

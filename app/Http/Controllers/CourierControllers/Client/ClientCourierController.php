@@ -1209,7 +1209,6 @@ class ClientCourierController extends Controller
             'recipient.address' => ['nullable', 'array'],
             'shipment' => ['nullable', 'array'],
             'shipment.codEnabled' => ['nullable', 'boolean'],
-            'shipment.codAmount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
             'shipment.internationalDimensions' => ['nullable', 'array'],
             'shipment.internationalDimensions.unitType' => ['nullable', 'string', 'max:40'],
@@ -1580,7 +1579,6 @@ class ClientCourierController extends Controller
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
                 'shipment.codEnabled' => ['nullable', 'boolean'],
-                'shipment.codAmount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
                 'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
                 'shipment.internationalDimensions' => ['nullable', 'array'],
@@ -2617,15 +2615,9 @@ class ClientCourierController extends Controller
         $requestedMethod = $this->normalizeCodPaymentMethod($shipment['codPaymentMethod'] ?? null);
 
         $requestedAmount = null;
-        if (array_key_exists('codAmount', $shipment) && $shipment['codAmount'] !== null && $shipment['codAmount'] !== '') {
-            $requestedAmount = max(0, (float) $shipment['codAmount']);
-        }
-
-        if ($requestedAmount === null || $requestedAmount <= 0) {
-            $declaredValue = isset($shipment['estimatedValue']) ? max(0, (float) $shipment['estimatedValue']) : 0.0;
-            if ($declaredValue > 0) {
-                $requestedAmount = $declaredValue;
-            }
+        $declaredValue = isset($shipment['estimatedValue']) ? max(0, (float) $shipment['estimatedValue']) : 0.0;
+        if ($declaredValue > 0) {
+            $requestedAmount = $declaredValue;
         }
 
         if ($requestedAmount === null || $requestedAmount <= 0) {
@@ -2679,7 +2671,7 @@ class ClientCourierController extends Controller
 
         if (!isset($codRequest['requestedAmount']) || (float) $codRequest['requestedAmount'] <= 0) {
             throw ValidationException::withMessages([
-                'shipment.codAmount' => 'Enter a valid COD collection amount greater than zero.',
+                'shipment.codEnabled' => 'COD collection amount is auto-calculated from declared values. Set a positive declared value on shipment or package items.',
             ]);
         }
 
@@ -4172,14 +4164,10 @@ class ClientCourierController extends Controller
             ? $settings['services']['cod']
             : [];
 
-        $allowInternational = array_key_exists('allowCodForInternational', $cod)
-            ? (bool) $cod['allowCodForInternational']
-            : (bool) ($cod['allowCodForLogistic'] ?? false);
-
         return [
             'acceptCodAtCheckout' => (bool) ($cod['acceptCodAtCheckout'] ?? false),
             'allowCodForDomestic' => (bool) ($cod['allowCodForDomestic'] ?? false),
-            'allowCodForInternational' => $allowInternational,
+            'allowCodForInternational' => false,
             'allowTeamOverride' => (bool) ($cod['allowTeamOverride'] ?? false),
         ];
     }
