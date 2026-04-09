@@ -37,6 +37,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
+use App\Http\Controllers\Api\LocationLookupController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
@@ -321,6 +322,12 @@ Route::get('/airVehicleDetails/{vehicle}', [ClientVehicleController::class, 'air
 Route::get('/seaVehicleDetails/{vehicle}', [ClientVehicleController::class, 'seaVehicleDetails'])->name('seaVehicle.details');
 // API Routes for frontend functionality
 Route::prefix('api')->name('api.')->group(function () {
+    // Public normalized location lookup endpoints
+    Route::get('/location/countries', [LocationLookupController::class, 'countries'])->name('location.countries');
+    Route::get('/location/provinces', [LocationLookupController::class, 'provinces'])->name('location.provinces');
+    Route::get('/location/districts', [LocationLookupController::class, 'districts'])->name('location.districts');
+    Route::get('/location/cities', [LocationLookupController::class, 'cities'])->name('location.cities');
+
     // Public warehouse units list
     Route::get('/warehouse-units', [WarehouseBookingController::class, 'getWarehouseUnits'])->name('warehouse-units.index');
 
@@ -514,6 +521,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])->name('cod-settlement.update');
         Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])->name('cod-settlement.capabilities.approve');
         Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])->name('cod-settlement.capabilities.reject');
+        Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])->name('cod-settlement.capabilities.incidents.open');
+        Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])->name('cod-settlement.capabilities.audit-history');
+        Route::get('/cod-settlement/compliance-export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportCompliancePackage'])->name('cod-settlement.compliance-export');
+        Route::post('/cod-settlement/incidents/{incident}/assign', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'assignIntegrityIncident'])->name('cod-settlement.incidents.assign');
+        Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])->name('cod-settlement.incidents.resolve');
         
         Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
         Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');
@@ -1315,14 +1327,27 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile');
 
+    Route::get('/courierService/profile/owner-info', [VendorCourierDashboardController::class, 'profile'])
+        ->defaults('module', 'owner')
+        ->middleware('service.permission:courier.profile.view')
+        ->name('courierService.profile.owner');
+
     Route::get('/courierService/profile/{module}', [VendorCourierDashboardController::class, 'profile'])
-        ->where('module', 'company|security|compliance|services|activity')
+        ->where('module', 'company|owner|security|compliance|services|activity')
         ->middleware('service.permission:courier.profile.view')
         ->name('courierService.profile.module');
 
     Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
         ->middleware('service.permission:courier.profile.update')
         ->name('courierService.profile.update');
+
+    Route::post('/courierService/profile/owner-info', [VendorCourierDashboardController::class, 'updateOwnerProfile'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.owner.update');
+
+    Route::delete('/courierService/profile/owner-image', [VendorCourierDashboardController::class, 'removeOwnerProfileImage'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.owner.image.remove');
 
     Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
         ->middleware('service.permission:courier.profile.update')
@@ -1785,6 +1810,9 @@ Route::get('/vendors/profile/{userId}', [\App\Http\Controllers\VendorProfileCont
 // Vendor Profile & Service Registration Routes
 Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorProfileController::class, 'index'])->name('index');
+    Route::get('/step-1', [\App\Http\Controllers\VendorProfileController::class, 'step1'])->name('step1');
+    Route::get('/service_registration', [\App\Http\Controllers\VendorProfileController::class, 'step2'])->name('step2');
+    Route::get('/review_&_submit', [\App\Http\Controllers\VendorProfileController::class, 'step3'])->name('step3');
     Route::post('/activity-click', [\App\Http\Controllers\VendorProfileController::class, 'logButtonClick'])->name('activity-click');
     Route::post('/save', [\App\Http\Controllers\VendorProfileController::class, 'saveProfile'])->name('save');
     Route::post('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'saveServiceRegistration'])->name('service.save');

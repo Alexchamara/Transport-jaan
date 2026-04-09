@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { Building2, Eye, EyeOff, FileCheck2, KeyRound, ShieldCheck, Users } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+import { Building2, Eye, EyeOff, FileCheck2, KeyRound, ShieldCheck, User, Users } from "lucide-react";
 import CourierFeedbackModal from "../common/CourierFeedbackModal";
 import useCourierActionModal from "../common/useCourierActionModal";
 
@@ -10,6 +12,11 @@ const EMPTY = {
         logoUrl: null,
         companyName: "",
         displayName: "",
+        ownerName: "",
+        ownerAddress: "",
+        ownerCountry: "",
+        ownerEmail: "",
+        ownerPhone: "",
         businessRegistrationNo: "",
         taxId: "",
         website: "",
@@ -66,6 +73,7 @@ const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\
 
 const TAB_CONFIG = [
     { key: "company", label: "Company Info", icon: Building2 },
+    { key: "owner", label: "Personal Info", icon: User },
     { key: "security", label: "Security", icon: KeyRound },
     { key: "compliance", label: "Compliance", icon: FileCheck2 },
     { key: "services", label: "Service Access", icon: ShieldCheck },
@@ -92,6 +100,13 @@ const TAB_FIELDS = {
         "country",
         "publicAbout",
         "publicSupportHours",
+    ],
+    owner: [
+        "ownerName",
+        "ownerAddress",
+        "ownerCountry",
+        "ownerEmail",
+        "ownerPhone",
     ],
     security: [],
     compliance: [],
@@ -126,10 +141,13 @@ const ProfileContent = () => {
     const flash = props.flash || {};
     const errors = props.errors || {};
     const logoInputRef = useRef(null);
+    const ownerPhotoInputRef = useRef(null);
     const stepUpGuidanceRef = useRef(null);
     const stepUpGuidanceTimerRef = useRef(null);
     const [logoPreview, setLogoPreview] = useState(courierProfile.profile.logoUrl || null);
     const [logoFile, setLogoFile] = useState(null);
+    const [ownerPhotoPreview, setOwnerPhotoPreview] = useState(courierProfile.profile.ownerImageUrl || null);
+    const [ownerPhotoFile, setOwnerPhotoFile] = useState(null);
     const [clientErrors, setClientErrors] = useState({});
     const initialProfileModule = String(props.initialProfileModule || "company");
     const profileSecurityStatus = props.profileSecurityStatus && typeof props.profileSecurityStatus === "object"
@@ -142,6 +160,11 @@ const ProfileContent = () => {
     const initialForm = useMemo(() => ({
         companyName: courierProfile.profile.companyName || "",
         displayName: courierProfile.profile.displayName || "",
+        ownerName: courierProfile.profile.ownerName || "",
+        ownerAddress: courierProfile.profile.ownerAddress || "",
+        ownerCountry: courierProfile.profile.ownerCountry || "",
+        ownerEmail: courierProfile.profile.ownerEmail || "",
+        ownerPhone: courierProfile.profile.ownerPhone || "",
         businessRegistrationNo: courierProfile.profile.businessRegistrationNo || "",
         taxId: courierProfile.profile.taxId || "",
         website: courierProfile.profile.website || "",
@@ -177,6 +200,7 @@ const ProfileContent = () => {
         currentPassword: "",
         otpCode: "",
     });
+    const [showStepUpPassword, setShowStepUpPassword] = useState(false);
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
 
     const {
@@ -191,13 +215,15 @@ const ProfileContent = () => {
 
     const serviceRows = Array.isArray(courierProfile.serviceEnrollment) ? courierProfile.serviceEnrollment : [];
     const activityRows = Array.isArray(courierProfile.activity) ? courierProfile.activity : [];
-    const isCompanyDirty = JSON.stringify(form) !== JSON.stringify(baselineForm) || Boolean(logoFile);
+    const isCompanyDirty = JSON.stringify(form) !== JSON.stringify(baselineForm) || Boolean(logoFile) || Boolean(ownerPhotoFile);
     const isSecurityDirty = Object.values(securityForm).some((value) => String(value || "").trim() !== "");
     const isDirty = isCompanyDirty || isSecurityDirty;
-    const editableTab = activeTab === "company" || activeTab === "security";
+    const editableTab = activeTab === "company" || activeTab === "owner" || activeTab === "security";
     const isTabDirty = activeTab === "security"
         ? isSecurityDirty
-        : (TAB_FIELDS[activeTab].some((field) => form[field] !== baselineForm[field]) || (activeTab === "company" && Boolean(logoFile)));
+        : (TAB_FIELDS[activeTab].some((field) => form[field] !== baselineForm[field])
+            || (activeTab === "company" && Boolean(logoFile))
+            || (activeTab === "owner" && Boolean(ownerPhotoFile)));
     const visibleTabs = isTeamUser
         ? TAB_CONFIG.filter((tab) => ["company", "security"].includes(tab.key))
         : TAB_CONFIG;
@@ -232,6 +258,14 @@ const ProfileContent = () => {
     useEffect(() => {
         setSessionSecurityStatus(profileSecurityStatus);
     }, [profileSecurityStatus]);
+
+    useEffect(() => {
+        setLogoPreview(courierProfile.profile.logoUrl || null);
+    }, [courierProfile.profile.logoUrl]);
+
+    useEffect(() => {
+        setOwnerPhotoPreview(courierProfile.profile.ownerImageUrl || null);
+    }, [courierProfile.profile.ownerImageUrl]);
 
     const requestJson = async (method, url, body = null) => {
         const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
@@ -422,6 +456,84 @@ const ProfileContent = () => {
         });
     };
 
+    const submitOwnerProfile = ({
+        ownerImage = ownerPhotoFile,
+        successMessage = "Owner profile info updated successfully.",
+    } = {}) => {
+        // Normalize phone: if it is only a dial code (≤4 digits, no spaces), send empty string
+        const rawPhone = String(form.ownerPhone || "").trim();
+        const normalizedPhone = rawPhone.replace(/\D/g, "").length >= 5 ? rawPhone : "";
+        router.post(route("courierService.profile.owner.update"), {
+            ownerName: form.ownerName,
+            ownerAddress: form.ownerAddress,
+            ownerCountry: form.ownerCountry,
+            ownerEmail: form.ownerEmail,
+            ownerPhone: normalizedPhone,
+            ownerImage,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            forceFormData: true,
+            onSuccess: () => {
+                setBaselineForm((prev) => ({
+                    ...prev,
+                    ownerName: form.ownerName,
+                    ownerAddress: form.ownerAddress,
+                    ownerCountry: form.ownerCountry,
+                    ownerEmail: form.ownerEmail,
+                    ownerPhone: form.ownerPhone,
+                }));
+                setOwnerPhotoFile(null);
+                setFeedback({ type: "success", message: successMessage });
+                router.reload({ only: ["auth", "courierProfile"], preserveScroll: true, preserveState: true });
+            },
+            onError: (submitErrors = {}) => {
+                const firstError = Object.values(submitErrors).find((value) => Array.isArray(value)
+                    ? value.length > 0
+                    : Boolean(value));
+                const message = Array.isArray(firstError)
+                    ? String(firstError[0] || "")
+                    : String(firstError || "");
+                setFeedback({
+                    type: "error",
+                    message: message || "Failed to save owner profile info. Please review inputs.",
+                });
+            },
+        });
+    };
+
+    const saveOwnerProfile = () => {
+        if (!String(form.ownerName || "").trim()) {
+            setFeedback({ type: "error", message: "Owner name is required." });
+            return;
+        }
+
+        if (!String(form.ownerEmail || "").trim()) {
+            setFeedback({ type: "error", message: "Owner email is required." });
+            return;
+        }
+
+        openConfirm({
+            title: "Save Owner Profile",
+            message: "Save owner profile info now?",
+            onConfirm: () => submitOwnerProfile(),
+        });
+    };
+
+    const discardUnsavedChanges = () => {
+        setForm(baselineForm);
+        setSecurityForm({
+            current_password: "",
+            password: "",
+            password_confirmation: "",
+        });
+        setClientErrors({});
+        setLogoFile(null);
+        setOwnerPhotoFile(null);
+        setLogoPreview(courierProfile.profile.logoUrl || null);
+        setOwnerPhotoPreview(courierProfile.profile.ownerImageUrl || null);
+    };
+
     const navigateProfileTab = (nextTab) => {
         const isValidTab = TAB_CONFIG.some((tab) => tab.key === nextTab);
         if (!isValidTab) {
@@ -453,7 +565,10 @@ const ProfileContent = () => {
         openConfirm({
             title: "Unsaved Changes",
             message: "You have unsaved profile changes. Switch tab without saving?",
-            onConfirm: () => navigateProfileTab(nextTab),
+            onConfirm: () => {
+                discardUnsavedChanges();
+                navigateProfileTab(nextTab);
+            },
         });
     };
 
@@ -528,8 +643,99 @@ const ProfileContent = () => {
         reader.readAsDataURL(file);
     };
 
+    const onOwnerPhotoChange = (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+            setClientErrors((prev) => ({ ...prev, ownerImage: "Please upload a JPG, PNG, or WEBP profile picture." }));
+            return;
+        }
+
+        if (file.size > 3 * 1024 * 1024) {
+            setClientErrors((prev) => ({ ...prev, ownerImage: "Profile picture must be under 3MB." }));
+            return;
+        }
+
+        setClientErrors((prev) => ({ ...prev, ownerImage: undefined }));
+        setOwnerPhotoFile(file);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            setOwnerPhotoPreview(e.target?.result || null);
+        };
+        reader.readAsDataURL(file);
+
+        submitOwnerProfile({
+            ownerImage: file,
+            successMessage: "Profile picture updated successfully.",
+        });
+    };
+
+    const removeOwnerPhoto = () => {
+        openConfirm({
+            title: "Remove Profile Picture",
+            message: "Remove your current personal profile picture?",
+            onConfirm: () => {
+                router.delete(route("courierService.profile.owner.image.remove"), {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        setOwnerPhotoPreview(null);
+                        setOwnerPhotoFile(null);
+                        router.reload({ only: ["auth", "courierProfile"], preserveScroll: true, preserveState: true });
+                    },
+                    onError: () => {
+                        setFeedback({ type: "error", message: "Failed to remove owner profile picture." });
+                    },
+                });
+            },
+        });
+    };
+
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
+            <style>{`
+                .courier-owner-phone-input {
+                    width: 100%;
+                }
+                .courier-owner-phone-input .form-control {
+                    width: 100% !important;
+                    height: 42px !important;
+                    border: 1px solid #D1D5DB !important;
+                    border-radius: 8px !important;
+                    padding-left: 52px !important;
+                    font-size: 14px !important;
+                    color: #111827 !important;
+                    background: #FFFFFF !important;
+                }
+                .courier-owner-phone-input .form-control:focus {
+                    box-shadow: none !important;
+                    outline: none !important;
+                    border-color: #0955AC !important;
+                }
+                .courier-owner-phone-input .form-control::placeholder {
+                    color: #9CA3AF !important;
+                }
+                .courier-owner-phone-input .flag-dropdown {
+                    border: 1px solid #D1D5DB !important;
+                    border-right: none !important;
+                    border-radius: 8px 0 0 8px !important;
+                    background: #FFFFFF !important;
+                }
+                .courier-owner-phone-input .selected-flag {
+                    border-radius: 8px 0 0 8px !important;
+                    background: #FFFFFF !important;
+                }
+                .courier-owner-phone-input .selected-flag:hover,
+                .courier-owner-phone-input .selected-flag:focus {
+                    background: #FFFFFF !important;
+                }
+            `}</style>
+
             <CourierFeedbackModal
                 open={Boolean(feedback)}
                 type={feedback?.type || "info"}
@@ -566,11 +772,11 @@ const ProfileContent = () => {
                 </div>
                 <button
                     type="button"
-                    onClick={activeTab === "security" ? saveSecurity : saveProfile}
+                    onClick={activeTab === "security" ? saveSecurity : (activeTab === "owner" ? saveOwnerProfile : saveProfile)}
                     disabled={!isDirty || !editableTab}
                     className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
                 >
-                    {activeTab === "security" ? "Update Password" : "Save Profile"}
+                    {activeTab === "security" ? "Update Password" : (activeTab === "owner" ? "Save Owner Profile" : "Save Profile")}
                 </button>
             </div>
 
@@ -656,6 +862,54 @@ const ProfileContent = () => {
                         </SectionCard>
                     )}
 
+                    {activeTab === "owner" && !isTeamUser && (
+                        <SectionCard title="Owner Profile" description="Personal account details for the owner. These fields are saved directly to the users table.">
+                            <div className="mb-4 border border-[#E5E7EB] rounded-[8px] p-4 flex items-center gap-4">
+                                <div className="h-[72px] w-[72px] rounded-full bg-[#F3F4F6] overflow-hidden flex items-center justify-center text-[11px] text-[#6B7280]">
+                                    {ownerPhotoPreview ? <img src={ownerPhotoPreview} alt="Profile picture" className="h-full w-full object-cover" /> : "No Photo"}
+                                </div>
+                                <div>
+                                    <input ref={ownerPhotoInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={onOwnerPhotoChange} />
+                                    <div className="flex gap-2">
+                                        <button type="button" className="h-[34px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[700]" onClick={() => ownerPhotoInputRef.current?.click()}>
+                                            Upload Profile Picture
+                                        </button>
+                                        {ownerPhotoPreview && (
+                                            <button type="button" className="h-[34px] px-3 rounded-[8px] border border-[#DC2626] text-[#DC2626] text-[12px] font-[700]" onClick={removeOwnerPhoto}>
+                                                Remove Picture
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-[#6B7280] mt-1">JPG, PNG, WEBP profile picture up to 3MB.</p>
+                                    <ErrorText>{clientErrors.ownerImage || errors.ownerImage}</ErrorText>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Field label="Name"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerName} onChange={(e) => setForm((prev) => ({ ...prev, ownerName: e.target.value }))} /><ErrorText>{errors.ownerName}</ErrorText></Field>
+                                <Field label="Address"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerAddress} onChange={(e) => setForm((prev) => ({ ...prev, ownerAddress: e.target.value }))} /><ErrorText>{errors.ownerAddress}</ErrorText></Field>
+                                <Field label="Email"><input type="email" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerEmail} onChange={(e) => setForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} /><ErrorText>{errors.ownerEmail}</ErrorText></Field>
+                                <Field label="Phone">
+                                    <PhoneInput
+                                        country={'lk'}
+                                        value={form.ownerPhone}
+                                        onChange={(phone) => setForm((prev) => ({ ...prev, ownerPhone: phone }))}
+                                        countryCodeEditable={false}
+                                        containerClass="courier-owner-phone-input"
+                                        inputClass="form-control"
+                                        buttonClass="flag-dropdown"
+                                        dropdownClass="text-gray-800 bg-white"
+                                        searchClass="text-gray-800"
+                                        preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                        enableSearch={true}
+                                        placeholder="Enter your phone number"
+                                    />
+                                    <ErrorText>{errors.ownerPhone}</ErrorText>
+                                </Field>
+                                <Field label="Country"><input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={form.ownerCountry} onChange={(e) => setForm((prev) => ({ ...prev, ownerCountry: e.target.value }))} /><ErrorText>{errors.ownerCountry}</ErrorText></Field>
+                            </div>
+                        </SectionCard>
+                    )}
+
                     {activeTab === "security" && (
                         <SectionCard title="Profile Security" description="Change your account password and keep your team access secure.">
                             <div
@@ -671,13 +925,22 @@ const ProfileContent = () => {
                                     <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
                                 )}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                    <input
-                                        type="password"
-                                        className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                        placeholder="Current password"
-                                        value={stepUpForm.currentPassword}
-                                        onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showStepUpPassword ? "text" : "password"}
+                                            className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 pr-9 text-[12px]"
+                                            placeholder="Current password"
+                                            value={stepUpForm.currentPassword}
+                                            onChange={(e) => setStepUpForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 px-3 text-[#6B7280] hover:text-[#111827]"
+                                            onClick={() => setShowStepUpPassword((prev) => !prev)}
+                                        >
+                                            {showStepUpPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        </button>
+                                    </div>
                                     <input
                                         className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
                                         placeholder="OTP code"
@@ -795,6 +1058,15 @@ const ProfileContent = () => {
 
                     {activeTab === "services" && (
                         <SectionCard title="Service Enrollment" description="All registered service sub-categories and their approval state.">
+                            <div className="mb-4 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => router.visit(route("vendor.profile.step2"))}
+                                    className="h-[36px] px-4 rounded-[8px] bg-[#16A34A] text-white text-[12px] font-[700] hover:bg-[#15803D] transition-colors"
+                                >
+                                    Register for new Service
+                                </button>
+                            </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full text-left text-[13px]">
                                     <thead className="bg-[#D8E4F2]">
@@ -845,7 +1117,7 @@ const ProfileContent = () => {
                         {!editableTab && <p className="text-[12px] text-[#6B7280]">This tab is view-only.</p>}
                         <button
                             type="button"
-                            onClick={activeTab === "security" ? saveSecurity : saveProfile}
+                            onClick={activeTab === "security" ? saveSecurity : (activeTab === "owner" ? saveOwnerProfile : saveProfile)}
                             disabled={!isDirty || !editableTab || !isTabDirty}
                             className="h-[38px] px-5 rounded-[8px] bg-[#111827] text-white text-[13px] font-[700] disabled:opacity-50"
                         >

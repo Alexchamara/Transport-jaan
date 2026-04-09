@@ -222,7 +222,7 @@ const ClientContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-[13px]">
+                    <table className="w-max min-w-full text-left text-[13px] whitespace-nowrap">
                         <thead className="bg-[#D8E4F2]">
                             <tr>
                                 <th className="px-3 py-3 font-[700]">Client</th>
@@ -258,7 +258,7 @@ const ClientContent = () => {
                                         <td className="px-3 py-3">{row.accountOwner || "-"}</td>
                                         <td className="px-3 py-3">{row.lastShipmentDate || "-"}</td>
                                         <td className="px-3 py-3">
-                                            <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                                 <button type="button" onClick={() => updateProfile(row.id, { action: "toggle_watchlist" })} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">{row.watchlist ? "Unwatch" : "Watch"}</button>
                                                 <button type="button" onClick={() => updateProfile(row.id, { action: "set_priority", priorityTag: "vip" })} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">VIP</button>
                                                 <button type="button" onClick={() => updateProfile(row.id, { action: "set_priority", priorityTag: "watchlist" })} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">Escalate</button>

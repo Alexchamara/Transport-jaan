@@ -445,12 +445,12 @@ const Hero = () => {
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
-                        {/* <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
-                            <Download className="mr-2 h-7 w-7" /> Export
-                        </button>
-                        <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
+                        <a
+                            href="/ffreight"
+                            className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium hover:bg-[#0744870] transition-colors"
+                        >
                             <Plus className="mr-2 h-6 w-6" /> New Booking
-                        </button> */}
+                        </a>
                     </div>
                 </div>
 

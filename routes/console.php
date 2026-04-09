@@ -37,3 +37,16 @@ Schedule::command('courier:phase7-monitor --hours=24')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Monitor COD audit-chain integrity and auto-open incidents for compromised capabilities.
+Schedule::command('courier:cod-integrity-monitor --auto-open')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Archive COD compliance package daily for operational and audit retention.
+Schedule::command('courier:cod-compliance-archive')
+    ->dailyAt('00:45')
+    ->when(static fn () => (bool) config('courier.cod_compliance_export.archive.enabled', true))
+    ->withoutOverlapping()
+    ->runInBackground();

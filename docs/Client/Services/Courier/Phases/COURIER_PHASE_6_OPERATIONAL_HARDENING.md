@@ -91,6 +91,22 @@ Use when bill download fails or user reports access denied.
    - authentication/session issue,
    - application defect (requires patch).
 
+## Added / Updated Tests
+
+- `tests/Feature/Courier/CourierSubmissionTest.php`
+   - `test_create_route_emits_structured_create_view_log`
+   - `test_store_emits_structured_attempt_and_success_logs`
+   - `test_detail_page_emits_structured_detail_read_log_for_owner`
+   - `test_guest_bill_download_without_session_access_is_blocked_and_logged`
+   - `test_summary_logs_pricing_exception_when_lane_matrix_has_no_matching_rule`
+
+## Validation Evidence
+
+- MySQL-backed focused command:
+   - `DB_CONNECTION=mysql DB_DATABASE=Transport DB_HOST=127.0.0.1 DB_PORT=3306 DB_USERNAME=root DB_PASSWORD=*** php artisan test tests/Feature/Courier/CourierSubmissionTest.php --colors=never`
+- Result:
+   - `24 passed (133 assertions)`
+
 ## Verification Notes
 
 - Non-owner bill download is explicitly blocked and tested.

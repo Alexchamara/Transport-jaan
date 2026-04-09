@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { CalendarDays, ChevronDown, Search } from "lucide-react";
 import CourierFeedbackModal from "../common/CourierFeedbackModal";
@@ -51,9 +51,13 @@ const actionLabels = {
     reject_booking: "Reject",
     expire_booking: "Expire",
     reopen_booking: "Reopen",
+    cod_collected: "COD Collected",
+    cod_failed: "COD Failed",
+    cod_refused: "COD Refused",
 };
 
-const DESTRUCTIVE_BOOKING_ACTIONS = ["cancel_booking", "reject_booking", "expire_booking"];
+const DESTRUCTIVE_BOOKING_ACTIONS = ["cancel_booking", "reject_booking", "expire_booking", "cod_failed", "cod_refused"];
+const COD_COLLECTION_ACTIONS = ["cod_collected", "cod_failed", "cod_refused"];
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -108,14 +112,32 @@ const BookingContent = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkAction, setBulkAction] = useState("");
     const [selectedBooking, setSelectedBooking] = useState(null);
+    const [codModalOpen, setCodModalOpen] = useState(false);
+    const [codModalBooking, setCodModalBooking] = useState(null);
+    const [codCollectedAmount, setCodCollectedAmount] = useState("");
     const {
         feedback,
         closeFeedback,
+        setFeedback,
         confirmState,
         openConfirm,
         closeConfirm,
         runConfirm,
     } = useCourierActionModal(flash);
+
+    useEffect(() => {
+        const msg = String(flash.error || "").toLowerCase();
+        if (msg.includes("step-up authentication is required")) {
+            if (typeof window !== "undefined") {
+                window.sessionStorage.setItem("courier.profileStepUpGuidancePending", "1");
+            }
+            router.get(route("courierService.profile.module", { module: "security" }), {}, {
+                preserveScroll: true,
+                preserveState: false,
+                replace: true,
+            });
+        }
+    }, [flash.error]);
 
     const summaryCards = useMemo(
         () => [
@@ -166,7 +188,75 @@ const BookingContent = () => {
         );
     };
 
-    const runAction = (shipmentId, action) => {
+    const openCodCollectedModal = (booking) => {
+        if (!booking) {
+            return;
+        }
+
+        const requested = Number(booking.codRequestedAmount);
+        const defaultAmount = Number.isFinite(requested) && requested > 0
+            ? requested.toFixed(2)
+            : "";
+
+        setCodModalBooking(booking);
+        setCodCollectedAmount(defaultAmount);
+        setCodModalOpen(true);
+    };
+
+    const closeCodCollectedModal = () => {
+        setCodModalOpen(false);
+        setCodModalBooking(null);
+        setCodCollectedAmount("");
+    };
+
+    const submitCodCollected = () => {
+        if (!codModalBooking) {
+            return;
+        }
+
+        const amount = Number(codCollectedAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            setFeedback({ type: "error", message: "Enter a valid COD collected amount." });
+            return;
+        }
+
+        const requested = Number(codModalBooking.codRequestedAmount);
+        if (Number.isFinite(requested) && requested > 0 && amount - requested > 0.01) {
+            setFeedback({ type: "error", message: "Collected amount cannot exceed the requested COD amount." });
+            return;
+        }
+
+        if (!Boolean(codModalBooking?.canCodOverride) && Number.isFinite(requested) && requested - amount > 0.01) {
+            setFeedback({ type: "error", message: "You do not have permission to record a COD amount below the requested value." });
+            return;
+        }
+
+        router.post(
+            route("courierService.bookings.lifecycle", codModalBooking.id),
+            { action: "cod_collected", codCollectedAmount: amount },
+            {
+                preserveScroll: true,
+                onSuccess: closeCodCollectedModal,
+            },
+        );
+    };
+
+    const runAction = (booking, action) => {
+        const shipmentId = booking?.id;
+        if (!shipmentId) {
+            return;
+        }
+
+        if (COD_COLLECTION_ACTIONS.includes(action) && !booking?.codEnabled) {
+            setFeedback({ type: "error", message: "COD is not enabled for this booking." });
+            return;
+        }
+
+        if (action === "cod_collected") {
+            openCodCollectedModal(booking);
+            return;
+        }
+
         const execute = () => {
             router.post(route("courierService.bookings.lifecycle", shipmentId), { action }, { preserveScroll: true });
         };
@@ -227,6 +317,60 @@ const BookingContent = () => {
                 onConfirm={runConfirm}
                 onClose={closeConfirm}
             />
+
+            {codModalOpen && (
+                <div className="fixed inset-0 bg-black/40 z-50" onClick={closeCodCollectedModal}>
+                    <div
+                        className="absolute left-1/2 top-1/2 w-full max-w-[420px] -translate-x-1/2 -translate-y-1/2 bg-white rounded-[12px] p-6 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h2 className="text-[18px] font-[700]">Record COD Collection</h2>
+                        <p className="text-[12px] text-[#6B7280] mt-1">
+                            Booking {codModalBooking?.bookingNumber || "-"}
+                        </p>
+
+                        <div className="mt-4">
+                            <label className="block text-[12px] font-[700] text-[#374151]">
+                                Collected amount ({codModalBooking?.currency || "LKR"})
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={codCollectedAmount}
+                                onChange={(e) => setCodCollectedAmount(e.target.value)}
+                                className="mt-1 w-full h-[38px] rounded-[8px] border border-[#D1D5DB] px-3 text-[13px]"
+                                placeholder="Enter collected amount"
+                            />
+                            {codModalBooking?.codRequestedAmount !== null && codModalBooking?.codRequestedAmount !== undefined && (
+                                <p className="mt-2 text-[11px] text-[#6B7280]">
+                                    Requested: {Number(codModalBooking.codRequestedAmount).toFixed(2)} {codModalBooking?.currency || "LKR"}
+                                </p>
+                            )}
+                            <p className="mt-1 text-[11px] text-[#6B7280]">
+                                Use a smaller amount to record partial collection.
+                            </p>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                className="h-[36px] px-4 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700]"
+                                onClick={closeCodCollectedModal}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="h-[36px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700]"
+                                onClick={submitCodCollected}
+                            >
+                                Record Collection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
                 <div>
@@ -356,7 +500,7 @@ const BookingContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-[13px]">
+                    <table className="w-max min-w-full text-left text-[13px] whitespace-nowrap">
                         <thead className="bg-[#D8E4F2] sticky top-0 z-10">
                             <tr>
                                 <th className="px-3 py-3 font-[700]"><input type="checkbox" checked={bookings.rows.length > 0 && selectedIds.length === bookings.rows.length} onChange={(e) => setSelectedIds(e.target.checked ? bookings.rows.map((row) => row.id) : [])} /></th>
@@ -388,9 +532,9 @@ const BookingContent = () => {
                                     <td className="px-3 py-3"><span className={`px-2 py-1 rounded-full text-[11px] font-[700] ${bookingBadge(row.bookingStatus)}`}>{row.bookingStatusLabel}</span></td>
                                     <td className="px-3 py-3">{row.confirmHours !== null ? `${row.confirmHours} h` : "-"}</td>
                                     <td className="px-3 py-3">
-                                        <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             {(row.allowedActions || []).map((action) => (
-                                                <button key={action} type="button" onClick={() => runAction(row.id, action)} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
+                                                <button key={action} type="button" onClick={() => runAction(row, action)} className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
                                             ))}
                                             {row.allowedActions.length === 0 && <span className="text-[11px] text-[#9CA3AF]">No actions</span>}
                                         </div>
@@ -460,13 +604,21 @@ const BookingContent = () => {
                             <p><span className="font-[700]">Quote:</span> {selectedBooking.currency} {Number(selectedBooking.quoteAmount).toFixed(2)}</p>
                             <p><span className="font-[700]">Payment:</span> {titleCase(selectedBooking.paymentStatus)}</p>
                             <p><span className="font-[700]">Booking Status:</span> {selectedBooking.bookingStatusLabel}</p>
+                            {selectedBooking.codEnabled && (
+                                <>
+                                    <p><span className="font-[700]">COD Requested:</span> {selectedBooking.codRequestedAmount !== null && selectedBooking.codRequestedAmount !== undefined ? `${Number(selectedBooking.codRequestedAmount).toFixed(2)} ${selectedBooking.currency || "LKR"}` : "-"}</p>
+                                    <p><span className="font-[700]">COD Collected:</span> {selectedBooking.codCollectedAmount !== null && selectedBooking.codCollectedAmount !== undefined ? `${Number(selectedBooking.codCollectedAmount).toFixed(2)} ${selectedBooking.currency || "LKR"}` : "-"}</p>
+                                    <p><span className="font-[700]">COD Status:</span> {selectedBooking.codCollectionStatus ? titleCase(selectedBooking.codCollectionStatus) : "Pending"}</p>
+                                    <p><span className="font-[700]">COD Recorded:</span> {selectedBooking.codCollectionRecordedAt || "-"}</p>
+                                </>
+                            )}
                             <p><span className="font-[700]">Pickup Window:</span> {selectedBooking.pickupWindow || "-"}</p>
                             <p><span className="font-[700]">ETA:</span> {selectedBooking.eta || "-"}</p>
                             <p><span className="font-[700]">Confirm Time:</span> {selectedBooking.confirmHours !== null ? `${selectedBooking.confirmHours} h` : "-"}</p>
                         </div>
                         <div className="mt-5 grid grid-cols-2 gap-2">
                             {(selectedBooking.allowedActions || []).map((action) => (
-                                <button key={action} type="button" onClick={() => runAction(selectedBooking.id, action)} className="h-[36px] rounded-[8px] bg-[#F3F4F6] text-[12px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
+                                <button key={action} type="button" onClick={() => runAction(selectedBooking, action)} className="h-[36px] rounded-[8px] bg-[#F3F4F6] text-[12px] font-[700]">{actionLabels[action] || titleCase(action)}</button>
                             ))}
                         </div>
                         <button type="button" className="mt-5 w-full h-[40px] rounded-[8px] bg-[#111827] text-white font-[700]" onClick={() => setSelectedBooking(null)}>Close</button>

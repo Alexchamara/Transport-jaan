@@ -600,6 +600,30 @@ const Details = ({
         [currencyFormatter, packageCurrency]
     );
 
+    const resolvedCodAmount = useMemo(() => {
+        if (!Boolean(data?.shipment?.codEnabled)) {
+            return null;
+        }
+
+        const shipmentDeclaredValue = Number(data?.shipment?.estimatedValue);
+        if (Number.isFinite(shipmentDeclaredValue) && shipmentDeclaredValue > 0) {
+            return Math.round(shipmentDeclaredValue * 100) / 100;
+        }
+
+        const packageDeclaredValueTotal = (packages || []).reduce((carry, pkg) => {
+            const declaredValue = Number(pkg?.declaredValue);
+            if (!Number.isFinite(declaredValue) || declaredValue <= 0) {
+                return carry;
+            }
+
+            return carry + declaredValue;
+        }, 0);
+
+        return packageDeclaredValueTotal > 0
+            ? Math.round(packageDeclaredValueTotal * 100) / 100
+            : null;
+    }, [data?.shipment?.codEnabled, data?.shipment?.estimatedValue, packages]);
+
     const packageMetrics = useMemo(() => computePackageMetrics(packages), [packages]);
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(packages, { metrics: packageMetrics }),
@@ -1555,18 +1579,12 @@ const Details = ({
                                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">COD amount ({data.reviewContext?.displayCurrency || DEFAULT_CURRENCY})</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                value={data.shipment.codAmount}
-                                                onChange={(event) => updateNestedField("shipment.codAmount", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="0"
-                                            />
-                                            {combinedErrors["shipment.codAmount"] && (
-                                                <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codAmount"]}</p>
-                                            )}
+                                            <div className="w-full rounded-lg border border-[#D6DEEB] bg-[#F8FAFF] px-3 py-2 text-sm text-[#0B1739]">
+                                                {resolvedCodAmount !== null
+                                                    ? `${resolvedCodAmount.toFixed(2)} ${data.reviewContext?.displayCurrency || DEFAULT_CURRENCY}`
+                                                    : "Set a declared value to auto-calculate COD amount."}
+                                            </div>
+                                            <p className="mt-1 text-[11px] text-[#6B7280]">COD amount is auto-calculated from declared shipment/package values.</p>
                                         </div>
 
                                         <div>

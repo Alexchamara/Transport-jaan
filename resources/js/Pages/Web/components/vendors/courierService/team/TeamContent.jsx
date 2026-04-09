@@ -875,7 +875,7 @@ const TeamContent = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                                     <select
-                                        className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                        className="h-[44px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
                                         value={createPreviewContext.regionZone}
                                         onChange={(e) => setCreatePreviewContext((prev) => ({ ...prev, regionZone: e.target.value }))}
                                     >
@@ -885,7 +885,7 @@ const TeamContent = () => {
                                         ))}
                                     </select>
                                     <select
-                                        className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                        className="h-[44px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
                                         value={createPreviewContext.hubBranch}
                                         onChange={(e) => setCreatePreviewContext((prev) => ({ ...prev, hubBranch: e.target.value }))}
                                     >
@@ -984,7 +984,7 @@ const TeamContent = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                                 <select
-                                    className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                    className="h-[44px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
                                     value={editPreviewContext.regionZone}
                                     onChange={(e) => setEditPreviewContext((prev) => ({ ...prev, regionZone: e.target.value }))}
                                 >
@@ -994,7 +994,7 @@ const TeamContent = () => {
                                     ))}
                                 </select>
                                 <select
-                                    className="h-[32px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
+                                    className="h-[44px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
                                     value={editPreviewContext.hubBranch}
                                     onChange={(e) => setEditPreviewContext((prev) => ({ ...prev, hubBranch: e.target.value }))}
                                 >

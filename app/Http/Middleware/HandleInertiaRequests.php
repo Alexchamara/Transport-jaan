@@ -105,7 +105,9 @@ class HandleInertiaRequests extends Middleware
                     'courier_permissions' => $courierPermissions,
                     // Only include these when needed - reduces data size
                     'phone' => $user->phone,
-                    'image' => $user->image ? asset('storage/' . $user->image) : null,
+                    'image' => $user->image
+                        ? asset('storage/' . $user->image) . '?v=' . urlencode((string) optional($user->updated_at)->timestamp)
+                        : null,
                     // Note: Removed address, country, date_of_birth from default share
                     // to reduce cookie size. Add them back individually on pages that need them.
                 ] : null,

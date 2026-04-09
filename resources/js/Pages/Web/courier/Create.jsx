@@ -1146,9 +1146,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             ...previous,
             [fieldKey]: value,
         }));
-
-        const match = matchLocationOption(cityOptions, value);
-        updateAddressCity(party, match ? match.value : "");
+        updateAddressCity(party, value);
     };
 
     const handleCountrySearchChange = (party, fieldKey, value) => {
@@ -1870,7 +1868,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
 
         return hasRouteLocations && hasShipmentType && hasShipmentDescription && packagesHaveNumbers && hasPaymentOption;
-    }, [data.packages, data.sender, data.recipient, data.shipment, selectedRouteType, hasPaymentOption]);
+    }, [
+        data.packages,
+        data.sender,
+        data.recipient,
+        data.shipment,
+        selectedRouteType,
+        hasPaymentOption,
+    ]);
 
     const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {

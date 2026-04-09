@@ -255,6 +255,20 @@ const HeaderTwo = () => {
                             >
                                 <ArrowLeft className="w-6 h-6 text-gray-600" />
                             </Link>
+            {/* Mobile overlay menu */}
+            {isMenuOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
+                    <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col relative animate-slide-in">
+                        <div className="flex justify-between items-center mb-8">
+                            {/* Back to Dashboard Button */}
+                            <Link
+                                href={route("clientAllBookings")}
+                                onClick={toggleMenu}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Back to Dashboard"
+                            >
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </Link>
 
                             <button
                                 onClick={toggleMenu}

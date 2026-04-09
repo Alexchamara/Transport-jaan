@@ -94,7 +94,7 @@ const EditUnit = () => {
   const mapScriptLoadedRef = useRef(false);
   const autoInputRef = useRef(null);
   const autocompleteRef = useRef(null);
-  const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const googleApiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
 
   // Load warehouse data
   useEffect(() => {
@@ -1379,8 +1379,8 @@ const EditUnit = () => {
                 type="submit"
                 disabled={changedFields.length === 0}
                 className={`inline-flex items-center px-6 py-2.5 border border-transparent font-[700] figtree rounded-lg text-[#FFFFFF] focus:outline-none ${changedFields.length === 0
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-[#0955AC] hover:bg-[#074087]'
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-[#0955AC] hover:bg-[#074087]'
                   }`}
               >
                 <svg className="mr-2 -ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
