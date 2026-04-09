@@ -2176,7 +2176,25 @@ INSERT INTO `cities` (`id`, `district_id`, `name_en`, `name_si`, `name_ta`, `sub
 (2210, 15, 'Vellankulam', 'වෙල්ලන්කුලම්', 'வெள்ளாங்குளம்', NULL, NULL, NULL, NULL, '9.18608900', '80.12648090'),
 (2211, 15, 'Veppankulam', 'වෙප්පන්කුලම්', 'வேப்பங்குளம்', NULL, NULL, NULL, NULL, '8.78602730', '80.01436560'),
 (2212, 15, 'Vidataltivu', 'විඩතලතිව්', 'விடத்தல்தீவு', NULL, NULL, NULL, NULL, '9.02154990', '80.05086310'),
-(2213, 7, 'Mabola', 'මාබෝල', 'மாபோலா', NULL, NULL, NULL, '11104', '7.0062833', '79.8924828');
+(2213, 7, 'Mabola', 'මාබෝල', 'மாபோலா', NULL, NULL, NULL, '11104', '7.0062833', '79.8924828'),
+(2214, 5, 'Angoda', 'අංගොඩ', 'அங்கொட', NULL, NULL, NULL, NULL, '6.93120000', '79.90730000'),
+(2215, 5, 'Arangala', 'අරංගල', 'அரங்கள', NULL, NULL, NULL, NULL, '6.90200000', '79.89200000'),
+(2216, 5, 'Embuldeniya', 'ඇඹුල්දෙණිය', 'எம்புல்தெனிய', NULL, NULL, NULL, NULL, '6.87140000', '79.90500000'),
+(2217, 5, 'Gongodawila', 'ගොන්ගොඩවිල', 'கொங்கொடவில', NULL, NULL, NULL, NULL, '6.83960000', '79.90630000'),
+(2218, 7, 'Hendala', 'හෙන්දල', 'ஹெந்தல', NULL, NULL, NULL, NULL, '7.01200000', '79.92800000'),
+(2219, 5, 'Kalubowila', 'කළුබෝවිල', 'கலுபோவில', NULL, NULL, NULL, NULL, '6.85000000', '79.89780000'),
+(2220, 7, 'Kapuwatta', 'කපුවත්ත', 'கபுவத்த', NULL, NULL, NULL, NULL, '7.06000000', '79.89000000'),
+(2221, 7, 'Kiribathgoda', 'කිරිබත්ගොඩ', 'கிரிபத்கொட', NULL, NULL, NULL, NULL, '7.00700000', '80.01800000'),
+(2222, 5, 'Kotikawatta', 'කොටිකාවත්ත', 'கொட்டிகாவத்த', NULL, NULL, NULL, NULL, '6.90500000', '79.91700000'),
+(2223, 5, 'Mulleriyawa', 'මුල්ලේරියාව', 'முல்லேரியா', NULL, NULL, NULL, NULL, '6.92100000', '79.93200000'),
+(2224, 5, 'Pita Kotte', 'පිට කෝට්ටේ', 'பிட்ட கோட்டே', NULL, NULL, NULL, NULL, '6.88750000', '79.91030000'),
+(2225, 5, 'Wijerama', 'විජේරාම', 'விஜேராம', NULL, NULL, NULL, NULL, '6.89540000', '79.88760000'),
+(2226, 10, 'Alutgama', 'අළුත්ගම', 'அளுத்கம', NULL, NULL, NULL, NULL, '6.43230000', '79.99220000'),
+(2227, 10, 'Ingiriya', 'ඉංගිරිය', 'இங்கிரிய', NULL, NULL, NULL, NULL, '6.51930000', '80.19780000'),
+(2228, 21, 'Maduruoya', 'මදුරුඔය', 'மதுருஓயா', NULL, NULL, NULL, NULL, '8.00000000', '80.60000000'),
+(2229, 15, 'P.P.Potkemy', 'පී.පී. පොට්කෙමි', 'பி.பி. பொட்கெமி', NULL, NULL, NULL, NULL, '8.77931000', '79.96918000'),
+(2230, 15, 'Temple', 'ටෙම්පල්', 'டெம்பிள்', NULL, NULL, NULL, NULL, '8.95000000', '79.90000000'),
+(2231, 7, 'Budagama', 'බුදාගම', 'புடகம', NULL, NULL, NULL, NULL, '7.08333000', '79.96667000');
 
 ALTER TABLE `cities`
   ADD PRIMARY KEY (`id`),
@@ -2185,7 +2203,7 @@ ALTER TABLE `cities`
 
 
 ALTER TABLE `cities`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2213;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2232;
 
 
 ALTER TABLE `cities`
