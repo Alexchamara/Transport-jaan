@@ -91,6 +91,15 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
     Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
     Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+    Route::get('/countries/suggestions', [ClientCourierController::class, 'lookupCountries'])
+        ->middleware('throttle:60,1')
+        ->name('countries.suggestions');
+    Route::get('/postal-codes/by-city', [ClientCourierController::class, 'lookupPostalCodesByCity'])
+        ->middleware('throttle:60,1')
+        ->name('postal-codes.by-city');
+    Route::get('/cities/by-postal-code', [ClientCourierController::class, 'lookupCityByPostalCode'])
+        ->middleware('throttle:60,1')
+        ->name('cities.by-postal-code');
 
     Route::prefix('{flow}')
         ->whereIn('flow', ['domestic', 'international'])
@@ -101,6 +110,15 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
             Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
             Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
             Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+            Route::get('/countries/suggestions', [ClientCourierController::class, 'lookupCountries'])
+                ->middleware('throttle:60,1')
+                ->name('countries.suggestions');
+            Route::get('/postal-codes/by-city', [ClientCourierController::class, 'lookupPostalCodesByCity'])
+                ->middleware('throttle:60,1')
+                ->name('postal-codes.by-city');
+            Route::get('/cities/by-postal-code', [ClientCourierController::class, 'lookupCityByPostalCode'])
+                ->middleware('throttle:60,1')
+                ->name('cities.by-postal-code');
             Route::post('/', [ClientCourierController::class, 'store'])->name('store');
             Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
                 ->whereNumber('shipment')

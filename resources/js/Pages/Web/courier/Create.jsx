@@ -17,15 +17,7 @@ import {
     resolveDetailedQuotes,
 } from "./courierPricing";
 
-const COUNTRY_LABELS = {
-    US: "United States",
-    CA: "Canada",
-    GB: "United Kingdom",
-    AU: "Australia",
-    LK: "Sri Lanka",
-    IN: "India",
-    SG: "Singapore",
-};
+const COUNTRY_LOOKUP_DEBOUNCE_MS = 300;
 
 const SRI_LANKAN_CITIES = [
     "Colombo",
@@ -43,7 +35,11 @@ const SRI_LANKAN_CITIES = [
 ];
 
 const DOMESTIC_COUNTRY_CODE = "LK";
-const DOMESTIC_COUNTRY_LABEL = COUNTRY_LABELS[DOMESTIC_COUNTRY_CODE] || DOMESTIC_COUNTRY_CODE;
+const DOMESTIC_COUNTRY_LABEL = "Sri Lanka";
+const POSTAL_LOOKUP_DEBOUNCE_MS = 450;
+const POSTAL_LOOKUP_MIN_CITY_LENGTH = 2;
+const POSTAL_PREFIX_LOOKUP_MIN_LENGTH = 1;
+const POSTAL_CITY_MISMATCH_MESSAGE = "The postal code you entered doesn't match our database. Please retry using a valid postal code.";
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
 const CENTIMETERS_PER_YARD = 91.44;
@@ -150,6 +146,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         details: flowRoutesOverride.details || flowRoutesFromPage.details || `${flowBasePath}/details`,
         detailsStore: flowRoutesOverride.detailsStore || flowRoutesFromPage.detailsStore || `${flowBasePath}/details`,
         summary: flowRoutesOverride.summary || flowRoutesFromPage.summary || `${flowBasePath}/summary`,
+        countrySuggestions: flowRoutesOverride.countrySuggestions
+            || flowRoutesFromPage.countrySuggestions
+            || `${flowBasePath}/countries/suggestions`,
+        postalByCity: flowRoutesOverride.postalByCity
+            || flowRoutesFromPage.postalByCity
+            || `${flowBasePath}/postal-codes/by-city`,
+        cityByPostal: flowRoutesOverride.cityByPostal
+            || flowRoutesFromPage.cityByPostal
+            || `${flowBasePath}/cities/by-postal-code`,
         store: flowRoutesOverride.store || flowRoutesFromPage.store || `${flowBasePath}`,
         createByFlow: {
             domestic: flowRoutesOverride.createByFlow?.domestic
@@ -279,6 +284,46 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         senderCountry: initialForm.sender.address.country || "",
         recipientCountry: initialForm.recipient.address.country || "",
     });
+    const [postalLookupOptions, setPostalLookupOptions] = useState({
+        sender: [],
+        recipient: [],
+    });
+    const [postalLookupState, setPostalLookupState] = useState({
+        sender: { loading: false, error: "" },
+        recipient: { loading: false, error: "" },
+    });
+    const [postalCityNotice, setPostalCityNotice] = useState({
+        sender: "",
+        recipient: "",
+    });
+    const postalLookupAbortRef = useRef({
+        sender: null,
+        recipient: null,
+    });
+    const [cityLookupState, setCityLookupState] = useState({
+        sender: { loading: false, error: "" },
+        recipient: { loading: false, error: "" },
+    });
+    const [postalCitySuggestions, setPostalCitySuggestions] = useState({
+        sender: [],
+        recipient: [],
+    });
+    const cityLookupAbortRef = useRef({
+        sender: null,
+        recipient: null,
+    });
+    const [countryLookupOptions, setCountryLookupOptions] = useState({
+        sender: [],
+        recipient: [],
+    });
+    const [countryLookupState, setCountryLookupState] = useState({
+        sender: { loading: false, error: "" },
+        recipient: { loading: false, error: "" },
+    });
+    const countryLookupAbortRef = useRef({
+        sender: null,
+        recipient: null,
+    });
 
     const POLICY_ADJUSTMENT_LABELS = {
         remote_area_surcharge: "Remote area surcharge",
@@ -346,6 +391,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 country: countryCode,
             },
         });
+
+        setPostalMismatchNotice(party, false);
     };
 
     const cityOptions = useMemo(
@@ -353,13 +400,53 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         []
     );
 
-    const countryOptions = useMemo(
-        () => countries.map((code) => ({
-            value: code,
-            label: COUNTRY_LABELS[code] ? `${COUNTRY_LABELS[code]} (${code})` : code,
-        })),
-        [countries]
-    );
+    const countryOptions = useMemo(() => {
+        const fallbackOptions = Array.isArray(countries)
+            ? countries
+                .map((code) => {
+                    const normalizedCode = String(code || "").trim().toUpperCase();
+
+                    if (!normalizedCode) {
+                        return null;
+                    }
+
+                    return {
+                        value: normalizedCode,
+                        label: normalizedCode,
+                    };
+                })
+                .filter(Boolean)
+            : [];
+
+        const combinedOptions = [
+            ...(Array.isArray(countryLookupOptions.sender) ? countryLookupOptions.sender : []),
+            ...(Array.isArray(countryLookupOptions.recipient) ? countryLookupOptions.recipient : []),
+            ...fallbackOptions,
+        ];
+
+        const seen = new Set();
+
+        return combinedOptions.filter((option) => {
+            const value = String(option?.value || "").trim().toUpperCase();
+            const label = String(option?.label || "").trim();
+
+            if (!value || !label || seen.has(value)) {
+                return false;
+            }
+
+            seen.add(value);
+            return true;
+        });
+    }, [countryLookupOptions.sender, countryLookupOptions.recipient, countries]);
+
+    const getCountryOptionsForParty = (party) => {
+        const partyOptions = countryLookupOptions[party];
+        if (Array.isArray(partyOptions) && partyOptions.length > 0) {
+            return partyOptions;
+        }
+
+        return countryOptions;
+    };
 
     const stripCountryCodeSuffix = (label) =>
         String(label || "").replace(/\s*\([A-Z]{2}\)\s*$/i, "").trim();
@@ -423,6 +510,619 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 postalCode,
             },
         });
+
+        setPostalCityNotice((previous) => ({
+            ...previous,
+            [party]: "",
+        }));
+    };
+
+    const setPostalMismatchNotice = (party, shouldShow) => {
+        setPostalCityNotice((previous) => ({
+            ...previous,
+            [party]: shouldShow ? POSTAL_CITY_MISMATCH_MESSAGE : "",
+        }));
+    };
+
+    const filterPostalCitySuggestions = (suggestions, query) => {
+        if (!Array.isArray(suggestions) || suggestions.length === 0) {
+            return [];
+        }
+
+        const normalized = String(query || "").trim().toLowerCase();
+        if (!normalized) {
+            return suggestions;
+        }
+
+        return suggestions.filter((suggestion) => {
+            const city = String(suggestion?.city || "").toLowerCase();
+            const postalCode = String(suggestion?.postalCode || "").toLowerCase();
+            return city.includes(normalized) || postalCode.includes(normalized);
+        });
+    };
+
+    const normalizePostalCodeSuggestions = (codes) => {
+        if (!Array.isArray(codes)) {
+            return [];
+        }
+
+        return Array.from(new Set(
+            codes
+                .map((code) => String(code || "").trim())
+                .filter(Boolean)
+        )).slice(0, 100);
+    };
+
+    const normalizeCountrySuggestions = (suggestions) => {
+        if (!Array.isArray(suggestions)) {
+            return [];
+        }
+
+        const normalized = suggestions
+            .map((item) => {
+                const value = String(item?.code || item?.value || "").trim().toUpperCase();
+                const label = String(item?.name || item?.label || "").trim();
+
+                if (!value || !label) {
+                    return null;
+                }
+
+                return {
+                    value,
+                    label,
+                };
+            })
+            .filter(Boolean);
+
+        const seen = new Set();
+
+        return normalized.filter((option) => {
+            if (seen.has(option.value)) {
+                return false;
+            }
+
+            seen.add(option.value);
+            return true;
+        });
+    };
+
+    const clearCountryLookupForParty = (party) => {
+        setCountryLookupOptions((previous) => ({
+            ...previous,
+            [party]: [],
+        }));
+        setCountryLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: false,
+                error: "",
+            },
+        }));
+    };
+
+    const abortCountryLookupForParty = (party) => {
+        const controller = countryLookupAbortRef.current[party];
+        if (controller) {
+            controller.abort();
+            countryLookupAbortRef.current[party] = null;
+        }
+    };
+
+    const lookupCountrySuggestions = async (party, query, routeType = "domestic") => {
+        const normalizedQuery = String(query || "").trim();
+
+        if (routeType !== "international") {
+            abortCountryLookupForParty(party);
+            clearCountryLookupForParty(party);
+            return;
+        }
+
+        abortCountryLookupForParty(party);
+
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        if (controller) {
+            countryLookupAbortRef.current[party] = controller;
+        }
+
+        setCountryLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: true,
+                error: "",
+            },
+        }));
+
+        try {
+            const params = new URLSearchParams({
+                limit: "20",
+            });
+
+            if (normalizedQuery) {
+                params.set("query", normalizedQuery);
+            }
+
+            const response = await fetch(`${flowRoutes.countrySuggestions}?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                signal: controller?.signal,
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const message = typeof payload?.message === "string" && payload.message.trim() !== ""
+                    ? payload.message
+                    : "Unable to fetch countries right now.";
+
+                throw new Error(message);
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const suggestions = normalizeCountrySuggestions(payload?.suggestions);
+
+            setCountryLookupOptions((previous) => ({
+                ...previous,
+                [party]: suggestions,
+            }));
+            setCountryLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: "",
+                },
+            }));
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return;
+            }
+
+            const errorMessage = typeof error?.message === "string" && error.message.trim() !== ""
+                ? error.message
+                : "Unable to fetch countries right now.";
+
+            setCountryLookupOptions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+            setCountryLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: errorMessage,
+                },
+            }));
+        } finally {
+            if (countryLookupAbortRef.current[party] === controller) {
+                countryLookupAbortRef.current[party] = null;
+            }
+        }
+    };
+
+    const clearPostalLookupForParty = (party) => {
+        setPostalLookupOptions((previous) => ({
+            ...previous,
+            [party]: [],
+        }));
+        setPostalLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: false,
+                error: "",
+            },
+        }));
+    };
+
+    const abortPostalLookupForParty = (party) => {
+        const controller = postalLookupAbortRef.current[party];
+        if (controller) {
+            controller.abort();
+            postalLookupAbortRef.current[party] = null;
+        }
+    };
+
+    const lookupInternationalPostalCodes = async (party, city, country, state = "", routeType = "domestic") => {
+        const normalizedCity = String(city || "").trim();
+        const normalizedCountry = String(country || "").trim().toUpperCase();
+        const normalizedState = String(state || "").trim();
+
+        if (
+            routeType !== "international"
+            || normalizedCity.length < POSTAL_LOOKUP_MIN_CITY_LENGTH
+            || normalizedCountry.length !== 2
+        ) {
+            abortPostalLookupForParty(party);
+            clearPostalLookupForParty(party);
+            return;
+        }
+
+        abortPostalLookupForParty(party);
+
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        if (controller) {
+            postalLookupAbortRef.current[party] = controller;
+        }
+
+        setPostalLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: true,
+                error: "",
+            },
+        }));
+
+        try {
+            const params = new URLSearchParams({
+                city: normalizedCity,
+                country: normalizedCountry,
+                routeType: "international",
+                limit: "15",
+            });
+
+            if (normalizedState) {
+                params.set("state", normalizedState);
+            }
+
+            const response = await fetch(`${flowRoutes.postalByCity}?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                signal: controller?.signal,
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const message = typeof payload?.message === "string" && payload.message.trim() !== ""
+                    ? payload.message
+                    : "Unable to fetch postal codes for this city.";
+                throw new Error(message);
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const suggestions = normalizePostalCodeSuggestions(payload?.postalCodes);
+
+            setPostalLookupOptions((previous) => ({
+                ...previous,
+                [party]: suggestions,
+            }));
+            setPostalLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: "",
+                },
+            }));
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return;
+            }
+
+            const errorMessage = typeof error?.message === "string" && error.message.trim() !== ""
+                ? error.message
+                : "Unable to fetch postal codes for this city.";
+
+            setPostalLookupOptions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+            setPostalLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: errorMessage,
+                },
+            }));
+        } finally {
+            if (postalLookupAbortRef.current[party] === controller) {
+                postalLookupAbortRef.current[party] = null;
+            }
+        }
+    };
+
+    const clearCityLookupForParty = (party) => {
+        setPostalCitySuggestions((previous) => ({
+            ...previous,
+            [party]: [],
+        }));
+        setPostalMismatchNotice(party, false);
+        setCityLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: false,
+                error: "",
+            },
+        }));
+    };
+
+    const abortCityLookupForParty = (party) => {
+        const controller = cityLookupAbortRef.current[party];
+        if (controller) {
+            controller.abort();
+            cityLookupAbortRef.current[party] = null;
+        }
+    };
+
+    const lookupInternationalCityByPostalCode = async (party, postalCode, country, routeType = "domestic") => {
+        const normalizedPostalCode = String(postalCode || "").trim();
+        const normalizedCountry = String(country || "").trim().toUpperCase();
+
+        if (routeType !== "international") {
+            abortCityLookupForParty(party);
+            clearCityLookupForParty(party);
+            return;
+        }
+
+        if (!normalizedPostalCode) {
+            abortCityLookupForParty(party);
+            clearCityLookupForParty(party);
+            return;
+        }
+
+        if (normalizedPostalCode.length < POSTAL_PREFIX_LOOKUP_MIN_LENGTH) {
+            abortCityLookupForParty(party);
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+            setCityLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: "",
+                },
+            }));
+            return;
+        }
+
+        if (normalizedCountry.length !== 2) {
+            abortCityLookupForParty(party);
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+            setCityLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: "Select country first.",
+                },
+            }));
+            return;
+        }
+
+        abortCityLookupForParty(party);
+
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        if (controller) {
+            cityLookupAbortRef.current[party] = controller;
+        }
+
+        setCityLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: true,
+                error: "",
+            },
+        }));
+
+        try {
+            const params = new URLSearchParams({
+                postalCode: normalizedPostalCode,
+                country: normalizedCountry,
+                routeType: "international",
+                limit: "20",
+            });
+
+            const response = await fetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                signal: controller?.signal,
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const message = typeof payload?.message === "string" && payload.message.trim() !== ""
+                    ? payload.message
+                    : "Unable to fetch city for this postal code.";
+                throw new Error(message);
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const suggestions = Array.isArray(payload?.suggestions)
+                ? payload.suggestions
+                    .map((item) => ({
+                        postalCode: String(item?.postalCode || "").trim(),
+                        city: String(item?.city || "").trim(),
+                    }))
+                    .filter((item) => item.postalCode && item.city)
+                : [];
+            const city = typeof payload?.city === "string" ? payload.city.trim() : "";
+
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: suggestions,
+            }));
+
+            if (city) {
+                setPostalMismatchNotice(party, false);
+
+                updateAddressCity(party, city);
+                setCityLookupState((previous) => ({
+                    ...previous,
+                    [party]: {
+                        loading: false,
+                        error: "",
+                    },
+                }));
+                return;
+            }
+
+            if (suggestions.length > 0) {
+                updateAddressCity(party, "");
+                setPostalMismatchNotice(party, false);
+                setCityLookupState((previous) => ({
+                    ...previous,
+                    [party]: {
+                        loading: false,
+                        error: "",
+                    },
+                }));
+                return;
+            }
+
+            updateAddressCity(party, "");
+            setPostalMismatchNotice(party, true);
+            setCityLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: "",
+                },
+            }));
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return;
+            }
+
+            const errorMessage = typeof error?.message === "string" && error.message.trim() !== ""
+                ? error.message
+                : "Unable to fetch city for this postal code.";
+
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+
+            setCityLookupState((previous) => ({
+                ...previous,
+                [party]: {
+                    loading: false,
+                    error: errorMessage,
+                },
+            }));
+        } finally {
+            if (cityLookupAbortRef.current[party] === controller) {
+                cityLookupAbortRef.current[party] = null;
+            }
+        }
+    };
+
+    const lookupInternationalPostalCitySuggestionsByCity = async (party, city, country, routeType = "domestic") => {
+        const normalizedCity = String(city || "").trim();
+        const normalizedCountry = String(country || "").trim().toUpperCase();
+
+        if (routeType !== "international") {
+            return;
+        }
+
+        if (normalizedCity.length < 1 || normalizedCountry.length !== 2) {
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+            return;
+        }
+
+        abortCityLookupForParty(party);
+
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        if (controller) {
+            cityLookupAbortRef.current[party] = controller;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                city: normalizedCity,
+                country: normalizedCountry,
+                routeType: "international",
+                limit: "20",
+            });
+
+            const response = await fetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+                signal: controller?.signal,
+            });
+
+            if (!response.ok) {
+                setPostalCitySuggestions((previous) => ({
+                    ...previous,
+                    [party]: [],
+                }));
+                return;
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const suggestions = Array.isArray(payload?.suggestions)
+                ? payload.suggestions
+                    .map((item) => ({
+                        postalCode: String(item?.postalCode || "").trim(),
+                        city: String(item?.city || "").trim(),
+                    }))
+                    .filter((item) => item.postalCode && item.city)
+                : [];
+
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: suggestions,
+            }));
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return;
+            }
+
+            setPostalCitySuggestions((previous) => ({
+                ...previous,
+                [party]: [],
+            }));
+        } finally {
+            if (cityLookupAbortRef.current[party] === controller) {
+                cityLookupAbortRef.current[party] = null;
+            }
+        }
+    };
+
+    const handlePostalSuggestionSelect = (party, fieldKey, suggestion) => {
+        if (!suggestion || !suggestion.postalCode) {
+            return;
+        }
+
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+        const nextPostalCode = String(suggestion.postalCode || "").trim();
+        const nextCity = String(suggestion.city || currentParty?.address?.city || "").trim();
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                postalCode: nextPostalCode,
+                city: nextCity,
+            },
+        });
+
+        setPostalMismatchNotice(party, false);
+
+        setCityLookupState((previous) => ({
+            ...previous,
+            [party]: {
+                loading: false,
+                error: "",
+            },
+        }));
+        setActiveLocationField((current) => (current === fieldKey ? null : current));
     };
 
     const handleCitySearchChange = (party, fieldKey, value) => {
@@ -441,7 +1141,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             [fieldKey]: value,
         }));
 
-        const match = matchLocationOption(countryOptions, value);
+        const partyOptions = getCountryOptionsForParty(party);
+        const match = matchLocationOption(partyOptions, value) || matchLocationOption(countryOptions, value);
         updateAddressCountry(party, match ? match.value : "");
     };
 
@@ -484,6 +1185,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setShowDetails(false);
         setShowSummary(false);
         setIsSummaryLoading(false);
+        ["sender", "recipient"].forEach((party) => {
+            abortPostalLookupForParty(party);
+            clearPostalLookupForParty(party);
+            abortCityLookupForParty(party);
+            clearCityLookupForParty(party);
+            abortCountryLookupForParty(party);
+            clearCountryLookupForParty(party);
+        });
         clearErrors();
     };
 
@@ -648,6 +1357,223 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
     const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
     const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
+
+    useEffect(() => {
+        if (selectedRouteType === "international") {
+            return;
+        }
+
+        ["sender", "recipient"].forEach((party) => {
+            abortPostalLookupForParty(party);
+            clearPostalLookupForParty(party);
+            abortCityLookupForParty(party);
+            clearCityLookupForParty(party);
+            abortCountryLookupForParty(party);
+            clearCountryLookupForParty(party);
+        });
+    }, [selectedRouteType]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupCountrySuggestions(
+                "sender",
+                locationSearch.senderCountry,
+                selectedRouteType,
+            );
+        }, COUNTRY_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        locationSearch.senderCountry,
+        flowRoutes.countrySuggestions,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupCountrySuggestions(
+                "recipient",
+                locationSearch.recipientCountry,
+                selectedRouteType,
+            );
+        }, COUNTRY_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        locationSearch.recipientCountry,
+        flowRoutes.countrySuggestions,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupInternationalCityByPostalCode(
+                "sender",
+                data.sender?.address?.postalCode,
+                data.sender?.address?.country,
+                selectedRouteType,
+            );
+        }, POSTAL_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        data.sender?.address?.postalCode,
+        data.sender?.address?.country,
+        flowRoutes.cityByPostal,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupInternationalCityByPostalCode(
+                "recipient",
+                data.recipient?.address?.postalCode,
+                data.recipient?.address?.country,
+                selectedRouteType,
+            );
+        }, POSTAL_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        data.recipient?.address?.postalCode,
+        data.recipient?.address?.country,
+        flowRoutes.cityByPostal,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupInternationalPostalCitySuggestionsByCity(
+                "sender",
+                data.sender?.address?.city,
+                data.sender?.address?.country,
+                selectedRouteType,
+            );
+        }, POSTAL_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        data.sender?.address?.city,
+        data.sender?.address?.country,
+        flowRoutes.cityByPostal,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupInternationalPostalCitySuggestionsByCity(
+                "recipient",
+                data.recipient?.address?.city,
+                data.recipient?.address?.country,
+                selectedRouteType,
+            );
+        }, POSTAL_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        data.recipient?.address?.city,
+        data.recipient?.address?.country,
+        flowRoutes.cityByPostal,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupInternationalPostalCodes(
+                "sender",
+                data.sender?.address?.city,
+                data.sender?.address?.country,
+                data.sender?.address?.state,
+                selectedRouteType,
+            );
+        }, POSTAL_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        data.sender?.address?.city,
+        data.sender?.address?.country,
+        data.sender?.address?.state,
+        flowRoutes.postalByCity,
+    ]);
+
+    useEffect(() => {
+        if (selectedRouteType !== "international") {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            lookupInternationalPostalCodes(
+                "recipient",
+                data.recipient?.address?.city,
+                data.recipient?.address?.country,
+                data.recipient?.address?.state,
+                selectedRouteType,
+            );
+        }, POSTAL_LOOKUP_DEBOUNCE_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        selectedRouteType,
+        data.recipient?.address?.city,
+        data.recipient?.address?.country,
+        data.recipient?.address?.state,
+        flowRoutes.postalByCity,
+    ]);
+
+    useEffect(() => {
+        return () => {
+            ["sender", "recipient"].forEach((party) => {
+                abortPostalLookupForParty(party);
+                abortCityLookupForParty(party);
+                abortCountryLookupForParty(party);
+            });
+        };
+    }, []);
 
     const packageMetrics = useMemo(() => computePackageMetrics(data.packages), [data.packages]);
 
@@ -1419,7 +2345,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 />
                                                                                 {activeLocationField === `sender-country-${index}` && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                        {filterLocationOptions(countryOptions, locationSearch.senderCountry).map((option) => (
+                                                                                        {filterLocationOptions(getCountryOptionsForParty("sender"), locationSearch.senderCountry).map((option) => (
                                                                                             <button
                                                                                                 key={`pickup-${index}-${option.value}`}
                                                                                                 type="button"
@@ -1435,26 +2361,108 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     </div>
                                                                                 )}
                                                                             </div>
+                                                                            {countryLookupState.sender.loading && (
+                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading countries...</p>
+                                                                            )}
+                                                                            {!countryLookupState.sender.loading && countryLookupState.sender.error && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">{countryLookupState.sender.error}</p>
+                                                                            )}
                                                                         </div>
 
                                                                         <div>
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
-                                                                            <input
-                                                                                value={data.sender?.address?.city || ""}
-                                                                                onChange={(event) => updateAddressCity("sender", event.target.value)}
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Enter pickup city"
-                                                                            />
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={data.sender?.address?.city || ""}
+                                                                                    onChange={(event) => updateAddressCity("sender", event.target.value)}
+                                                                                    disabled={!data.sender?.address?.country}
+                                                                                    onFocus={() => setActiveLocationField(`sender-city-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder={data.sender?.address?.country ? "Enter pickup city" : "Select pickup country first"}
+                                                                                />
+                                                                                {activeLocationField === `sender-city-${index}`
+                                                                                    && filterPostalCitySuggestions(
+                                                                                        postalCitySuggestions.sender,
+                                                                                        data.sender?.address?.city,
+                                                                                    ).length > 0 && (
+                                                                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                            {filterPostalCitySuggestions(
+                                                                                                postalCitySuggestions.sender,
+                                                                                                data.sender?.address?.city,
+                                                                                            ).map((suggestion) => (
+                                                                                                <button
+                                                                                                    key={`sender-city-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                    type="button"
+                                                                                                    onMouseDown={(event) => {
+                                                                                                        event.preventDefault();
+                                                                                                        handlePostalSuggestionSelect(
+                                                                                                            "sender",
+                                                                                                            `sender-city-${index}`,
+                                                                                                            suggestion,
+                                                                                                        );
+                                                                                                    }}
+                                                                                                    className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                                >
+                                                                                                    {suggestion.city}, {suggestion.postalCode}
+                                                                                                </button>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                            </div>
                                                                         </div>
 
                                                                         <div>
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup postal code*</label>
-                                                                            <input
-                                                                                value={data.sender?.address?.postalCode || ""}
-                                                                                onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Enter pickup postal code"
-                                                                            />
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={data.sender?.address?.postalCode || ""}
+                                                                                    onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
+                                                                                    disabled={!data.sender?.address?.country}
+                                                                                    onFocus={() => setActiveLocationField(`sender-postal-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`sender-postal-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder={data.sender?.address?.country ? "Enter pickup postal code" : "Select pickup country first"}
+                                                                                />
+                                                                                {activeLocationField === `sender-postal-${index}` && postalCitySuggestions.sender.length > 0 && (
+                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                        {postalCitySuggestions.sender.map((suggestion) => (
+                                                                                            <button
+                                                                                                key={`sender-postal-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    handlePostalSuggestionSelect(
+                                                                                                        "sender",
+                                                                                                        `sender-postal-${index}`,
+                                                                                                        suggestion,
+                                                                                                    );
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {suggestion.city}, {suggestion.postalCode}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            {cityLookupState.sender.loading && (
+                                                                                <p className="mt-1 text-xs text-[#5B6887]">Finding city from postal code...</p>
+                                                                            )}
+                                                                            {!cityLookupState.sender.loading && cityLookupState.sender.error && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">{cityLookupState.sender.error}</p>
+                                                                            )}
+                                                                            {postalLookupState.sender.loading && (
+                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading postal code suggestions...</p>
+                                                                            )}
+                                                                            {!postalLookupState.sender.loading && postalLookupState.sender.error && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">{postalLookupState.sender.error}</p>
+                                                                            )}
+                                                                            {postalCityNotice.sender && (
+                                                                                <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
+                                                                                    {postalCityNotice.sender}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1475,7 +2483,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 />
                                                                                 {activeLocationField === `recipient-country-${index}` && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                        {filterLocationOptions(countryOptions, locationSearch.recipientCountry).map((option) => (
+                                                                                        {filterLocationOptions(getCountryOptionsForParty("recipient"), locationSearch.recipientCountry).map((option) => (
                                                                                             <button
                                                                                                 key={`destination-${index}-${option.value}`}
                                                                                                 type="button"
@@ -1491,26 +2499,108 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     </div>
                                                                                 )}
                                                                             </div>
+                                                                            {countryLookupState.recipient.loading && (
+                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading countries...</p>
+                                                                            )}
+                                                                            {!countryLookupState.recipient.loading && countryLookupState.recipient.error && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">{countryLookupState.recipient.error}</p>
+                                                                            )}
                                                                         </div>
 
                                                                         <div>
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
-                                                                            <input
-                                                                                value={data.recipient?.address?.city || ""}
-                                                                                onChange={(event) => updateAddressCity("recipient", event.target.value)}
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Enter destination city"
-                                                                            />
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={data.recipient?.address?.city || ""}
+                                                                                    onChange={(event) => updateAddressCity("recipient", event.target.value)}
+                                                                                    disabled={!data.recipient?.address?.country}
+                                                                                    onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder={data.recipient?.address?.country ? "Enter destination city" : "Select destination country first"}
+                                                                                />
+                                                                                {activeLocationField === `recipient-city-${index}`
+                                                                                    && filterPostalCitySuggestions(
+                                                                                        postalCitySuggestions.recipient,
+                                                                                        data.recipient?.address?.city,
+                                                                                    ).length > 0 && (
+                                                                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                            {filterPostalCitySuggestions(
+                                                                                                postalCitySuggestions.recipient,
+                                                                                                data.recipient?.address?.city,
+                                                                                            ).map((suggestion) => (
+                                                                                                <button
+                                                                                                    key={`recipient-city-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                    type="button"
+                                                                                                    onMouseDown={(event) => {
+                                                                                                        event.preventDefault();
+                                                                                                        handlePostalSuggestionSelect(
+                                                                                                            "recipient",
+                                                                                                            `recipient-city-${index}`,
+                                                                                                            suggestion,
+                                                                                                        );
+                                                                                                    }}
+                                                                                                    className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                                >
+                                                                                                    {suggestion.city}, {suggestion.postalCode}
+                                                                                                </button>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                            </div>
                                                                         </div>
 
                                                                         <div>
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination postal code*</label>
-                                                                            <input
-                                                                                value={data.recipient?.address?.postalCode || ""}
-                                                                                onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
-                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Enter destination postal code"
-                                                                            />
+                                                                            <div className="relative">
+                                                                                <input
+                                                                                    value={data.recipient?.address?.postalCode || ""}
+                                                                                    onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
+                                                                                    disabled={!data.recipient?.address?.country}
+                                                                                    onFocus={() => setActiveLocationField(`recipient-postal-${index}`)}
+                                                                                    onBlur={() => handleLocationInputBlur(`recipient-postal-${index}`)}
+                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                    placeholder={data.recipient?.address?.country ? "Enter destination postal code" : "Select destination country first"}
+                                                                                />
+                                                                                {activeLocationField === `recipient-postal-${index}` && postalCitySuggestions.recipient.length > 0 && (
+                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                        {postalCitySuggestions.recipient.map((suggestion) => (
+                                                                                            <button
+                                                                                                key={`recipient-postal-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                type="button"
+                                                                                                onMouseDown={(event) => {
+                                                                                                    event.preventDefault();
+                                                                                                    handlePostalSuggestionSelect(
+                                                                                                        "recipient",
+                                                                                                        `recipient-postal-${index}`,
+                                                                                                        suggestion,
+                                                                                                    );
+                                                                                                }}
+                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                            >
+                                                                                                {suggestion.city}, {suggestion.postalCode}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            {cityLookupState.recipient.loading && (
+                                                                                <p className="mt-1 text-xs text-[#5B6887]">Finding city from postal code...</p>
+                                                                            )}
+                                                                            {!cityLookupState.recipient.loading && cityLookupState.recipient.error && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">{cityLookupState.recipient.error}</p>
+                                                                            )}
+                                                                            {postalLookupState.recipient.loading && (
+                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading postal code suggestions...</p>
+                                                                            )}
+                                                                            {!postalLookupState.recipient.loading && postalLookupState.recipient.error && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">{postalLookupState.recipient.error}</p>
+                                                                            )}
+                                                                            {postalCityNotice.recipient && (
+                                                                                <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
+                                                                                    {postalCityNotice.recipient}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>
