@@ -32,10 +32,10 @@ This master checklist is used before and during implementation of each phase so 
 - [x] Add negative-path tests for invalid transitions and tampered payloads.
 
 ## Phase 5 - Policy and Pricing Determinism
-- [ ] Ensure pricing output is deterministic across all policy modules.
-- [ ] Add snapshot-style assertions for pricing explanation payload.
-- [ ] Eliminate date-fragile tests and enforce dynamic date handling.
-- [ ] Add guardrail tests for min/max thresholds and policy conflicts.
+- [x] Ensure pricing output is deterministic across all policy modules.
+- [x] Add snapshot-style assertions for pricing explanation payload.
+- [x] Eliminate date-fragile tests and enforce dynamic date handling.
+- [x] Add guardrail tests for min/max thresholds and policy conflicts.
 
 ## Phase 6 - Operational Hardening and Observability
 - [x] Add structured logs for courier create/store/detail read paths.

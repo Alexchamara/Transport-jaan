@@ -2824,8 +2824,9 @@ class ClientCourierController extends Controller
                 $vendorId,
                 $category
             );
-            $pricingExplanation['policyAdjustments'] = $policyBreakdown;
-            $pricingExplanation['codDetails']['policyFeeApplied'] = $this->resolvePolicyAdjustmentAmount($policyBreakdown, 'cod_fee');
+            $normalizedPolicyBreakdown = $this->normalizePolicyAdjustmentBreakdown($policyBreakdown);
+            $pricingExplanation['policyAdjustments'] = $normalizedPolicyBreakdown;
+            $pricingExplanation['codDetails']['policyFeeApplied'] = $this->resolvePolicyAdjustmentAmount($normalizedPolicyBreakdown, 'cod_fee');
             $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalWithPolicy), 2);
 
             return $totalWithPolicy;
@@ -2958,8 +2959,9 @@ class ClientCourierController extends Controller
         );
 
         $totalEstimatedUsd = $totalBase * $usdRate;
-        $pricingExplanation['policyAdjustments'] = $policyBreakdown;
-        $pricingExplanation['codDetails']['policyFeeApplied'] = $this->resolvePolicyAdjustmentAmount($policyBreakdown, 'cod_fee');
+        $normalizedPolicyBreakdown = $this->normalizePolicyAdjustmentBreakdown($policyBreakdown);
+        $pricingExplanation['policyAdjustments'] = $normalizedPolicyBreakdown;
+        $pricingExplanation['codDetails']['policyFeeApplied'] = $this->resolvePolicyAdjustmentAmount($normalizedPolicyBreakdown, 'cod_fee');
         $pricingExplanation['totalEstimatedUsd'] = round(max(0, $totalEstimatedUsd), 2);
 
         return $totalEstimatedUsd;
@@ -3478,6 +3480,67 @@ class ClientCourierController extends Controller
         return $entry ? (float) ($entry['amount'] ?? 0) : 0.0;
     }
 
+    private function normalizePolicyAdjustmentBreakdown(array $policyBreakdown): array
+    {
+        $policyOrder = [
+            'international_dimensions_engine' => 10,
+            'speed_eta_tier_multiplier' => 20,
+            'remote_area_surcharge' => 30,
+            'overweight_surcharge' => 40,
+            'oversize_surcharge' => 50,
+            'holiday_surcharge' => 60,
+            'peak_hour_surcharge' => 70,
+            'cod_fee' => 80,
+            'contract_negotiated_rate_discount' => 90,
+            'contract_negotiated_rate_override' => 100,
+            'contract_negotiated_rate_multiplier' => 110,
+            'contract_volume_tier_discount' => 120,
+            'contract_volume_tier_override' => 130,
+            'contract_volume_tier_multiplier' => 140,
+            'contract_minimum_guardrail' => 150,
+            'minimum_shipment_guardrail' => 160,
+            'quote_runtime_discount_applied' => 170,
+            'quote_runtime_discount_ceiling_guardrail' => 180,
+            'quote_runtime_floor_price_guardrail' => 190,
+        ];
+
+        $normalized = collect($policyBreakdown)
+            ->map(function ($item, $index) {
+                $entry = is_array($item) ? $item : [];
+
+                return [
+                    'index' => (int) $index,
+                    'key' => trim((string) ($entry['key'] ?? '')),
+                    'amount' => round((float) ($entry['amount'] ?? 0), 2),
+                ];
+            })
+            ->filter(fn ($entry) => $entry['key'] !== '')
+            ->values()
+            ->all();
+
+        usort($normalized, function (array $left, array $right) use ($policyOrder) {
+            $leftRank = $policyOrder[$left['key']] ?? 1000;
+            $rightRank = $policyOrder[$right['key']] ?? 1000;
+            if ($leftRank !== $rightRank) {
+                return $leftRank <=> $rightRank;
+            }
+
+            $keyCompare = strcmp($left['key'], $right['key']);
+            if ($keyCompare !== 0) {
+                return $keyCompare;
+            }
+
+            return ($left['index'] ?? 0) <=> ($right['index'] ?? 0);
+        });
+
+        return array_map(static function (array $entry): array {
+            return [
+                'key' => $entry['key'],
+                'amount' => $entry['amount'],
+            ];
+        }, $normalized);
+    }
+
     private function applyCustomerContractPricing(
         float $currentTotal,
         array $payload,
@@ -3624,8 +3687,13 @@ class ClientCourierController extends Controller
     private function resolveActiveCustomerContract(array $policy, int $accountUserId, string $category): ?array
     {
         $contracts = collect($policy['contracts'] ?? [])
-            ->map(fn ($item) => is_array($item) ? $item : [])
-            ->filter(fn ($item) => (bool) ($item['enabled'] ?? true))
+            ->map(function ($item, $index) {
+                return [
+                    'contract' => is_array($item) ? $item : [],
+                    'index' => (int) $index,
+                ];
+            })
+            ->filter(fn ($entry) => (bool) ($entry['contract']['enabled'] ?? true))
             ->values();
         if ($contracts->isEmpty()) {
             return null;
@@ -3634,7 +3702,9 @@ class ClientCourierController extends Controller
         $now = Carbon::now();
 
         return $contracts
-            ->filter(function (array $contract) use ($accountUserId, $category, $now) {
+            ->filter(function (array $entry) use ($accountUserId, $category, $now) {
+                $contract = is_array($entry['contract'] ?? null) ? $entry['contract'] : [];
+
                 $accountIds = collect($contract['accountUserIds'] ?? [])
                     ->map(fn ($item) => (int) $item)
                     ->filter(fn ($item) => $item > 0)
@@ -3698,7 +3768,38 @@ class ClientCourierController extends Controller
 
                 return true;
             })
-            ->sortByDesc(fn ($contract) => (int) ($contract['priority'] ?? 0))
+            ->sort(function (array $leftEntry, array $rightEntry) {
+                $left = is_array($leftEntry['contract'] ?? null) ? $leftEntry['contract'] : [];
+                $right = is_array($rightEntry['contract'] ?? null) ? $rightEntry['contract'] : [];
+
+                $leftPriority = (int) ($left['priority'] ?? 0);
+                $rightPriority = (int) ($right['priority'] ?? 0);
+                if ($leftPriority !== $rightPriority) {
+                    return $rightPriority <=> $leftPriority;
+                }
+
+                $leftFrom = trim((string) ($left['effectiveFrom'] ?? ''));
+                $rightFrom = trim((string) ($right['effectiveFrom'] ?? ''));
+                if ($leftFrom !== $rightFrom) {
+                    return strcmp($rightFrom, $leftFrom);
+                }
+
+                $leftTo = trim((string) ($left['effectiveTo'] ?? ''));
+                $rightTo = trim((string) ($right['effectiveTo'] ?? ''));
+                if ($leftTo !== $rightTo) {
+                    return strcmp($rightTo, $leftTo);
+                }
+
+                $leftAllAccounts = (bool) ($left['allAccounts'] ?? false);
+                $rightAllAccounts = (bool) ($right['allAccounts'] ?? false);
+                if ($leftAllAccounts !== $rightAllAccounts) {
+                    return $leftAllAccounts <=> $rightAllAccounts;
+                }
+
+                return ((int) ($leftEntry['index'] ?? 0)) <=> ((int) ($rightEntry['index'] ?? 0));
+            })
+            ->map(fn ($entry) => is_array($entry['contract'] ?? null) ? $entry['contract'] : null)
+            ->filter()
             ->first();
     }
 
@@ -3757,8 +3858,14 @@ class ClientCourierController extends Controller
     private function resolveBestVolumeTier(float $metricValue, array $volumeTiers): ?array
     {
         return collect($volumeTiers)
-            ->map(fn ($item) => is_array($item) ? $item : [])
-            ->filter(function (array $tier) use ($metricValue) {
+            ->map(function ($item, $index) {
+                return [
+                    'tier' => is_array($item) ? $item : [],
+                    'index' => (int) $index,
+                ];
+            })
+            ->filter(function (array $entry) use ($metricValue) {
+                $tier = is_array($entry['tier'] ?? null) ? $entry['tier'] : [];
                 $minVolume = max(0, (float) ($tier['minVolume'] ?? 0));
                 $hasMaxVolume = isset($tier['maxVolume']) && $tier['maxVolume'] !== null && $tier['maxVolume'] !== '';
                 $maxVolume = $hasMaxVolume ? max($minVolume, (float) $tier['maxVolume']) : null;
@@ -3769,7 +3876,34 @@ class ClientCourierController extends Controller
 
                 return $maxVolume === null ? true : $metricValue <= $maxVolume;
             })
-            ->sortByDesc(fn ($tier) => max(0, (float) ($tier['minVolume'] ?? 0)))
+            ->sort(function (array $leftEntry, array $rightEntry) {
+                $left = is_array($leftEntry['tier'] ?? null) ? $leftEntry['tier'] : [];
+                $right = is_array($rightEntry['tier'] ?? null) ? $rightEntry['tier'] : [];
+
+                $leftMin = max(0, (float) ($left['minVolume'] ?? 0));
+                $rightMin = max(0, (float) ($right['minVolume'] ?? 0));
+                if ($leftMin !== $rightMin) {
+                    return $rightMin <=> $leftMin;
+                }
+
+                $leftHasMax = isset($left['maxVolume']) && $left['maxVolume'] !== null && $left['maxVolume'] !== '';
+                $rightHasMax = isset($right['maxVolume']) && $right['maxVolume'] !== null && $right['maxVolume'] !== '';
+                if ($leftHasMax !== $rightHasMax) {
+                    return $leftHasMax ? -1 : 1;
+                }
+
+                if ($leftHasMax && $rightHasMax) {
+                    $leftMax = max($leftMin, (float) $left['maxVolume']);
+                    $rightMax = max($rightMin, (float) $right['maxVolume']);
+                    if ($leftMax !== $rightMax) {
+                        return $leftMax <=> $rightMax;
+                    }
+                }
+
+                return ((int) ($leftEntry['index'] ?? 0)) <=> ((int) ($rightEntry['index'] ?? 0));
+            })
+            ->map(fn ($entry) => is_array($entry['tier'] ?? null) ? $entry['tier'] : null)
+            ->filter()
             ->first();
     }
 

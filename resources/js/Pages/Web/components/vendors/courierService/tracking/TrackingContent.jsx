@@ -48,7 +48,7 @@ const EMPTY = {
     providerStats: [],
 };
 
-const actionLabels = {
+const SHIPMENT_STAGE_ACTION_LABELS = {
     accept_assignment: "Accept",
     ready_for_pickup: "Ready",
     picked_up: "Picked Up",
@@ -59,9 +59,35 @@ const actionLabels = {
     cancel_shipment: "Cancel",
 };
 
-const DESTRUCTIVE_ACTIONS = ["cancel_shipment"];
+const COD_COLLECTION_ACTION_LABELS = {
+    cod_collected: "COD Collected",
+    cod_failed: "COD Failed",
+    cod_refused: "COD Refused",
+};
+
+const actionLabels = {
+    ...SHIPMENT_STAGE_ACTION_LABELS,
+    ...COD_COLLECTION_ACTION_LABELS,
+};
+
+const COD_COLLECTION_ACTIONS = ["cod_collected", "cod_failed", "cod_refused"];
+const DESTRUCTIVE_ACTIONS = ["cancel_shipment", "cod_failed", "cod_refused"];
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const formatMoney = (value, currency = "LKR") => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) {
+        return "-";
+    }
+
+    return `${amount.toFixed(2)} ${currency || "LKR"}`;
+};
+const buildRowActions = (row) => {
+    const shipmentActions = Array.isArray(row?.allowedActions) ? row.allowedActions : [];
+    const codActions = Array.isArray(row?.codAllowedActions) ? row.codAllowedActions : [];
+
+    return Array.from(new Set([...shipmentActions, ...codActions]));
+};
 
 const stageBadge = (stage) => {
     switch (stage) {
@@ -134,10 +160,14 @@ const TrackingContent = () => {
     });
 
     const [selectedShipment, setSelectedShipment] = useState(null);
+    const [codModalOpen, setCodModalOpen] = useState(false);
+    const [codModalShipment, setCodModalShipment] = useState(null);
+    const [codCollectedAmount, setCodCollectedAmount] = useState("");
 
     const {
         feedback,
         closeFeedback,
+        setFeedback,
         confirmState,
         openConfirm,
         closeConfirm,
@@ -172,10 +202,87 @@ const TrackingContent = () => {
         );
     };
 
-    const runStageAction = (shipmentId, action) => {
+    const openCodCollectedModal = (shipment) => {
+        const requestedAmount = Number(shipment?.codRequestedAmount);
+        const defaultAmount = Number.isFinite(requestedAmount) && requestedAmount > 0
+            ? requestedAmount.toFixed(2)
+            : "";
+
+        setCodModalShipment(shipment);
+        setCodCollectedAmount(defaultAmount);
+        setCodModalOpen(true);
+    };
+
+    const closeCodCollectedModal = () => {
+        setCodModalOpen(false);
+        setCodModalShipment(null);
+        setCodCollectedAmount("");
+    };
+
+    const submitCodCollected = () => {
+        if (!codModalShipment) {
+            return;
+        }
+
+        if (!Boolean(codModalShipment?.canManageBookingLifecycle)) {
+            setFeedback({ type: "error", message: "You do not have permission to manage booking lifecycle actions." });
+            return;
+        }
+
+        const amount = Number(codCollectedAmount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            setFeedback({ type: "error", message: "Enter a valid COD collected amount." });
+            return;
+        }
+
+        const requested = Number(codModalShipment.codRequestedAmount);
+        if (Number.isFinite(requested) && amount - requested > 0.01) {
+            setFeedback({ type: "error", message: "Collected amount cannot exceed the requested COD amount." });
+            return;
+        }
+
+        if (!Boolean(codModalShipment?.canCodOverride) && Number.isFinite(requested) && requested - amount > 0.01) {
+            setFeedback({ type: "error", message: "You do not have permission to record a COD amount below the requested value." });
+            return;
+        }
+
+        router.post(
+            route("courierService.bookings.lifecycle", codModalShipment.id),
+            { action: "cod_collected", codCollectedAmount: amount },
+            {
+                preserveScroll: true,
+                onSuccess: closeCodCollectedModal,
+            },
+        );
+    };
+
+    const runStageAction = (shipment, action) => {
+        if (!shipment) {
+            return;
+        }
+
+        const isCodAction = COD_COLLECTION_ACTIONS.includes(action);
+
+        if (isCodAction && !Boolean(shipment?.canManageBookingLifecycle)) {
+            setFeedback({ type: "error", message: "You do not have permission to manage booking lifecycle actions." });
+            return;
+        }
+
+        if (isCodAction && !shipment?.codEnabled) {
+            setFeedback({ type: "error", message: "COD is not enabled for this shipment." });
+            return;
+        }
+
+        if (action === "cod_collected") {
+            openCodCollectedModal(shipment);
+            return;
+        }
+
         const execute = () => {
             router.post(
-                route("courierService.shipments.stage", shipmentId),
+                isCodAction
+                    ? route("courierService.bookings.lifecycle", shipment.id)
+                    : route("courierService.shipments.stage", shipment.id),
                 { action },
                 { preserveScroll: true },
             );
@@ -395,12 +502,16 @@ const TrackingContent = () => {
                                 <th className="px-3 py-3 font-[700]">Last Scan</th>
                                 <th className="px-3 py-3 font-[700]">ETA</th>
                                 <th className="px-3 py-3 font-[700]">SLA</th>
+                                <th className="px-3 py-3 font-[700]">COD</th>
                                 <th className="px-3 py-3 font-[700]">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {trackingRows.length > 0 ? (
-                                trackingRows.map((row) => (
+                                trackingRows.map((row) => {
+                                    const rowActions = buildRowActions(row);
+
+                                    return (
                                     <tr key={row.id} className="border-b border-[#E5E7EB] cursor-pointer" onClick={() => setSelectedShipment(row)}>
                                         <td className="px-3 py-3 font-[700]">{row.trackingNumber}</td>
                                         <td className="px-3 py-3">{row.bookingNumber}</td>
@@ -411,25 +522,37 @@ const TrackingContent = () => {
                                         <td className="px-3 py-3">{row.eta || "-"}</td>
                                         <td className="px-3 py-3"><span className={`px-2.5 py-1 rounded-full text-[11px] font-[700] ${slaBadge(row.slaStatus)}`}>{titleCase(row.slaStatus)}</span></td>
                                         <td className="px-3 py-3">
+                                            {row.codEnabled ? (
+                                                <div className="text-[11px] leading-4 text-[#374151]">
+                                                    <p>Req: {formatMoney(row.codRequestedAmount, row.currency)}</p>
+                                                    <p>Collected: {formatMoney(row.codCollectedAmount, row.currency)}</p>
+                                                    <p>Status: {row.codCollectionStatus ? titleCase(row.codCollectionStatus) : "Pending"}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[11px] text-[#9CA3AF]">No COD</span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-3">
                                             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                                {(row.allowedActions || []).map((action) => (
+                                                {rowActions.map((action) => (
                                                     <button
                                                         key={action}
                                                         type="button"
-                                                        onClick={() => runStageAction(row.id, action)}
+                                                        onClick={() => runStageAction(row, action)}
                                                         className="px-2 py-1 rounded-[5px] bg-[#F3F4F6] text-[11px] font-[700]"
                                                     >
                                                         {actionLabels[action] || titleCase(action)}
                                                     </button>
                                                 ))}
-                                                {row.allowedActions.length === 0 && <span className="text-[11px] text-[#9CA3AF]">No actions</span>}
+                                                {rowActions.length === 0 && <span className="text-[11px] text-[#9CA3AF]">No actions</span>}
                                             </div>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <tr>
-                                    <td colSpan={9} className="px-3 py-10 text-center text-[#6B7280]">No tracking records found for current filters.</td>
+                                    <td colSpan={10} className="px-3 py-10 text-center text-[#6B7280]">No tracking records found for current filters.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -464,6 +587,58 @@ const TrackingContent = () => {
                 </div>
             </div>
 
+            {codModalOpen && (
+                <div className="fixed inset-0 bg-black/40 z-50" onClick={closeCodCollectedModal}>
+                    <div className="absolute right-0 top-0 h-full w-full max-w-[440px] bg-white p-6 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-[22px] font-[700]">Record COD Collection</h2>
+                        <p className="text-[13px] text-[#6B7280] mt-1">
+                            Shipment {codModalShipment?.bookingNumber || codModalShipment?.trackingNumber || "-"}
+                        </p>
+
+                        <div className="mt-4">
+                            <label className="block text-[13px] font-[700] text-[#111827] mb-1">
+                                Collected amount ({codModalShipment?.currency || "LKR"})
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="w-full h-[40px] rounded-[8px] border border-[#D1D5DB] px-3 text-[13px]"
+                                value={codCollectedAmount}
+                                onChange={(e) => setCodCollectedAmount(e.target.value)}
+                            />
+                            {codModalShipment?.codRequestedAmount !== null && codModalShipment?.codRequestedAmount !== undefined && (
+                                <p className="text-[12px] text-[#6B7280] mt-2">
+                                    Requested: {formatMoney(codModalShipment.codRequestedAmount, codModalShipment?.currency || "LKR")}
+                                </p>
+                            )}
+                            {!Boolean(codModalShipment?.canCodOverride) && (
+                                <p className="text-[11px] text-[#B45309] mt-2">
+                                    Partial COD collection is blocked for your account.
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={closeCodCollectedModal}
+                                className="h-[36px] px-4 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitCodCollected}
+                                className="h-[36px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700]"
+                            >
+                                Record Collection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {selectedShipment && (
                 <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelectedShipment(null)}>
                     <div className="absolute right-0 top-0 h-full w-full max-w-[450px] bg-white p-6 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -474,6 +649,16 @@ const TrackingContent = () => {
                             <p><span className="font-[700]">Route:</span> {selectedShipment.origin} to {selectedShipment.destination}</p>
                             <p><span className="font-[700]">Stage:</span> {selectedShipment.stageLabel}</p>
                             <p><span className="font-[700]">SLA:</span> {titleCase(selectedShipment.slaStatus)}</p>
+                            {selectedShipment.codEnabled ? (
+                                <>
+                                    <p><span className="font-[700]">COD Requested:</span> {formatMoney(selectedShipment.codRequestedAmount, selectedShipment.currency)}</p>
+                                    <p><span className="font-[700]">COD Collected:</span> {formatMoney(selectedShipment.codCollectedAmount, selectedShipment.currency)}</p>
+                                    <p><span className="font-[700]">COD Status:</span> {selectedShipment.codCollectionStatus ? titleCase(selectedShipment.codCollectionStatus) : "Pending"}</p>
+                                    <p><span className="font-[700]">COD Recorded:</span> {selectedShipment.codCollectionRecordedAt || "-"}</p>
+                                </>
+                            ) : (
+                                <p><span className="font-[700]">COD:</span> Not enabled</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">

@@ -300,11 +300,13 @@ class VendorCourierDashboardController extends Controller
     public function bookings(Request $request)
     {
         [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'bookings', 'view');
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
         $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
         $canViewRates = $this->canActorViewRates($request, $policy);
+        $canCodOverride = $this->canActorUseCodOverrideActions($request, $vendorId);
 
         return Inertia::render('Web/home/vendors/courierService/Booking', [
-            'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates, $approvedCategories),
+            'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates, $canCodOverride, $approvedCategories),
         ]);
     }
 
@@ -324,7 +326,21 @@ class VendorCourierDashboardController extends Controller
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
             'codCollectedAmount' => ['nullable', 'numeric', 'min:0.01'],
+            'codOverrideReason' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $codOverrideContext = $this->resolveCodOverrideContext(
+            $shipment,
+            (string) $validated['action'],
+            [
+                'codCollectedAmount' => $validated['codCollectedAmount'] ?? null,
+            ]
+        );
+
+        $codOverrideReason = trim((string) ($validated['codOverrideReason'] ?? ''));
+        if ($codOverrideReason === '') {
+            $codOverrideReason = null;
+        }
 
         $this->assertAdvancedPermission(
             $request,
@@ -356,15 +372,88 @@ class VendorCourierDashboardController extends Controller
             return back()->with('error', (string) $approvalGate['message']);
         }
 
-        $result = $this->applyBookingAction($shipment, $validated['action'], [
-            'codCollectedAmount' => $validated['codCollectedAmount'] ?? null,
-        ]);
+        $codOverrideApprovalGate = [
+            'ok' => true,
+            'approval' => null,
+            'message' => null,
+        ];
+        $codCapability = null;
+
+        if ((bool) ($codOverrideContext['isOverride'] ?? false)) {
+            if (!$this->canActorUseCodOverrideActions($request, $vendorId)) {
+                $this->logPermissionDenied($request, 'bookings', 'cod_override', [
+                    'reason' => 'cod_override_permission_blocked',
+                    'shipment_id' => (int) $shipment->id,
+                    'override_amount' => (float) ($codOverrideContext['overrideAmount'] ?? 0),
+                    'override_action' => (string) $validated['action'],
+                ]);
+
+                return back()->with('error', 'You do not have permission to override COD collection outcomes.');
+            }
+
+            $codCapability = $this->resolveActiveCodCapabilityForVendor($vendorId, $request);
+            if (!$codCapability) {
+                return back()->with('error', 'Active COD capability approval is required before recording COD overrides.');
+            }
+
+            $codOverrideApprovalGate = $this->ensureSensitiveActionApproval(
+                $request,
+                $policy,
+                '__cod_override__',
+                [
+                    'resourceType' => 'courier_cod_override',
+                    'resourceId' => (int) $shipment->id,
+                    'subject' => (string) $shipment->reference,
+                    'subjectIds' => [(int) $shipment->id],
+                    'amount' => (float) ($codOverrideContext['overrideAmount'] ?? 0),
+                    'reason' => $codOverrideReason,
+                    'action' => (string) $validated['action'],
+                    'requestedAmount' => (float) ($codOverrideContext['requestedAmount'] ?? 0),
+                    'collectedAmount' => (float) ($codOverrideContext['collectedAmount'] ?? 0),
+                ]
+            );
+
+            if (!$codOverrideApprovalGate['ok']) {
+                return back()->with('error', (string) $codOverrideApprovalGate['message']);
+            }
+        }
+
+        $result = ['ok' => false, 'message' => 'Unable to update booking.'];
+
+        try {
+            DB::transaction(function () use (&$result, $shipment, $validated, $codOverrideContext, $codCapability, $codOverrideReason, $codOverrideApprovalGate, $request) {
+                $result = $this->applyBookingAction($shipment, $validated['action'], [
+                    'codCollectedAmount' => $validated['codCollectedAmount'] ?? null,
+                ]);
+
+                if (!(bool) ($result['ok'] ?? false)) {
+                    return;
+                }
+
+                if ((bool) ($codOverrideContext['isOverride'] ?? false) && $codCapability) {
+                    $this->recordCodOverrideAuditEvent(
+                        $codCapability,
+                        $shipment,
+                        (string) $validated['action'],
+                        $codOverrideContext,
+                        (int) optional($request->user())->id,
+                        $codOverrideReason,
+                        $codOverrideApprovalGate['approval'] ?? null
+                    );
+                }
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'Unable to complete COD override workflow. Please try again.');
+        }
 
         if (!$result['ok']) {
             return back()->with('error', $result['message']);
         }
 
         $this->markSensitiveActionApprovalExecuted($approvalGate['approval'] ?? null);
+        $this->markSensitiveActionApprovalExecuted($codOverrideApprovalGate['approval'] ?? null);
 
         return back()->with('success', 'Booking updated successfully.');
     }
@@ -509,9 +598,22 @@ class VendorCourierDashboardController extends Controller
     public function tracking(Request $request)
     {
         [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'reports', 'view');
-        $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+        $canCodOverride = $this->canActorUseCodOverrideActions($request, $vendorId);
+        $canManageBookingLifecycle = $this->isVendorOwnerActor($request)
+            || (
+                (bool) optional($request->user())->can('courier.bookings.manage_lifecycle')
+                && $this->canRolePerformAction($request, $policy, 'bookings', 'update')
+            );
 
-        $trackingPayload = $this->buildTrackingPayload($shipments, $filters, $approvedCategories);
+        $trackingPayload = $this->buildTrackingPayload(
+            $shipments,
+            $filters,
+            $approvedCategories,
+            $canCodOverride,
+            $canManageBookingLifecycle
+        );
 
         if ($request->query('export') === 'csv') {
             $this->assertAdvancedPermission($request, $policy, 'reports', 'export');
@@ -1897,9 +1999,23 @@ class VendorCourierDashboardController extends Controller
     public function shipments(Request $request)
     {
         [$filters, $shipments, $approvedCategories] = $this->buildFilteredShipments($request, 'shipments', 'view');
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+        $canCodOverride = $this->canActorUseCodOverrideActions($request, $vendorId);
+        $canManageBookingLifecycle = $this->isVendorOwnerActor($request)
+            || (
+                (bool) optional($request->user())->can('courier.bookings.manage_lifecycle')
+                && $this->canRolePerformAction($request, $policy, 'bookings', 'update')
+            );
 
         return Inertia::render('Web/home/vendors/courierService/Unit', [
-            'courierShipments' => $this->buildShipmentsPayload($shipments, $filters, $approvedCategories),
+            'courierShipments' => $this->buildShipmentsPayload(
+                $shipments,
+                $filters,
+                $approvedCategories,
+                $canCodOverride,
+                $canManageBookingLifecycle
+            ),
         ]);
     }
 
@@ -2093,15 +2209,24 @@ class VendorCourierDashboardController extends Controller
         return [$filters, $shipments, $approvedCategories];
     }
 
-    private function buildShipmentsPayload(Collection $shipments, array $filters, array $approvedCategories): array
+    private function buildShipmentsPayload(
+        Collection $shipments,
+        array $filters,
+        array $approvedCategories,
+        bool $canCodOverride = false,
+        bool $canManageBookingLifecycle = false
+    ): array
     {
-        $rows = $shipments->map(function (CourierShipment $shipment) {
+        $rows = $shipments->map(function (CourierShipment $shipment) use ($canCodOverride, $canManageBookingLifecycle) {
             $latestEvent = $this->getLatestTrackingEvent($shipment);
             $stage = $this->getShipmentStage($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
             $deliveredAt = $this->getDeliveredAt($shipment);
             $timelineState = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
             $assignmentHealth = $this->resolveAssignmentHealth($shipment);
+            $codAllowedActions = $assignmentHealth === 'assigned'
+                ? $this->getAllowedCodCollectionActionsForShipment($shipment, $canCodOverride, $canManageBookingLifecycle)
+                : [];
 
             return [
                 'id' => $shipment->id,
@@ -2109,6 +2234,7 @@ class VendorCourierDashboardController extends Controller
                 'trackingNumber' => $this->trackingNumber($shipment),
                 'category' => $this->resolveCategory($shipment),
                 'service' => $this->normalizeServiceLabel($shipment->service_level),
+                'currency' => (string) ($shipment->currency_code ?? 'LKR'),
                 'status' => $shipment->status,
                 'statusLabel' => $this->statusLabel($shipment->status),
                 'stage' => $stage,
@@ -2134,6 +2260,18 @@ class VendorCourierDashboardController extends Controller
                 'allowedActions' => $assignmentHealth === 'assigned'
                     ? $this->getAllowedActionsForStage($stage)
                     : [],
+                'canManageBookingLifecycle' => $canManageBookingLifecycle,
+                'canCodOverride' => $canCodOverride,
+                'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'codRequestedAmount' => $shipment->cod_requested_amount !== null
+                    ? (float) $shipment->cod_requested_amount
+                    : null,
+                'codCollectionStatus' => $shipment->cod_collection_status,
+                'codCollectedAmount' => $shipment->cod_collected_amount !== null
+                    ? (float) $shipment->cod_collected_amount
+                    : null,
+                'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
+                'codAllowedActions' => $codAllowedActions,
                 'details' => [
                     'deliveryNotes' => $shipment->delivery_notes,
                     'internalNotes' => $shipment->internal_notes,
@@ -2199,15 +2337,24 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildTrackingPayload(Collection $shipments, array $filters, array $approvedCategories): array
+    private function buildTrackingPayload(
+        Collection $shipments,
+        array $filters,
+        array $approvedCategories,
+        bool $canCodOverride = false,
+        bool $canManageBookingLifecycle = false
+    ): array
     {
-        $rows = $shipments->map(function (CourierShipment $shipment) {
+        $rows = $shipments->map(function (CourierShipment $shipment) use ($canCodOverride, $canManageBookingLifecycle) {
             $latestEvent = $this->getLatestTrackingEvent($shipment);
             $stage = $this->getShipmentStage($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
             $deliveredAt = $this->getDeliveredAt($shipment);
             $timelineState = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
             $assignmentHealth = $this->resolveAssignmentHealth($shipment);
+            $codAllowedActions = $assignmentHealth === 'assigned'
+                ? $this->getAllowedCodCollectionActionsForShipment($shipment, $canCodOverride, $canManageBookingLifecycle)
+                : [];
 
             $timeline = $shipment->trackingEvents
                 ->sortByDesc(fn ($event) => optional($event->recorded_at)?->timestamp ?? 0)
@@ -2229,6 +2376,7 @@ class VendorCourierDashboardController extends Controller
                 'service' => $this->normalizeServiceLabel($shipment->service_level),
                 'provider' => (string) optional($shipment->packages->first())->courier_provider_name,
                 'category' => $this->resolveCategory($shipment),
+                'currency' => (string) ($shipment->currency_code ?? 'LKR'),
                 'status' => $shipment->status,
                 'statusLabel' => $this->statusLabel($shipment->status),
                 'stage' => $stage,
@@ -2252,6 +2400,18 @@ class VendorCourierDashboardController extends Controller
                 'allowedActions' => $assignmentHealth === 'assigned'
                     ? $this->getAllowedActionsForStage($stage)
                     : [],
+                'canManageBookingLifecycle' => $canManageBookingLifecycle,
+                'canCodOverride' => $canCodOverride,
+                'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'codRequestedAmount' => $shipment->cod_requested_amount !== null
+                    ? (float) $shipment->cod_requested_amount
+                    : null,
+                'codCollectionStatus' => $shipment->cod_collection_status,
+                'codCollectedAmount' => $shipment->cod_collected_amount !== null
+                    ? (float) $shipment->cod_collected_amount
+                    : null,
+                'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
+                'codAllowedActions' => $codAllowedActions,
                 'timeline' => $timeline,
             ];
         })->values();
@@ -2372,9 +2532,9 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildBookingsPayload(Collection $shipments, array $filters, bool $canViewRates, array $approvedCategories): array
+    private function buildBookingsPayload(Collection $shipments, array $filters, bool $canViewRates, bool $canCodOverride, array $approvedCategories): array
     {
-        $rows = $shipments->map(function (CourierShipment $shipment) {
+        $rows = $shipments->map(function (CourierShipment $shipment) use ($canCodOverride) {
             $bookingStatus = $this->resolveBookingStatus($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
             $confirmHours = $this->resolveBookingConfirmHours($shipment);
@@ -2405,8 +2565,9 @@ class VendorCourierDashboardController extends Controller
                 'bookingStatusLabel' => $this->bookingStatusLabel($bookingStatus),
                 'pickupWindow' => $this->formatPickupWindow($shipment),
                 'eta' => optional($estimatedDelivery)->format('Y-m-d H:i'),
-                'allowedActions' => $this->getAllowedBookingActionsForShipment($shipment, $bookingStatus),
+                'allowedActions' => $this->getAllowedBookingActionsForShipment($shipment, $bookingStatus, $canCodOverride),
                 'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'canCodOverride' => $canCodOverride,
                 'codRequestedAmount' => $shipment->cod_requested_amount !== null
                     ? (float) $shipment->cod_requested_amount
                     : null,
@@ -2774,15 +2935,35 @@ class VendorCourierDashboardController extends Controller
         return self::BOOKING_ALLOWED_ACTIONS[$bookingStatus] ?? [];
     }
 
-    private function getAllowedBookingActionsForShipment(CourierShipment $shipment, string $bookingStatus): array
+    private function getAllowedBookingActionsForShipment(CourierShipment $shipment, string $bookingStatus, bool $canCodOverride = false): array
     {
         $actions = $this->getAllowedBookingActionsForStatus($bookingStatus);
 
         if ($this->canPerformCodCollectionAction($shipment)) {
-            $actions = array_merge($actions, self::COD_COLLECTION_ACTIONS);
+            $actions[] = 'cod_collected';
+
+            if ($canCodOverride) {
+                $actions[] = 'cod_failed';
+                $actions[] = 'cod_refused';
+            }
         }
 
         return array_values(array_unique($actions));
+    }
+
+    private function getAllowedCodCollectionActionsForShipment(
+        CourierShipment $shipment,
+        bool $canCodOverride = false,
+        bool $canManageBookingLifecycle = false
+    ): array {
+        if (!$canManageBookingLifecycle) {
+            return [];
+        }
+
+        return collect($this->getAllowedBookingActionsForShipment($shipment, $this->resolveBookingStatus($shipment), $canCodOverride))
+            ->filter(fn ($action) => in_array((string) $action, self::COD_COLLECTION_ACTIONS, true))
+            ->values()
+            ->all();
     }
 
     private function canPerformBookingAction(string $bookingStatus, string $action): bool
@@ -2801,6 +2982,139 @@ class VendorCourierDashboardController extends Controller
         }
 
         return (string) $shipment->status === CourierShipment::STATUS_DELIVERED;
+    }
+
+    private function canActorUseCodOverrideActions(Request $request, int $vendorId): bool
+    {
+        if (!(bool) optional($request->user())->can('courier.services.cod.override')) {
+            return false;
+        }
+
+        $record = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->first();
+        $settings = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array($record?->settings) ? $record->settings : []
+        );
+        $services = is_array($settings['services'] ?? null)
+            ? $this->normalizeCourierServiceSettings($settings['services'])
+            : $this->defaultCourierServiceSettings();
+
+        return (bool) ($services['cod']['allowTeamOverride'] ?? false);
+    }
+
+    private function resolveActiveCodCapabilityForVendor(int $vendorId, ?Request $request = null): ?CourierVendorCodCapability
+    {
+        $capability = CourierVendorCodCapability::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where('category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+            ->where('status', CourierVendorCodCapability::STATUS_APPROVED)
+            ->where(function (Builder $query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->orderByDesc('approved_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$capability) {
+            return null;
+        }
+
+        if ($request) {
+            $workspaceId = (int) $request->attributes->get('service_workspace_id');
+            if (
+                $workspaceId > 0
+                && $capability->service_workspace_id !== null
+                && (int) $capability->service_workspace_id !== $workspaceId
+            ) {
+                return null;
+            }
+        }
+
+        return $capability;
+    }
+
+    private function resolveCodOverrideContext(CourierShipment $shipment, string $action, array $payload): array
+    {
+        $requestedAmount = $shipment->cod_requested_amount !== null
+            ? max(0, (float) $shipment->cod_requested_amount)
+            : 0.0;
+        $fromCollectionStatus = $shipment->cod_collection_status !== null
+            ? (string) $shipment->cod_collection_status
+            : null;
+
+        $collectedAmount = $requestedAmount;
+        $toCollectionStatus = $fromCollectionStatus;
+        $isOverride = false;
+
+        if ($action === 'cod_collected') {
+            $inputAmount = $payload['codCollectedAmount'] ?? null;
+            if ($inputAmount !== null && $inputAmount !== '') {
+                $collectedAmount = max(0, (float) $inputAmount);
+            }
+
+            $isPartial = $requestedAmount > 0 && ($collectedAmount + 0.005 < $requestedAmount);
+            $toCollectionStatus = $isPartial ? 'partially_collected' : 'collected';
+            $isOverride = $isPartial;
+        } elseif ($action === 'cod_failed') {
+            $collectedAmount = 0.0;
+            $toCollectionStatus = 'failed';
+            $isOverride = $requestedAmount > 0;
+        } elseif ($action === 'cod_refused') {
+            $collectedAmount = 0.0;
+            $toCollectionStatus = 'refused';
+            $isOverride = $requestedAmount > 0;
+        }
+
+        $overrideAmount = max(0, round($requestedAmount - $collectedAmount, 2));
+
+        return [
+            'isOverride' => $isOverride,
+            'requestedAmount' => $requestedAmount,
+            'collectedAmount' => $collectedAmount,
+            'overrideAmount' => $overrideAmount,
+            'fromCollectionStatus' => $fromCollectionStatus,
+            'toCollectionStatus' => $toCollectionStatus,
+        ];
+    }
+
+    private function recordCodOverrideAuditEvent(
+        CourierVendorCodCapability $capability,
+        CourierShipment $shipment,
+        string $action,
+        array $context,
+        ?int $actorUserId = null,
+        ?string $note = null,
+        ?CourierSensitiveActionApproval $approval = null
+    ): void {
+        $eventType = match ($action) {
+            'cod_collected' => 'cod_collection_override_partial',
+            'cod_failed' => 'cod_collection_override_failed',
+            'cod_refused' => 'cod_collection_override_refused',
+            default => 'cod_collection_override',
+        };
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            $eventType,
+            $context['fromCollectionStatus'] ?? null,
+            $context['toCollectionStatus'] ?? null,
+            $actorUserId && $actorUserId > 0 ? $actorUserId : null,
+            $note,
+            [
+                'source' => 'vendor_booking_lifecycle',
+                'shipmentId' => (int) $shipment->id,
+                'shipmentReference' => (string) $shipment->reference,
+                'bookingAction' => $action,
+                'requestedAmount' => (float) ($context['requestedAmount'] ?? 0),
+                'collectedAmount' => (float) ($context['collectedAmount'] ?? 0),
+                'overrideAmount' => (float) ($context['overrideAmount'] ?? 0),
+                'codCollectionStatus' => (string) ($shipment->cod_collection_status ?? ''),
+                'approvalRequestId' => $approval?->id ? (int) $approval->id : null,
+                'approvalThresholdLevel' => (string) ($approval?->threshold_level ?? ''),
+                'approvalRequiredApprovals' => $approval?->required_approvals !== null ? (int) $approval->required_approvals : null,
+            ]
+        );
     }
 
     private function applyBookingAction(CourierShipment $shipment, string $action, array $payload): array
@@ -3973,7 +4287,7 @@ class VendorCourierDashboardController extends Controller
         if ($canRequestByPermission && $status === CourierVendorCodCapability::STATUS_APPROVED && $isExpired) {
             $canRequest = true;
         }
-        $canOverride = (bool) optional($request->user())->can('courier.services.cod.override');
+        $canOverride = $this->canActorUseCodOverrideActions($request, $vendorId);
 
         return [
             'status' => $status,
@@ -6595,6 +6909,7 @@ class VendorCourierDashboardController extends Controller
         $actionKey = match ($action) {
             'cancel_booking', 'cancel_shipment' => CourierSensitiveActionApprovalService::ACTION_HIGH_VALUE_CANCELLATION,
             '__refund__' => CourierSensitiveActionApprovalService::ACTION_REFUND,
+            '__cod_override__' => CourierSensitiveActionApprovalService::ACTION_COD_OVERRIDE,
             '__ownership_transfer__' => CourierSensitiveActionApprovalService::ACTION_OWNERSHIP_TRANSFER,
             '__client_export__' => CourierSensitiveActionApprovalService::ACTION_CLIENT_LIST_EXPORT,
             default => null,

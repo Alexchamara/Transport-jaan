@@ -147,6 +147,28 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 20.0);
     }
 
+    public function test_cod_fee_respects_minimum_floor(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'codFee' => [
+                'enabled' => true,
+                'flatFee' => 0,
+                'percentOfDeclaredValue' => 1,
+                'minFee' => 8,
+                'maxFee' => null,
+            ],
+        ]);
+
+        $result = $this->submitShipment([
+            'shipment' => [
+                'estimatedValue' => 100,
+            ],
+        ]);
+
+        $this->assertEqualsWithDelta(58.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'cod_fee', 8.0);
+    }
+
     public function test_cod_fee_ignores_client_cod_amount_override_and_uses_declared_value_when_cod_booking_is_enabled(): void
     {
         $vendor = $this->createDomesticVendorWithPolicyModules([
@@ -644,6 +666,40 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_negotiated_rate_discount', -10.0);
     }
 
+    public function test_customer_contract_with_same_priority_prefers_latest_effective_from(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'customerContractPricing' => [
+                'enabled' => true,
+                'contracts' => [
+                    [
+                        'enabled' => true,
+                        'priority' => 50,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subDays(10)->toDateString(),
+                        'effectiveTo' => now()->addDay()->toDateString(),
+                        'negotiatedRateType' => 'percent_off',
+                        'negotiatedRateValue' => 10,
+                    ],
+                    [
+                        'enabled' => true,
+                        'priority' => 50,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subDay()->toDateString(),
+                        'effectiveTo' => now()->addDays(2)->toDateString(),
+                        'negotiatedRateType' => 'percent_off',
+                        'negotiatedRateValue' => 20,
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(40.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_negotiated_rate_discount', -10.0);
+    }
+
     public function test_customer_contract_volume_tier_is_applied_when_renewed(): void
     {
         $this->createDomesticVendorWithPolicyModules([
@@ -675,6 +731,45 @@ class CourierAdvancedPricingPoliciesTest extends TestCase
 
         $this->assertEqualsWithDelta(45.0, $result['estimatedCost'], 0.01);
         $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_volume_tier_discount', -5.0);
+    }
+
+    public function test_customer_contract_volume_tier_prefers_most_specific_max_threshold_on_tie(): void
+    {
+        $this->createDomesticVendorWithPolicyModules([
+            'customerContractPricing' => [
+                'enabled' => true,
+                'contracts' => [
+                    [
+                        'enabled' => true,
+                        'allAccounts' => true,
+                        'effectiveFrom' => now()->subDay()->toDateString(),
+                        'effectiveTo' => now()->addDay()->toDateString(),
+                        'volumeMetric' => 'current_shipment_weight_kg',
+                        'volumeTiers' => [
+                            [
+                                'enabled' => true,
+                                'minVolume' => 5,
+                                'maxVolume' => 20,
+                                'adjustmentType' => 'flat_off',
+                                'adjustmentValue' => 5,
+                            ],
+                            [
+                                'enabled' => true,
+                                'minVolume' => 5,
+                                'maxVolume' => 10,
+                                'adjustmentType' => 'flat_off',
+                                'adjustmentValue' => 8,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $result = $this->submitShipment();
+
+        $this->assertEqualsWithDelta(42.0, $result['estimatedCost'], 0.01);
+        $this->assertPolicyAdjustmentExists($result['pricingExplanation'], 'contract_volume_tier_discount', -8.0);
     }
 
     public function test_customer_contract_outside_effective_range_without_renewal_is_not_applied(): void

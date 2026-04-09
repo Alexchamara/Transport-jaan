@@ -3,9 +3,12 @@
 namespace Tests\Feature\Courier;
 
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\VendorCourierSetting;
 use App\Models\User;
+use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -242,6 +245,180 @@ class CourierSubmissionTest extends TestCase
                     && ($context['reason'] ?? null) === 'ownership_failure'
                     && (int) ($context['actor_user_id'] ?? 0) === (int) $otherUser->id
                     && (int) ($context['resource_id'] ?? 0) === (int) $shipment->id;
+            })
+            ->once();
+    }
+
+    public function test_create_route_emits_structured_create_view_log(): void
+    {
+        Log::spy();
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('couriers.create'))
+            ->assertOk();
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(function ($message, $context) use ($user) {
+                return $message === 'COURIER CLIENT CREATE VIEW OPENED'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $user->id
+                    && (string) ($context['route_name'] ?? '') === 'couriers.create'
+                    && array_key_exists('has_recent_reference', $context)
+                    && array_key_exists('has_recent_bill_id', $context);
+            })
+            ->once();
+    }
+
+    public function test_store_emits_structured_attempt_and_success_logs(): void
+    {
+        Log::spy();
+
+        $user = User::factory()->create();
+        $payload = $this->validSubmissionPayload();
+        $csrfToken = 'test-token-store-observability';
+
+        $this->actingAs($user)
+            ->withSession(['_token' => $csrfToken, 'courier_preview' => $payload])
+            ->post(route('couriers.store'), $payload + ['_token' => $csrfToken])
+            ->assertRedirect(route('couriers.create'));
+
+        $shipment = CourierShipment::query()
+            ->where('requested_by_user_id', $user->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($shipment);
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(function ($message, $context) use ($user) {
+                return $message === 'COURIER CLIENT STORE ATTEMPT'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $user->id
+                    && (int) ($context['package_count'] ?? -1) === 1
+                    && (int) ($context['selected_quote_count'] ?? -1) === 1
+                    && (string) ($context['category'] ?? '') === 'domestic';
+            })
+            ->once();
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(function ($message, $context) use ($shipment, $user) {
+                return $message === 'COURIER CLIENT STORE SUCCESS'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $user->id
+                    && (int) ($context['shipment_id'] ?? 0) === (int) $shipment->id
+                    && (string) ($context['shipment_reference'] ?? '') === (string) $shipment->reference;
+            })
+            ->once();
+    }
+
+    public function test_detail_page_emits_structured_detail_read_log_for_owner(): void
+    {
+        $user = User::factory()->create();
+        $shipment = $this->createShipmentForUser($user);
+
+        Log::spy();
+
+        $this->actingAs($user)
+            ->get(route('courier.shipment.show', ['id' => $shipment->id]))
+            ->assertOk();
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(function ($message, $context) use ($shipment, $user) {
+                return $message === 'COURIER CLIENT DETAIL READ'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $user->id
+                    && (int) ($context['shipment_id'] ?? 0) === (int) $shipment->id
+                    && (string) ($context['mode'] ?? '') === 'detail_page';
+            })
+            ->once();
+    }
+
+    public function test_guest_bill_download_without_session_access_is_blocked_and_logged(): void
+    {
+        Cache::flush();
+
+        $owner = User::factory()->create();
+        $shipment = $this->createShipmentForUser($owner);
+
+        Auth::logout();
+        $this->app['auth']->forgetGuards();
+
+        Log::spy();
+
+        $this->get(route('couriers.bill', $shipment))
+            ->assertRedirect(route('couriers.create'))
+            ->assertSessionHas('error', 'Unable to download that bill from this session.');
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(function ($message, $context) use ($shipment) {
+                return $message === 'COURIER CLIENT AUTHORIZATION DENIED'
+                    && (string) ($context['reason'] ?? '') === 'guest_bill_download_without_session_access'
+                    && (int) ($context['requested_shipment_id'] ?? 0) === (int) $shipment->id
+                    && ($context['actor_user_id'] ?? null) === null;
+            })
+            ->once();
+    }
+
+    public function test_summary_logs_pricing_exception_when_lane_matrix_has_no_matching_rule(): void
+    {
+        Log::spy();
+
+        $user = User::factory()->create();
+        $payload = $this->validSubmissionPayload();
+        $vendor = User::factory()->create();
+        $vendorUserId = (int) $vendor->id;
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $vendorUserId],
+            [
+                'settings' => [
+                    'pricing' => [
+                        'laneMatrix' => [
+                            'enabled' => [
+                                'domestic' => true,
+                                'international' => false,
+                            ],
+                            'domestic' => [],
+                            'international' => [],
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        $assignmentService = new class($vendorUserId) extends CourierVendorAssignmentService {
+            public function __construct(private int $vendorUserId)
+            {
+            }
+
+            public function determineAssignment(CourierShipment $shipment): array
+            {
+                return [
+                    'assignment_category' => 'domestic',
+                    'assignment_status' => 'assigned',
+                    'assigned_vendor_user_id' => $this->vendorUserId,
+                    'assigned_vendor_registration_id' => null,
+                    'assigned_at' => now(),
+                ];
+            }
+        };
+        $this->app->instance(CourierVendorAssignmentService::class, $assignmentService);
+
+        $this->actingAs($user)
+            ->withSession([
+                'courier_preview' => $payload,
+            ])
+            ->get(route('couriers.summary'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Web/courier/Summary')
+                ->where('pricingPreview.mode', 'lane_matrix_unmatched')
+            );
+
+        Log::shouldHaveReceived('error')
+            ->withArgs(function ($message, $context) use ($user) {
+                return $message === 'COURIER CLIENT PRICING EXCEPTION'
+                    && (string) ($context['phase'] ?? '') === 'summary_preview'
+                    && (int) ($context['actor_user_id'] ?? 0) === (int) $user->id
+                    && (string) ($context['category'] ?? '') === 'domestic';
             })
             ->once();
     }
