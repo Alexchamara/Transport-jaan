@@ -62,7 +62,54 @@ const SHIPMENT_TYPE_OPTIONS = [
     { value: "other", label: "Other" },
 ];
 
-const DIMENSION_ASSIST_PRESETS = [
+const DOMESTIC_DIMENSION_ASSIST_PRESETS = [
+    {
+        id: "a4-envelope",
+        label: "A4 Envelope",
+        sizeLabel: "32 x 24 x 1 cm",
+        lengthCm: 32,
+        widthCm: 24,
+        heightCm: 1,
+        prefillHeight: true,
+        imageSrc: dimensionGuideIcon,
+        imageAlt: "A4 envelope size example",
+    },
+    {
+        id: "books",
+        label: "One or two books",
+        sizeLabel: "23 x 14 x 4 cm",
+        lengthCm: 23,
+        widthCm: 14,
+        heightCm: 4,
+        prefillHeight: true,
+        imageSrc: presetPalletOneImage,
+        imageAlt: "Book parcel size example",
+    },
+    {
+        id: "shoe-box",
+        label: "Shoe box",
+        sizeLabel: "35 x 20 x 15 cm",
+        lengthCm: 35,
+        widthCm: 20,
+        heightCm: 15,
+        prefillHeight: true,
+        imageSrc: presetPalletTwoImage,
+        imageAlt: "Shoe box size example",
+    },
+    {
+        id: "moving-box",
+        label: "Moving box",
+        sizeLabel: "75 x 35 x 35 cm",
+        lengthCm: 75,
+        widthCm: 35,
+        heightCm: 35,
+        prefillHeight: true,
+        imageSrc: presetMovingBoxImage,
+        imageAlt: "Moving box size example",
+    },
+];
+
+const INTERNATIONAL_DIMENSION_ASSIST_PRESETS = [
     {
         id: "pallet-1",
         label: "Pallet 1",
@@ -248,6 +295,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     cod: false,
                     card: false,
                 },
+                containsDangerousGoods: false,
+                containsExclusivelyDocuments: false,
                 shipmentType: "",
                 shipmentTypeDescription: "",
             },
@@ -1286,6 +1335,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
     };
 
+    const updateShipmentPreference = (key, value) => {
+        setData("shipment", {
+            ...data.shipment,
+            [key]: value,
+        });
+    };
+
     const updatePaymentOptions = (optionKey, checked) => {
         const currentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
         let nextOptions = { ...currentOptions };
@@ -1305,6 +1361,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             ...data.shipment,
             paymentOptions: nextOptions,
         });
+    };
+
+    const updatePackageQuantity = (index, delta) => {
+        const currentQuantity = Math.max(1, Number(data.packages[index]?.quantity) || 1);
+        const nextQuantity = Math.max(1, currentQuantity + delta);
+        updatePackage(index, "quantity", nextQuantity);
     };
 
     const toDisplayValue = (rawValue, factor = 1, decimalPlaces = 2) => {
@@ -2302,13 +2364,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         {packageSectionDescription}
                                     </p>
                                 </div>
-                                {/* <button
+                                <button
                                     type="button"
                                     onClick={addPackage}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
+                                    className="inline-flex items-center gap-2 rounded-lg border border-[#D6DEEB] bg-white px-4 py-2 text-sm font-semibold text-[#0B1739] transition hover:border-[#0955AC] hover:text-[#0955AC]"
                                 >
-                                    + Add package
-                                </button> */}
+                                    + Add item
+                                </button>
                             </div>
 
                             <div className="space-y-5">
@@ -2322,6 +2384,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     const itemLength = Number(item.lengthCm) || 0;
                                     const itemWidth = Number(item.widthCm) || 0;
                                     const itemHeight = Number(item.heightCm) || 0;
+                                    const itemQuantity = Math.max(1, Number(item.quantity) || 1);
+                                    const dimensionAssistPresets = selectedRouteType === "international"
+                                        ? INTERNATIONAL_DIMENSION_ASSIST_PRESETS
+                                        : DOMESTIC_DIMENSION_ASSIST_PRESETS;
                                     const isPackageDetailsVisible = shouldShowShipmentDetailsSection;
 
                                     return (
@@ -2843,6 +2909,34 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
                                                             <div className="w-full space-y-3">
                                                                 <div>
+                                                                    <label className="mb-2 block text-sm font-medium text-[#0B1739]">Item quantity</label>
+                                                                    <div className="mt-3 flex h-[52px] items-center justify-between rounded-lg border border-[#D6DEEB] bg-white px-3">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updatePackageQuantity(index, -1)}
+                                                                            className="flex h-8 w-8 items-center justify-center rounded-md border border-[#D6DEEB] text-lg font-semibold text-[#0B1739] hover:border-[#0955AC]"
+                                                                            aria-label="Decrease item quantity"
+                                                                        >
+                                                                            -
+                                                                        </button>
+                                                                        <span className="text-base font-semibold text-[#0B1739]">{itemQuantity}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updatePackageQuantity(index, 1)}
+                                                                            className="flex h-8 w-8 items-center justify-center rounded-md border border-[#D6DEEB] text-lg font-semibold text-[#0B1739] hover:border-[#0955AC]"
+                                                                            aria-label="Increase item quantity"
+                                                                        >
+                                                                            +
+                                                                        </button>
+                                                                    </div>
+                                                                    {errors[`packages.${index}.quantity`] && (
+                                                                        <p className="mt-2 text-sm text-red-500">
+                                                                            {errors[`packages.${index}.quantity`]}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* <div>
                                                                     <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
                                                                     <select
                                                                         value={data.shipment.shipmentType || ""}
@@ -2856,54 +2950,50 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                             </option>
                                                                         ))}
                                                                     </select>
-                                                                </div>
+                                                                </div> */}
                                                             </div>
                                                         </div>
 
                                                         <div className="mt-4 border-t border-[#E4EAF5] pt-4">
-                                                            {selectedRouteType === "international" && (
-                                                                <>
-                                                                    <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
-                                                                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                                                        {DIMENSION_ASSIST_PRESETS.map((preset) => {
-                                                                            const hasMatchingBase = itemLength === preset.lengthCm
-                                                                                && itemWidth === preset.widthCm;
-                                                                            const isActive = preset.prefillHeight
-                                                                                ? (hasMatchingBase && itemHeight === preset.heightCm)
-                                                                                : hasMatchingBase;
+                                                            <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                                                            <div className={`mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "international" ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}>
+                                                                {dimensionAssistPresets.map((preset) => {
+                                                                    const hasMatchingBase = itemLength === preset.lengthCm
+                                                                        && itemWidth === preset.widthCm;
+                                                                    const isActive = preset.prefillHeight
+                                                                        ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                                                        : hasMatchingBase;
 
-                                                                            return (
-                                                                                <button
-                                                                                    key={`preset-${index}-${preset.id}`}
-                                                                                    type="button"
-                                                                                    onClick={() => applyDimensionPreset(index, preset)}
-                                                                                    className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
-                                                                                        ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
-                                                                                        : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
-                                                                                        }`}
-                                                                                >
-                                                                                    {isActive && (
-                                                                                        <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
-                                                                                            ✓
-                                                                                        </span>
-                                                                                    )}
-                                                                                    <div className="flex items-center gap-3">
-                                                                                        <img
-                                                                                            src={preset.imageSrc}
-                                                                                            alt={preset.imageAlt}
-                                                                                            className="h-10 w-20 object-contain"
-                                                                                        />
-                                                                                        <div>
-                                                                                            <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
-                                                                                            <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </button>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </>
-                                                            )}
+                                                                    return (
+                                                                        <button
+                                                                            key={`preset-${index}-${preset.id}`}
+                                                                            type="button"
+                                                                            onClick={() => applyDimensionPreset(index, preset)}
+                                                                            className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                                                                ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                                                                : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                                                                }`}
+                                                                        >
+                                                                            {isActive && (
+                                                                                <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                                                                    ✓
+                                                                                </span>
+                                                                            )}
+                                                                            <div className="flex items-center gap-3">
+                                                                                <img
+                                                                                    src={preset.imageSrc}
+                                                                                    alt={preset.imageAlt}
+                                                                                    className="h-10 w-20 object-contain"
+                                                                                />
+                                                                                <div>
+                                                                                    <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                                                                    <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
 
                                                             <div className="mt-5">
                                                                 <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
@@ -2979,6 +3069,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                     onChange={(event) => updatePaymentOptions("card", event.target.checked)}
                                                                 />
                                                                 Card
+                                                            </label>
+                                                        </div>
+
+                                                        <div className="mt-5 flex flex-col gap-3 border-t border-[#E4EAF5] pt-5 text-sm text-[#0B1739]">
+                                                            <label className="inline-flex items-center gap-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="h-5 w-5 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                                    checked={Boolean(data.shipment?.containsDangerousGoods)}
+                                                                    onChange={(event) => updateShipmentPreference("containsDangerousGoods", event.target.checked)}
+                                                                />
+                                                                Shipment contains dangerous goods
+                                                            </label>
+
+                                                            <label className="inline-flex items-center gap-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="h-5 w-5 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                                    checked={Boolean(data.shipment?.containsExclusivelyDocuments)}
+                                                                    onChange={(event) => updateShipmentPreference("containsExclusivelyDocuments", event.target.checked)}
+                                                                />
+                                                                Shipment contains exclusively documents
                                                             </label>
                                                         </div>
 
