@@ -6218,7 +6218,7 @@ const Settings = () => {
                                             </div>
                                         </div>
 
-                                        {activePricingCategory === "international" ? (
+                                        {activePricingCategory === "international" && (
                                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
                                                 <p className="text-[12px] font-[700] text-[#111827]">International Dimensions Engine</p>
                                                 <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
@@ -6377,13 +6377,6 @@ const Settings = () => {
                                                     </Field>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 md:col-span-2">
-                                                <p className="text-[12px] font-[700] text-[#0F172A]">International Dimensions Engine</p>
-                                                <p className="text-[11px] text-[#64748B] mt-1">
-                                                    This module is available only in the International pricing category. Switch to the International tab to configure it.
-                                                </p>
-                                            </div>
                                         )}
 
                                         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
@@ -6477,7 +6470,7 @@ const Settings = () => {
                                             </Field>
                                         </div>
 
-                                        {activePricingCategory === "domestic" ? (
+                                        {activePricingCategory === "domestic" && (
                                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
                                                 <p className="text-[12px] font-[700] text-[#111827]">COD and Minimum Charge Guardrail</p>
                                                 <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
@@ -6505,13 +6498,6 @@ const Settings = () => {
                                                 <Field label="Minimum Total">
                                                     <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
                                                 </Field>
-                                            </div>
-                                        ) : (
-                                            <div className="rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                                                <p className="text-[12px] font-[700] text-[#0F172A]">COD Fee Guardrail</p>
-                                                <p className="text-[11px] text-[#64748B] mt-1">
-                                                    COD capability and COD fee policies are available only in the Domestic pricing category.
-                                                </p>
                                             </div>
                                         )}
 
