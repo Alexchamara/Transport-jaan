@@ -555,6 +555,8 @@ class VendorCourierDashboardController extends Controller
             ? (string) $pricingTopic
             : 'currency-formula';
 
+        $selectedCodCategory = CourierVendorCodCapability::CATEGORY_DOMESTIC;
+
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
         }
@@ -627,9 +629,20 @@ class VendorCourierDashboardController extends Controller
             })
             ->values();
 
+        $courierCodCapability = $this->buildCodCapabilityPayload(
+            $request,
+            $vendorId,
+            $workspaceId,
+            CourierVendorCodCapability::CATEGORY_DOMESTIC
+        );
+
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
-            'courierCodCapability' => $this->buildCodCapabilityPayload($request, $vendorId, $workspaceId),
+            'courierCodCapability' => $courierCodCapability,
+            'courierCodCapabilities' => [
+                CourierVendorCodCapability::CATEGORY_DOMESTIC => $courierCodCapability,
+            ],
+            'courierCodCapabilityCategory' => $selectedCodCategory,
             'approvedCourierPricingCategories' => $approvedPricingCategories,
             'initialSettingsModule' => $selectedModule,
             'initialTeamAccessTopic' => $selectedTeamTopic,
@@ -985,8 +998,6 @@ class VendorCourierDashboardController extends Controller
             'note' => ['nullable', 'string', 'max:500'],
             'category' => ['nullable', 'string', Rule::in([
                 CourierVendorCodCapability::CATEGORY_DOMESTIC,
-                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
-                'logistic',
             ])],
         ]);
 
@@ -3769,6 +3780,11 @@ class VendorCourierDashboardController extends Controller
             unset($cod['allowCodForLogistic']);
         }
 
+        $cod['acceptCodAtCheckout'] = (bool) ($cod['acceptCodAtCheckout'] ?? false);
+        $cod['allowCodForDomestic'] = (bool) ($cod['allowCodForDomestic'] ?? false);
+        $cod['allowCodForInternational'] = false;
+        $cod['allowTeamOverride'] = (bool) ($cod['allowTeamOverride'] ?? false);
+
         $normalized['cod'] = $cod;
 
         return $normalized;
@@ -3776,10 +3792,7 @@ class VendorCourierDashboardController extends Controller
 
     private function buildCodCapabilityPayload(Request $request, int $vendorId, int $workspaceId, ?string $category = null): array
     {
-        $resolvedCategory = CourierVendorCodCapability::normalizeCategory(
-            $category
-                ?? (string) $request->query('codCategory', CourierVendorCodCapability::CATEGORY_DOMESTIC)
-        );
+        $resolvedCategory = CourierVendorCodCapability::CATEGORY_DOMESTIC;
 
         $capability = CourierVendorCodCapability::query()
             ->where('vendor_user_id', $vendorId)

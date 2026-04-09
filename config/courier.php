@@ -1,6 +1,15 @@
 <?php
 
 return [
+    'cod_compliance_export' => [
+        'archive' => [
+            'enabled' => (bool) env('COURIER_COD_COMPLIANCE_ARCHIVE_ENABLED', true),
+            'disk' => (string) env('COURIER_COD_COMPLIANCE_ARCHIVE_DISK', env('FILESYSTEM_DISK', 'local')),
+            'path' => (string) env('COURIER_COD_COMPLIANCE_ARCHIVE_PATH', 'courier/cod-compliance'),
+            'retention_days' => (int) env('COURIER_COD_COMPLIANCE_ARCHIVE_RETENTION_DAYS', 90),
+        ],
+    ],
+
     'cod_integrity' => [
         'monitor' => [
             'scan_chunk_size' => (int) env('COURIER_COD_INTEGRITY_MONITOR_CHUNK_SIZE', 100),

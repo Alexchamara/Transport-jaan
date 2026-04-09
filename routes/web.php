@@ -487,6 +487,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])->name('cod-settlement.capabilities.reject');
         Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])->name('cod-settlement.capabilities.incidents.open');
         Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])->name('cod-settlement.capabilities.audit-history');
+        Route::get('/cod-settlement/compliance-export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportCompliancePackage'])->name('cod-settlement.compliance-export');
         Route::post('/cod-settlement/incidents/{incident}/assign', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'assignIntegrityIncident'])->name('cod-settlement.incidents.assign');
         Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])->name('cod-settlement.incidents.resolve');
         

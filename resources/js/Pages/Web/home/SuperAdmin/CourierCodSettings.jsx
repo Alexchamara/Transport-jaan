@@ -11,9 +11,8 @@ const STATUS_OPTIONS = [
 ];
 
 const CATEGORY_OPTIONS = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'domestic', label: 'Domestic' },
-    { value: 'international', label: 'International' },
+    { value: 'all', label: 'All Requests' },
+    { value: 'domestic', label: 'Domestic Scope' },
 ];
 
 const statusClassMap = {
@@ -80,6 +79,8 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
+    const [fromDate, setFromDate] = useState(filters?.from || '');
+    const [toDate, setToDate] = useState(filters?.to || '');
     const [actionNotes, setActionNotes] = useState({});
     const [actionExpiryAt, setActionExpiryAt] = useState({});
     const [incidentDrafts, setIncidentDrafts] = useState({});
@@ -117,23 +118,57 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         setSearch(filters?.search || '');
         setStatus(filters?.status || 'all');
         setCategory(filters?.category || 'all');
-    }, [filters?.search, filters?.status, filters?.category]);
+        setFromDate(filters?.from || '');
+        setToDate(filters?.to || '');
+    }, [filters?.search, filters?.status, filters?.category, filters?.from, filters?.to]);
 
     const applyFilters = (nextPage = 1) => {
+        const params = {
+            status,
+            category,
+            search,
+            page: nextPage,
+        };
+
+        if (fromDate !== '') {
+            params.from = fromDate;
+        }
+
+        if (toDate !== '') {
+            params.to = toDate;
+        }
+
         router.get(
             route('superadmin.settings.cod-settlement.index'),
-            {
-                status,
-                category,
-                search,
-                page: nextPage,
-            },
+            params,
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
             },
         );
+    };
+
+    const handleComplianceExport = () => {
+        const params = {
+            status,
+            category,
+        };
+
+        const trimmedSearch = search.trim();
+        if (trimmedSearch !== '') {
+            params.search = trimmedSearch;
+        }
+
+        if (fromDate !== '') {
+            params.from = fromDate;
+        }
+
+        if (toDate !== '') {
+            params.to = toDate;
+        }
+
+        window.location.href = route('superadmin.settings.cod-settlement.compliance-export', params);
     };
 
     const handleSettingsSubmit = (event) => {
@@ -457,7 +492,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                     <div className="max-w-7xl mx-auto">
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-white mb-2">Courier COD Settlement</h1>
-                            <p className="text-gray-400">Configure COD settlement policy and review vendor COD capability requests.</p>
+                            <p className="text-gray-400">Configure COD settlement policy and review vendor domestic COD capability requests.</p>
                         </div>
 
                         {flash?.success && (
@@ -576,7 +611,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
                                 <div>
                                     <h2 className="text-xl font-semibold text-white">Vendor COD Capability Requests</h2>
-                                    <p className="text-sm text-gray-400">Approve or reject vendor requests to enable operational COD collection.</p>
+                                    <p className="text-sm text-gray-400">Approve or reject vendor requests to enable domestic COD collection.</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <input
@@ -604,12 +639,31 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                             <option key={option.value} value={option.value}>{option.label}</option>
                                         ))}
                                     </select>
+                                    <input
+                                        type="date"
+                                        value={fromDate}
+                                        onChange={(event) => setFromDate(event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-white"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={toDate}
+                                        onChange={(event) => setToDate(event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#081028] px-3 py-2 text-white"
+                                    />
                                     <button
                                         type="button"
                                         onClick={() => applyFilters(1)}
                                         className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white"
                                     >
                                         Apply
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleComplianceExport}
+                                        className="rounded-md border border-sky-500 bg-sky-900/20 px-4 py-2 text-sm font-semibold text-sky-300 hover:bg-sky-900/40"
+                                    >
+                                        Export Compliance Package
                                     </button>
                                 </div>
                             </div>

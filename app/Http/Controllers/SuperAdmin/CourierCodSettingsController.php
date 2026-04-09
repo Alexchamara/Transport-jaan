@@ -7,6 +7,7 @@ use App\Models\Courier\CourierCodSettlementSetting;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\CourierVendorCodIntegrityIncident;
+use App\Services\Courier\CourierCodComplianceExportService;
 use App\Services\Courier\CourierCodIntegrityAlertService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,14 +24,17 @@ class CourierCodSettingsController extends Controller
             'status' => ['nullable', 'string', 'in:all,pending,approved,rejected,not_requested'],
             'category' => ['nullable', 'string', 'in:all,domestic,international,logistic'],
             'search' => ['nullable', 'string', 'max:120'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
         $statusFilter = (string) ($validated['status'] ?? 'all');
-        $categoryFilterRaw = (string) ($validated['category'] ?? 'all');
-        $categoryFilter = $categoryFilterRaw === 'all'
-            ? 'all'
-            : CourierVendorCodCapability::normalizeCategory($categoryFilterRaw);
+        $categoryFilter = (string) ($validated['category'] ?? 'all') === 'domestic'
+            ? 'domestic'
+            : 'all';
         $search = trim((string) ($validated['search'] ?? ''));
+        $from = isset($validated['from']) ? Carbon::parse((string) $validated['from'])->startOfDay() : null;
+        $to = isset($validated['to']) ? Carbon::parse((string) $validated['to'])->endOfDay() : null;
 
         $settings = CourierCodSettlementSetting::query()->firstOrCreate(
             ['id' => 1],
@@ -48,7 +52,11 @@ class CourierCodSettingsController extends Controller
         }
 
         if ($categoryFilter !== 'all') {
-            $query->where('category', $categoryFilter);
+            $query->whereIn('category', [
+                CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+                'logistic',
+            ]);
         }
 
         if ($search !== '') {
@@ -57,6 +65,14 @@ class CourierCodSettingsController extends Controller
                     ->where('name', 'like', '%' . $search . '%')
                     ->orWhere('email', 'like', '%' . $search . '%');
             });
+        }
+
+        if ($from !== null) {
+            $query->where('requested_at', '>=', $from);
+        }
+
+        if ($to !== null) {
+            $query->where('requested_at', '<=', $to);
         }
 
         $paginator = $query->paginate(20)->withQueryString();
@@ -144,8 +160,8 @@ class CourierCodSettingsController extends Controller
                     'id' => $capabilityId,
                     'status' => (string) $capability->status,
                     'statusLabel' => $capability->statusLabel(),
-                    'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
-                    'categoryLabel' => $capability->categoryLabel(),
+                    'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                    'categoryLabel' => 'Domestic (policy scope)',
                     'vendorId' => (int) ($capability->vendor_user_id ?? 0),
                     'vendorName' => (string) ($capability->vendor->name ?? ''),
                     'vendorEmail' => (string) ($capability->vendor->email ?? ''),
@@ -172,7 +188,19 @@ class CourierCodSettingsController extends Controller
 
         $statsQuery = CourierVendorCodCapability::query();
         if ($categoryFilter !== 'all') {
-            $statsQuery->where('category', $categoryFilter);
+            $statsQuery->whereIn('category', [
+                CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+                'logistic',
+            ]);
+        }
+
+        if ($from !== null) {
+            $statsQuery->where('requested_at', '>=', $from);
+        }
+
+        if ($to !== null) {
+            $statsQuery->where('requested_at', '<=', $to);
         }
 
         $stats = [
@@ -197,6 +225,8 @@ class CourierCodSettingsController extends Controller
                 'status' => $statusFilter,
                 'category' => $categoryFilter,
                 'search' => $search,
+                'from' => $from?->toDateString() ?? '',
+                'to' => $to?->toDateString() ?? '',
             ],
             'pagination' => [
                 'currentPage' => $paginator->currentPage(),
@@ -384,8 +414,8 @@ class CourierCodSettingsController extends Controller
                 'id' => (int) $capability->id,
                 'vendorName' => (string) ($capability->vendor->name ?? ''),
                 'vendorEmail' => (string) ($capability->vendor->email ?? ''),
-                'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
-                'categoryLabel' => $capability->categoryLabel(),
+                'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                'categoryLabel' => 'Domestic (policy scope)',
                 'status' => (string) $capability->status,
                 'statusLabel' => $capability->statusLabel(),
             ],
@@ -404,6 +434,38 @@ class CourierCodSettingsController extends Controller
             ],
             'integrity' => $integrityIndex['summary'],
             'activeIncident' => $this->serializeIntegrityIncident($activeIncident),
+        ]);
+    }
+
+    public function exportCompliancePackage(Request $request, CourierCodComplianceExportService $exportService)
+    {
+        $validated = $request->validate([
+            'status' => ['nullable', 'string', 'in:all,pending,approved,rejected,not_requested'],
+            'category' => ['nullable', 'string', 'in:all,domestic,international,logistic'],
+            'search' => ['nullable', 'string', 'max:120'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        $categoryFilter = (string) ($validated['category'] ?? 'all') === 'domestic'
+            ? 'domestic'
+            : 'all';
+
+        $package = $exportService->buildPackage([
+            'status' => (string) ($validated['status'] ?? 'all'),
+            'category' => $categoryFilter,
+            'search' => trim((string) ($validated['search'] ?? '')),
+            'from' => $validated['from'] ?? null,
+            'to' => $validated['to'] ?? null,
+        ], (int) optional($request->user())->id ?: null);
+
+        $fileName = $exportService->buildFileName();
+        $jsonPayload = $exportService->encodePackage($package);
+
+        return response()->streamDownload(function () use ($jsonPayload) {
+            echo $jsonPayload;
+        }, $fileName, [
+            'Content-Type' => 'application/json',
         ]);
     }
 
@@ -457,7 +519,7 @@ class CourierCodSettingsController extends Controller
         $incident = CourierVendorCodIntegrityIncident::query()->create([
             'courier_vendor_cod_capability_id' => (int) $capability->id,
             'vendor_user_id' => (int) $capability->vendor_user_id,
-            'category' => CourierVendorCodCapability::normalizeCategory((string) $capability->category),
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
             'status' => CourierVendorCodIntegrityIncident::STATUS_OPEN,
             'severity' => $severity,
             'title' => $title,

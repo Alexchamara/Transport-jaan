@@ -79,6 +79,91 @@ class CourierCodCapabilityRequestTest extends TestCase
         $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, (string) ($audit->to_status ?? ''));
     }
 
+    public function test_vendor_staff_cannot_submit_international_cod_capability_request(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership(
+            $vendor,
+            $workspace,
+            ['courier.settings.update'],
+            'courier_dispatcher'
+        );
+
+        $csrfToken = 'cod-request-international-test-token';
+
+        $response = $this->actingAs($actor)
+            ->withSession(['_token' => $csrfToken])
+            ->from(route('courierService.settings.module', ['module' => 'services']))
+            ->post(route('courierService.settings.services.cod.request'), [
+                '_token' => $csrfToken,
+                'category' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+                'note' => 'Attempting international COD request.',
+            ]);
+
+        $response->assertRedirect(route('courierService.settings.module', ['module' => 'services']));
+        $response->assertSessionHasErrors(['category']);
+
+        $this->assertNull(
+            CourierVendorCodCapability::query()
+                ->where('vendor_user_id', $vendor->id)
+                ->where('category', CourierVendorCodCapability::CATEGORY_INTERNATIONAL)
+                ->first()
+        );
+    }
+
+    public function test_vendor_settings_exposes_domestic_cod_capability_payload_only(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_APPROVED,
+            'requested_at' => now()->subDays(3),
+            'approved_at' => now()->subDays(2),
+            'reviewed_at' => now()->subDays(2),
+            'reviewed_by_user_id' => $vendor->id,
+            'expires_at' => now()->addMonths(2),
+        ]);
+
+        CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subHours(6),
+            'requested_note' => 'Awaiting international COD approval.',
+        ]);
+
+        $actor = $this->createActorWithMembership(
+            $vendor,
+            $workspace,
+            ['courier.settings.view'],
+            'courier_dispatcher'
+        );
+
+        $response = $this->actingAs($actor)
+            ->get(route('courierService.settings.module', [
+                'module' => 'services',
+                'codCategory' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+            ]));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/vendors/courierService/SettingsPage')
+            ->where('initialSettingsModule', 'services')
+            ->where('courierCodCapabilityCategory', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+            ->where('courierCodCapability.category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+            ->where('courierCodCapability.status', CourierVendorCodCapability::STATUS_APPROVED)
+            ->where('courierCodCapabilities.domestic.category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+            ->where('courierCodCapabilities.domestic.status', CourierVendorCodCapability::STATUS_APPROVED)
+        );
+    }
+
     public function test_superadmin_can_approve_pending_cod_request(): void
     {
         [$vendor, $workspace] = $this->createCourierVendorWorkspace();
@@ -354,6 +439,60 @@ class CourierCodCapabilityRequestTest extends TestCase
         );
     }
 
+    public function test_superadmin_index_applies_requested_date_range_filter(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $outsideCapability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subDays(7),
+            'requested_note' => 'Outside date range capability.',
+        ]);
+
+        $insideCapability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subHours(8),
+            'requested_note' => 'Inside date range capability.',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $fromDate = now()->subDays(2)->toDateString();
+        $toDate = now()->toDateString();
+        $search = substr((string) $vendor->name, 0, 6);
+
+        $response = $this->actingAs($superAdmin)
+            ->get(route('superadmin.settings.cod-settlement.index', [
+                'search' => $search,
+                'from' => $fromDate,
+                'to' => $toDate,
+            ]));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/SuperAdmin/CourierCodSettings')
+            ->where('filters.from', $fromDate)
+            ->where('filters.to', $toDate)
+            ->where('filters.search', $search)
+            ->has('requests', 1)
+            ->where('requests.0.id', (int) $insideCapability->id)
+            ->where('requests.0.category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+        );
+
+        $this->assertNotSame((int) $outsideCapability->id, (int) $insideCapability->id);
+    }
+
     public function test_superadmin_can_fetch_capability_audit_history_with_filters(): void
     {
         [$vendor, $workspace] = $this->createCourierVendorWorkspace();
@@ -478,6 +617,90 @@ class CourierCodCapabilityRequestTest extends TestCase
 
         $integrityStatuses = collect($response->json('events') ?? [])->pluck('integrityStatus')->all();
         $this->assertContains('issue', $integrityStatuses);
+    }
+
+    public function test_superadmin_can_download_cod_compliance_export_package(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(20),
+            'requested_note' => 'Compliance export scenario',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        CourierVendorCodCapabilityAudit::recordEvent(
+            $capability,
+            'cod_capability_request_submitted',
+            CourierVendorCodCapability::STATUS_NOT_REQUESTED,
+            CourierVendorCodCapability::STATUS_PENDING,
+            $vendor->id,
+            'Submitted for compliance export.',
+            [
+                'source' => 'vendor_settings',
+            ]
+        );
+
+        CourierVendorCodIntegrityIncident::query()->create([
+            'courier_vendor_cod_capability_id' => (int) $capability->id,
+            'vendor_user_id' => (int) $vendor->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'status' => CourierVendorCodIntegrityIncident::STATUS_OPEN,
+            'severity' => CourierVendorCodIntegrityIncident::SEVERITY_MEDIUM,
+            'title' => 'Compliance sample incident',
+            'description' => 'Created for export package assertions.',
+            'detected_issue_count' => 1,
+            'detected_at' => now()->subMinutes(10),
+            'created_by_user_id' => (int) $superAdmin->id,
+        ]);
+
+        $fromDate = now()->subDay()->toDateString();
+        $toDate = now()->addDay()->toDateString();
+
+        $response = $this->actingAs($superAdmin)
+            ->get(route('superadmin.settings.cod-settlement.compliance-export', [
+                'status' => 'pending',
+                'category' => 'domestic',
+                'search' => substr((string) $vendor->name, 0, 5),
+                'from' => $fromDate,
+                'to' => $toDate,
+            ]));
+
+        $response->assertOk();
+
+        $contentType = (string) $response->headers->get('content-type');
+        $this->assertStringContainsString('application/json', $contentType);
+
+        $contentDisposition = (string) $response->headers->get('content-disposition');
+        $this->assertStringContainsString('attachment;', $contentDisposition);
+        $this->assertStringContainsString('courier_cod_compliance_package_', $contentDisposition);
+
+        $payload = json_decode($response->streamedContent(), true);
+
+        $this->assertIsArray($payload);
+        $this->assertSame('courier_cod_compliance_export', (string) data_get($payload, 'manifest.package'));
+        $this->assertSame(1, (int) data_get($payload, 'manifest.counts.capabilities', 0));
+        $this->assertSame(1, (int) data_get($payload, 'manifest.counts.audits', 0));
+        $this->assertSame(1, (int) data_get($payload, 'manifest.counts.incidents', 0));
+        $this->assertSame(1, (int) data_get($payload, 'manifest.counts.activeIncidents', 0));
+        $this->assertSame($fromDate, (string) data_get($payload, 'manifest.filters.from'));
+        $this->assertSame($toDate, (string) data_get($payload, 'manifest.filters.to'));
+
+        $this->assertSame((int) $capability->id, (int) data_get($payload, 'capabilities.0.capabilityId'));
+        $this->assertSame(CourierVendorCodCapability::STATUS_PENDING, (string) data_get($payload, 'capabilities.0.status'));
+        $this->assertSame((int) $capability->id, (int) data_get($payload, 'auditEvents.0.capabilityId'));
+        $this->assertSame('cod_capability_request_submitted', (string) data_get($payload, 'auditEvents.0.eventType'));
+        $this->assertSame((int) $capability->id, (int) data_get($payload, 'incidents.0.capabilityId'));
+        $this->assertSame(CourierVendorCodIntegrityIncident::STATUS_OPEN, (string) data_get($payload, 'incidents.0.status'));
     }
 
     public function test_superadmin_can_open_integrity_incident_for_tampered_chain(): void
