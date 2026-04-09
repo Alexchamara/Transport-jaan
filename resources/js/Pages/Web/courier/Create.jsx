@@ -182,6 +182,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     // Active package for courier selection
     const [activePackageIndex, setActivePackageIndex] = useState(0);
+    const [revealedPackageDetails, setRevealedPackageDetails] = useState({});
 
     const [isPlacing, setIsPlacing] = useState(false);
     const [submitError, setSubmitError] = useState("");
@@ -194,6 +195,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const quotesSectionRef = useRef(null);
     const quotesTableRef = useRef(null);
     const quotesAutoScrollRef = useRef(false);
+    const shipmentDimensionSectionRef = useRef(null);
     const detailsSectionRef = useRef(null);
     const summarySectionRef = useRef(null);
 
@@ -1184,6 +1186,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const resetForRouteType = (nextRouteType) => {
         const nextForm = buildEmptyForm(nextRouteType);
         setData(nextForm);
+        setRevealedPackageDetails({});
         setLocationSearch({
             senderCity: nextForm.sender.address.city || "",
             recipientCity: nextForm.recipient.address.city || "",
@@ -1330,7 +1333,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return Number((numericValue / factor).toFixed(decimalPlaces)).toString();
     };
 
+    const hasValue = (value) => String(value || "").trim().length > 0;
+
     const addPackage = () => {
+        const nextPackageIndex = data.packages.length;
+        const isInternationalRoute = data.shipment?.routeType === "international";
+        const shouldRevealNewPackageDetails = isInternationalRoute
+            && data.packages.every((_, packageIndex) => Boolean(revealedPackageDetails[packageIndex]));
+
         setData("packages", [
             ...data.packages,
             {
@@ -1350,12 +1360,36 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 serviceLevel: "",
             },
         ]);
+
+        if (shouldRevealNewPackageDetails) {
+            setRevealedPackageDetails((previous) => ({
+                ...previous,
+                [nextPackageIndex]: true,
+            }));
+        }
     };
 
     const removePackage = (index) => {
         if (data.packages.length === 1) {
             return;
         }
+
+        setRevealedPackageDetails((previous) => {
+            const next = {};
+
+            Object.entries(previous).forEach(([key, isVisible]) => {
+                const parsedIndex = Number(key);
+
+                if (!isVisible || Number.isNaN(parsedIndex) || parsedIndex === index) {
+                    return;
+                }
+
+                const shiftedIndex = parsedIndex > index ? parsedIndex - 1 : parsedIndex;
+                next[shiftedIndex] = true;
+            });
+
+            return next;
+        });
 
         setData(
             "packages",
@@ -1370,6 +1404,39 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
     const paymentOptions = data.shipment?.paymentOptions || { all: false, cod: false, card: false };
     const hasPaymentOption = Boolean(paymentOptions.all || paymentOptions.cod || paymentOptions.card);
+    const hasLocationDetailsForDescribe = selectedRouteType !== "international"
+        || (
+            hasValue(data.sender?.address?.country)
+            && hasValue(data.sender?.address?.city)
+            && hasValue(data.sender?.address?.postalCode)
+            && hasValue(data.recipient?.address?.country)
+            && hasValue(data.recipient?.address?.city)
+            && hasValue(data.recipient?.address?.postalCode)
+        );
+    const areAllPackageDetailsRevealed = data.packages.every((_, packageIndex) => Boolean(revealedPackageDetails[packageIndex]));
+    const shouldShowShipmentDetailsSection = selectedRouteType !== "international"
+        || areAllPackageDetailsRevealed;
+    const shouldShowDescribeShipmentCta = selectedRouteType === "international"
+        && !shouldShowShipmentDetailsSection;
+
+    const revealShipmentDetailsSection = () => {
+        const nextVisibleState = {};
+        data.packages.forEach((_, packageIndex) => {
+            nextVisibleState[packageIndex] = true;
+        });
+        setRevealedPackageDetails(nextVisibleState);
+
+        if (typeof window !== "undefined") {
+            window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
+                    const target = shipmentDimensionSectionRef.current;
+                    if (target) {
+                        target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                });
+            });
+        }
+    };
 
     useEffect(() => {
         if (selectedRouteType === "international") {
@@ -2214,13 +2281,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         {packageSectionDescription}
                                     </p>
                                 </div>
-                                <button
+                                {/* <button
                                     type="button"
                                     onClick={addPackage}
                                     className="inline-flex items-center gap-2 rounded-lg bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
                                 >
                                     + Add package
-                                </button>
+                                </button> */}
                             </div>
 
                             <div className="space-y-5">
@@ -2234,184 +2301,222 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     const itemLength = Number(item.lengthCm) || 0;
                                     const itemWidth = Number(item.widthCm) || 0;
                                     const itemHeight = Number(item.heightCm) || 0;
+                                    const isPackageDetailsVisible = shouldShowShipmentDetailsSection;
 
                                     return (
                                         <div
                                             key={`package-${index}`}
-                                            className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm"
+                                            className="space-y-4"
                                         >
-                                            <div className="mb-4 flex items-center justify-between">
-                                                <h3 className="text-base font-semibold text-[#0B1739]">
-                                                    Package {index + 1}
-                                                </h3>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removePackage(index)}
-                                                    className="text-sm text-red-500 hover:text-red-600 disabled:text-red-300"
-                                                    disabled={data.packages.length === 1}
-                                                >
-                                                    Remove
-                                                </button>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                        Locations*
-                                                    </label>
-                                                    <div
-                                                        className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-3" : "xl:grid-cols-2"
-                                                            }`}
+                                            <div className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm">
+                                                <div className="mb-4 flex items-center justify-between">
+                                                    {/* <h3 className="text-base font-semibold text-[#0B1739]">
+                                                        Package {index + 1}
+                                                    </h3> */}
+                                                    {/* <button
+                                                        type="button"
+                                                        onClick={() => removePackage(index)}
+                                                        className="text-sm text-red-500 hover:text-red-600 disabled:text-red-300"
+                                                        disabled={data.packages.length === 1}
                                                     >
-                                                        {selectedRouteType === "domestic" && (
-                                                            <div>
-                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
-                                                                <select
-                                                                    value={DOMESTIC_COUNTRY_CODE}
-                                                                    disabled
-                                                                    className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
-                                                                >
-                                                                    <option value={DOMESTIC_COUNTRY_CODE}>
-                                                                        {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
-                                                                    </option>
-                                                                </select>
-                                                            </div>
-                                                        )}
-                                                        {selectedRouteType === "domestic" ? (
-                                                            <>
+                                                        Remove
+                                                    </button> */}
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
+                                                            Locations*
+                                                        </label>
+                                                        <div
+                                                            className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${selectedRouteType === "domestic" ? "xl:grid-cols-3" : "xl:grid-cols-2"
+                                                                }`}
+                                                        >
+                                                            {selectedRouteType === "domestic" && (
                                                                 <div>
-                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            value={locationSearch.senderCity}
-                                                                            onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`sender-city-${index}`)}
-                                                                            onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Pickup City"
-                                                                        />
-                                                                        {activeLocationField === `sender-city-${index}` && (
-                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(cityOptions, locationSearch.senderCity).map((option) => (
-                                                                                    <button
-                                                                                        key={`pickup-city-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("sender", "senderCity", option, "city");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
+                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Country*</label>
+                                                                    <select
+                                                                        value={DOMESTIC_COUNTRY_CODE}
+                                                                        disabled
+                                                                        className="h-[52px] w-full cursor-not-allowed rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] opacity-80"
+                                                                    >
+                                                                        <option value={DOMESTIC_COUNTRY_CODE}>
+                                                                            {DOMESTIC_COUNTRY_LABEL} ({DOMESTIC_COUNTRY_CODE})
+                                                                        </option>
+                                                                    </select>
                                                                 </div>
-                                                                <div>
-                                                                    <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            value={locationSearch.recipientCity}
-                                                                            onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
-                                                                            onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
-                                                                            onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
-                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                            placeholder="Select Destination City"
-                                                                        />
-                                                                        {activeLocationField === `recipient-city-${index}` && (
-                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                {filterLocationOptions(cityOptions, locationSearch.recipientCity).map((option) => (
-                                                                                    <button
-                                                                                        key={`destination-city-${index}-${option.value}`}
-                                                                                        type="button"
-                                                                                        onMouseDown={(event) => {
-                                                                                            event.preventDefault();
-                                                                                            handleLocationSelect("recipient", "recipientCity", option, "city");
-                                                                                        }}
-                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                    >
-                                                                                        {option.label}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div className="space-y-3 sm:col-span-2 xl:col-span-2">
-                                                                    <p className="text-sm font-semibold text-[#0B1739]">From</p>
-                                                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                                                        <div>
-                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    value={locationSearch.senderCountry}
-                                                                                    onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
-                                                                                    onFocus={() => setActiveLocationField(`sender-country-${index}`)}
-                                                                                    onBlur={() => handleLocationInputBlur(`sender-country-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                    placeholder="Select pickup country"
-                                                                                />
-                                                                                {activeLocationField === `sender-country-${index}` && (
-                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                        {filterLocationOptions(getCountryOptionsForParty("sender"), locationSearch.senderCountry).map((option) => (
-                                                                                            <button
-                                                                                                key={`pickup-${index}-${option.value}`}
-                                                                                                type="button"
-                                                                                                onMouseDown={(event) => {
-                                                                                                    event.preventDefault();
-                                                                                                    handleLocationSelect("sender", "senderCountry", option, "country");
-                                                                                                }}
-                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                            >
-                                                                                                {option.label}
-                                                                                            </button>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                            {countryLookupState.sender.loading && (
-                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading countries...</p>
-                                                                            )}
-                                                                            {!countryLookupState.sender.loading && countryLookupState.sender.error && (
-                                                                                <p className="mt-1 text-xs text-[#C43D35]">{countryLookupState.sender.error}</p>
+                                                            )}
+                                                            {selectedRouteType === "domestic" ? (
+                                                                <>
+                                                                    <div>
+                                                                        <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
+                                                                        <div className="relative">
+                                                                            <input
+                                                                                value={locationSearch.senderCity}
+                                                                                onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
+                                                                                onFocus={() => setActiveLocationField(`sender-city-${index}`)}
+                                                                                onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Select Pickup City"
+                                                                            />
+                                                                            {activeLocationField === `sender-city-${index}` && (
+                                                                                <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                    {filterLocationOptions(cityOptions, locationSearch.senderCity).map((option) => (
+                                                                                        <button
+                                                                                            key={`pickup-city-${index}-${option.value}`}
+                                                                                            type="button"
+                                                                                            onMouseDown={(event) => {
+                                                                                                event.preventDefault();
+                                                                                                handleLocationSelect("sender", "senderCity", option, "city");
+                                                                                            }}
+                                                                                            className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                        >
+                                                                                            {option.label}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </div>
                                                                             )}
                                                                         </div>
-
-                                                                        <div>
-                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    value={data.sender?.address?.city || ""}
-                                                                                    onChange={(event) => updateAddressCity("sender", event.target.value)}
-                                                                                    disabled={!data.sender?.address?.country}
-                                                                                    onFocus={() => setActiveLocationField(`sender-city-${index}`)}
-                                                                                    onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                    placeholder={data.sender?.address?.country ? "Enter pickup city" : "Select pickup country first"}
-                                                                                />
-                                                                                {activeLocationField === `sender-city-${index}`
-                                                                                    && filterPostalCitySuggestions(
-                                                                                        postalCitySuggestions.sender,
-                                                                                        data.sender?.address?.city,
-                                                                                    ).length > 0 && (
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
+                                                                        <div className="relative">
+                                                                            <input
+                                                                                value={locationSearch.recipientCity}
+                                                                                onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
+                                                                                onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
+                                                                                onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
+                                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                placeholder="Select Destination City"
+                                                                            />
+                                                                            {activeLocationField === `recipient-city-${index}` && (
+                                                                                <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                    {filterLocationOptions(cityOptions, locationSearch.recipientCity).map((option) => (
+                                                                                        <button
+                                                                                            key={`destination-city-${index}-${option.value}`}
+                                                                                            type="button"
+                                                                                            onMouseDown={(event) => {
+                                                                                                event.preventDefault();
+                                                                                                handleLocationSelect("recipient", "recipientCity", option, "city");
+                                                                                            }}
+                                                                                            className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                        >
+                                                                                            {option.label}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="space-y-3 sm:col-span-2 xl:col-span-2">
+                                                                        <p className="text-sm font-semibold text-[#0B1739]">From</p>
+                                                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                                            <div>
+                                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup country*</label>
+                                                                                <div className="relative">
+                                                                                    <input
+                                                                                        value={locationSearch.senderCountry}
+                                                                                        onChange={(event) => handleCountrySearchChange("sender", "senderCountry", event.target.value)}
+                                                                                        onFocus={() => setActiveLocationField(`sender-country-${index}`)}
+                                                                                        onBlur={() => handleLocationInputBlur(`sender-country-${index}`)}
+                                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                        placeholder="Select pickup country"
+                                                                                    />
+                                                                                    {activeLocationField === `sender-country-${index}` && (
                                                                                         <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                            {filterPostalCitySuggestions(
-                                                                                                postalCitySuggestions.sender,
-                                                                                                data.sender?.address?.city,
-                                                                                            ).map((suggestion) => (
+                                                                                            {filterLocationOptions(getCountryOptionsForParty("sender"), locationSearch.senderCountry).map((option) => (
                                                                                                 <button
-                                                                                                    key={`sender-city-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                    key={`pickup-${index}-${option.value}`}
+                                                                                                    type="button"
+                                                                                                    onMouseDown={(event) => {
+                                                                                                        event.preventDefault();
+                                                                                                        handleLocationSelect("sender", "senderCountry", option, "country");
+                                                                                                    }}
+                                                                                                    className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                                >
+                                                                                                    {option.label}
+                                                                                                </button>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                {countryLookupState.sender.loading && (
+                                                                                    <p className="mt-1 text-xs text-[#5B6887]">Loading countries...</p>
+                                                                                )}
+                                                                                {!countryLookupState.sender.loading && countryLookupState.sender.error && (
+                                                                                    <p className="mt-1 text-xs text-[#C43D35]">{countryLookupState.sender.error}</p>
+                                                                                )}
+                                                                            </div>
+
+                                                                            <div>
+                                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup city*</label>
+                                                                                <div className="relative">
+                                                                                    <input
+                                                                                        value={data.sender?.address?.city || ""}
+                                                                                        onChange={(event) => updateAddressCity("sender", event.target.value)}
+                                                                                        disabled={!data.sender?.address?.country}
+                                                                                        onFocus={() => setActiveLocationField(`sender-city-${index}`)}
+                                                                                        onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
+                                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                        placeholder={data.sender?.address?.country ? "Enter pickup city" : "Select pickup country first"}
+                                                                                    />
+                                                                                    {activeLocationField === `sender-city-${index}`
+                                                                                        && filterPostalCitySuggestions(
+                                                                                            postalCitySuggestions.sender,
+                                                                                            data.sender?.address?.city,
+                                                                                        ).length > 0 && (
+                                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                                {filterPostalCitySuggestions(
+                                                                                                    postalCitySuggestions.sender,
+                                                                                                    data.sender?.address?.city,
+                                                                                                ).map((suggestion) => (
+                                                                                                    <button
+                                                                                                        key={`sender-city-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                        type="button"
+                                                                                                        onMouseDown={(event) => {
+                                                                                                            event.preventDefault();
+                                                                                                            handlePostalSuggestionSelect(
+                                                                                                                "sender",
+                                                                                                                `sender-city-${index}`,
+                                                                                                                suggestion,
+                                                                                                            );
+                                                                                                        }}
+                                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                                    >
+                                                                                                        {suggestion.city}, {suggestion.postalCode}
+                                                                                                    </button>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        )}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div>
+                                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup postal code*</label>
+                                                                                <div className="relative">
+                                                                                    <input
+                                                                                        value={data.sender?.address?.postalCode || ""}
+                                                                                        onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
+                                                                                        disabled={!data.sender?.address?.country}
+                                                                                        onFocus={() => setActiveLocationField(`sender-postal-${index}`)}
+                                                                                        onBlur={() => handleLocationInputBlur(`sender-postal-${index}`)}
+                                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                        placeholder={data.sender?.address?.country ? "Enter pickup postal code" : "Select pickup country first"}
+                                                                                    />
+                                                                                    {activeLocationField === `sender-postal-${index}` && postalCitySuggestions.sender.length > 0 && (
+                                                                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                            {postalCitySuggestions.sender.map((suggestion) => (
+                                                                                                <button
+                                                                                                    key={`sender-postal-suggestion-${suggestion.postalCode}-${suggestion.city}`}
                                                                                                     type="button"
                                                                                                     onMouseDown={(event) => {
                                                                                                         event.preventDefault();
                                                                                                         handlePostalSuggestionSelect(
                                                                                                             "sender",
-                                                                                                            `sender-city-${index}`,
+                                                                                                            `sender-postal-${index}`,
                                                                                                             suggestion,
                                                                                                         );
                                                                                                     }}
@@ -2422,134 +2527,134 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             ))}
                                                                                         </div>
                                                                                     )}
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div>
-                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Pickup postal code*</label>
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    value={data.sender?.address?.postalCode || ""}
-                                                                                    onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
-                                                                                    disabled={!data.sender?.address?.country}
-                                                                                    onFocus={() => setActiveLocationField(`sender-postal-${index}`)}
-                                                                                    onBlur={() => handleLocationInputBlur(`sender-postal-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                    placeholder={data.sender?.address?.country ? "Enter pickup postal code" : "Select pickup country first"}
-                                                                                />
-                                                                                {activeLocationField === `sender-postal-${index}` && postalCitySuggestions.sender.length > 0 && (
-                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                        {postalCitySuggestions.sender.map((suggestion) => (
-                                                                                            <button
-                                                                                                key={`sender-postal-suggestion-${suggestion.postalCode}-${suggestion.city}`}
-                                                                                                type="button"
-                                                                                                onMouseDown={(event) => {
-                                                                                                    event.preventDefault();
-                                                                                                    handlePostalSuggestionSelect(
-                                                                                                        "sender",
-                                                                                                        `sender-postal-${index}`,
-                                                                                                        suggestion,
-                                                                                                    );
-                                                                                                }}
-                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                            >
-                                                                                                {suggestion.city}, {suggestion.postalCode}
-                                                                                            </button>
-                                                                                        ))}
+                                                                                </div>
+                                                                                {cityLookupState.sender.loading && (
+                                                                                    <p className="mt-1 text-xs text-[#5B6887]">Finding city from postal code...</p>
+                                                                                )}
+                                                                                {!cityLookupState.sender.loading && cityLookupState.sender.error && (
+                                                                                    <p className="mt-1 text-xs text-[#C43D35]">{cityLookupState.sender.error}</p>
+                                                                                )}
+                                                                                {postalLookupState.sender.loading && (
+                                                                                    <p className="mt-1 text-xs text-[#5B6887]">Loading postal code suggestions...</p>
+                                                                                )}
+                                                                                {!postalLookupState.sender.loading && postalLookupState.sender.error && (
+                                                                                    <p className="mt-1 text-xs text-[#C43D35]">{postalLookupState.sender.error}</p>
+                                                                                )}
+                                                                                {postalCityNotice.sender && (
+                                                                                    <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
+                                                                                        {postalCityNotice.sender}
                                                                                     </div>
                                                                                 )}
                                                                             </div>
-                                                                            {cityLookupState.sender.loading && (
-                                                                                <p className="mt-1 text-xs text-[#5B6887]">Finding city from postal code...</p>
-                                                                            )}
-                                                                            {!cityLookupState.sender.loading && cityLookupState.sender.error && (
-                                                                                <p className="mt-1 text-xs text-[#C43D35]">{cityLookupState.sender.error}</p>
-                                                                            )}
-                                                                            {postalLookupState.sender.loading && (
-                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading postal code suggestions...</p>
-                                                                            )}
-                                                                            {!postalLookupState.sender.loading && postalLookupState.sender.error && (
-                                                                                <p className="mt-1 text-xs text-[#C43D35]">{postalLookupState.sender.error}</p>
-                                                                            )}
-                                                                            {postalCityNotice.sender && (
-                                                                                <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
-                                                                                    {postalCityNotice.sender}
-                                                                                </div>
-                                                                            )}
                                                                         </div>
                                                                     </div>
-                                                                </div>
 
-                                                                <div className="space-y-3 sm:col-span-2 xl:col-span-2">
-                                                                    <p className="text-sm font-semibold text-[#0B1739]">To</p>
-                                                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                                                        <div>
-                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    value={locationSearch.recipientCountry}
-                                                                                    onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
-                                                                                    onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
-                                                                                    onBlur={() => handleLocationInputBlur(`recipient-country-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                    placeholder="Select destination country"
-                                                                                />
-                                                                                {activeLocationField === `recipient-country-${index}` && (
-                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                        {filterLocationOptions(getCountryOptionsForParty("recipient"), locationSearch.recipientCountry).map((option) => (
-                                                                                            <button
-                                                                                                key={`destination-${index}-${option.value}`}
-                                                                                                type="button"
-                                                                                                onMouseDown={(event) => {
-                                                                                                    event.preventDefault();
-                                                                                                    handleLocationSelect("recipient", "recipientCountry", option, "country");
-                                                                                                }}
-                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                            >
-                                                                                                {option.label}
-                                                                                            </button>
-                                                                                        ))}
-                                                                                    </div>
+                                                                    <div className="space-y-3 sm:col-span-2 xl:col-span-2">
+                                                                        <p className="text-sm font-semibold text-[#0B1739]">To</p>
+                                                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                                                            <div>
+                                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination country*</label>
+                                                                                <div className="relative">
+                                                                                    <input
+                                                                                        value={locationSearch.recipientCountry}
+                                                                                        onChange={(event) => handleCountrySearchChange("recipient", "recipientCountry", event.target.value)}
+                                                                                        onFocus={() => setActiveLocationField(`recipient-country-${index}`)}
+                                                                                        onBlur={() => handleLocationInputBlur(`recipient-country-${index}`)}
+                                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                        placeholder="Select destination country"
+                                                                                    />
+                                                                                    {activeLocationField === `recipient-country-${index}` && (
+                                                                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                            {filterLocationOptions(getCountryOptionsForParty("recipient"), locationSearch.recipientCountry).map((option) => (
+                                                                                                <button
+                                                                                                    key={`destination-${index}-${option.value}`}
+                                                                                                    type="button"
+                                                                                                    onMouseDown={(event) => {
+                                                                                                        event.preventDefault();
+                                                                                                        handleLocationSelect("recipient", "recipientCountry", option, "country");
+                                                                                                    }}
+                                                                                                    className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                                >
+                                                                                                    {option.label}
+                                                                                                </button>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                {countryLookupState.recipient.loading && (
+                                                                                    <p className="mt-1 text-xs text-[#5B6887]">Loading countries...</p>
+                                                                                )}
+                                                                                {!countryLookupState.recipient.loading && countryLookupState.recipient.error && (
+                                                                                    <p className="mt-1 text-xs text-[#C43D35]">{countryLookupState.recipient.error}</p>
                                                                                 )}
                                                                             </div>
-                                                                            {countryLookupState.recipient.loading && (
-                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading countries...</p>
-                                                                            )}
-                                                                            {!countryLookupState.recipient.loading && countryLookupState.recipient.error && (
-                                                                                <p className="mt-1 text-xs text-[#C43D35]">{countryLookupState.recipient.error}</p>
-                                                                            )}
-                                                                        </div>
 
-                                                                        <div>
-                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    value={data.recipient?.address?.city || ""}
-                                                                                    onChange={(event) => updateAddressCity("recipient", event.target.value)}
-                                                                                    disabled={!data.recipient?.address?.country}
-                                                                                    onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
-                                                                                    onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                    placeholder={data.recipient?.address?.country ? "Enter destination city" : "Select destination country first"}
-                                                                                />
-                                                                                {activeLocationField === `recipient-city-${index}`
-                                                                                    && filterPostalCitySuggestions(
-                                                                                        postalCitySuggestions.recipient,
-                                                                                        data.recipient?.address?.city,
-                                                                                    ).length > 0 && (
+                                                                            <div>
+                                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
+                                                                                <div className="relative">
+                                                                                    <input
+                                                                                        value={data.recipient?.address?.city || ""}
+                                                                                        onChange={(event) => updateAddressCity("recipient", event.target.value)}
+                                                                                        disabled={!data.recipient?.address?.country}
+                                                                                        onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
+                                                                                        onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
+                                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                        placeholder={data.recipient?.address?.country ? "Enter destination city" : "Select destination country first"}
+                                                                                    />
+                                                                                    {activeLocationField === `recipient-city-${index}`
+                                                                                        && filterPostalCitySuggestions(
+                                                                                            postalCitySuggestions.recipient,
+                                                                                            data.recipient?.address?.city,
+                                                                                        ).length > 0 && (
+                                                                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                                                                {filterPostalCitySuggestions(
+                                                                                                    postalCitySuggestions.recipient,
+                                                                                                    data.recipient?.address?.city,
+                                                                                                ).map((suggestion) => (
+                                                                                                    <button
+                                                                                                        key={`recipient-city-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                        type="button"
+                                                                                                        onMouseDown={(event) => {
+                                                                                                            event.preventDefault();
+                                                                                                            handlePostalSuggestionSelect(
+                                                                                                                "recipient",
+                                                                                                                `recipient-city-${index}`,
+                                                                                                                suggestion,
+                                                                                                            );
+                                                                                                        }}
+                                                                                                        className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                                                                    >
+                                                                                                        {suggestion.city}, {suggestion.postalCode}
+                                                                                                    </button>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        )}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div>
+                                                                                <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination postal code*</label>
+                                                                                <div className="relative">
+                                                                                    <input
+                                                                                        value={data.recipient?.address?.postalCode || ""}
+                                                                                        onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
+                                                                                        disabled={!data.recipient?.address?.country}
+                                                                                        onFocus={() => setActiveLocationField(`recipient-postal-${index}`)}
+                                                                                        onBlur={() => handleLocationInputBlur(`recipient-postal-${index}`)}
+                                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                        placeholder={data.recipient?.address?.country ? "Enter destination postal code" : "Select destination country first"}
+                                                                                    />
+                                                                                    {activeLocationField === `recipient-postal-${index}` && postalCitySuggestions.recipient.length > 0 && (
                                                                                         <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                            {filterPostalCitySuggestions(
-                                                                                                postalCitySuggestions.recipient,
-                                                                                                data.recipient?.address?.city,
-                                                                                            ).map((suggestion) => (
+                                                                                            {postalCitySuggestions.recipient.map((suggestion) => (
                                                                                                 <button
-                                                                                                    key={`recipient-city-suggestion-${suggestion.postalCode}-${suggestion.city}`}
+                                                                                                    key={`recipient-postal-suggestion-${suggestion.postalCode}-${suggestion.city}`}
                                                                                                     type="button"
                                                                                                     onMouseDown={(event) => {
                                                                                                         event.preventDefault();
                                                                                                         handlePostalSuggestionSelect(
                                                                                                             "recipient",
-                                                                                                            `recipient-city-${index}`,
+                                                                                                            `recipient-postal-${index}`,
                                                                                                             suggestion,
                                                                                                         );
                                                                                                     }}
@@ -2560,321 +2665,292 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             ))}
                                                                                         </div>
                                                                                     )}
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div>
-                                                                            <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination postal code*</label>
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    value={data.recipient?.address?.postalCode || ""}
-                                                                                    onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
-                                                                                    disabled={!data.recipient?.address?.country}
-                                                                                    onFocus={() => setActiveLocationField(`recipient-postal-${index}`)}
-                                                                                    onBlur={() => handleLocationInputBlur(`recipient-postal-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                                    placeholder={data.recipient?.address?.country ? "Enter destination postal code" : "Select destination country first"}
-                                                                                />
-                                                                                {activeLocationField === `recipient-postal-${index}` && postalCitySuggestions.recipient.length > 0 && (
-                                                                                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                        {postalCitySuggestions.recipient.map((suggestion) => (
-                                                                                            <button
-                                                                                                key={`recipient-postal-suggestion-${suggestion.postalCode}-${suggestion.city}`}
-                                                                                                type="button"
-                                                                                                onMouseDown={(event) => {
-                                                                                                    event.preventDefault();
-                                                                                                    handlePostalSuggestionSelect(
-                                                                                                        "recipient",
-                                                                                                        `recipient-postal-${index}`,
-                                                                                                        suggestion,
-                                                                                                    );
-                                                                                                }}
-                                                                                                className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
-                                                                                            >
-                                                                                                {suggestion.city}, {suggestion.postalCode}
-                                                                                            </button>
-                                                                                        ))}
+                                                                                </div>
+                                                                                {cityLookupState.recipient.loading && (
+                                                                                    <p className="mt-1 text-xs text-[#5B6887]">Finding city from postal code...</p>
+                                                                                )}
+                                                                                {!cityLookupState.recipient.loading && cityLookupState.recipient.error && (
+                                                                                    <p className="mt-1 text-xs text-[#C43D35]">{cityLookupState.recipient.error}</p>
+                                                                                )}
+                                                                                {postalLookupState.recipient.loading && (
+                                                                                    <p className="mt-1 text-xs text-[#5B6887]">Loading postal code suggestions...</p>
+                                                                                )}
+                                                                                {!postalLookupState.recipient.loading && postalLookupState.recipient.error && (
+                                                                                    <p className="mt-1 text-xs text-[#C43D35]">{postalLookupState.recipient.error}</p>
+                                                                                )}
+                                                                                {postalCityNotice.recipient && (
+                                                                                    <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
+                                                                                        {postalCityNotice.recipient}
                                                                                     </div>
                                                                                 )}
                                                                             </div>
-                                                                            {cityLookupState.recipient.loading && (
-                                                                                <p className="mt-1 text-xs text-[#5B6887]">Finding city from postal code...</p>
-                                                                            )}
-                                                                            {!cityLookupState.recipient.loading && cityLookupState.recipient.error && (
-                                                                                <p className="mt-1 text-xs text-[#C43D35]">{cityLookupState.recipient.error}</p>
-                                                                            )}
-                                                                            {postalLookupState.recipient.loading && (
-                                                                                <p className="mt-1 text-xs text-[#5B6887]">Loading postal code suggestions...</p>
-                                                                            )}
-                                                                            {!postalLookupState.recipient.loading && postalLookupState.recipient.error && (
-                                                                                <p className="mt-1 text-xs text-[#C43D35]">{postalLookupState.recipient.error}</p>
-                                                                            )}
-                                                                            {postalCityNotice.recipient && (
-                                                                                <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
-                                                                                    {postalCityNotice.recipient}
-                                                                                </div>
-                                                                            )}
+                                                                        </div>
+
+                                                                        <div className="mt-3 flex items-center gap-3">
+                                                                            <input
+                                                                                id={`recipient-residential-${index}`}
+                                                                                type="checkbox"
+                                                                                checked={Boolean(data.recipient?.address?.isResidential)}
+                                                                                onChange={(event) => updateAddressResidential("recipient", event.target.checked)}
+                                                                                className="h-6 w-6 rounded-md border border-[#B8C4D8] accent-[#4D8A26]"
+                                                                            />
+                                                                            <label
+                                                                                htmlFor={`recipient-residential-${index}`}
+                                                                                className="text-base leading-none text-[#0B1739]"
+                                                                            >
+                                                                                This is a residential address
+                                                                            </label>
                                                                         </div>
                                                                     </div>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                                    <div className="mt-3 flex items-center gap-3">
-                                                                        <input
-                                                                            id={`recipient-residential-${index}`}
-                                                                            type="checkbox"
-                                                                            checked={Boolean(data.recipient?.address?.isResidential)}
-                                                                            onChange={(event) => updateAddressResidential("recipient", event.target.checked)}
-                                                                            className="h-6 w-6 rounded-md border border-[#B8C4D8] accent-[#4D8A26]"
-                                                                        />
-                                                                        <label
-                                                                            htmlFor={`recipient-residential-${index}`}
-                                                                            className="text-base leading-none text-[#0B1739]"
-                                                                        >
-                                                                            This is a residential address
-                                                                        </label>
-                                                                    </div>
+                                            {isPackageDetailsVisible && (
+                                                <div
+                                                    ref={index === 0 ? shipmentDimensionSectionRef : null}
+                                                    className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm"
+                                                >
+                                                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
+                                                        <div>
+                                                            <label className="mb-2 block text-sm font-medium text-[#0B1739]">
+                                                                Package weight*
+                                                            </label>
+
+                                                            <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                    value={toDisplayValue(item.weightKg, weightFactor, 2)}
+                                                                    onChange={(event) =>
+                                                                        updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
+                                                                    }
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="Weight"
+                                                                />
+                                                                <select
+                                                                    value={weightUnit}
+                                                                    onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
+                                                                    className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                >
+                                                                    <option value="kg">kg</option>
+                                                                    <option value="oz">lb</option>
+                                                                </select>
+                                                            </div>
+                                                            {errors[`packages.${index}.weightKg`] && (
+                                                                <p className="mt-2 text-sm text-red-500">
+                                                                    {errors[`packages.${index}.weightKg`]}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div>
+                                                            <div className="mb-2 flex items-center gap-2">
+                                                                <label className="block text-sm font-medium text-[#0B1739]">
+                                                                    Dimensions *
+                                                                </label>
+                                                            </div>
+
+                                                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.1"
+                                                                    value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
+                                                                    onChange={(event) =>
+                                                                        updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                    }
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="Length"
+                                                                />
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.1"
+                                                                    value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
+                                                                    onChange={(event) =>
+                                                                        updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                    }
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="Width"
+                                                                />
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.1"
+                                                                    value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
+                                                                    onChange={(event) =>
+                                                                        updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                    }
+                                                                    className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                                                                    placeholder="Height"
+                                                                />
+                                                                <select
+                                                                    value={dimensionUnit}
+                                                                    onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
+                                                                    className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                                                                >
+                                                                    <option value="mm">mm</option>
+                                                                    <option value="cm">cm</option>
+                                                                    <option value="m">m</option>
+                                                                    <option value="yd">yd</option>
+                                                                </select>
+                                                            </div>
+
+                                                            {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
+                                                                <p className="mt-2 text-sm text-red-500">
+                                                                    {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="w-full space-y-3">
+                                                            <div>
+                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
+                                                                <select
+                                                                    value={data.shipment.shipmentType || ""}
+                                                                    onChange={(event) => handleShipmentTypeChange(event.target.value)}
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                >
+                                                                    <option value="">Select type</option>
+                                                                    {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                                                        <option key={`shipment-type-${option.value}`} value={option.value}>
+                                                                            {option.label}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 border-t border-[#E4EAF5] pt-4">
+                                                        {selectedRouteType === "international" && (
+                                                            <>
+                                                                <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                                                                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                                    {DIMENSION_ASSIST_PRESETS.map((preset) => {
+                                                                        const hasMatchingBase = itemLength === preset.lengthCm
+                                                                            && itemWidth === preset.widthCm;
+                                                                        const isActive = preset.prefillHeight
+                                                                            ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                                                            : hasMatchingBase;
+
+                                                                        return (
+                                                                            <button
+                                                                                key={`preset-${index}-${preset.id}`}
+                                                                                type="button"
+                                                                                onClick={() => applyDimensionPreset(index, preset)}
+                                                                                className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                                                                    ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                                                                    : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                                                                    }`}
+                                                                            >
+                                                                                {isActive && (
+                                                                                    <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                                                                        ✓
+                                                                                    </span>
+                                                                                )}
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <img
+                                                                                        src={preset.imageSrc}
+                                                                                        alt={preset.imageAlt}
+                                                                                        className="h-10 w-20 object-contain"
+                                                                                    />
+                                                                                    <div>
+                                                                                        <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                                                                        <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </>
                                                         )}
-                                                    </div>
-                                                </div>
 
-                                                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
-                                                    <div>
-                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                            Package weight*
-                                                        </label>
+                                                        <div className="mt-5">
+                                                            <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
+                                                            <div className="mt-3 flex items-center gap-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={Boolean(item.nonStackable)}
+                                                                    onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                    className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                                />
+                                                                <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
 
-                                                        <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                value={toDisplayValue(item.weightKg, weightFactor, 2)}
-                                                                onChange={(event) =>
-                                                                    updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
-                                                                }
-                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Weight"
-                                                            />
-                                                            <select
-                                                                value={weightUnit}
-                                                                onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
-                                                                className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                            >
-                                                                <option value="kg">kg</option>
-                                                                <option value="oz">lb</option>
-                                                            </select>
-                                                        </div>
-                                                        {errors[`packages.${index}.weightKg`] && (
-                                                            <p className="mt-2 text-sm text-red-500">
-                                                                {errors[`packages.${index}.weightKg`]}
-                                                            </p>
-                                                        )}
-                                                    </div>
+                                                                <div className="group relative">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
+                                                                        aria-label="Why do we need this information"
+                                                                    >
+                                                                        ?
+                                                                    </button>
 
-                                                    <div>
-                                                        <div className="mb-2 flex items-center gap-2">
-                                                            <label className="block text-sm font-medium text-[#0B1739]">
-                                                                Dimensions *
-                                                            </label>
-                                                        </div>
-
-                                                        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.1"
-                                                                value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
-                                                                onChange={(event) =>
-                                                                    updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                }
-                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Length"
-                                                            />
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.1"
-                                                                value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
-                                                                onChange={(event) =>
-                                                                    updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                }
-                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Width"
-                                                            />
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.1"
-                                                                value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
-                                                                onChange={(event) =>
-                                                                    updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                }
-                                                                className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                placeholder="Height"
-                                                            />
-                                                            <select
-                                                                value={dimensionUnit}
-                                                                onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
-                                                                className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                            >
-                                                                <option value="mm">mm</option>
-                                                                <option value="cm">cm</option>
-                                                                <option value="m">m</option>
-                                                                <option value="yd">yd</option>
-                                                            </select>
-                                                        </div>
-
-                                                        {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
-                                                            <p className="mt-2 text-sm text-red-500">
-                                                                {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="w-full space-y-3">
-                                                        <div>
-                                                            <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
-                                                            <select
-                                                                value={data.shipment.shipmentType || ""}
-                                                                onChange={(event) => handleShipmentTypeChange(event.target.value)}
-                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                            >
-                                                                <option value="">Select type</option>
-                                                                {SHIPMENT_TYPE_OPTIONS.map((option) => (
-                                                                    <option key={`shipment-type-${option.value}`} value={option.value}>
-                                                                        {option.label}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-4 border-t border-[#E4EAF5] pt-4">
-                                                    {selectedRouteType === "international" && (
-                                                        <>
-                                                            <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
-                                                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                                                {DIMENSION_ASSIST_PRESETS.map((preset) => {
-                                                                    const hasMatchingBase = itemLength === preset.lengthCm
-                                                                        && itemWidth === preset.widthCm;
-                                                                    const isActive = preset.prefillHeight
-                                                                        ? (hasMatchingBase && itemHeight === preset.heightCm)
-                                                                        : hasMatchingBase;
-
-                                                                    return (
-                                                                        <button
-                                                                            key={`preset-${index}-${preset.id}`}
-                                                                            type="button"
-                                                                            onClick={() => applyDimensionPreset(index, preset)}
-                                                                            className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
-                                                                                ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
-                                                                                : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
-                                                                                }`}
-                                                                        >
-                                                                            {isActive && (
-                                                                                <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
-                                                                                    ✓
-                                                                                </span>
-                                                                            )}
-                                                                            <div className="flex items-center gap-3">
-                                                                                <img
-                                                                                    src={preset.imageSrc}
-                                                                                    alt={preset.imageAlt}
-                                                                                    className="h-10 w-20 object-contain"
-                                                                                />
-                                                                                <div>
-                                                                                    <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
-                                                                                    <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </>
-                                                    )}
-
-                                                    <div className="mt-5">
-                                                        <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
-                                                        <div className="mt-3 flex items-center gap-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={Boolean(item.nonStackable)}
-                                                                onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
-                                                                className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                            />
-                                                            <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
-
-                                                            <div className="group relative">
-                                                                <button
-                                                                    type="button"
-                                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
-                                                                    aria-label="Why do we need this information"
-                                                                >
-                                                                    ?
-                                                                </button>
-
-                                                                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
-                                                                    <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
-                                                                    <p className="font-semibold">Why do we need this information?</p>
-                                                                    <p className="mt-2 leading-6">
-                                                                        Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
-                                                                    </p>
+                                                                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                                                                        <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
+                                                                        <p className="font-semibold">Why do we need this information?</p>
+                                                                        <p className="mt-2 leading-6">
+                                                                            Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                {data.shipment.shipmentType === "other" && (
-                                                    <div className="w-full">
-                                                        <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
-                                                        <textarea
-                                                            value={data.shipment.shipmentTypeDescription || ""}
-                                                            onChange={(event) => setData("shipment", {
-                                                                ...data.shipment,
-                                                                shipmentTypeDescription: event.target.value,
-                                                            })}
-                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                            placeholder="Describe the shipment type"
-                                                        />
+                                                    {data.shipment.shipmentType === "other" && (
+                                                        <div className="w-full">
+                                                            <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
+                                                            <textarea
+                                                                value={data.shipment.shipmentTypeDescription || ""}
+                                                                onChange={(event) => setData("shipment", {
+                                                                    ...data.shipment,
+                                                                    shipmentTypeDescription: event.target.value,
+                                                                })}
+                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                placeholder="Describe the shipment type"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
+                                                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                                        <label className="inline-flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 accent-[#0955AC]"
+                                                                checked={paymentOptions.all}
+                                                                onChange={(event) => updatePaymentOptions("all", event.target.checked)}
+                                                            />
+                                                            All
+                                                        </label>
+                                                        <label className="inline-flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 accent-[#0955AC]"
+                                                                checked={paymentOptions.cod}
+                                                                onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
+                                                            />
+                                                            COD
+                                                        </label>
+                                                        <label className="inline-flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 accent-[#0955AC]"
+                                                                checked={paymentOptions.card}
+                                                                onChange={(event) => updatePaymentOptions("card", event.target.checked)}
+                                                            />
+                                                            Card
+                                                        </label>
                                                     </div>
-                                                )}
-                                                <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
-                                                <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4 accent-[#0955AC]"
-                                                            checked={paymentOptions.all}
-                                                            onChange={(event) => updatePaymentOptions("all", event.target.checked)}
-                                                        />
-                                                        All
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4 accent-[#0955AC]"
-                                                            checked={paymentOptions.cod}
-                                                            onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
-                                                        />
-                                                        COD
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4 accent-[#0955AC]"
-                                                            checked={paymentOptions.card}
-                                                            onChange={(event) => updatePaymentOptions("card", event.target.checked)}
-                                                        />
-                                                        Card
-                                                    </label>
+
                                                 </div>
-
-
-                                            </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -3684,23 +3760,44 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
                         {!showDetails && (
                             <div className="mt-8 flex flex-col items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={handleContinueToDetails}
-                                    disabled={!isReadyToPlace || isPlacing}
-                                    className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                                        }`}
-                                >
-                                    {isPlacing ? 'Preparing details...' : 'Continue'}
-                                </button>
-                                {!isReadyToPlace && (
-                                    <p className="text-xs text-[#D14343]">
-                                        {hasRequiredDetails
-                                            ? 'Select a courier service for each package to continue.'
-                                            : !hasPaymentOption
-                                                ? 'Select at least one payment option to continue.'
-                                                : 'Complete all required fields before continuing.'}
-                                    </p>
+                                {shouldShowDescribeShipmentCta ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={revealShipmentDetailsSection}
+                                            disabled={!hasLocationDetailsForDescribe}
+                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasLocationDetailsForDescribe ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                                }`}
+                                        >
+                                            Describe shipment
+                                        </button>
+                                        {!hasLocationDetailsForDescribe && (
+                                            <p className="text-xs text-[#D14343]">
+                                                Complete From and To location details to continue.
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleContinueToDetails}
+                                            disabled={!isReadyToPlace || isPlacing}
+                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                                }`}
+                                        >
+                                            {isPlacing ? 'Preparing details...' : 'Continue'}
+                                        </button>
+                                        {!isReadyToPlace && (
+                                            <p className="text-xs text-[#D14343]">
+                                                {hasRequiredDetails
+                                                    ? 'Select a courier service for each package to continue.'
+                                                    : !hasPaymentOption
+                                                        ? 'Select at least one payment option to continue.'
+                                                        : 'Complete all required fields before continuing.'}
+                                            </p>
+                                        )}
+                                    </>
                                 )}
                                 {submitError && (
                                     <p className="text-xs text-[#D14343]">
