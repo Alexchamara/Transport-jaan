@@ -3220,7 +3220,7 @@ class VendorCourierDashboardController extends Controller
                 return [
                     'id' => $shipment->id,
                     'bookingNumber' => $shipment->reference,
-                    'bookingDate' => optional($shipment->created_at)->format('Y-m-d H:i'),
+                    'bookingDate' => $this->formatCourierProfileDateTime($shipment->created_at),
                     'trackingNumber' => $this->trackingNumber($shipment),
                     'service' => $this->normalizeServiceLabel($shipment->service_level),
                     'provider' => (string) (optional($shipment->packages->first())->courier_provider_name ?? 'Unspecified'),
@@ -3417,7 +3417,7 @@ class VendorCourierDashboardController extends Controller
         return [
             'metrics' => $metrics,
             'rows' => $pagedRows,
-            'generatedAt' => now()->format('Y-m-d H:i:s'),
+            'generatedAt' => $this->formatCourierProfileDateTime(now()),
             'filters' => array_merge($filters, ['page' => $page]),
             'pagination' => [
                 'page' => $page,
@@ -3560,7 +3560,7 @@ class VendorCourierDashboardController extends Controller
 
                 fputcsv($handle, [
                     $shipment->reference,
-                    optional($shipment->created_at)->format('Y-m-d H:i'),
+                    $this->formatCourierProfileDateTime($shipment->created_at),
                     $this->trackingNumber($shipment),
                     $this->resolveCategory($shipment),
                     $this->normalizeServiceLabel($shipment->service_level),
@@ -5863,7 +5863,7 @@ class VendorCourierDashboardController extends Controller
                 return $value->copy()->setTimezone($timezone)->format('Y-m-d H:i');
             }
 
-            return Carbon::parse((string) $value, 'UTC')
+            return Carbon::parse((string) $value, (string) config('app.timezone', 'UTC'))
                 ->setTimezone($timezone)
                 ->format('Y-m-d H:i');
         } catch (\Throwable) {
