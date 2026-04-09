@@ -86,7 +86,9 @@ Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
 Route::prefix('couriers')->name('couriers.')->group(function () {
-    Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
+    Route::get('/create', function () {
+        return redirect()->route('couriers.flow.create', ['flow' => 'domestic']);
+    })->name('create');
     Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
     Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
     Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
