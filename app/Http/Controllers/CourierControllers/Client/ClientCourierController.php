@@ -553,6 +553,7 @@ class ClientCourierController extends Controller
             ->orderBy('name_en')
             ->orderBy('iso2')
             ->get()
+            ->toBase()
             ->map(function (LocationCountry $country) {
                 $code = strtoupper(trim((string) ($country->iso2 ?? '')));
                 $iso3 = strtoupper(trim((string) ($country->iso3 ?? '')));
