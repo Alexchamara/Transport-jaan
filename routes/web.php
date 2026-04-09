@@ -103,6 +103,9 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/cities/by-postal-code', [ClientCourierController::class, 'lookupCityByPostalCode'])
         ->middleware('throttle:60,1')
         ->name('cities.by-postal-code');
+    Route::get('/cities/search', [ClientCourierController::class, 'searchDomesticCities'])
+        ->middleware('throttle:120,1')
+        ->name('cities.search');
 
     Route::prefix('{flow}')
         ->whereIn('flow', ['domestic', 'international'])
@@ -122,6 +125,9 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
             Route::get('/cities/by-postal-code', [ClientCourierController::class, 'lookupCityByPostalCode'])
                 ->middleware('throttle:60,1')
                 ->name('cities.by-postal-code');
+            Route::get('/cities/search', [ClientCourierController::class, 'searchDomesticCities'])
+                ->middleware('throttle:120,1')
+                ->name('cities.search');
             Route::post('/', [ClientCourierController::class, 'store'])->name('store');
             Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
                 ->whereNumber('shipment')

@@ -18,21 +18,7 @@ import {
 } from "./courierPricing";
 
 const COUNTRY_LOOKUP_DEBOUNCE_MS = 300;
-
-const SRI_LANKAN_CITIES = [
-    "Colombo",
-    "Kandy",
-    "Galle",
-    "Gampaha",
-    "Kalutara",
-    "Kurunegala",
-    "Matara",
-    "Jaffna",
-    "Negombo",
-    "Anuradhapura",
-    "Badulla",
-    "Ratnapura",
-];
+const DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS = 300;
 
 const DOMESTIC_COUNTRY_CODE = "LK";
 const DOMESTIC_COUNTRY_LABEL = "Sri Lanka";
@@ -155,6 +141,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         cityByPostal: flowRoutesOverride.cityByPostal
             || flowRoutesFromPage.cityByPostal
             || `${flowBasePath}/cities/by-postal-code`,
+        domesticCitySearch: flowRoutesOverride.domesticCitySearch
+            || flowRoutesFromPage.domesticCitySearch
+            || `${flowBasePath}/cities/search`,
         store: flowRoutesOverride.store || flowRoutesFromPage.store || `${flowBasePath}`,
         createByFlow: {
             domestic: flowRoutesOverride.createByFlow?.domestic
@@ -311,6 +300,22 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         sender: [],
         recipient: [],
     });
+    const [domesticCitySuggestions, setDomesticCitySuggestions] = useState({
+        sender: [],
+        recipient: [],
+    });
+    const [domesticCityLoading, setDomesticCityLoading] = useState({
+        sender: false,
+        recipient: false,
+    });
+    const domesticCityAbortRef = useRef({
+        sender: null,
+        recipient: null,
+    });
+    const domesticCityTimerRef = useRef({
+        sender: null,
+        recipient: null,
+    });
     const cityLookupAbortRef = useRef({
         sender: null,
         recipient: null,
@@ -398,10 +403,78 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setPostalMismatchNotice(party, false);
     };
 
-    const cityOptions = useMemo(
-        () => SRI_LANKAN_CITIES.map((city) => ({ value: city, label: city })),
-        []
-    );
+    const fetchDomesticCitySuggestions = (party, query) => {
+        const normalized = String(query || "").trim();
+
+        // Clear any pending timer
+        if (domesticCityTimerRef.current[party]) {
+            clearTimeout(domesticCityTimerRef.current[party]);
+            domesticCityTimerRef.current[party] = null;
+        }
+
+        // Abort any in-flight request
+        if (domesticCityAbortRef.current[party]) {
+            domesticCityAbortRef.current[party].abort();
+            domesticCityAbortRef.current[party] = null;
+        }
+
+        if (normalized.length < 1) {
+            setDomesticCitySuggestions((prev) => ({ ...prev, [party]: [] }));
+            setDomesticCityLoading((prev) => ({ ...prev, [party]: false }));
+            return;
+        }
+
+        setDomesticCityLoading((prev) => ({ ...prev, [party]: true }));
+
+        domesticCityTimerRef.current[party] = setTimeout(async () => {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            if (controller) {
+                domesticCityAbortRef.current[party] = controller;
+            }
+
+            try {
+                const params = new URLSearchParams({ q: normalized, limit: "20" });
+                const response = await fetch(
+                    `${flowRoutes.domesticCitySearch}?${params.toString()}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Accept: "application/json",
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                        credentials: "same-origin",
+                        signal: controller?.signal,
+                    }
+                );
+
+                if (!response.ok) {
+                    setDomesticCitySuggestions((prev) => ({ ...prev, [party]: [] }));
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                const cities = Array.isArray(payload?.cities)
+                    ? payload.cities.map((c) => ({
+                        value: String(c.nameEn || ""),
+                        label: String(c.displayName || c.nameEn || ""),
+                        postcode: c.postcode || null,
+                    }))
+                    : [];
+
+                setDomesticCitySuggestions((prev) => ({ ...prev, [party]: cities }));
+            } catch (error) {
+                if (error?.name === "AbortError") {
+                    return;
+                }
+                setDomesticCitySuggestions((prev) => ({ ...prev, [party]: [] }));
+            } finally {
+                if (domesticCityAbortRef.current[party] === controller) {
+                    domesticCityAbortRef.current[party] = null;
+                }
+                setDomesticCityLoading((prev) => ({ ...prev, [party]: false }));
+            }
+        }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    };
 
     const countryOptions = useMemo(() => {
         const fallbackOptions = Array.isArray(countries)
@@ -1146,6 +1219,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             [fieldKey]: value,
         }));
         updateAddressCity(party, value);
+
+        if (selectedRouteType === "domestic") {
+            fetchDomesticCitySuggestions(party, value);
+        }
     };
 
     const handleCountrySearchChange = (party, fieldKey, value) => {
@@ -2358,21 +2435,33 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         <div className="relative">
                                                                             <input
                                                                                 value={locationSearch.senderCity}
-                                                                                onChange={(event) => handleCitySearchChange("sender", "senderCity", event.target.value)}
-                                                                                onFocus={() => setActiveLocationField(`sender-city-${index}`)}
+                                                                                onChange={(event) => {
+                                                                                    setActiveLocationField(`sender-city-${index}`);
+                                                                                    handleCitySearchChange("sender", "senderCity", event.target.value);
+                                                                                }}
+                                                                                onFocus={() => {
+                                                                                    setActiveLocationField(`sender-city-${index}`);
+                                                                                    if (locationSearch.senderCity.length >= 1) {
+                                                                                        fetchDomesticCitySuggestions("sender", locationSearch.senderCity);
+                                                                                    }
+                                                                                }}
                                                                                 onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
                                                                                 className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Select Pickup City"
+                                                                                placeholder="Type to search city..."
                                                                             />
-                                                                            {activeLocationField === `sender-city-${index}` && (
+                                                                            {domesticCityLoading.sender && (
+                                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                            )}
+                                                                            {activeLocationField === `sender-city-${index}` && domesticCitySuggestions.sender.length > 0 && (
                                                                                 <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                    {filterLocationOptions(cityOptions, locationSearch.senderCity).map((option) => (
+                                                                                    {domesticCitySuggestions.sender.map((option) => (
                                                                                         <button
                                                                                             key={`pickup-city-${index}-${option.value}`}
                                                                                             type="button"
                                                                                             onMouseDown={(event) => {
                                                                                                 event.preventDefault();
                                                                                                 handleLocationSelect("sender", "senderCity", option, "city");
+                                                                                                setDomesticCitySuggestions((prev) => ({ ...prev, sender: [] }));
                                                                                             }}
                                                                                             className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
                                                                                         >
@@ -2388,21 +2477,33 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         <div className="relative">
                                                                             <input
                                                                                 value={locationSearch.recipientCity}
-                                                                                onChange={(event) => handleCitySearchChange("recipient", "recipientCity", event.target.value)}
-                                                                                onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
+                                                                                onChange={(event) => {
+                                                                                    setActiveLocationField(`recipient-city-${index}`);
+                                                                                    handleCitySearchChange("recipient", "recipientCity", event.target.value);
+                                                                                }}
+                                                                                onFocus={() => {
+                                                                                    setActiveLocationField(`recipient-city-${index}`);
+                                                                                    if (locationSearch.recipientCity.length >= 1) {
+                                                                                        fetchDomesticCitySuggestions("recipient", locationSearch.recipientCity);
+                                                                                    }
+                                                                                }}
                                                                                 onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
                                                                                 className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                                placeholder="Select Destination City"
+                                                                                placeholder="Type to search city..."
                                                                             />
-                                                                            {activeLocationField === `recipient-city-${index}` && (
+                                                                            {domesticCityLoading.recipient && (
+                                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                            )}
+                                                                            {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
                                                                                 <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
-                                                                                    {filterLocationOptions(cityOptions, locationSearch.recipientCity).map((option) => (
+                                                                                    {domesticCitySuggestions.recipient.map((option) => (
                                                                                         <button
                                                                                             key={`destination-city-${index}-${option.value}`}
                                                                                             type="button"
                                                                                             onMouseDown={(event) => {
                                                                                                 event.preventDefault();
                                                                                                 handleLocationSelect("recipient", "recipientCity", option, "city");
+                                                                                                setDomesticCitySuggestions((prev) => ({ ...prev, recipient: [] }));
                                                                                             }}
                                                                                             className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
                                                                                         >
