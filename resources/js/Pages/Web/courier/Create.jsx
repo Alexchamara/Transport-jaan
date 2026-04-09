@@ -227,6 +227,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     state: "",
                     postalCode: "",
                     country: isDomestic ? DOMESTIC_COUNTRY_CODE : "",
+                    isResidential: false,
                     instructions: "",
                 },
             },
@@ -515,6 +516,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             ...previous,
             [party]: "",
         }));
+    };
+
+    const updateAddressResidential = (party, isResidential) => {
+        const currentParty = party === "recipient" ? data.recipient : data.sender;
+
+        setData(party, {
+            ...currentParty,
+            address: {
+                ...currentParty.address,
+                isResidential,
+            },
+        });
     };
 
     const setPostalMismatchNotice = (party, shouldShow) => {
@@ -2602,6 +2615,22 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 </div>
                                                                             )}
                                                                         </div>
+                                                                    </div>
+
+                                                                    <div className="mt-3 flex items-center gap-3">
+                                                                        <input
+                                                                            id={`recipient-residential-${index}`}
+                                                                            type="checkbox"
+                                                                            checked={Boolean(data.recipient?.address?.isResidential)}
+                                                                            onChange={(event) => updateAddressResidential("recipient", event.target.checked)}
+                                                                            className="h-6 w-6 rounded-md border border-[#B8C4D8] accent-[#4D8A26]"
+                                                                        />
+                                                                        <label
+                                                                            htmlFor={`recipient-residential-${index}`}
+                                                                            className="text-base leading-none text-[#0B1739]"
+                                                                        >
+                                                                            This is a residential address
+                                                                        </label>
                                                                     </div>
                                                                 </div>
                                                             </>
