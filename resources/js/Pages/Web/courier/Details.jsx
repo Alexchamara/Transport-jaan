@@ -13,6 +13,17 @@ import {
 const USD_TO_LKR_RATE = 325;
 const DEFAULT_CURRENCY = "LKR";
 
+const normalizeCountryCode = (value) => String(value || "").trim().toUpperCase();
+
+const resolveShipmentCategory = (payload) => {
+    const senderCountry = normalizeCountryCode(payload?.sender?.address?.country);
+    const recipientCountry = normalizeCountryCode(payload?.recipient?.address?.country);
+
+    return senderCountry === "LK" && recipientCountry === "LK"
+        ? "domestic"
+        : "international";
+};
+
 const Details = ({
     inline = false,
     pagePropsOverride = null,
@@ -623,6 +634,39 @@ const Details = ({
             ? Math.round(packageDeclaredValueTotal * 100) / 100
             : null;
     }, [data?.shipment?.codEnabled, data?.shipment?.estimatedValue, packages]);
+
+    const shipmentCategory = useMemo(
+        () => resolveShipmentCategory(data),
+        [data?.sender?.address?.country, data?.recipient?.address?.country],
+    );
+    const codAvailableForRoute = shipmentCategory === "domestic";
+
+    useEffect(() => {
+        if (codAvailableForRoute) {
+            return;
+        }
+
+        setData((previous) => {
+            const shipment = previous.shipment || {};
+            const codAlreadyCleared = !Boolean(shipment.codEnabled)
+                && (shipment.codAmount === "" || shipment.codAmount === null || shipment.codAmount === undefined)
+                && (shipment.codPaymentMethod === "" || shipment.codPaymentMethod === null || shipment.codPaymentMethod === undefined);
+
+            if (codAlreadyCleared) {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                shipment: {
+                    ...shipment,
+                    codEnabled: false,
+                    codAmount: "",
+                    codPaymentMethod: "",
+                },
+            };
+        });
+    }, [codAvailableForRoute, setData]);
 
     const packageMetrics = useMemo(() => computePackageMetrics(packages), [packages]);
     const quoteMatrix = useMemo(
@@ -1556,6 +1600,7 @@ const Details = ({
                                         id="shipment-cod-enabled"
                                         type="checkbox"
                                         checked={Boolean(data.shipment.codEnabled)}
+                                        disabled={!codAvailableForRoute}
                                         onChange={(event) => {
                                             const nextValue = event.target.checked;
                                             updateNestedField("shipment.codEnabled", nextValue);
@@ -1564,18 +1609,24 @@ const Details = ({
                                                 updateNestedField("shipment.codPaymentMethod", "");
                                             }
                                         }}
-                                        className="h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC]"
+                                        className={`h-4 w-4 rounded border-[#B8C5E0] text-[#0955AC] focus:ring-[#0955AC] ${!codAvailableForRoute ? "cursor-not-allowed opacity-60" : ""}`}
                                     />
                                     <label htmlFor="shipment-cod-enabled" className="text-xs font-medium text-[#0B1739]">
                                         Enable Cash on Delivery (domestic only)
                                     </label>
                                 </div>
 
+                                {!codAvailableForRoute && (
+                                    <p className="mt-2 text-xs text-[#6B7280]">
+                                        COD is disabled for international routes.
+                                    </p>
+                                )}
+
                                 {combinedErrors["shipment.codEnabled"] && (
                                     <p className="mt-2 text-xs text-red-500">{combinedErrors["shipment.codEnabled"]}</p>
                                 )}
 
-                                {Boolean(data.shipment.codEnabled) && (
+                                {codAvailableForRoute && Boolean(data.shipment.codEnabled) && (
                                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">COD amount ({data.reviewContext?.displayCurrency || DEFAULT_CURRENCY})</label>
