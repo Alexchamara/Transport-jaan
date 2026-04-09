@@ -196,6 +196,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const quotesTableRef = useRef(null);
     const quotesAutoScrollRef = useRef(false);
     const shipmentDimensionSectionRef = useRef(null);
+    const shipmentSectionAutoScrollPendingRef = useRef(false);
     const detailsSectionRef = useRef(null);
     const summarySectionRef = useRef(null);
 
@@ -1424,19 +1425,33 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         data.packages.forEach((_, packageIndex) => {
             nextVisibleState[packageIndex] = true;
         });
+        shipmentSectionAutoScrollPendingRef.current = true;
         setRevealedPackageDetails(nextVisibleState);
-
-        if (typeof window !== "undefined") {
-            window.requestAnimationFrame(() => {
-                window.requestAnimationFrame(() => {
-                    const target = shipmentDimensionSectionRef.current;
-                    if (target) {
-                        target.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                });
-            });
-        }
     };
+
+    useEffect(() => {
+        if (!shipmentSectionAutoScrollPendingRef.current || !shouldShowShipmentDetailsSection || typeof window === "undefined") {
+            return undefined;
+        }
+
+        let secondFrameId = null;
+        const firstFrameId = window.requestAnimationFrame(() => {
+            secondFrameId = window.requestAnimationFrame(() => {
+                const target = shipmentDimensionSectionRef.current;
+                if (target) {
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+                shipmentSectionAutoScrollPendingRef.current = false;
+            });
+        });
+
+        return () => {
+            window.cancelAnimationFrame(firstFrameId);
+            if (secondFrameId !== null) {
+                window.cancelAnimationFrame(secondFrameId);
+            }
+        };
+    }, [shouldShowShipmentDetailsSection, data.packages.length]);
 
     useEffect(() => {
         if (selectedRouteType === "international") {
@@ -2712,243 +2727,256 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                             {isPackageDetailsVisible && (
                                                 <div
                                                     ref={index === 0 ? shipmentDimensionSectionRef : null}
-                                                    className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm"
+                                                    className="space-y-4 pt-11"
                                                 >
-                                                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
+                                                    {index === 0 && (
                                                         <div>
-                                                            <label className="mb-2 block text-sm font-medium text-[#0B1739]">
-                                                                Package weight*
-                                                            </label>
-
-                                                            <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                    value={toDisplayValue(item.weightKg, weightFactor, 2)}
-                                                                    onChange={(event) =>
-                                                                        updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
-                                                                    }
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="Weight"
-                                                                />
-                                                                <select
-                                                                    value={weightUnit}
-                                                                    onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
-                                                                    className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                >
-                                                                    <option value="kg">kg</option>
-                                                                    <option value="oz">lb</option>
-                                                                </select>
-                                                            </div>
-                                                            {errors[`packages.${index}.weightKg`] && (
-                                                                <p className="mt-2 text-sm text-red-500">
-                                                                    {errors[`packages.${index}.weightKg`]}
-                                                                </p>
-                                                            )}
+                                                            <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment</h2>
+                                                            <p className="mt-2 text-sm text-[#5B6887]">
+                                                                Use the quick calculator layout to set package weight, dimensions, and shipment options.
+                                                            </p>
                                                         </div>
+                                                    )}
 
-                                                        <div>
-                                                            <div className="mb-2 flex items-center gap-2">
-                                                                <label className="block text-sm font-medium text-[#0B1739]">
-                                                                    Dimensions *
-                                                                </label>
-                                                            </div>
-
-                                                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    step="0.1"
-                                                                    value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
-                                                                    onChange={(event) =>
-                                                                        updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                    }
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="Length"
-                                                                />
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    step="0.1"
-                                                                    value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
-                                                                    onChange={(event) =>
-                                                                        updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                    }
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
-                                                                    placeholder="Width"
-                                                                />
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    step="0.1"
-                                                                    value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
-                                                                    onChange={(event) =>
-                                                                        updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
-                                                                    }
-                                                                    className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                    placeholder="Height"
-                                                                />
-                                                                <select
-                                                                    value={dimensionUnit}
-                                                                    onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
-                                                                    className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
-                                                                >
-                                                                    <option value="mm">mm</option>
-                                                                    <option value="cm">cm</option>
-                                                                    <option value="m">m</option>
-                                                                    <option value="yd">yd</option>
-                                                                </select>
-                                                            </div>
-
-                                                            {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
-                                                                <p className="mt-2 text-sm text-red-500">
-                                                                    {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
-                                                                </p>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="w-full space-y-3">
+                                                    <div
+                                                        className="rounded-2xl border border-[#D6DEEB] bg-white px-5 py-6 shadow-sm"
+                                                    >
+                                                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_2fr_1.2fr] xl:items-start">
                                                             <div>
-                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
-                                                                <select
-                                                                    value={data.shipment.shipmentType || ""}
-                                                                    onChange={(event) => handleShipmentTypeChange(event.target.value)}
-                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                >
-                                                                    <option value="">Select type</option>
-                                                                    {SHIPMENT_TYPE_OPTIONS.map((option) => (
-                                                                        <option key={`shipment-type-${option.value}`} value={option.value}>
-                                                                            {option.label}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
+                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">
+                                                                    Package weight*
+                                                                </label>
+
+                                                                <div className="mt-3 grid grid-cols-[1fr_90px] gap-2">
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        value={toDisplayValue(item.weightKg, weightFactor, 2)}
+                                                                        onChange={(event) =>
+                                                                            updatePackage(index, "weightKg", toBaseValue(event.target.value, weightFactor))
+                                                                        }
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                        placeholder="Weight"
+                                                                    />
+                                                                    <select
+                                                                        value={weightUnit}
+                                                                        onChange={(event) => updatePackage(index, "weightUnit", event.target.value)}
+                                                                        className="h-[52px] w-[90px] rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    >
+                                                                        <option value="kg">kg</option>
+                                                                        <option value="oz">lb</option>
+                                                                    </select>
+                                                                </div>
+                                                                {errors[`packages.${index}.weightKg`] && (
+                                                                    <p className="mt-2 text-sm text-red-500">
+                                                                        {errors[`packages.${index}.weightKg`]}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+
+                                                            <div>
+                                                                <div className="mb-2 flex items-center gap-2">
+                                                                    <label className="block text-sm font-medium text-[#0B1739]">
+                                                                        Dimensions *
+                                                                    </label>
+                                                                </div>
+
+                                                                <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1fr_90px]">
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.1"
+                                                                        value={toDisplayValue(item.lengthCm, dimensionFactor, 2)}
+                                                                        onChange={(event) =>
+                                                                            updatePackage(index, "lengthCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                        }
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                        placeholder="Length"
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.1"
+                                                                        value={toDisplayValue(item.widthCm, dimensionFactor, 2)}
+                                                                        onChange={(event) =>
+                                                                            updatePackage(index, "widthCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                        }
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                        placeholder="Width"
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.1"
+                                                                        value={toDisplayValue(item.heightCm, dimensionFactor, 2)}
+                                                                        onChange={(event) =>
+                                                                            updatePackage(index, "heightCm", toBaseValue(event.target.value, dimensionFactor))
+                                                                        }
+                                                                        className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] placeholder:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                                                                        placeholder="Height"
+                                                                    />
+                                                                    <select
+                                                                        value={dimensionUnit}
+                                                                        onChange={(event) => updatePackage(index, "dimensionUnit", event.target.value)}
+                                                                        className="col-span-2 h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white pl-3 pr-8 text-sm font-semibold leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none md:col-span-1"
+                                                                    >
+                                                                        <option value="mm">mm</option>
+                                                                        <option value="cm">cm</option>
+                                                                        <option value="m">m</option>
+                                                                        <option value="yd">yd</option>
+                                                                    </select>
+                                                                </div>
+
+                                                                {(errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]) && (
+                                                                    <p className="mt-2 text-sm text-red-500">
+                                                                        {errors[`packages.${index}.lengthCm`] || errors[`packages.${index}.widthCm`] || errors[`packages.${index}.heightCm`]}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="w-full space-y-3">
+                                                                <div>
+                                                                    <label className="mb-2 block text-sm font-medium text-[#0B1739]">Type</label>
+                                                                    <select
+                                                                        value={data.shipment.shipmentType || ""}
+                                                                        onChange={(event) => handleShipmentTypeChange(event.target.value)}
+                                                                        className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    >
+                                                                        <option value="">Select type</option>
+                                                                        {SHIPMENT_TYPE_OPTIONS.map((option) => (
+                                                                            <option key={`shipment-type-${option.value}`} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
 
-                                                    <div className="mt-4 border-t border-[#E4EAF5] pt-4">
-                                                        {selectedRouteType === "international" && (
-                                                            <>
-                                                                <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
-                                                                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                                                    {DIMENSION_ASSIST_PRESETS.map((preset) => {
-                                                                        const hasMatchingBase = itemLength === preset.lengthCm
-                                                                            && itemWidth === preset.widthCm;
-                                                                        const isActive = preset.prefillHeight
-                                                                            ? (hasMatchingBase && itemHeight === preset.heightCm)
-                                                                            : hasMatchingBase;
+                                                        <div className="mt-4 border-t border-[#E4EAF5] pt-4">
+                                                            {selectedRouteType === "international" && (
+                                                                <>
+                                                                    <p className="text-sm font-semibold text-[#0B1739]">Not sure about the sizes?</p>
+                                                                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                                                        {DIMENSION_ASSIST_PRESETS.map((preset) => {
+                                                                            const hasMatchingBase = itemLength === preset.lengthCm
+                                                                                && itemWidth === preset.widthCm;
+                                                                            const isActive = preset.prefillHeight
+                                                                                ? (hasMatchingBase && itemHeight === preset.heightCm)
+                                                                                : hasMatchingBase;
 
-                                                                        return (
-                                                                            <button
-                                                                                key={`preset-${index}-${preset.id}`}
-                                                                                type="button"
-                                                                                onClick={() => applyDimensionPreset(index, preset)}
-                                                                                className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
-                                                                                    ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
-                                                                                    : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
-                                                                                    }`}
-                                                                            >
-                                                                                {isActive && (
-                                                                                    <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
-                                                                                        ✓
-                                                                                    </span>
-                                                                                )}
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <img
-                                                                                        src={preset.imageSrc}
-                                                                                        alt={preset.imageAlt}
-                                                                                        className="h-10 w-20 object-contain"
-                                                                                    />
-                                                                                    <div>
-                                                                                        <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
-                                                                                        <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                            return (
+                                                                                <button
+                                                                                    key={`preset-${index}-${preset.id}`}
+                                                                                    type="button"
+                                                                                    onClick={() => applyDimensionPreset(index, preset)}
+                                                                                    className={`relative overflow-hidden rounded-lg border px-3 py-3 text-left transition ${isActive
+                                                                                        ? "border-[#0955AC] bg-white shadow-[0_2px_8px_rgba(9,85,172,0.12)]"
+                                                                                        : "border-[#D6DEEB] bg-white hover:border-[#AFC2E0] hover:bg-[#F8FBFF]"
+                                                                                        }`}
+                                                                                >
+                                                                                    {isActive && (
+                                                                                        <span className="absolute left-0 top-0 flex h-5 w-5 items-center justify-center rounded-br-md bg-[#0955AC] text-[11px] font-bold text-white">
+                                                                                            ✓
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <img
+                                                                                            src={preset.imageSrc}
+                                                                                            alt={preset.imageAlt}
+                                                                                            className="h-10 w-20 object-contain"
+                                                                                        />
+                                                                                        <div>
+                                                                                            <p className="text-sm font-semibold text-[#0B1739]">{preset.label}</p>
+                                                                                            <p className="text-sm text-[#5B6887]">{preset.sizeLabel}</p>
+                                                                                        </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </>
-                                                        )}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </>
+                                                            )}
 
-                                                        <div className="mt-5">
-                                                            <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
-                                                            <div className="mt-3 flex items-center gap-3">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(item.nonStackable)}
-                                                                    onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
-                                                                    className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                                />
-                                                                <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+                                                            <div className="mt-5">
+                                                                <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
+                                                                <div className="mt-3 flex items-center gap-3">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Boolean(item.nonStackable)}
+                                                                        onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                        className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                                    />
+                                                                    <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
 
-                                                                <div className="group relative">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
-                                                                        aria-label="Why do we need this information"
-                                                                    >
-                                                                        ?
-                                                                    </button>
+                                                                    <div className="group relative">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
+                                                                            aria-label="Why do we need this information"
+                                                                        >
+                                                                            ?
+                                                                        </button>
 
-                                                                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
-                                                                        <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
-                                                                        <p className="font-semibold">Why do we need this information?</p>
-                                                                        <p className="mt-2 leading-6">
-                                                                            Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
-                                                                        </p>
+                                                                        <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                                                                            <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
+                                                                            <p className="font-semibold">Why do we need this information?</p>
+                                                                            <p className="mt-2 leading-6">
+                                                                                Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                            </p>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
 
-                                                    {data.shipment.shipmentType === "other" && (
-                                                        <div className="w-full">
-                                                            <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
-                                                            <textarea
-                                                                value={data.shipment.shipmentTypeDescription || ""}
-                                                                onChange={(event) => setData("shipment", {
-                                                                    ...data.shipment,
-                                                                    shipmentTypeDescription: event.target.value,
-                                                                })}
-                                                                className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Describe the shipment type"
-                                                            />
+                                                        {data.shipment.shipmentType === "other" && (
+                                                            <div className="w-full">
+                                                                <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
+                                                                <textarea
+                                                                    value={data.shipment.shipmentTypeDescription || ""}
+                                                                    onChange={(event) => setData("shipment", {
+                                                                        ...data.shipment,
+                                                                        shipmentTypeDescription: event.target.value,
+                                                                    })}
+                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                    placeholder="Describe the shipment type"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
+                                                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                                            <label className="inline-flex items-center gap-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="h-4 w-4 accent-[#0955AC]"
+                                                                    checked={paymentOptions.all}
+                                                                    onChange={(event) => updatePaymentOptions("all", event.target.checked)}
+                                                                />
+                                                                All
+                                                            </label>
+                                                            <label className="inline-flex items-center gap-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="h-4 w-4 accent-[#0955AC]"
+                                                                    checked={paymentOptions.cod}
+                                                                    onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
+                                                                />
+                                                                COD
+                                                            </label>
+                                                            <label className="inline-flex items-center gap-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="h-4 w-4 accent-[#0955AC]"
+                                                                    checked={paymentOptions.card}
+                                                                    onChange={(event) => updatePaymentOptions("card", event.target.checked)}
+                                                                />
+                                                                Card
+                                                            </label>
                                                         </div>
-                                                    )}
-                                                    <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
-                                                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
-                                                        <label className="inline-flex items-center gap-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="h-4 w-4 accent-[#0955AC]"
-                                                                checked={paymentOptions.all}
-                                                                onChange={(event) => updatePaymentOptions("all", event.target.checked)}
-                                                            />
-                                                            All
-                                                        </label>
-                                                        <label className="inline-flex items-center gap-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="h-4 w-4 accent-[#0955AC]"
-                                                                checked={paymentOptions.cod}
-                                                                onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
-                                                            />
-                                                            COD
-                                                        </label>
-                                                        <label className="inline-flex items-center gap-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="h-4 w-4 accent-[#0955AC]"
-                                                                checked={paymentOptions.card}
-                                                                onChange={(event) => updatePaymentOptions("card", event.target.checked)}
-                                                            />
-                                                            Card
-                                                        </label>
-                                                    </div>
 
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
