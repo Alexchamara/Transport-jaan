@@ -2042,7 +2042,7 @@ class CourierTeamController extends Controller
                 return $value->copy()->setTimezone($timezone)->format('Y-m-d H:i');
             }
 
-            return Carbon::parse((string) $value, 'UTC')
+            return Carbon::parse((string) $value, (string) config('app.timezone', 'UTC'))
                 ->setTimezone($timezone)
                 ->format('Y-m-d H:i');
         } catch (\Throwable) {
