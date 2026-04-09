@@ -44,6 +44,9 @@ class CourierShipment extends Model
         'cod_requested_method',
         'cod_capability_id',
         'cod_policy_snapshot',
+        'cod_collection_status',
+        'cod_collected_amount',
+        'cod_collection_recorded_at',
         'currency_code',
         'estimated_cost',
         'actual_cost',
@@ -61,6 +64,8 @@ class CourierShipment extends Model
         'is_cod_enabled' => 'boolean',
         'cod_requested_amount' => 'decimal:2',
         'cod_policy_snapshot' => 'array',
+        'cod_collected_amount' => 'decimal:2',
+        'cod_collection_recorded_at' => 'datetime',
         'estimated_cost' => 'decimal:2',
         'actual_cost' => 'decimal:2',
     ];
