@@ -1473,6 +1473,55 @@ class ClientCourierController extends Controller
             ->all();
     }
 
+    public function searchDomesticCities(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $query   = trim((string) ($validated['q'] ?? ''));
+        $limit   = (int) ($validated['limit'] ?? 20);
+
+        if ($query === '' || mb_strlen($query) < 1) {
+            return response()->json(['cities' => []]);
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('location_cities')) {
+            return response()->json(['cities' => []]);
+        }
+
+        $rows = \Illuminate\Support\Facades\DB::table('location_cities')
+            ->select(['id', 'name_en', 'sub_name_en', 'postcode', 'district_id'])
+            ->where(function ($builder) use ($query) {
+                $builder->where('name_en', 'like', $query . '%')
+                        ->orWhere('name_en', 'like', '% ' . $query . '%')
+                        ->orWhere('sub_name_en', 'like', $query . '%');
+            })
+            ->orderByRaw("CASE WHEN LOWER(name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
+            ->orderBy('name_en')
+            ->limit($limit)
+            ->get();
+
+        $cities = $rows->map(function ($row) {
+            $subName = trim((string) ($row->sub_name_en ?? ''));
+            $subName = ($subName === '' || strtoupper($subName) === 'NULL') ? '' : $subName;
+            $displayName = $subName !== ''
+                ? $row->name_en . ' - ' . $subName
+                : $row->name_en;
+
+            return [
+                'id'          => (int) $row->id,
+                'nameEn'      => (string) $row->name_en,
+                'displayName' => $displayName,
+                'postcode'    => $row->postcode,
+                'districtId'  => (int) $row->district_id,
+            ];
+        })->values()->all();
+
+        return response()->json(['cities' => $cities]);
+    }
+
     public function review(Request $request)
     {
         $payload = $request->validate([
@@ -2611,6 +2660,7 @@ class ClientCourierController extends Controller
             'countrySuggestions' => "{$basePath}/countries/suggestions",
             'postalByCity' => "{$basePath}/postal-codes/by-city",
             'cityByPostal' => "{$basePath}/cities/by-postal-code",
+            'domesticCitySearch' => "{$basePath}/cities/search",
             'store' => $basePath,
             'createByFlow' => [
                 'domestic' => '/couriers/domestic/create',
