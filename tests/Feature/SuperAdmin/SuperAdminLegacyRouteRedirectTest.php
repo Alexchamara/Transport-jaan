@@ -41,6 +41,46 @@ class SuperAdminLegacyRouteRedirectTest extends TestCase
         $response->assertRedirect('/superadmin/settings/commission');
     }
 
+    public function test_core_legacy_superadmin_routes_redirect_to_canonical_lowercase_paths(): void
+    {
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+        ]);
+
+        $legacyRoutes = [
+            '/SuperAdmin/Analytics' => '/superadmin/analytics',
+            '/SuperAdmin/Users' => '/superadmin/users',
+            '/SuperAdmin/AddUser' => '/superadmin/users/create',
+            '/SuperAdmin/Vehicles' => '/superadmin/vehicles',
+            '/SuperAdmin/Warehouse' => '/superadmin/warehouse',
+        ];
+
+        foreach ($legacyRoutes as $legacyPath => $canonicalPath) {
+            $response = $this->actingAs($superAdmin)->get($legacyPath);
+            $response->assertRedirect($canonicalPath);
+        }
+    }
+
+    public function test_mixed_case_superadmin_routes_redirect_to_canonical_lowercase_paths(): void
+    {
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+        ]);
+
+        $mixedCaseRoutes = [
+            '/superadmin/Analytics' => '/superadmin/analytics',
+            '/superadmin/Users' => '/superadmin/users',
+            '/superadmin/AddUser' => '/superadmin/users/create',
+            '/superadmin/Vehicles' => '/superadmin/vehicles',
+            '/superadmin/Warehouse' => '/superadmin/warehouse',
+        ];
+
+        foreach ($mixedCaseRoutes as $legacyPath => $canonicalPath) {
+            $response = $this->actingAs($superAdmin)->get($legacyPath);
+            $response->assertRedirect($canonicalPath);
+        }
+    }
+
     public function test_non_superadmin_cannot_access_canonical_superadmin_payments_route(): void
     {
         $client = User::factory()->create([

@@ -427,15 +427,25 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'index'])->name('profile');
     Route::put('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'update'])->name('profile.update');
 
-    Route::get('/Analytics', function () {
+    // In-group mixed-case compatibility redirects.
+    Route::redirect('/Analytics', '/superadmin/analytics');
+    Route::redirect('/Users', '/superadmin/users');
+    Route::redirect('/AddUser', '/superadmin/users/create')->name('AddUser');
+    Route::redirect('/Vehicles', '/superadmin/vehicles');
+    Route::redirect('/Warehouse', '/superadmin/warehouse');
+    Route::redirect('/LandVehicleDetails', '/superadmin/land-vehicle-details');
+    Route::redirect('/SeaVehicleDetails', '/superadmin/sea-vehicle-details');
+    Route::redirect('/AirVehicleDetails', '/superadmin/air-vehicle-details');
+    Route::redirect('/Vender', '/superadmin/vendors')->name('NewVender');
+
+    Route::get('/analytics', function () {
         return Inertia::render('Web/home/SuperAdmin/Analytics');
     })->name('Analytics');
 
-    Route::get('/Users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
+    Route::get('/users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
 
     // User Management Routes
     Route::prefix('users')->name('users.')->group(function () { 
-        Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
         Route::get('/clients', [\App\Http\Controllers\SuperAdmin\UserController::class, 'clients'])->name('clients');
         Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'index'])->name('serviceProviders');
         Route::get('/service-providers/{user}/review', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'show'])->name('serviceProviders.review');
@@ -473,12 +483,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/{user}/status', [\App\Http\Controllers\SuperAdmin\UserController::class, 'changeStatus'])->name('changeStatus');
     });
 
-    Route::get('/AddUser', function () {
-        return Inertia::render('Web/home/SuperAdmin/AddUser');
-    })->name('AddUser');
-
     // Vehicle Management Routes
-    Route::get('/Vehicles', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'index'])->name('Vehicles');
+    Route::get('/vehicles', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'index'])->name('Vehicles');
     Route::get('/vehicles/{vehicle}', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'show'])->name('vehicles.show');
     Route::put('/vehicles/{vehicle}/approval', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'updateApprovalStatus'])->name('vehicles.approval');
     Route::put('/vehicles/{vehicle}/status', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'updateStatus'])->name('vehicles.status');
@@ -488,24 +494,22 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/vehicles/export', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'export'])->name('vehicles.export');
 
     // Warehouse Management Routes
-    Route::get('/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('Warehouse');
+    Route::get('/warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('Warehouse');
     Route::get('/warehouses/{warehouse}', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'show'])->name('warehouses.show');
     Route::put('/warehouses/{warehouse}/status', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'updateStatus'])->name('warehouses.updateStatus');
 
     // Legacy vehicle detail routes (can be updated later to use the main vehicle show route)
-    Route::get('/LandVehicleDetails', function () {
+    Route::get('/land-vehicle-details', function () {
         return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
     })->name('LandVehicleDetails');
 
-    Route::get('/SeaVehicleDetails', function () {
+    Route::get('/sea-vehicle-details', function () {
         return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
     })->name('SeaVehicleDetails');
 
-    Route::get('/AirVehicleDetails', function () {
+    Route::get('/air-vehicle-details', function () {
         return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
     })->name('AirVehicleDetails');
-
-    Route::get('/Vender', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('NewVender');
 
     // Reports Routes
     Route::prefix('reports')->name('reports.')->middleware('superadmin.courier.permission:superadmin.courier.reports.view')->group(function () {
@@ -937,15 +941,15 @@ Route::redirect('/dashboard', '/vendors/dashboard')->name('dashboard.legacy');
 
 // SuperAdmin legacy redirects
 Route::redirect('/SuperAdmin/Dashboard', '/superadmin/dashboard')->name('SuperAdmin.Dashboard.legacy');
-Route::redirect('/SuperAdmin/Analytics', '/superadmin/Analytics')->name('SuperAdmin.Analytics.legacy');
-Route::redirect('/SuperAdmin/Users', '/superadmin/Users')->name('SuperAdmin.Users.legacy');
-Route::redirect('/SuperAdmin/AddUser', '/superadmin/AddUser')->name('SuperAdmin.AddUser.legacy');
-Route::redirect('/SuperAdmin/Vehicles', '/superadmin/Vehicles')->name('SuperAdmin.Vehicles.legacy');
-Route::redirect('/SuperAdmin/Warehouse', '/superadmin/Warehouse')->name('SuperAdmin.Warehouse.legacy');
-Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetails')->name('SuperAdmin.LandVehicleDetails.legacy');
-Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
-Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
-Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
+Route::redirect('/SuperAdmin/Analytics', '/superadmin/analytics')->name('SuperAdmin.Analytics.legacy');
+Route::redirect('/SuperAdmin/Users', '/superadmin/users')->name('SuperAdmin.Users.legacy');
+Route::redirect('/SuperAdmin/AddUser', '/superadmin/users/create')->name('SuperAdmin.AddUser.legacy');
+Route::redirect('/SuperAdmin/Vehicles', '/superadmin/vehicles')->name('SuperAdmin.Vehicles.legacy');
+Route::redirect('/SuperAdmin/Warehouse', '/superadmin/warehouse')->name('SuperAdmin.Warehouse.legacy');
+Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/land-vehicle-details')->name('SuperAdmin.LandVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/sea-vehicle-details')->name('SuperAdmin.SeaVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/air-vehicle-details')->name('SuperAdmin.AirVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/Vender', '/superadmin/vendors')->name('SuperAdmin.NewVender.legacy');
 Route::redirect('/SuperAdmin/settings/cancellation', '/superadmin/settings/cancellation')->name('SuperAdmin.settings.cancellation.legacy');
 Route::redirect('/SuperAdmin/settings/commission', '/superadmin/settings/commission')->name('SuperAdmin.settings.commission.legacy');
 Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')->name('SuperAdmin.settings.website.legacy');

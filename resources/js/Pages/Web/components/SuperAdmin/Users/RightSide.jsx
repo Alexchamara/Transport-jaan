@@ -11,7 +11,7 @@ import ArrowLeftB from "../../../assets/superAdmin/Arrow LeftB.svg";
 import ArrowRight from "../../../assets/superAdmin/Arrow Right.svg";
 import { Link, router } from "@inertiajs/react";
 
-const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pageTitle = 'Users', baseRoute = '/superadmin/Users', showClientsCard = true, showVendorsCard = true, showRoleFilter = true }) => {
+const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pageTitle = 'Users', baseRoute = '/superadmin/users', showClientsCard = true, showVendorsCard = true, showRoleFilter = true }) => {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');

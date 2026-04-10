@@ -58,7 +58,7 @@ const UserDetailsModal = ({ user, onClose }) => {
             {
                 onSuccess: () => {
                     // Force reload with fresh data
-                    router.get('/superadmin/Users', {}, {
+                    router.get('/superadmin/users', {}, {
                         preserveState: false,
                         replace: false
                     });
