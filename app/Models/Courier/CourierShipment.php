@@ -142,4 +142,14 @@ class CourierShipment extends Model
     {
         return $this->hasMany(VendorCourierLabel::class, 'shipment_id');
     }
+
+    public function superAdminActionAudits()
+    {
+        return $this->hasMany(SuperAdminCourierActionAudit::class, 'shipment_id');
+    }
+
+    public function isOperationsFrozen(): bool
+    {
+        return SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $this->id);
+    }
 }

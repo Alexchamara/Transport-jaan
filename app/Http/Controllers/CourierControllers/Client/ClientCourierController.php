@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\SuperAdminCourierActionAudit;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Location\LocationCity;
 use App\Models\Location\LocationCountry;
@@ -323,6 +324,12 @@ class ClientCourierController extends Controller
             abort(404);
         }
 
+        if (SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $shipment->id)) {
+            return response()->json([
+                'error' => 'Shipment operations are temporarily frozen by SuperAdmin.',
+            ], 423);
+        }
+
         $validated = $request->validate([
             'status' => 'required|string|in:pending,confirmed,in_transit,delivered,cancelled',
         ]);
@@ -392,6 +399,10 @@ class ClientCourierController extends Controller
             ]);
 
             abort(404);
+        }
+
+        if (SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $shipment->id)) {
+            return back()->with('error', 'Shipment operations are temporarily frozen by SuperAdmin.');
         }
 
         if ($shipment->status === CourierShipment::STATUS_CANCELLED) {

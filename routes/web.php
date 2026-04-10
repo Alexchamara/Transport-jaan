@@ -437,6 +437,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::redirect('/SeaVehicleDetails', '/superadmin/sea-vehicle-details');
     Route::redirect('/AirVehicleDetails', '/superadmin/air-vehicle-details');
     Route::redirect('/Vender', '/superadmin/vendors')->name('NewVender');
+    Route::redirect('/CourierOperations', '/superadmin/courier-operations')->name('CourierOperations');
 
     Route::get('/analytics', function () {
         return Inertia::render('Web/home/SuperAdmin/Analytics');
@@ -526,6 +527,37 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::get('/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('users.clients');
         Route::get('/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('users.serviceProviders');
         Route::get('/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('users.drivers');
+    });
+
+    // Courier Operations (Phase 3)
+    Route::prefix('courier-operations')->name('courier-operations.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'index'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.view')
+            ->name('index');
+
+        Route::post('/shipments/{shipment}/reassign', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'reassign'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.reassign')
+            ->name('reassign');
+
+        Route::post('/shipments/{shipment}/force-transition', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'forceTransition'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.force_transition')
+            ->name('force-transition');
+
+        Route::post('/shipments/{shipment}/freeze', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'freeze'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.freeze')
+            ->name('freeze');
+
+        Route::post('/shipments/{shipment}/unfreeze', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'unfreeze'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.freeze')
+            ->name('unfreeze');
+
+        Route::post('/shipments/{shipment}/cancel-override', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'cancelOverride'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.cancel_override')
+            ->name('cancel-override');
+
+        Route::get('/shipments/{shipment}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'auditHistory'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.audit.view')
+            ->name('audit-history');
     });
 
     // Vendor User Management API Routes
@@ -954,6 +986,7 @@ Route::redirect('/SuperAdmin/settings/cancellation', '/superadmin/settings/cance
 Route::redirect('/SuperAdmin/settings/commission', '/superadmin/settings/commission')->name('SuperAdmin.settings.commission.legacy');
 Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')->name('SuperAdmin.settings.website.legacy');
 Route::redirect('/SuperAdmin/settings/cod-settlement', '/superadmin/settings/cod-settlement')->name('SuperAdmin.settings.cod-settlement.legacy');
+Route::redirect('/SuperAdmin/CourierOperations', '/superadmin/courier-operations')->name('SuperAdmin.CourierOperations.legacy');
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');

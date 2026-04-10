@@ -64,4 +64,36 @@ class SuperAdminCourierPermissionBoundaryTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_superadmin_with_explicit_non_operations_permission_cannot_access_operations_page(): void
+    {
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+        ]);
+
+        $workspaceId = SuperAdminCourierWorkspace::idForUser($superAdmin);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
+        $superAdmin->givePermissionTo('superadmin.courier.payments.view');
+
+        $response = $this->actingAs($superAdmin)
+            ->get('/superadmin/courier-operations');
+
+        $response->assertForbidden();
+    }
+
+    public function test_superadmin_with_explicit_operations_view_permission_can_access_operations_page(): void
+    {
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+        ]);
+
+        $workspaceId = SuperAdminCourierWorkspace::idForUser($superAdmin);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
+        $superAdmin->givePermissionTo('superadmin.courier.operations.view');
+
+        $response = $this->actingAs($superAdmin)
+            ->get('/superadmin/courier-operations');
+
+        $response->assertOk();
+    }
 }

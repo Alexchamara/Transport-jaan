@@ -53,7 +53,8 @@ const SideMenu = () => {
     const canViewReports = hasSuperAdminCourierPermission("superadmin.courier.reports.view");
     const canViewCodSettlement = hasSuperAdminCourierPermission("superadmin.courier.cod.settings.view");
     const canViewPayments = hasSuperAdminCourierPermission("superadmin.courier.payments.view");
-    const canViewCourierManagement = canViewReports || canViewCodSettlement || canViewPayments;
+    const canViewCourierOperations = hasSuperAdminCourierPermission("superadmin.courier.operations.view");
+    const canViewCourierManagement = canViewReports || canViewCodSettlement || canViewPayments || canViewCourierOperations;
 
     const normalizeLegacySuperadminPath = (pathname) => {
         if (!pathname) {
@@ -80,6 +81,7 @@ const SideMenu = () => {
             "/superadmin/Models/Freight": "/superadmin/models/freight",
             "/superadmin/Models/TicketBooking": "/superadmin/models/ticketbooking",
             "/superadmin/Models/Multimodel": "/superadmin/models/multimodel",
+            "/superadmin/CourierOperations": "/superadmin/courier-operations",
         };
 
         return pathAliases[normalizedPath] || normalizedPath;
@@ -196,6 +198,9 @@ const SideMenu = () => {
         } else if (normalizedPath === "/superadmin/payments") {
             setActiveSubsection("Payments");
             setIsSettingsOpen(true);
+            setIsCourierManagementOpen(true);
+        } else if (normalizedPath === "/superadmin/courier-operations" || normalizedPath.startsWith("/superadmin/courier-operations/")) {
+            setActiveSubsection("CourierOperations");
             setIsCourierManagementOpen(true);
         }
     };
@@ -633,7 +638,7 @@ const SideMenu = () => {
                     {/* Courier Management */}
                     <div
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
-                            isCourierManagementOpen || activeSubsection === "CourierReports" || activeSubsection === "CodSettlementSettings" || activeSubsection === "Payments"
+                            isCourierManagementOpen || activeSubsection === "CourierReports" || activeSubsection === "CodSettlementSettings" || activeSubsection === "Payments" || activeSubsection === "CourierOperations"
                                 ? "bg-[#181A2A]"
                                 : "hover:bg-[#181A2A]"
                         }`}
@@ -648,7 +653,8 @@ const SideMenu = () => {
                                     isCourierManagementOpen ||
                                     activeSubsection === "CourierReports" ||
                                     activeSubsection === "CodSettlementSettings" ||
-                                    activeSubsection === "Payments"
+                                    activeSubsection === "Payments" ||
+                                    activeSubsection === "CourierOperations"
                                         ? featuresW
                                         : features
                                 }
@@ -660,7 +666,8 @@ const SideMenu = () => {
                                     isCourierManagementOpen ||
                                     activeSubsection === "CourierReports" ||
                                     activeSubsection === "CodSettlementSettings" ||
-                                    activeSubsection === "Payments"
+                                    activeSubsection === "Payments" ||
+                                    activeSubsection === "CourierOperations"
                                         ? "text-white"
                                         : "text-[#AEB9E1]"
                                 }`}
@@ -700,6 +707,26 @@ const SideMenu = () => {
                                 preserveScroll
                             >
                                 Courier Reports
+                            </Link>
+                        )}
+
+                        {canViewCourierOperations && (
+                            <Link
+                                href="/superadmin/courier-operations"
+                                className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                    activeSubsection === "CourierOperations"
+                                        ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                        : hoveredSection === "CourierOperations"
+                                        ? "text-white bg-[#181A2A] border-l-transparent"
+                                        : "text-[#AEB9E1] border-l-transparent"
+                                }`}
+                                onClick={() => setActiveSubsection("CourierOperations")}
+                                onMouseEnter={() => setHoveredSection("CourierOperations")}
+                                onMouseLeave={() => setHoveredSection(null)}
+                                preserveState
+                                preserveScroll
+                            >
+                                Operations Control
                             </Link>
                         )}
 

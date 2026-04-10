@@ -21,6 +21,12 @@ class SuperAdminCourierRbac
             self::permissionName('cod.incidents.manage'),
             self::permissionName('cod.compliance.export'),
             self::permissionName('payments.view'),
+            self::permissionName('operations.view'),
+            self::permissionName('operations.reassign'),
+            self::permissionName('operations.force_transition'),
+            self::permissionName('operations.freeze'),
+            self::permissionName('operations.cancel_override'),
+            self::permissionName('operations.audit.view'),
         ];
     }
 
@@ -30,12 +36,20 @@ class SuperAdminCourierRbac
             'superadmin_courier_readonly' => [
                 self::permissionName('reports.view'),
                 self::permissionName('cod.settings.view'),
+                self::permissionName('operations.view'),
+                self::permissionName('operations.audit.view'),
             ],
             'superadmin_courier_ops' => [
                 self::permissionName('reports.view'),
                 self::permissionName('cod.settings.view'),
                 self::permissionName('cod.capabilities.review'),
                 self::permissionName('cod.incidents.manage'),
+                self::permissionName('operations.view'),
+                self::permissionName('operations.reassign'),
+                self::permissionName('operations.force_transition'),
+                self::permissionName('operations.freeze'),
+                self::permissionName('operations.cancel_override'),
+                self::permissionName('operations.audit.view'),
             ],
             'superadmin_courier_finance' => [
                 self::permissionName('reports.view'),
@@ -43,6 +57,8 @@ class SuperAdminCourierRbac
                 self::permissionName('cod.settings.update'),
                 self::permissionName('cod.compliance.export'),
                 self::permissionName('payments.view'),
+                self::permissionName('operations.view'),
+                self::permissionName('operations.audit.view'),
             ],
             'superadmin_courier_compliance' => [
                 self::permissionName('reports.view'),
@@ -50,6 +66,9 @@ class SuperAdminCourierRbac
                 self::permissionName('cod.capabilities.review'),
                 self::permissionName('cod.incidents.manage'),
                 self::permissionName('cod.compliance.export'),
+                self::permissionName('operations.view'),
+                self::permissionName('operations.freeze'),
+                self::permissionName('operations.audit.view'),
             ],
         ];
     }

@@ -10,6 +10,7 @@ use App\Models\Courier\CourierTeamSecurityAudit;
 use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
+use App\Models\Courier\SuperAdminCourierActionAudit;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierLabel;
@@ -3134,6 +3135,13 @@ class VendorCourierDashboardController extends Controller
     {
         $shipment->loadMissing('trackingEvents:id,shipment_id,status,recorded_at');
 
+        if (SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $shipment->id)) {
+            return [
+                'ok' => false,
+                'message' => 'Shipment operations are temporarily frozen by SuperAdmin.',
+            ];
+        }
+
         if (in_array($action, self::COD_COLLECTION_ACTIONS, true)) {
             return $this->applyCodCollectionAction($shipment, $action, $payload);
         }
@@ -3473,6 +3481,13 @@ class VendorCourierDashboardController extends Controller
     private function applyShipmentAction(CourierShipment $shipment, string $action): array
     {
         $shipment->loadMissing('trackingEvents:id,shipment_id,status,recorded_at');
+
+        if (SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $shipment->id)) {
+            return [
+                'ok' => false,
+                'message' => 'Shipment operations are temporarily frozen by SuperAdmin.',
+            ];
+        }
 
         $assignmentHealth = $this->resolveAssignmentHealth($shipment);
 
