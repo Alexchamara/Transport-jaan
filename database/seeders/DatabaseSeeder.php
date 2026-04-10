@@ -71,6 +71,7 @@ class DatabaseSeeder extends Seeder
 
             // Service-scoped RBAC
             CourierRbacSeeder::class ,
+            SuperAdminCourierRbacSeeder::class ,
             LocationDataSeeder::class ,
         ]);
     }

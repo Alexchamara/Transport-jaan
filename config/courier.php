@@ -22,6 +22,15 @@ return [
         ],
     ],
 
+    'superadmin_rbac' => [
+        // Transitional mode for Phase 1 rollout: SuperAdmin users without explicit
+        // superadmin.courier.* grants keep existing access until assignments are configured.
+        'bootstrap_allow_all' => (bool) env('COURIER_SUPERADMIN_RBAC_BOOTSTRAP_ALLOW_ALL', true),
+        'permission_prefix' => (string) env('COURIER_SUPERADMIN_RBAC_PERMISSION_PREFIX', 'superadmin.courier.'),
+        'service_key' => (string) env('COURIER_SUPERADMIN_RBAC_SERVICE_KEY', 'superadmin_courier_access'),
+        'workspace_name' => (string) env('COURIER_SUPERADMIN_RBAC_WORKSPACE_NAME', 'SuperAdmin Courier Access'),
+    ],
+
     'phase7' => [
         'canary_window_hours' => (int) env('COURIER_PHASE7_CANARY_WINDOW_HOURS', 24),
         'thresholds' => [

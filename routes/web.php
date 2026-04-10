@@ -508,7 +508,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/Vender', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('NewVender');
 
     // Reports Routes
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('superadmin.courier.permission:superadmin.courier.reports.view')->group(function () {
         Route::get('/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('filterOptions');
         Route::get('/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('vehicles');
         Route::get('/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('vehicles.land');
@@ -540,15 +540,33 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         
         Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
 
-        Route::get('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'index'])->name('cod-settlement.index');
-        Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])->name('cod-settlement.update');
-        Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])->name('cod-settlement.capabilities.approve');
-        Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])->name('cod-settlement.capabilities.reject');
-        Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])->name('cod-settlement.capabilities.incidents.open');
-        Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])->name('cod-settlement.capabilities.audit-history');
-        Route::get('/cod-settlement/compliance-export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportCompliancePackage'])->name('cod-settlement.compliance-export');
-        Route::post('/cod-settlement/incidents/{incident}/assign', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'assignIntegrityIncident'])->name('cod-settlement.incidents.assign');
-        Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])->name('cod-settlement.incidents.resolve');
+        Route::get('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'index'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settings.view')
+            ->name('cod-settlement.index');
+        Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settings.update')
+            ->name('cod-settlement.update');
+        Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
+            ->name('cod-settlement.capabilities.approve');
+        Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
+            ->name('cod-settlement.capabilities.reject');
+        Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
+            ->name('cod-settlement.capabilities.incidents.open');
+        Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settings.view')
+            ->name('cod-settlement.capabilities.audit-history');
+        Route::get('/cod-settlement/compliance-export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportCompliancePackage'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.compliance.export')
+            ->name('cod-settlement.compliance-export');
+        Route::post('/cod-settlement/incidents/{incident}/assign', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'assignIntegrityIncident'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
+            ->name('cod-settlement.incidents.assign');
+        Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
+            ->name('cod-settlement.incidents.resolve');
         
         Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
         Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');
@@ -576,8 +594,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     });
 
     // Payments Routes
-    Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments');
-    Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])->name('payments.stats');
+    Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])
+        ->middleware('superadmin.courier.permission:superadmin.courier.payments.view')
+        ->name('payments');
+    Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])
+        ->middleware('superadmin.courier.permission:superadmin.courier.payments.view')
+        ->name('payments.stats');
 });
 
 
@@ -944,130 +966,10 @@ Route::middleware(['auth'])->group(function () {
 
 // end
 
-//SuperAdmin
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
-
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
-
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {
     return Inertia::render('Web/home/vendors/warehouse/Bookings');
 })->name('warehouse.bookings');
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
-
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-
-Route::get('/superadmin/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('superadmin.Warehouse');
-
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
 
 // Legacy SuperAdmin report routes (mixed-case) redirected to canonical protected endpoints.
 Route::redirect('/SuperAdmin/reports/filter-options', '/superadmin/reports/filter-options')->name('SuperAdmin.reports.filterOptions');

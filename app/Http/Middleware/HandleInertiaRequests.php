@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\ServiceWorkspace;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
+use App\Support\SuperAdminCourierWorkspace;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Spatie\Permission\PermissionRegistrar;
@@ -29,11 +30,29 @@ class HandleInertiaRequests extends Middleware
 
         $approvedServiceSlugs = [];
         $courierPermissions = [];
+        $superAdminCourierPermissions = [];
+        $hasExplicitSuperAdminCourierPermissions = false;
         $displayRole = null;
         $teamMembershipRole = null;
         $courierRole = null;
         if ($user) {
             $displayRole = $this->formatRoleLabel((string) $user->role);
+
+            if ((string) $user->role === 'SuperAdmin') {
+                $registrar = app(PermissionRegistrar::class);
+                $workspaceId = SuperAdminCourierWorkspace::idForUser($user);
+                $registrar->setPermissionsTeamId($workspaceId);
+
+                $prefix = (string) config('courier.superadmin_rbac.permission_prefix', 'superadmin.courier.');
+                $superAdminCourierPermissions = $user->getAllPermissions()
+                    ->pluck('name')
+                    ->filter(fn ($name) => str_starts_with((string) $name, $prefix))
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $hasExplicitSuperAdminCourierPermissions = count($superAdminCourierPermissions) > 0;
+            }
 
             $membership = VendorUserMembership::query()
                 ->where('user_id', $user->id)
@@ -103,6 +122,8 @@ class HandleInertiaRequests extends Middleware
                     'status' => $user->status,
                     'approved_service_slugs' => $approvedServiceSlugs,
                     'courier_permissions' => $courierPermissions,
+                    'superadmin_courier_permissions' => $superAdminCourierPermissions,
+                    'has_explicit_superadmin_courier_permissions' => $hasExplicitSuperAdminCourierPermissions,
                     // Only include these when needed - reduces data size
                     'phone' => $user->phone,
                     'image' => $user->image

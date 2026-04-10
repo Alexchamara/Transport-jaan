@@ -23,7 +23,7 @@ import arrow_r from "../../../assets/superAdmin/Arrow Right.png";
 import { Link, router, usePage } from "@inertiajs/react";
 
 const SideMenu = () => {
-    const { url } = usePage();
+    const { url, props } = usePage();
     const [activeSubsection, setActiveSubsection] = useState(""); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isReportsOpen, setIsReportsOpen] = useState(false);
@@ -35,6 +35,23 @@ const SideMenu = () => {
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
     const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null });
+
+    const authUser = props?.auth?.user ?? null;
+    const superAdminCourierPermissions = Array.isArray(authUser?.superadmin_courier_permissions)
+        ? authUser.superadmin_courier_permissions
+        : [];
+    const hasExplicitSuperAdminCourierPermissions = Boolean(authUser?.has_explicit_superadmin_courier_permissions);
+    const hasSuperAdminCourierPermission = (permission) => {
+        if (!hasExplicitSuperAdminCourierPermissions) {
+            return true;
+        }
+
+        return superAdminCourierPermissions.includes(permission);
+    };
+
+    const canViewReports = hasSuperAdminCourierPermission("superadmin.courier.reports.view");
+    const canViewCodSettlement = hasSuperAdminCourierPermission("superadmin.courier.cod.settings.view");
+    const canViewPayments = hasSuperAdminCourierPermission("superadmin.courier.payments.view");
 
     const updateSidebarState = (pathname) => {
         if (!pathname) pathname = window.location.pathname;
@@ -300,6 +317,8 @@ const SideMenu = () => {
                         </Link>
                     </div>
 
+                    {canViewReports && (
+                    <>
                     {/* Reports */}
                     <div
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
@@ -540,6 +559,9 @@ const SideMenu = () => {
                         </Link>
                         </div>
                     </div>
+
+                    </>
+                    )}
 
                     {/* Models */}
                     <div
@@ -918,37 +940,41 @@ const SideMenu = () => {
                         Cancellation Settings
                     </Link>
 
-                    <Link
-                        href="/superadmin/settings/cod-settlement"
-                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
-                            activeSubsection === "CodSettlementSettings"
-                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
-                                : hoveredSection === "CodSettlementSettings"
-                                ? "text-white bg-[#181A2A] border-l-transparent"
-                                : "text-[#AEB9E1] border-l-transparent"
-                        }`}
-                        onClick={() => setActiveSubsection("CodSettlementSettings")}
-                        onMouseEnter={() => setHoveredSection("CodSettlementSettings")}
-                        onMouseLeave={() => setHoveredSection(null)}
-                    >
-                        COD Settlement
-                    </Link>
+                    {canViewCodSettlement && (
+                        <Link
+                            href="/superadmin/settings/cod-settlement"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                                activeSubsection === "CodSettlementSettings"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "CodSettlementSettings"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("CodSettlementSettings")}
+                            onMouseEnter={() => setHoveredSection("CodSettlementSettings")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            COD Settlement
+                        </Link>
+                    )}
 
-                    <Link
-                        href="/superadmin/payments"
-                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
-                            activeSubsection === "Payments"
-                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
-                                : hoveredSection === "Payments"
-                                ? "text-white bg-[#181A2A] border-l-transparent"
-                                : "text-[#AEB9E1] border-l-transparent"
-                        }`}
-                        onClick={() => setActiveSubsection("Payments")}
-                        onMouseEnter={() => setHoveredSection("Payments")}
-                        onMouseLeave={() => setHoveredSection(null)}
-                    >
-                        Payments
-                    </Link>
+                    {canViewPayments && (
+                        <Link
+                            href="/superadmin/payments"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                                activeSubsection === "Payments"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "Payments"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("Payments")}
+                            onMouseEnter={() => setHoveredSection("Payments")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Payments
+                        </Link>
+                    )}
 
                     <Link
                         href="/superadmin/settings/commission"
