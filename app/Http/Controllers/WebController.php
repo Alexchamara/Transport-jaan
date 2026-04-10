@@ -946,7 +946,7 @@ class WebController extends Controller
             case 'vendor':
                 return redirect()->route('vendor.dashboard');
             case 'SuperAdmin':
-                return redirect()->route('SuperAdmin.Dashboard');
+                return redirect()->route('superadmin.dashboard');
             default:
                 return redirect()->route('user.dashboard');
         }

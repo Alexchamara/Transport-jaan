@@ -13,6 +13,7 @@ const STATUS_OPTIONS = [
 const CATEGORY_OPTIONS = [
     { value: 'all', label: 'All Requests' },
     { value: 'domestic', label: 'Domestic Scope' },
+    { value: 'international', label: 'International Scope' },
 ];
 
 const statusClassMap = {
@@ -26,6 +27,7 @@ const auditEventAccentMap = {
     cod_capability_request_submitted: 'bg-[#5B8DEF]',
     cod_capability_approved: 'bg-[#14CA74]',
     cod_capability_rejected: 'bg-[#FF4757]',
+    cod_capability_revoked: 'bg-[#FF8A00]',
 };
 
 const HISTORY_EVENT_OPTIONS = [
@@ -33,6 +35,7 @@ const HISTORY_EVENT_OPTIONS = [
     { value: 'cod_capability_request_submitted', label: 'Request Submitted' },
     { value: 'cod_capability_approved', label: 'Capability Approved' },
     { value: 'cod_capability_rejected', label: 'Capability Rejected' },
+    { value: 'cod_capability_revoked', label: 'Capability Revoked' },
     { value: 'cod_integrity_incident_opened', label: 'Integrity Incident Opened' },
     { value: 'cod_integrity_incident_assigned', label: 'Integrity Incident Assigned' },
     { value: 'cod_integrity_incident_resolved', label: 'Integrity Incident Resolved' },
@@ -73,6 +76,42 @@ const defaultHistoryIntegrity = {
     verifiedEvents: 0,
 };
 
+const DEFAULT_CATEGORY_POLICIES = {
+    domestic: {
+        cod_enabled: true,
+        allow_lock_override: true,
+    },
+    international: {
+        cod_enabled: false,
+        allow_lock_override: false,
+    },
+};
+
+const DEFAULT_OVERRIDE_POLICY = {
+    enabled: true,
+    maker_checker: true,
+    level1_min_amount: 25000,
+    level2_min_amount: 100000,
+    required_approvals_level1: 1,
+    required_approvals_level2: 2,
+};
+
+const resolveCategoryPolicies = (settings = {}) => ({
+    domestic: {
+        ...DEFAULT_CATEGORY_POLICIES.domestic,
+        ...(settings?.category_policies?.domestic || {}),
+    },
+    international: {
+        ...DEFAULT_CATEGORY_POLICIES.international,
+        ...(settings?.category_policies?.international || {}),
+    },
+});
+
+const resolveOverridePolicy = (settings = {}) => ({
+    ...DEFAULT_OVERRIDE_POLICY,
+    ...(settings?.override_policy || {}),
+});
+
 const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) => {
     const { flash } = usePage().props;
 
@@ -97,6 +136,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const [historyActorFilter, setHistoryActorFilter] = useState('');
     const [historyFromFilter, setHistoryFromFilter] = useState('');
     const [historyToFilter, setHistoryToFilter] = useState('');
+    const [overrideControls, setOverrideControls] = useState({});
 
     const {
         data,
@@ -112,7 +152,17 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         minimum_payout_amount: Number(settings?.minimum_payout_amount ?? 0),
         currency_code: String(settings?.currency_code || 'LKR'),
         notes: String(settings?.notes || ''),
+        category_policies: resolveCategoryPolicies(settings),
+        override_policy: resolveOverridePolicy(settings),
     });
+
+    useEffect(() => {
+        setData((current) => ({
+            ...current,
+            category_policies: resolveCategoryPolicies(settings),
+            override_policy: resolveOverridePolicy(settings),
+        }));
+    }, [settings?.category_policies, settings?.override_policy, setData]);
 
     useEffect(() => {
         setSearch(filters?.search || '');
@@ -185,8 +235,27 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
             return;
         }
 
+        if (actionType === 'revoke' && note.length < 10) {
+            window.alert('Please provide a revoke reason with at least 10 characters.');
+            return;
+        }
+
+        const overrideState = overrideControls[capabilityId] || {
+            enabled: false,
+            exposureAmount: '',
+        };
+        const overrideEnabled = Boolean(overrideState.enabled);
+        const overrideExposureAmount = Number(overrideState.exposureAmount || 0);
+
+        if (overrideEnabled && overrideExposureAmount <= 0) {
+            window.alert('Enter a positive override exposure amount.');
+            return;
+        }
+
         const payload = {
             note,
+            overrideLock: overrideEnabled,
+            overrideExposureAmount: overrideEnabled ? overrideExposureAmount : null,
         };
 
         if (actionType === 'approve') {
@@ -196,10 +265,19 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
             }
         }
 
+        const routeName = {
+            approve: 'superadmin.settings.cod-settlement.capabilities.approve',
+            reject: 'superadmin.settings.cod-settlement.capabilities.reject',
+            revoke: 'superadmin.settings.cod-settlement.capabilities.revoke',
+        }[actionType];
+
+        if (!routeName) {
+            window.alert('Unsupported capability action.');
+            return;
+        }
+
         router.post(
-            actionType === 'approve'
-                ? route('superadmin.settings.cod-settlement.capabilities.approve', { capability: capabilityId })
-                : route('superadmin.settings.cod-settlement.capabilities.reject', { capability: capabilityId }),
+            route(routeName, { capability: capabilityId }),
             payload,
             {
                 preserveState: true,
@@ -216,6 +294,14 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             [capabilityId]: '',
                         }));
                     }
+
+                    setOverrideControls((prev) => ({
+                        ...prev,
+                        [capabilityId]: {
+                            enabled: false,
+                            exposureAmount: '',
+                        },
+                    }));
                 },
                 onError: (errorsBag) => {
                     const values = Object.values(errorsBag || {});
@@ -492,7 +578,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                     <div className="max-w-7xl mx-auto">
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-white mb-2">Courier COD Settlement</h1>
-                            <p className="text-gray-400">Configure COD settlement policy and review vendor domestic COD capability requests.</p>
+                            <p className="text-gray-400">Configure COD settlement policy and review vendor COD capability governance across domestic and international scopes.</p>
                         </div>
 
                         {flash?.success && (
@@ -595,6 +681,166 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                     </Field>
                                 </div>
 
+                                <div className="rounded-md border border-gray-700 bg-[#081028] p-4">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Category Policy Scope</h3>
+                                    <p className="mt-1 text-xs text-gray-500">Define where COD capability approvals are enabled and whether lock overrides are allowed.</p>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div className="rounded-md border border-gray-700 bg-[#03091E] p-3">
+                                            <p className="text-sm font-semibold text-white">Domestic</p>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.domestic?.cod_enabled)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        domestic: {
+                                                            ...(data.category_policies?.domestic || DEFAULT_CATEGORY_POLICIES.domestic),
+                                                            cod_enabled: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                COD approvals enabled
+                                            </label>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.domestic?.allow_lock_override)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        domestic: {
+                                                            ...(data.category_policies?.domestic || DEFAULT_CATEGORY_POLICIES.domestic),
+                                                            allow_lock_override: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                Lock override allowed
+                                            </label>
+                                        </div>
+
+                                        <div className="rounded-md border border-gray-700 bg-[#03091E] p-3">
+                                            <p className="text-sm font-semibold text-white">International</p>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.international?.cod_enabled)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        international: {
+                                                            ...(data.category_policies?.international || DEFAULT_CATEGORY_POLICIES.international),
+                                                            cod_enabled: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                COD approvals enabled
+                                            </label>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.international?.allow_lock_override)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        international: {
+                                                            ...(data.category_policies?.international || DEFAULT_CATEGORY_POLICIES.international),
+                                                            allow_lock_override: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                Lock override allowed
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-md border border-gray-700 bg-[#081028] p-4">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Override Threshold Policy</h3>
+                                    <p className="mt-1 text-xs text-gray-500">Thresholds are aligned to sensitive action COD override controls.</p>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(data.override_policy?.enabled)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    enabled: event.target.checked,
+                                                })}
+                                            />
+                                            Policy enabled
+                                        </label>
+
+                                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(data.override_policy?.maker_checker)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    maker_checker: event.target.checked,
+                                                })}
+                                            />
+                                            Maker-checker required
+                                        </label>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <Field label="Level 1 Min Amount" error={errors['override_policy.level1_min_amount']}>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={0.01}
+                                                value={Number(data.override_policy?.level1_min_amount || 0)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    level1_min_amount: Number(event.target.value || 0),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+
+                                        <Field label="Level 2 Min Amount" error={errors['override_policy.level2_min_amount']}>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={0.01}
+                                                value={Number(data.override_policy?.level2_min_amount || 0)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    level2_min_amount: Number(event.target.value || 0),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+
+                                        <Field label="Level 1 Required Approvals" error={errors['override_policy.required_approvals_level1']}>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={3}
+                                                value={Number(data.override_policy?.required_approvals_level1 || 1)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    required_approvals_level1: Number(event.target.value || 1),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+
+                                        <Field label="Level 2 Required Approvals" error={errors['override_policy.required_approvals_level2']}>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={3}
+                                                value={Number(data.override_policy?.required_approvals_level2 || 2)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    required_approvals_level2: Number(event.target.value || 2),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+                                    </div>
+                                </div>
+
                                 <div className="flex justify-end">
                                     <button
                                         type="submit"
@@ -611,7 +857,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
                                 <div>
                                     <h2 className="text-xl font-semibold text-white">Vendor COD Capability Requests</h2>
-                                    <p className="text-sm text-gray-400">Approve or reject vendor requests to enable domestic COD collection.</p>
+                                    <p className="text-sm text-gray-400">Approve, reject, or revoke COD capability decisions across category scopes with lock-aware override controls.</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <input
@@ -687,7 +933,16 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                             </tr>
                                         )}
 
-                                        {(Array.isArray(requests) ? requests : []).map((row) => (
+                                        {(Array.isArray(requests) ? requests : []).map((row) => {
+                                            const overrideState = overrideControls[row.id] || {
+                                                enabled: false,
+                                                exposureAmount: '',
+                                            };
+                                            const lockBypassEnabled = Boolean(overrideState.enabled);
+                                            const rowPolicy = row?.categoryPolicy || {};
+                                            const lockOverrideAllowed = Boolean(rowPolicy.allowLockOverride ?? true);
+
+                                            return (
                                             <tr key={row.id} className="border-b border-gray-800 align-top">
                                                 <td className="py-3 pr-4">
                                                     <p className="font-semibold text-white">{row.vendorName || 'Unknown vendor'}</p>
@@ -712,6 +967,47 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         placeholder="Optional approval note / required rejection reason"
                                                         className="w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
                                                     />
+                                                    <div className="mt-2 rounded-md border border-gray-700 bg-[#03091E] px-2 py-2">
+                                                        <label className="flex items-center gap-2 text-[11px] text-gray-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={lockBypassEnabled}
+                                                                disabled={!lockOverrideAllowed}
+                                                                onChange={(event) => setOverrideControls((prev) => ({
+                                                                    ...prev,
+                                                                    [row.id]: {
+                                                                        ...(prev[row.id] || { exposureAmount: '' }),
+                                                                        enabled: event.target.checked,
+                                                                    },
+                                                                }))}
+                                                            />
+                                                            Override lock conditions
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={0.01}
+                                                            value={overrideState.exposureAmount}
+                                                            onChange={(event) => setOverrideControls((prev) => ({
+                                                                ...prev,
+                                                                [row.id]: {
+                                                                    ...(prev[row.id] || { enabled: false }),
+                                                                    exposureAmount: event.target.value,
+                                                                },
+                                                            }))}
+                                                            disabled={!lockBypassEnabled}
+                                                            placeholder="Override exposure amount"
+                                                            className="mt-2 w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white disabled:opacity-50"
+                                                        />
+                                                        <p className="mt-1 text-[10px] text-gray-500">
+                                                            Use for lock override thresholds (Level 1 / Level 2 policy).
+                                                        </p>
+                                                        {!lockOverrideAllowed && (
+                                                            <p className="mt-1 text-[10px] text-amber-300">
+                                                                Category policy currently disables lock overrides.
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                     <input
                                                         type="datetime-local"
                                                         value={actionExpiryAt[row.id] || ''}
@@ -844,7 +1140,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCapabilityAction(row.id, 'approve')}
-                                                            disabled={Boolean(row.isActionLocked)}
+                                                            disabled={Boolean(row.isActionLocked) && !lockBypassEnabled}
                                                             className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                         >
                                                             Approve
@@ -852,18 +1148,35 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCapabilityAction(row.id, 'reject')}
-                                                            disabled={Boolean(row.isActionLocked)}
+                                                            disabled={Boolean(row.isActionLocked) && !lockBypassEnabled}
                                                             className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                         >
                                                             Reject
                                                         </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (!window.confirm('Revoke this COD capability? This action records an immutable audit event.')) {
+                                                                    return;
+                                                                }
+
+                                                                handleCapabilityAction(row.id, 'revoke');
+                                                            }}
+                                                            disabled={Boolean(row.isActionLocked) && !lockBypassEnabled}
+                                                            className="rounded-md bg-orange-600 px-3 py-1 text-xs font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            Revoke
+                                                        </button>
                                                     </div>
                                                     {row.isActionLocked && (
-                                                        <p className="mt-2 text-[11px] text-red-300">Actions locked until incident resolution.</p>
+                                                        <p className="mt-2 text-[11px] text-red-300">
+                                                            Actions locked until incident resolution{lockBypassEnabled ? ' (override mode enabled)' : ''}.
+                                                        </p>
                                                     )}
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

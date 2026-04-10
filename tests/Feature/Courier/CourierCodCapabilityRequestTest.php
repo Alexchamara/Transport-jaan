@@ -116,6 +116,8 @@ class CourierCodCapabilityRequestTest extends TestCase
     {
         [$vendor, $workspace] = $this->createCourierVendorWorkspace();
 
+        [$otherVendor, $otherWorkspace] = $this->createCourierVendorWorkspace();
+
         CourierVendorCodCapability::query()->create([
             'vendor_user_id' => $vendor->id,
             'service_workspace_id' => $workspace->id,
@@ -130,10 +132,10 @@ class CourierCodCapabilityRequestTest extends TestCase
         ]);
 
         CourierVendorCodCapability::query()->create([
-            'vendor_user_id' => $vendor->id,
-            'service_workspace_id' => $workspace->id,
+            'vendor_user_id' => $otherVendor->id,
+            'service_workspace_id' => $otherWorkspace->id,
             'category' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
-            'requested_by_user_id' => $vendor->id,
+            'requested_by_user_id' => $otherVendor->id,
             'status' => CourierVendorCodCapability::STATUS_PENDING,
             'requested_at' => now()->subHours(6),
             'requested_note' => 'Awaiting international COD approval.',
@@ -443,6 +445,8 @@ class CourierCodCapabilityRequestTest extends TestCase
     {
         [$vendor, $workspace] = $this->createCourierVendorWorkspace();
 
+        [$insideVendor, $insideWorkspace] = $this->createCourierVendorWorkspace();
+
         $outsideCapability = CourierVendorCodCapability::query()->create([
             'vendor_user_id' => $vendor->id,
             'service_workspace_id' => $workspace->id,
@@ -454,10 +458,10 @@ class CourierCodCapabilityRequestTest extends TestCase
         ]);
 
         $insideCapability = CourierVendorCodCapability::query()->create([
-            'vendor_user_id' => $vendor->id,
-            'service_workspace_id' => $workspace->id,
+            'vendor_user_id' => $insideVendor->id,
+            'service_workspace_id' => $insideWorkspace->id,
             'category' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
-            'requested_by_user_id' => $vendor->id,
+            'requested_by_user_id' => $insideVendor->id,
             'status' => CourierVendorCodCapability::STATUS_PENDING,
             'requested_at' => now()->subHours(8),
             'requested_note' => 'Inside date range capability.',
@@ -470,11 +474,9 @@ class CourierCodCapabilityRequestTest extends TestCase
 
         $fromDate = now()->subDays(2)->toDateString();
         $toDate = now()->toDateString();
-        $search = substr((string) $vendor->name, 0, 6);
 
         $response = $this->actingAs($superAdmin)
             ->get(route('superadmin.settings.cod-settlement.index', [
-                'search' => $search,
                 'from' => $fromDate,
                 'to' => $toDate,
             ]));
@@ -484,10 +486,10 @@ class CourierCodCapabilityRequestTest extends TestCase
             ->component('Web/home/SuperAdmin/CourierCodSettings')
             ->where('filters.from', $fromDate)
             ->where('filters.to', $toDate)
-            ->where('filters.search', $search)
+            ->where('filters.search', '')
             ->has('requests', 1)
             ->where('requests.0.id', (int) $insideCapability->id)
-            ->where('requests.0.category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+            ->where('requests.0.category', CourierVendorCodCapability::CATEGORY_INTERNATIONAL)
         );
 
         $this->assertNotSame((int) $outsideCapability->id, (int) $insideCapability->id);
@@ -1042,6 +1044,180 @@ class CourierCodCapabilityRequestTest extends TestCase
             ->where('requests.0.activeIncident.status', CourierVendorCodIntegrityIncident::STATUS_OPEN)
             ->where('requests.0.activeIncident.title', 'Integrity mismatch detected')
         );
+    }
+
+    public function test_superadmin_category_filter_can_target_international_capabilities(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        [$internationalVendor, $internationalWorkspace] = $this->createCourierVendorWorkspace();
+
+        CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subHours(2),
+            'requested_note' => 'Domestic baseline request',
+        ]);
+
+        $internationalCapability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $internationalVendor->id,
+            'service_workspace_id' => $internationalWorkspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+            'requested_by_user_id' => $internationalVendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(20),
+            'requested_note' => 'International COD readiness package',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $response = $this->actingAs($superAdmin)
+            ->get(route('superadmin.settings.cod-settlement.index', [
+                'category' => 'international',
+                'status' => 'pending',
+            ]));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/SuperAdmin/CourierCodSettings')
+            ->has('requests', 1)
+            ->where('requests.0.id', (int) $internationalCapability->id)
+            ->where('requests.0.category', CourierVendorCodCapability::CATEGORY_INTERNATIONAL)
+            ->where('requests.0.categoryLabel', 'International')
+            ->where('filters.category', CourierVendorCodCapability::CATEGORY_INTERNATIONAL)
+        );
+    }
+
+    public function test_superadmin_can_override_lock_for_high_threshold_capability_decision(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_PENDING,
+            'requested_at' => now()->subMinutes(45),
+            'requested_note' => 'Awaiting superadmin approval',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        CourierVendorCodIntegrityIncident::query()->create([
+            'courier_vendor_cod_capability_id' => (int) $capability->id,
+            'vendor_user_id' => (int) $vendor->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'status' => CourierVendorCodIntegrityIncident::STATUS_OPEN,
+            'severity' => CourierVendorCodIntegrityIncident::SEVERITY_HIGH,
+            'title' => 'Active integrity lock',
+            'description' => 'Locking capability while investigation is in progress.',
+            'detected_issue_count' => 2,
+            'detected_at' => now()->subMinutes(30),
+            'created_by_user_id' => (int) $superAdmin->id,
+        ]);
+
+        $csrfToken = 'superadmin-override-lock-phase-five-token';
+
+        $blockedResponse = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->from(route('superadmin.settings.cod-settlement.index'))
+            ->post(route('superadmin.settings.cod-settlement.capabilities.approve', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'note' => 'Standard approval should be blocked due to active incident lock.',
+            ]);
+
+        $blockedResponse->assertRedirect(route('superadmin.settings.cod-settlement.index'));
+        $blockedResponse->assertSessionHasErrors(['capability']);
+
+        $overrideReason = 'Emergency override approved after risk acceptance review and dual-check documentation for high exposure level scenario.';
+
+        $approvedResponse = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.capabilities.approve', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'note' => $overrideReason,
+                'overrideLock' => true,
+                'overrideExposureAmount' => 150000,
+            ]);
+
+        $approvedResponse->assertRedirect();
+        $approvedResponse->assertSessionHas('success');
+
+        $capability->refresh();
+        $this->assertSame(CourierVendorCodCapability::STATUS_APPROVED, (string) $capability->status);
+
+        $audit = CourierVendorCodCapabilityAudit::query()
+            ->where('courier_vendor_cod_capability_id', (int) $capability->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($audit);
+        $this->assertSame('cod_capability_approved', (string) $audit->event_type);
+        $this->assertTrue((bool) data_get($audit->metadata, 'override.overrideUsed', false));
+        $this->assertSame('level_2', (string) data_get($audit->metadata, 'override.thresholdLevel', ''));
+        $this->assertSame('approve', (string) data_get($audit->metadata, 'override.decisionAction', ''));
+        $this->assertEqualsWithDelta(150000.0, (float) data_get($audit->metadata, 'override.overrideExposureAmount', 0), 0.01);
+    }
+
+    public function test_superadmin_can_revoke_approved_cod_capability(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $capability = CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $vendor->id,
+            'service_workspace_id' => $workspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $vendor->id,
+            'status' => CourierVendorCodCapability::STATUS_APPROVED,
+            'requested_at' => now()->subDays(2),
+            'reviewed_at' => now()->subDays(1),
+            'approved_at' => now()->subDays(1),
+            'reviewed_by_user_id' => $vendor->id,
+            'expires_at' => now()->addMonths(4),
+            'decision_reason' => 'Previously approved capability.',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+            'status' => 'verified',
+        ]);
+
+        $csrfToken = 'superadmin-revoke-capability-token';
+        $revokeReason = 'Capability revoked due to unresolved compliance controls and policy breach pattern.';
+
+        $response = $this->actingAs($superAdmin)
+            ->withSession(['_token' => $csrfToken])
+            ->post(route('superadmin.settings.cod-settlement.capabilities.revoke', ['capability' => $capability->id]), [
+                '_token' => $csrfToken,
+                'note' => $revokeReason,
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $capability->refresh();
+
+        $this->assertSame(CourierVendorCodCapability::STATUS_REJECTED, (string) $capability->status);
+        $this->assertNull($capability->approved_at);
+        $this->assertNull($capability->expires_at);
+        $this->assertSame($revokeReason, (string) $capability->decision_reason);
+        $this->assertSame($superAdmin->id, (int) $capability->reviewed_by_user_id);
+
+        $this->assertDatabaseHas('courier_vendor_cod_capability_audits', [
+            'courier_vendor_cod_capability_id' => (int) $capability->id,
+            'event_type' => 'cod_capability_revoked',
+            'to_status' => CourierVendorCodCapability::STATUS_REJECTED,
+        ]);
     }
 
     public function test_vendor_request_rejects_invalid_cod_category(): void

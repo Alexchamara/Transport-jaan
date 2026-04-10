@@ -620,6 +620,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])
             ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
             ->name('cod-settlement.capabilities.reject');
+        Route::post('/cod-settlement/capabilities/{capability}/revoke', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'revokeCapability'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
+            ->name('cod-settlement.capabilities.revoke');
         Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])
             ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
             ->name('cod-settlement.capabilities.incidents.open');
