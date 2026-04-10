@@ -54,39 +54,39 @@ const SideMenu = () => {
         } else if (pathname === "/superadmin/users/drivers" || pathname.startsWith("/superadmin/users/drivers/")) {
             setActiveSubsection("Drivers");
             setIsUsersOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/vehicles") {
+        } else if (pathname === "/superadmin/reports/vehicles" || pathname === "/SuperAdmin/reports/vehicles") {
             setActiveSubsection("VehicleReports");
             setIsReportsOpen(true);
             setIsServiceReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/tickets") {
+        } else if (pathname === "/superadmin/reports/tickets" || pathname === "/SuperAdmin/reports/tickets") {
             setActiveSubsection("TicketReports");
             setIsReportsOpen(true);
             setIsServiceReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/warehouse") {
+        } else if (pathname === "/superadmin/reports/warehouse" || pathname === "/SuperAdmin/reports/warehouse") {
             setActiveSubsection("WarehouseReports");
             setIsReportsOpen(true);
             setIsServiceReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/multimodal") {
+        } else if (pathname === "/superadmin/reports/multimodal" || pathname === "/SuperAdmin/reports/multimodal") {
             setActiveSubsection("MultimodalReports");
             setIsReportsOpen(true);
             setIsServiceReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/courier") {
+        } else if (pathname === "/superadmin/reports/courier" || pathname === "/SuperAdmin/reports/courier") {
             setActiveSubsection("CourierReports");
             setIsReportsOpen(true);
             setIsServiceReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/freight") {
+        } else if (pathname === "/superadmin/reports/freight" || pathname === "/SuperAdmin/reports/freight") {
             setActiveSubsection("FreightReports");
             setIsReportsOpen(true);
             setIsServiceReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/users/clients") {
+        } else if (pathname === "/superadmin/reports/users/clients" || pathname === "/SuperAdmin/reports/users/clients") {
             setActiveSubsection("ClientReports");
             setIsReportsOpen(true);
             setIsUserReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/users/service-providers") {
+        } else if (pathname === "/superadmin/reports/users/service-providers" || pathname === "/SuperAdmin/reports/users/service-providers") {
             setActiveSubsection("ServiceProviderReports");
             setIsReportsOpen(true);
             setIsUserReportsOpen(true);
-        } else if (pathname === "/SuperAdmin/reports/users/drivers") {
+        } else if (pathname === "/superadmin/reports/users/drivers" || pathname === "/SuperAdmin/reports/users/drivers") {
             setActiveSubsection("DriversReports");
             setIsReportsOpen(true);
             setIsUserReportsOpen(true);
@@ -363,7 +363,7 @@ const SideMenu = () => {
                             }`}
                         >
                         <Link
-                            href="/SuperAdmin/reports/vehicles"
+                            href="/superadmin/reports/vehicles"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "VehicleReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -380,7 +380,7 @@ const SideMenu = () => {
                             Vehicle Rental Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/tickets"
+                            href="/superadmin/reports/tickets"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "TicketReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -397,7 +397,7 @@ const SideMenu = () => {
                             Ticket Booking Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/warehouse"
+                            href="/superadmin/reports/warehouse"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "WarehouseReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -414,7 +414,7 @@ const SideMenu = () => {
                             Warehousing Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/multimodal"
+                            href="/superadmin/reports/multimodal"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "MultimodalReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -431,7 +431,7 @@ const SideMenu = () => {
                             Multimodal Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/courier"
+                            href="/superadmin/reports/courier"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "CourierReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -448,7 +448,7 @@ const SideMenu = () => {
                             Courier Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/freight"
+                            href="/superadmin/reports/freight"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "FreightReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -485,7 +485,7 @@ const SideMenu = () => {
                             }`}
                         >
                         <Link
-                            href="/SuperAdmin/reports/users/clients"
+                            href="/superadmin/reports/users/clients"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "ClientReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -502,7 +502,7 @@ const SideMenu = () => {
                             Client Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/users/service-providers"
+                            href="/superadmin/reports/users/service-providers"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "ServiceProviderReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -519,7 +519,7 @@ const SideMenu = () => {
                             Service Provider Report
                         </Link>
                         <Link
-                            href="/SuperAdmin/reports/users/drivers"
+                            href="/superadmin/reports/users/drivers"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "DriversReports"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"

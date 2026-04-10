@@ -507,6 +507,23 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
     Route::get('/Vender', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('NewVender');
 
+    // Reports Routes
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('filterOptions');
+        Route::get('/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('vehicles');
+        Route::get('/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('vehicles.land');
+        Route::get('/vehicles/air', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'airVehicleBookings'])->name('vehicles.air');
+        Route::get('/vehicles/sea', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'seaVehicleBookings'])->name('vehicles.sea');
+        Route::get('/tickets', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'ticketBookings'])->name('tickets');
+        Route::get('/warehouse', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'warehouseBookings'])->name('warehouse');
+        Route::get('/multimodal', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'multimodalBookings'])->name('multimodal');
+        Route::get('/courier', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'courierBookings'])->name('courier');
+        Route::get('/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('freight');
+        Route::get('/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('users.clients');
+        Route::get('/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('users.serviceProviders');
+        Route::get('/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('users.drivers');
+    });
+
     // Vendor User Management API Routes
     Route::prefix('vendors')->name('vendors.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('index');
@@ -1049,32 +1066,20 @@ Route::get('/SuperAdmin/Vender', function () {
     return Inertia::render('Web/home/SuperAdmin/NewVender');
 })->name('SuperAdmin.NewVender');
 
-// SuperAdmin Reports Routes
-Route::get('/SuperAdmin/reports/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('SuperAdmin.reports.filterOptions');
-
-Route::get('/SuperAdmin/reports/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('SuperAdmin.reports.vehicles');
-
-Route::get('/SuperAdmin/reports/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('SuperAdmin.reports.vehicles.land');
-
-Route::get('/SuperAdmin/reports/vehicles/air', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'airVehicleBookings'])->name('SuperAdmin.reports.vehicles.air');
-
-Route::get('/SuperAdmin/reports/vehicles/sea', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'seaVehicleBookings'])->name('SuperAdmin.reports.vehicles.sea');
-
-Route::get('/SuperAdmin/reports/tickets', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'ticketBookings'])->name('SuperAdmin.reports.tickets');
-
-Route::get('/SuperAdmin/reports/warehouse', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'warehouseBookings'])->name('SuperAdmin.reports.warehouse');
-
-Route::get('/SuperAdmin/reports/multimodal', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'multimodalBookings'])->name('SuperAdmin.reports.multimodal');
-
-Route::get('/SuperAdmin/reports/courier', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'courierBookings'])->name('SuperAdmin.reports.courier');
-
-Route::get('/SuperAdmin/reports/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('SuperAdmin.reports.freight');
-
-Route::get('/SuperAdmin/reports/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('SuperAdmin.reports.users.clients');
-
-Route::get('/SuperAdmin/reports/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('SuperAdmin.reports.users.serviceProviders');
-
-Route::get('/SuperAdmin/reports/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('SuperAdmin.reports.users.drivers');
+// Legacy SuperAdmin report routes (mixed-case) redirected to canonical protected endpoints.
+Route::redirect('/SuperAdmin/reports/filter-options', '/superadmin/reports/filter-options')->name('SuperAdmin.reports.filterOptions');
+Route::redirect('/SuperAdmin/reports/vehicles', '/superadmin/reports/vehicles')->name('SuperAdmin.reports.vehicles');
+Route::redirect('/SuperAdmin/reports/vehicles/land', '/superadmin/reports/vehicles/land')->name('SuperAdmin.reports.vehicles.land');
+Route::redirect('/SuperAdmin/reports/vehicles/air', '/superadmin/reports/vehicles/air')->name('SuperAdmin.reports.vehicles.air');
+Route::redirect('/SuperAdmin/reports/vehicles/sea', '/superadmin/reports/vehicles/sea')->name('SuperAdmin.reports.vehicles.sea');
+Route::redirect('/SuperAdmin/reports/tickets', '/superadmin/reports/tickets')->name('SuperAdmin.reports.tickets');
+Route::redirect('/SuperAdmin/reports/warehouse', '/superadmin/reports/warehouse')->name('SuperAdmin.reports.warehouse');
+Route::redirect('/SuperAdmin/reports/multimodal', '/superadmin/reports/multimodal')->name('SuperAdmin.reports.multimodal');
+Route::redirect('/SuperAdmin/reports/courier', '/superadmin/reports/courier')->name('SuperAdmin.reports.courier');
+Route::redirect('/SuperAdmin/reports/freight', '/superadmin/reports/freight')->name('SuperAdmin.reports.freight');
+Route::redirect('/SuperAdmin/reports/users/clients', '/superadmin/reports/users/clients')->name('SuperAdmin.reports.users.clients');
+Route::redirect('/SuperAdmin/reports/users/service-providers', '/superadmin/reports/users/service-providers')->name('SuperAdmin.reports.users.serviceProviders');
+Route::redirect('/SuperAdmin/reports/users/drivers', '/superadmin/reports/users/drivers')->name('SuperAdmin.reports.users.drivers');
 
 // vendor - warehouse rent
 Route::get('/warehouse/unit', function () {
