@@ -13,43 +13,43 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-         $this->call([
+        $this->call([
             // User seeders (must run first)
-            SuperAdminSeeder::class,
-            DemoUsersSeeder::class,
-            VendorUsersSeeder::class,
-            DriverSeeder::class,
+            SuperAdminSeeder::class ,
+            DemoUsersSeeder::class ,
+            VendorUsersSeeder::class ,
+            DriverSeeder::class ,
 
             // Vehicle Category & Vehicle seeders
-            VehicleCategorySeeder::class,
-           // VehicleSeeder::class,
-            LandVehicleSpecSeeder::class,
-            AirVehicleSpecSeeder::class,
-            SeaVehicleSpecSeeder::class,
+            VehicleCategorySeeder::class ,
+            // VehicleSeeder::class,
+            LandVehicleSpecSeeder::class ,
+            AirVehicleSpecSeeder::class ,
+            SeaVehicleSpecSeeder::class ,
 
             // Vehicle related data
-            VehicleMediaSeeder::class,
-            VehicleDocumentSeeder::class,
-            VehicleCrewSeeder::class,
-            VehicleFeaturePricingSeeder::class,
-            VehiclePolicySeeder::class,
-            VehicleMaintenanceSeeder::class,
+            VehicleMediaSeeder::class ,
+            VehicleDocumentSeeder::class ,
+            VehicleCrewSeeder::class ,
+            VehicleFeaturePricingSeeder::class ,
+            VehiclePolicySeeder::class ,
+            VehicleMaintenanceSeeder::class ,
             //VehicleReviewSeeder::class,
-            VehicleLikeSeeder::class,
+            VehicleLikeSeeder::class ,
 
             // Units
-            UnitSeeder::class,
+            UnitSeeder::class ,
 
             // Bookings
-            BookingSeeder::class,
-            BookingScheduleSeeder::class,
-            BookingAddonSeeder::class,
-       //     BookingPaymentSeeder::class,
-            BookingCustomerSeeder::class,
+            BookingSeeder::class ,
+            BookingScheduleSeeder::class ,
+            BookingAddonSeeder::class ,
+            //     BookingPaymentSeeder::class,
+            BookingCustomerSeeder::class ,
 
             // Freight & Flight
-            FreightQuoteSeeder::class,
-            FlightBookingSeeder::class,
+            FreightQuoteSeeder::class ,
+            FlightBookingSeeder::class ,
 
             // Bus & Train
             // BusStationSeeder::class,
@@ -57,20 +57,21 @@ class DatabaseSeeder extends Seeder
             // BusScheduleSeeder::class,
             // BusBookingSeeder::class,
 
-           // TrainStationSeeder::class,
-           // TrainSeeder::class,
+            // TrainStationSeeder::class,
+            // TrainSeeder::class,
             //TrainScheduleSeeder::class,
-           // TrainBookingSeeder::class,
+            // TrainBookingSeeder::class,
 
             // Warehouse
-            WarehouseUnitSeeder::class,
+            WarehouseUnitSeeder::class ,
 
             // Service Categories for vendor registration
-            ServiceCategorySeeder::class,
-            VendorUsersSeeder::class,
+            ServiceCategorySeeder::class ,
+            VendorUsersSeeder::class ,
 
             // Service-scoped RBAC
-            CourierRbacSeeder::class,
+            CourierRbacSeeder::class ,
+            LocationDataSeeder::class ,
         ]);
     }
 }
