@@ -3032,38 +3032,41 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                     </div>
                                                                 )}
 
-                                                                <div className="mt-5 border-t border-[#E4EAF5] pt-5">
-                                                                    <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
-                                                                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={Boolean(item.nonStackable)}
-                                                                            onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
-                                                                            className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
-                                                                        />
-                                                                        <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
+                                                                <div className="mt-5 flex flex-wrap items-start gap-x-10 gap-y-4 border-t border-[#E4EAF5] pt-5">
+                                                                    <div>
+                                                                        <p className="text-sm font-semibold text-[#0B1739]">Your Item is...</p>
+                                                                        <div className="mt-3 flex flex-wrap items-center gap-3">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={Boolean(item.nonStackable)}
+                                                                                onChange={(event) => updatePackage(index, "nonStackable", event.target.checked)}
+                                                                                className="h-4 w-4 rounded border border-[#B8C4D8] accent-[#0955AC]"
+                                                                            />
+                                                                            <span className="text-[16px] leading-none text-[#8A8A8A]">Non-Stackable</span>
 
-                                                                        <div className="group relative">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
-                                                                                aria-label="Why do we need this information"
-                                                                            >
-                                                                                ?
-                                                                            </button>
+                                                                            <div className="group relative">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#8A8A8A] text-base font-semibold text-[#404040]"
+                                                                                    aria-label="Why do we need this information"
+                                                                                >
+                                                                                    ?
+                                                                                </button>
 
-                                                                            <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
-                                                                                <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
-                                                                                <p className="font-semibold">Why do we need this information?</p>
-                                                                                <p className="mt-2 leading-6">
-                                                                                    Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
-                                                                                </p>
+                                                                                <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-[340px] rounded-md border border-[#B8B8B8] bg-white p-3 text-left text-sm text-[#333333] shadow-lg group-hover:block group-focus-within:block sm:left-full sm:top-1/2 sm:ml-3 sm:mt-0 sm:-translate-y-1/2">
+                                                                                    <span className="hidden sm:block absolute -left-2 top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-b border-l border-[#B8B8B8] bg-white" />
+                                                                                    <p className="font-semibold">Why do we need this information?</p>
+                                                                                    <p className="mt-2 leading-6">
+                                                                                        Please choose "Non-Stackable" when your shipment does not allow other goods to be placed on top of it - for example, if it contains fragile goods or its packaging does not provide a flat, uniform top. For an accurate quote for shipments over 40kg, this specification is required.
+                                                                                    </p>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
 
-                                                                    <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options*</p>
-                                                                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                                                    <div>
+                                                                        <p className="text-sm font-semibold text-[#0B1739]">Payment options*</p>
+                                                                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
                                                                         <label className="inline-flex items-center gap-2">
                                                                             <input
                                                                                 type="checkbox"
@@ -3091,6 +3094,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                             />
                                                                             Card
                                                                         </label>
+                                                                    </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
