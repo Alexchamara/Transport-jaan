@@ -682,7 +682,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
 });
 
 // Payments page (Legacy route for backward compatibility)
-Route::get('/SuperAdmin/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments.index');
+Route::redirect('/SuperAdmin/payments', '/superadmin/payments')->name('payments.index');
 
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
 Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
@@ -925,6 +925,9 @@ Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails'
 Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
 Route::redirect('/SuperAdmin/settings/cancellation', '/superadmin/settings/cancellation')->name('SuperAdmin.settings.cancellation.legacy');
+Route::redirect('/SuperAdmin/settings/commission', '/superadmin/settings/commission')->name('SuperAdmin.settings.commission.legacy');
+Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')->name('SuperAdmin.settings.website.legacy');
+Route::redirect('/SuperAdmin/settings/cod-settlement', '/superadmin/settings/cod-settlement')->name('SuperAdmin.settings.cod-settlement.legacy');
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');

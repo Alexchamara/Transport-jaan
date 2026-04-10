@@ -39,10 +39,10 @@ const SideMenu = () => {
     const updateSidebarState = (pathname) => {
         if (!pathname) pathname = window.location.pathname;
         
-        if (pathname === "/SuperAdmin/Analytics") {
+        if (pathname === "/superadmin/Analytics" || pathname === "/SuperAdmin/Analytics") {
             setActiveSubsection("Analytics");
             setIsDashboardOpen(true);
-        } else if (pathname === "/SuperAdmin/Users") {
+        } else if (pathname === "/superadmin/Users" || pathname === "/SuperAdmin/Users") {
             setActiveSubsection("Users");
             setIsUsersOpen(true);
         } else if (pathname === "/superadmin/users/clients") {
@@ -93,10 +93,10 @@ const SideMenu = () => {
         } else if (pathname === "/SuperAdmin/Models") {
             setActiveSubsection("Models");
             setIsModelsOpen(true);
-        } else if (pathname === "/superadmin/Vehicles") {
+        } else if (pathname === "/superadmin/Vehicles" || pathname === "/SuperAdmin/Vehicles") {
             setActiveSubsection("Vehicles");
             setIsModelsOpen(true);
-        } else if (pathname === "/SuperAdmin/Warehouse") {
+        } else if (pathname === "/superadmin/Warehouse" || pathname === "/SuperAdmin/Warehouse") {
             setActiveSubsection("Warehouse");
             setIsModelsOpen(true);
         } else if (pathname === "/SuperAdmin/Models/Courier") {
@@ -130,6 +130,9 @@ const SideMenu = () => {
             setIsSettingsOpen(true);
         } else if (pathname === "/superadmin/settings/cod-settlement" || pathname === "/SuperAdmin/settings/cod-settlement") {
             setActiveSubsection("CodSettlementSettings");
+            setIsSettingsOpen(true);
+        } else if (pathname === "/superadmin/payments" || pathname === "/SuperAdmin/payments") {
+            setActiveSubsection("Payments");
             setIsSettingsOpen(true);
         }
     };
@@ -281,7 +284,7 @@ const SideMenu = () => {
                         }`}
                     >
                         <Link
-                            href="/SuperAdmin/Analytics"
+                            href="/superadmin/Analytics"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "Analytics"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -615,7 +618,7 @@ const SideMenu = () => {
                             Vehicles
                         </Link>
                         <Link
-                            href="/SuperAdmin/Warehouse"
+                            href="/superadmin/Warehouse"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "Warehouse"
                                     ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -900,7 +903,7 @@ const SideMenu = () => {
                     }`}
                 >
                     <Link
-                        href="/SuperAdmin/settings/cancellation"
+                        href="/superadmin/settings/cancellation"
                         className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
                             activeSubsection === "CancellationSettings"
                                 ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
@@ -932,7 +935,7 @@ const SideMenu = () => {
                     </Link>
 
                     <Link
-                        href="/SuperAdmin/payments"
+                        href="/superadmin/payments"
                         className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
                             activeSubsection === "Payments"
                                 ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
