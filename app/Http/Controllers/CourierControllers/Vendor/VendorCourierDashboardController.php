@@ -900,6 +900,13 @@ class VendorCourierDashboardController extends Controller
                 ? $governanceByCategory[$pricingCategory]
                 : ($this->defaultPricingGovernance()[$pricingCategory] ?? []);
 
+            if (
+                ($governance['approvalAuthority'] ?? 'vendor') === 'superadmin'
+                && in_array($action, ['pricing_approve_publish', 'pricing_reject_publish', 'pricing_rollback_version'], true)
+            ) {
+                abort(403, 'Pricing approval authority is delegated to SuperAdmin.');
+            }
+
             if ($action === 'pricing_publish_now') {
                 $snapshot = $this->extractPricingSnapshot($pricing, $pricingCategory);
                 if ((bool) ($governance['requireApproval'] ?? false)) {
@@ -1046,6 +1053,7 @@ class VendorCourierDashboardController extends Controller
 
             if ($section === 'pricing') {
                 $incomingSection = $this->normalizePricingSettings(array_replace_recursive($current['pricing'] ?? [], $incomingSection));
+                $incomingSection = $this->enforceSuperAdminPricingGovernanceAuthorityLock($incomingSection, $current['pricing'] ?? []);
                 $incomingSection = $this->enforceApprovedPricingCategoryWriteScope($incomingSection, $current['pricing'] ?? [], $approvedPricingCategories);
                 $incomingSection = $this->appendPricingGovernanceLog($incomingSection, 'draft_saved', $actorId, [
                     'mode' => 'save_section',
@@ -1089,6 +1097,7 @@ class VendorCourierDashboardController extends Controller
 
         if (is_array($next['pricing'] ?? null)) {
             $next['pricing'] = $this->normalizePricingSettings($next['pricing']);
+            $next['pricing'] = $this->enforceSuperAdminPricingGovernanceAuthorityLock($next['pricing'], $current['pricing'] ?? []);
             $next['pricing'] = $this->enforceApprovedPricingCategoryWriteScope($next['pricing'], $current['pricing'] ?? [], $approvedPricingCategories);
             $next['pricing'] = $this->appendPricingGovernanceLog($next['pricing'], 'draft_saved', $actorId, [
                 'mode' => 'save_all',
@@ -4745,6 +4754,7 @@ class VendorCourierDashboardController extends Controller
         return [
             'domestic' => [
                 'requireApproval' => false,
+                'approvalAuthority' => 'vendor',
                 'approverRoles' => ['courier_owner', 'courier_admin'],
                 'draftVersion' => 1,
                 'publishedVersion' => 1,
@@ -4757,6 +4767,7 @@ class VendorCourierDashboardController extends Controller
             ],
             'international' => [
                 'requireApproval' => false,
+                'approvalAuthority' => 'vendor',
                 'approverRoles' => ['courier_owner', 'courier_admin'],
                 'draftVersion' => 1,
                 'publishedVersion' => 1,
@@ -4914,7 +4925,16 @@ class VendorCourierDashboardController extends Controller
                 is_array($governanceInput[$category] ?? null) ? $governanceInput[$category] : []
             );
 
+            $approvalAuthority = strtolower(trim((string) ($governance['approvalAuthority'] ?? 'vendor')));
+            if (!in_array($approvalAuthority, ['vendor', 'superadmin'], true)) {
+                $approvalAuthority = 'vendor';
+            }
+
+            $governance['approvalAuthority'] = $approvalAuthority;
             $governance['requireApproval'] = (bool) ($governance['requireApproval'] ?? false);
+            if ($approvalAuthority === 'superadmin') {
+                $governance['requireApproval'] = true;
+            }
             $governance['approverRoles'] = collect($governance['approverRoles'] ?? ($defaultGovernance[$category]['approverRoles'] ?? []))
                 ->map(fn ($role) => trim((string) $role))
                 ->filter()
@@ -7975,6 +7995,45 @@ class VendorCourierDashboardController extends Controller
             }
 
             $next['governance'][$category] = $currentPricing['governance'][$category] ?? ($next['governance'][$category] ?? []);
+        }
+
+        return $next;
+    }
+
+    private function enforceSuperAdminPricingGovernanceAuthorityLock(array $nextPricing, array $currentPricing): array
+    {
+        $next = $nextPricing;
+        $currentGovernance = is_array($currentPricing['governance'] ?? null)
+            ? $currentPricing['governance']
+            : [];
+
+        foreach (['domestic', 'international'] as $category) {
+            $currentCategoryGovernance = is_array($currentGovernance[$category] ?? null)
+                ? $currentGovernance[$category]
+                : [];
+
+            if (($currentCategoryGovernance['approvalAuthority'] ?? 'vendor') !== 'superadmin') {
+                continue;
+            }
+
+            if (!is_array($next['governance'] ?? null)) {
+                $next['governance'] = [];
+            }
+
+            $nextCategoryGovernance = is_array($next['governance'][$category] ?? null)
+                ? $next['governance'][$category]
+                : [];
+
+            $nextCategoryGovernance['approvalAuthority'] = 'superadmin';
+            $nextCategoryGovernance['requireApproval'] = true;
+
+            if (array_key_exists('approverRoles', $currentCategoryGovernance)) {
+                $nextCategoryGovernance['approverRoles'] = is_array($currentCategoryGovernance['approverRoles'])
+                    ? $currentCategoryGovernance['approverRoles']
+                    : [];
+            }
+
+            $next['governance'][$category] = $nextCategoryGovernance;
         }
 
         return $next;

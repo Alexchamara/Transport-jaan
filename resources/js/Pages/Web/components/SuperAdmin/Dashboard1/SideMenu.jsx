@@ -54,7 +54,8 @@ const SideMenu = () => {
     const canViewCodSettlement = hasSuperAdminCourierPermission("superadmin.courier.cod.settings.view");
     const canViewPayments = hasSuperAdminCourierPermission("superadmin.courier.payments.view");
     const canViewCourierOperations = hasSuperAdminCourierPermission("superadmin.courier.operations.view");
-    const canViewCourierManagement = canViewReports || canViewCodSettlement || canViewPayments || canViewCourierOperations;
+    const canViewPricingGovernance = hasSuperAdminCourierPermission("superadmin.courier.pricing.governance.view");
+    const canViewCourierManagement = canViewReports || canViewCodSettlement || canViewPayments || canViewCourierOperations || canViewPricingGovernance;
 
     const normalizeLegacySuperadminPath = (pathname) => {
         if (!pathname) {
@@ -82,6 +83,7 @@ const SideMenu = () => {
             "/superadmin/Models/TicketBooking": "/superadmin/models/ticketbooking",
             "/superadmin/Models/Multimodel": "/superadmin/models/multimodel",
             "/superadmin/CourierOperations": "/superadmin/courier-operations",
+            "/superadmin/PricingGovernance": "/superadmin/pricing-governance",
         };
 
         return pathAliases[normalizedPath] || normalizedPath;
@@ -201,6 +203,9 @@ const SideMenu = () => {
             setIsCourierManagementOpen(true);
         } else if (normalizedPath === "/superadmin/courier-operations" || normalizedPath.startsWith("/superadmin/courier-operations/")) {
             setActiveSubsection("CourierOperations");
+            setIsCourierManagementOpen(true);
+        } else if (normalizedPath === "/superadmin/pricing-governance" || normalizedPath.startsWith("/superadmin/pricing-governance/")) {
+            setActiveSubsection("CourierPricingGovernance");
             setIsCourierManagementOpen(true);
         }
     };
@@ -638,7 +643,7 @@ const SideMenu = () => {
                     {/* Courier Management */}
                     <div
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
-                            isCourierManagementOpen || activeSubsection === "CourierReports" || activeSubsection === "CodSettlementSettings" || activeSubsection === "Payments" || activeSubsection === "CourierOperations"
+                            isCourierManagementOpen || activeSubsection === "CourierReports" || activeSubsection === "CodSettlementSettings" || activeSubsection === "Payments" || activeSubsection === "CourierOperations" || activeSubsection === "CourierPricingGovernance"
                                 ? "bg-[#181A2A]"
                                 : "hover:bg-[#181A2A]"
                         }`}
@@ -654,7 +659,8 @@ const SideMenu = () => {
                                     activeSubsection === "CourierReports" ||
                                     activeSubsection === "CodSettlementSettings" ||
                                     activeSubsection === "Payments" ||
-                                    activeSubsection === "CourierOperations"
+                                    activeSubsection === "CourierOperations" ||
+                                    activeSubsection === "CourierPricingGovernance"
                                         ? featuresW
                                         : features
                                 }
@@ -667,7 +673,8 @@ const SideMenu = () => {
                                     activeSubsection === "CourierReports" ||
                                     activeSubsection === "CodSettlementSettings" ||
                                     activeSubsection === "Payments" ||
-                                    activeSubsection === "CourierOperations"
+                                    activeSubsection === "CourierOperations" ||
+                                    activeSubsection === "CourierPricingGovernance"
                                         ? "text-white"
                                         : "text-[#AEB9E1]"
                                 }`}
@@ -727,6 +734,26 @@ const SideMenu = () => {
                                 preserveScroll
                             >
                                 Operations Control
+                            </Link>
+                        )}
+
+                        {canViewPricingGovernance && (
+                            <Link
+                                href="/superadmin/pricing-governance"
+                                className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                    activeSubsection === "CourierPricingGovernance"
+                                        ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                        : hoveredSection === "CourierPricingGovernance"
+                                        ? "text-white bg-[#181A2A] border-l-transparent"
+                                        : "text-[#AEB9E1] border-l-transparent"
+                                }`}
+                                onClick={() => setActiveSubsection("CourierPricingGovernance")}
+                                onMouseEnter={() => setHoveredSection("CourierPricingGovernance")}
+                                onMouseLeave={() => setHoveredSection(null)}
+                                preserveState
+                                preserveScroll
+                            >
+                                Pricing Governance
                             </Link>
                         )}
 

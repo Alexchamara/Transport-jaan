@@ -438,6 +438,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::redirect('/AirVehicleDetails', '/superadmin/air-vehicle-details');
     Route::redirect('/Vender', '/superadmin/vendors')->name('NewVender');
     Route::redirect('/CourierOperations', '/superadmin/courier-operations')->name('CourierOperations');
+    Route::redirect('/PricingGovernance', '/superadmin/pricing-governance')->name('PricingGovernance');
 
     Route::get('/analytics', function () {
         return Inertia::render('Web/home/SuperAdmin/Analytics');
@@ -557,6 +558,37 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
         Route::get('/shipments/{shipment}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'auditHistory'])
             ->middleware('superadmin.courier.permission:superadmin.courier.operations.audit.view')
+            ->name('audit-history');
+    });
+
+    // Courier Pricing Governance (Phase 4)
+    Route::prefix('pricing-governance')->name('pricing-governance.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'index'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.view')
+            ->name('index');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/policy', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'updatePolicy'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.policy.manage')
+            ->name('policy.update');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/approve', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'approve'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.review')
+            ->name('approve');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/reject', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'reject'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.review')
+            ->name('reject');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/force-publish', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'forcePublish'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.override')
+            ->name('force-publish');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/rollback', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'rollback'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.override')
+            ->name('rollback');
+
+        Route::get('/vendors/{vendorUserId}/categories/{category}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'auditHistory'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.audit.view')
             ->name('audit-history');
     });
 
@@ -987,6 +1019,7 @@ Route::redirect('/SuperAdmin/settings/commission', '/superadmin/settings/commiss
 Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')->name('SuperAdmin.settings.website.legacy');
 Route::redirect('/SuperAdmin/settings/cod-settlement', '/superadmin/settings/cod-settlement')->name('SuperAdmin.settings.cod-settlement.legacy');
 Route::redirect('/SuperAdmin/CourierOperations', '/superadmin/courier-operations')->name('SuperAdmin.CourierOperations.legacy');
+Route::redirect('/SuperAdmin/PricingGovernance', '/superadmin/pricing-governance')->name('SuperAdmin.PricingGovernance.legacy');
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');

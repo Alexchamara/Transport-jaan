@@ -27,6 +27,11 @@ class SuperAdminCourierRbac
             self::permissionName('operations.freeze'),
             self::permissionName('operations.cancel_override'),
             self::permissionName('operations.audit.view'),
+            self::permissionName('pricing.governance.view'),
+            self::permissionName('pricing.governance.policy.manage'),
+            self::permissionName('pricing.governance.review'),
+            self::permissionName('pricing.governance.override'),
+            self::permissionName('pricing.governance.audit.view'),
         ];
     }
 
@@ -38,6 +43,8 @@ class SuperAdminCourierRbac
                 self::permissionName('cod.settings.view'),
                 self::permissionName('operations.view'),
                 self::permissionName('operations.audit.view'),
+                self::permissionName('pricing.governance.view'),
+                self::permissionName('pricing.governance.audit.view'),
             ],
             'superadmin_courier_ops' => [
                 self::permissionName('reports.view'),
@@ -50,6 +57,10 @@ class SuperAdminCourierRbac
                 self::permissionName('operations.freeze'),
                 self::permissionName('operations.cancel_override'),
                 self::permissionName('operations.audit.view'),
+                self::permissionName('pricing.governance.view'),
+                self::permissionName('pricing.governance.review'),
+                self::permissionName('pricing.governance.override'),
+                self::permissionName('pricing.governance.audit.view'),
             ],
             'superadmin_courier_finance' => [
                 self::permissionName('reports.view'),
@@ -59,6 +70,9 @@ class SuperAdminCourierRbac
                 self::permissionName('payments.view'),
                 self::permissionName('operations.view'),
                 self::permissionName('operations.audit.view'),
+                self::permissionName('pricing.governance.view'),
+                self::permissionName('pricing.governance.policy.manage'),
+                self::permissionName('pricing.governance.audit.view'),
             ],
             'superadmin_courier_compliance' => [
                 self::permissionName('reports.view'),
@@ -69,6 +83,9 @@ class SuperAdminCourierRbac
                 self::permissionName('operations.view'),
                 self::permissionName('operations.freeze'),
                 self::permissionName('operations.audit.view'),
+                self::permissionName('pricing.governance.view'),
+                self::permissionName('pricing.governance.review'),
+                self::permissionName('pricing.governance.audit.view'),
             ],
         ];
     }

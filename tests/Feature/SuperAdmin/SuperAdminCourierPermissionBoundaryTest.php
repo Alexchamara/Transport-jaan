@@ -96,4 +96,36 @@ class SuperAdminCourierPermissionBoundaryTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_superadmin_with_explicit_non_pricing_permission_cannot_access_pricing_governance_page(): void
+    {
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+        ]);
+
+        $workspaceId = SuperAdminCourierWorkspace::idForUser($superAdmin);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
+        $superAdmin->givePermissionTo('superadmin.courier.operations.view');
+
+        $response = $this->actingAs($superAdmin)
+            ->get('/superadmin/pricing-governance');
+
+        $response->assertForbidden();
+    }
+
+    public function test_superadmin_with_explicit_pricing_governance_view_permission_can_access_pricing_governance_page(): void
+    {
+        $superAdmin = User::factory()->create([
+            'role' => 'SuperAdmin',
+        ]);
+
+        $workspaceId = SuperAdminCourierWorkspace::idForUser($superAdmin);
+        app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
+        $superAdmin->givePermissionTo('superadmin.courier.pricing.governance.view');
+
+        $response = $this->actingAs($superAdmin)
+            ->get('/superadmin/pricing-governance');
+
+        $response->assertOk();
+    }
 }

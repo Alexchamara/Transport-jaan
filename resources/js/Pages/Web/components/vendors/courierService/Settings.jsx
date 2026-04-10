@@ -4958,6 +4958,10 @@ const Settings = () => {
     const activePricingGovernance = (pricingGovernanceByCategory && typeof pricingGovernanceByCategory[activePricingCategory] === "object")
         ? pricingGovernanceByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.governance[activePricingCategory];
+    const activePricingApprovalAuthority = String(activePricingGovernance.approvalAuthority || "vendor").toLowerCase() === "superadmin"
+        ? "superadmin"
+        : "vendor";
+    const isSuperAdminPricingAuthority = activePricingApprovalAuthority === "superadmin";
     const activePricingVersionHistory = Array.isArray(activePricingGovernance.versionHistory)
         ? activePricingGovernance.versionHistory
         : [];
@@ -4979,9 +4983,9 @@ const Settings = () => {
     ])]
         .map((role) => String(role || "").trim())
         .filter(Boolean);
-    const canConfigurePricingGovernance = canAssignPermissions;
+    const canConfigurePricingGovernance = canAssignPermissions && !isSuperAdminPricingAuthority;
     const canPublishPricingChanges = canAssignPermissions;
-    const canReviewPricingPublish = canAssignPermissions && (hasGovernanceApproverRole || normalizedCurrentUserRoles.length === 0);
+    const canReviewPricingPublish = !isSuperAdminPricingAuthority && canAssignPermissions && (hasGovernanceApproverRole || normalizedCurrentUserRoles.length === 0);
     const activeServiceCatalogRows = Array.isArray(pricingServiceCatalog?.[activePricingCategory])
         ? pricingServiceCatalog[activePricingCategory]
         : [];
@@ -7177,6 +7181,7 @@ const Settings = () => {
                                         <p className="text-[11px] text-[#475569]">Published Version: {Number(activePricingGovernance.publishedVersion || 1)}</p>
                                         <p className="text-[11px] text-[#475569]">Published At: {activePricingGovernance.publishedAt || "Not published"}</p>
                                         <p className="text-[11px] text-[#475569]">Pending Approval: {activePricingGovernance.pendingApproval ? "Yes" : "No"}</p>
+                                        <p className="text-[11px] text-[#475569]">Approval Authority: {titleCase(activePricingApprovalAuthority)}</p>
                                     </div>
 
                                     <textarea
@@ -7257,6 +7262,9 @@ const Settings = () => {
                                     </div>
                                     {pendingApprovalRequestedByCurrentActor && canReviewPricingPublish && (
                                         <p className="mt-2 text-[11px] text-[#B45309]">Four-eyes control: requester cannot approve their own publish request.</p>
+                                    )}
+                                    {isSuperAdminPricingAuthority && (
+                                        <p className="mt-2 text-[11px] text-[#1E3A8A]">Approval, rejection, and rollback are delegated to SuperAdmin for this pricing category.</p>
                                     )}
                                     {!canPublishPricingChanges && !canReviewPricingPublish && (
                                         <p className="mt-2 text-[11px] text-[#6B7280]">You do not have permission to run pricing governance actions.</p>

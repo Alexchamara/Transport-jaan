@@ -54,6 +54,7 @@ class SuperAdminLegacyRouteRedirectTest extends TestCase
             '/SuperAdmin/Vehicles' => '/superadmin/vehicles',
             '/SuperAdmin/Warehouse' => '/superadmin/warehouse',
             '/SuperAdmin/CourierOperations' => '/superadmin/courier-operations',
+            '/SuperAdmin/PricingGovernance' => '/superadmin/pricing-governance',
         ];
 
         foreach ($legacyRoutes as $legacyPath => $canonicalPath) {
@@ -75,6 +76,7 @@ class SuperAdminLegacyRouteRedirectTest extends TestCase
             '/superadmin/Vehicles' => '/superadmin/vehicles',
             '/superadmin/Warehouse' => '/superadmin/warehouse',
             '/superadmin/CourierOperations' => '/superadmin/courier-operations',
+            '/superadmin/PricingGovernance' => '/superadmin/pricing-governance',
         ];
 
         foreach ($mixedCaseRoutes as $legacyPath => $canonicalPath) {
