@@ -362,7 +362,15 @@ class VendorCourierDashboardController extends Controller
                 'shipment.senderAddress:id,city,country',
                 'shipment.recipientAddress:id,city,country',
                 'shipment.packages:id,shipment_id,quantity,courier_provider_name,service_tier_label,service_tier_key',
-                'shipment.latestPayment:id,courier_shipment_id,payment_method,is_required,status',
+                'shipment.latestPayment' => function ($query) {
+                    $query->select(
+                        'courier_shipment_payments.id',
+                        'courier_shipment_payments.courier_shipment_id',
+                        'courier_shipment_payments.payment_method',
+                        'courier_shipment_payments.is_required',
+                        'courier_shipment_payments.status'
+                    );
+                },
             ])
             ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
             ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)

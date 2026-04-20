@@ -6,6 +6,7 @@ use App\Models\Courier\CourierAddress;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierPackage;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierShipmentPayment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
@@ -121,6 +122,21 @@ class CourierAllBookingsContractTest extends TestCase
             'description' => 'Fragile promotional material',
         ]);
 
+        CourierShipmentPayment::query()->create([
+            'courier_shipment_id' => $shipment->id,
+            'requested_by_user_id' => $user->id,
+            'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
+            'payment_method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
+            'is_required' => true,
+            'amount' => 45.75,
+            'currency_code' => 'USD',
+            'status' => CourierShipmentPayment::STATUS_PENDING,
+            'gateway_order_id' => 'PH-ORDER-001',
+            'gateway_payment_id' => 'PH-PAYMENT-001',
+            'tx_reference' => 'TX-PHASE3-REF',
+            'initiated_at' => now()->subMinute(),
+        ]);
+
         $response = $this->actingAs($user)->get(route('clientAllBookings'));
 
         $response->assertOk();
@@ -144,6 +160,15 @@ class CourierAllBookingsContractTest extends TestCase
             ->where('allBookings.0.package_count', 1)
             ->where('allBookings.0.package_type', 'parcel')
             ->where('allBookings.0.weight', 5.25)
+            ->where('allBookings.0.payment_status', CourierShipmentPayment::STATUS_PENDING)
+            ->where('allBookings.0.payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+            ->where('allBookings.0.payment_reference', 'TX-PHASE3-REF')
+            ->where('allBookings.0.paymentStatus', 'Pending')
+            ->where('allBookings.0.paymentMethod', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+            ->where('allBookings.0.paymentReference', 'TX-PHASE3-REF')
+            ->where('allBookings.0.payment_gateway_order_id', 'PH-ORDER-001')
+            ->where('allBookings.0.payment_gateway_payment_id', 'PH-PAYMENT-001')
+            ->where('allBookings.0.payment_tx_reference', 'TX-PHASE3-REF')
         );
     }
 }

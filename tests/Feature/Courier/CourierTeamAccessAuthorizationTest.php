@@ -5,6 +5,7 @@ namespace Tests\Feature\Courier;
 use App\Models\Courier\CourierAddress;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierShipmentPayment;
 use App\Models\Courier\VendorCourierSetting;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use App\Models\ServiceCategory;
@@ -189,6 +190,97 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $response = $this->actingAs($actor)->getJson(route('courierService.units'));
 
         $response->assertForbidden();
+    }
+
+    public function test_payments_route_is_forbidden_without_finance_permission(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.dashboard.view',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles(['courier_tracking_officer']);
+
+        $response = $this->actingAs($actor)->getJson(route('courierService.payment'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_payments_route_requires_approved_registration_even_with_finance_access(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.finance.view',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles(['courier_finance']);
+
+        VendorServiceRegistration::query()
+            ->where('user_id', $vendor->id)
+            ->update([
+                'status' => 'submitted',
+                'reviewed_at' => null,
+            ]);
+
+        $response = $this->actingAs($actor)->getJson(route('courierService.payment'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_payments_route_returns_card_payment_rows_and_lifecycle_gate_for_finance_role(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.finance.view',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles(['courier_finance']);
+
+        $shipment = $this->createAssignedShipment($vendor, [
+            'status' => CourierShipment::STATUS_CONFIRMED,
+            'estimated_cost' => 7600,
+            'currency_code' => 'LKR',
+        ]);
+
+        $payment = CourierShipmentPayment::query()->create([
+            'courier_shipment_id' => $shipment->id,
+            'requested_by_user_id' => null,
+            'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
+            'payment_method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
+            'is_required' => true,
+            'amount' => 7600,
+            'currency_code' => 'LKR',
+            'status' => CourierShipmentPayment::STATUS_PENDING,
+            'gateway_order_id' => 'CPH-TEAM-' . $shipment->id,
+            'gateway_payment_id' => 'PH-GW-' . $shipment->id,
+            'tx_reference' => 'TX-PAY-' . $shipment->id,
+            'initiated_at' => now()->subMinute(),
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.payment'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/vendors/courierService/Payment')
+            ->where('courierPayments.summary.totalTransactions', 1)
+            ->where('courierPayments.summary.pendingTransactions', 1)
+            ->where('courierPayments.rows.0.shipmentReference', (string) $shipment->reference)
+            ->where('courierPayments.rows.0.status', CourierShipmentPayment::STATUS_PENDING)
+            ->where('courierPayments.rows.0.gatewayOrderId', (string) $payment->gateway_order_id)
+            ->where('courierPayments.rows.0.gatewayPaymentId', (string) $payment->gateway_payment_id)
+            ->where('courierPayments.rows.0.txReference', (string) $payment->tx_reference)
+            ->where('courierPayments.rows.0.cardRequired', true)
+            ->where('courierPayments.rows.0.lifecycleBlocked', true)
+        );
     }
 
     public function test_dispatcher_cannot_cancel_when_team_policy_disables_dispatcher_cancellation(): void
