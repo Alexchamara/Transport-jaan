@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Courier\CourierCodSettlementBatch;
+use App\Models\Courier\CourierCodSettlementLine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -39,11 +41,54 @@ class PaymentsController extends Controller
             ->orderBy('payment_date', 'desc')
             ->get();
 
+        $codPayoutReadyAmount = (float) CourierCodSettlementLine::query()
+            ->join('courier_cod_settlement_batches', 'courier_cod_settlement_batches.id', '=', 'courier_cod_settlement_lines.courier_cod_settlement_batch_id')
+            ->where('courier_cod_settlement_lines.line_status', CourierCodSettlementLine::STATUS_PAYOUT_READY)
+            ->whereIn('courier_cod_settlement_batches.status', [
+                CourierCodSettlementBatch::STATUS_RECONCILING,
+                CourierCodSettlementBatch::STATUS_READY_FOR_PAYOUT,
+            ])
+            ->sum('courier_cod_settlement_lines.payout_amount');
+
+        $codSettlementSummary = [
+            'openBatchCount' => CourierCodSettlementBatch::query()
+                ->whereIn('status', [CourierCodSettlementBatch::STATUS_RECONCILING, CourierCodSettlementBatch::STATUS_READY_FOR_PAYOUT])
+                ->count(),
+            'readyForPayoutBatchCount' => CourierCodSettlementBatch::query()
+                ->where('status', CourierCodSettlementBatch::STATUS_READY_FOR_PAYOUT)
+                ->count(),
+            'openDisputeCount' => CourierCodSettlementLine::query()
+                ->where('dispute_status', CourierCodSettlementLine::DISPUTE_STATUS_OPEN)
+                ->count(),
+            'payoutReadyAmount' => round($codPayoutReadyAmount, 2),
+            'route' => route('superadmin.settings.cod-settlement.index'),
+        ];
+
+        $recentCodSettlementBatches = CourierCodSettlementBatch::query()
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->map(function (CourierCodSettlementBatch $batch) {
+                return [
+                    'id' => (int) $batch->id,
+                    'reference' => (string) $batch->batch_reference,
+                    'status' => (string) $batch->status,
+                    'statusLabel' => $batch->statusLabel(),
+                    'reconciliationStatusLabel' => $batch->reconciliationStatusLabel(),
+                    'netPayoutAmount' => (float) $batch->net_payout_amount,
+                    'currencyCode' => (string) $batch->currency_code,
+                    'generatedAt' => optional($batch->generated_at)->format('Y-m-d H:i:s'),
+                ];
+            })
+            ->values();
+
         return Inertia::render('Web/home/SuperAdmin/Payments', [
             'bookingPayments' => $bookingPayments->toArray(),
             'airVehiclePayments' => $airVehiclePayments->toArray(),
             'seaVehiclePayments' => $seaVehiclePayments->toArray(),
-            'warehousePayments' => $warehousePayments->toArray()
+            'warehousePayments' => $warehousePayments->toArray(),
+            'codSettlementSummary' => $codSettlementSummary,
+            'recentCodSettlementBatches' => $recentCodSettlementBatches,
         ]);
     }
 

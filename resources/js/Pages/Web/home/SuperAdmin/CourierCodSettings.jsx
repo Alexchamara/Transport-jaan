@@ -16,6 +16,36 @@ const CATEGORY_OPTIONS = [
     { value: 'international', label: 'International Scope' },
 ];
 
+const SETTLEMENT_BATCH_STATUS_OPTIONS = [
+    { value: 'all', label: 'All Batch Statuses' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'reconciling', label: 'Reconciling' },
+    { value: 'ready_for_payout', label: 'Ready For Payout' },
+    { value: 'exported', label: 'Exported' },
+    { value: 'closed', label: 'Closed' },
+];
+
+const SETTLEMENT_BATCH_CATEGORY_OPTIONS = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'domestic', label: 'Domestic' },
+    { value: 'international', label: 'International' },
+];
+
+const SETTLEMENT_LINE_STATUS_OPTIONS = [
+    { value: 'all', label: 'All Line Statuses' },
+    { value: 'pending_reconciliation', label: 'Pending Reconciliation' },
+    { value: 'payout_ready', label: 'Payout Ready' },
+    { value: 'disputed', label: 'Disputed' },
+    { value: 'withheld', label: 'Withheld' },
+];
+
+const settlementLineStatusClassMap = {
+    pending_reconciliation: 'border-amber-600 bg-amber-900/20 text-amber-300',
+    payout_ready: 'border-emerald-600 bg-emerald-900/20 text-emerald-300',
+    disputed: 'border-red-600 bg-red-900/20 text-red-300',
+    withheld: 'border-gray-600 bg-gray-900/20 text-gray-300',
+};
+
 const statusClassMap = {
     pending: 'bg-[#FDB52A33] text-[#FDB52A] border border-[#FDB52A80]',
     approved: 'bg-[#05C16833] text-[#14CA74] border border-[#05C16880]',
@@ -112,7 +142,21 @@ const resolveOverridePolicy = (settings = {}) => ({
     ...(settings?.override_policy || {}),
 });
 
-const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) => {
+const CourierCodSettings = ({
+    settings,
+    requests,
+    filters,
+    pagination,
+    stats,
+    settlementSummary,
+    settlementBatchFilters,
+    settlementBatches,
+    settlementBatchPagination,
+    selectedSettlementBatch,
+    settlementLineFilters,
+    settlementLines,
+    settlementLinePagination,
+}) => {
     const { flash } = usePage().props;
 
     const [search, setSearch] = useState(filters?.search || '');
@@ -137,6 +181,22 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const [historyFromFilter, setHistoryFromFilter] = useState('');
     const [historyToFilter, setHistoryToFilter] = useState('');
     const [overrideControls, setOverrideControls] = useState({});
+    const [batchStatus, setBatchStatus] = useState(settlementBatchFilters?.status || 'all');
+    const [batchCategory, setBatchCategory] = useState(settlementBatchFilters?.category || 'all');
+    const [lineStatus, setLineStatus] = useState(settlementLineFilters?.status || 'all');
+    const [lineSearch, setLineSearch] = useState(settlementLineFilters?.search || '');
+    const [isGeneratingSettlementBatch, setIsGeneratingSettlementBatch] = useState(false);
+
+    const today = new Date();
+    const defaultToDate = today.toISOString().slice(0, 10);
+    const defaultFromDate = new Date(today.getTime() - (6 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+
+    const [settlementGenerationForm, setSettlementGenerationForm] = useState({
+        fromDate: defaultFromDate,
+        toDate: defaultToDate,
+        category: 'all',
+        note: '',
+    });
 
     const {
         data,
@@ -172,13 +232,34 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         setToDate(filters?.to || '');
     }, [filters?.search, filters?.status, filters?.category, filters?.from, filters?.to]);
 
-    const applyFilters = (nextPage = 1) => {
+    useEffect(() => {
+        setBatchStatus(settlementBatchFilters?.status || 'all');
+        setBatchCategory(settlementBatchFilters?.category || 'all');
+    }, [settlementBatchFilters?.status, settlementBatchFilters?.category]);
+
+    useEffect(() => {
+        setLineStatus(settlementLineFilters?.status || 'all');
+        setLineSearch(settlementLineFilters?.search || '');
+    }, [settlementLineFilters?.status, settlementLineFilters?.search]);
+
+    const buildCombinedQueryParams = () => {
         const params = {
             status,
             category,
-            search,
-            page: nextPage,
+            batchStatus,
+            batchCategory,
+            lineStatus,
         };
+
+        const trimmedSearch = search.trim();
+        if (trimmedSearch !== '') {
+            params.search = trimmedSearch;
+        }
+
+        const trimmedLineSearch = lineSearch.trim();
+        if (trimmedLineSearch !== '') {
+            params.lineSearch = trimmedLineSearch;
+        }
 
         if (fromDate !== '') {
             params.from = fromDate;
@@ -187,6 +268,19 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         if (toDate !== '') {
             params.to = toDate;
         }
+
+        if (selectedSettlementBatch?.id) {
+            params.batchId = selectedSettlementBatch.id;
+        }
+
+        return params;
+    };
+
+    const applyFilters = (nextPage = 1) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            page: nextPage,
+        };
 
         router.get(
             route('superadmin.settings.cod-settlement.index'),
@@ -219,6 +313,229 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         }
 
         window.location.href = route('superadmin.settings.cod-settlement.compliance-export', params);
+    };
+
+    const applySettlementBatchFilters = (nextPage = 1) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            settlementBatchPage: nextPage,
+        };
+
+        router.get(route('superadmin.settings.cod-settlement.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const applySettlementLineFilters = (nextPage = 1) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            settlementLinePage: nextPage,
+        };
+
+        router.get(route('superadmin.settings.cod-settlement.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const openSettlementBatch = (batchId) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            batchId,
+            settlementLinePage: 1,
+        };
+
+        router.get(route('superadmin.settings.cod-settlement.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const handleSettlementGenerationInput = (field, value) => {
+        setSettlementGenerationForm((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const handleGenerateSettlementBatch = (event) => {
+        event.preventDefault();
+
+        if (settlementGenerationForm.fromDate === '' || settlementGenerationForm.toDate === '') {
+            window.alert('Please select both cycle start and cycle end dates.');
+            return;
+        }
+
+        setIsGeneratingSettlementBatch(true);
+
+        router.post(
+            route('superadmin.settings.cod-settlement.batches.generate', buildCombinedQueryParams()),
+            {
+                fromDate: settlementGenerationForm.fromDate,
+                toDate: settlementGenerationForm.toDate,
+                category: settlementGenerationForm.category,
+                note: String(settlementGenerationForm.note || '').trim(),
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsGeneratingSettlementBatch(false);
+                },
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to generate settlement batch.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleReconcileSettlementLine = (line) => {
+        const collectedPrompt = window.prompt(
+            'Collected COD amount (leave blank to keep current value):',
+            String(line?.collectedCodAmount ?? ''),
+        );
+
+        if (collectedPrompt === null) {
+            return;
+        }
+
+        const trimmedCollectedPrompt = String(collectedPrompt).trim();
+        const hasCollectedAmount = trimmedCollectedPrompt !== '';
+        const collectedAmount = Number(trimmedCollectedPrompt || 0);
+
+        if (hasCollectedAmount && (Number.isNaN(collectedAmount) || collectedAmount < 0)) {
+            window.alert('Please enter a valid collected COD amount.');
+            return;
+        }
+
+        const note = window.prompt('Reconciliation note (optional):', '') || '';
+
+        router.post(
+            route('superadmin.settings.cod-settlement.lines.reconcile', { line: line.id }),
+            {
+                collectedAmount: hasCollectedAmount ? collectedAmount : null,
+                note,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to reconcile settlement line.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleOpenSettlementLineDispute = (line) => {
+        const reason = window.prompt(
+            'Dispute reason (required):',
+            String(line?.disputeReason || ''),
+        );
+
+        if (reason === null) {
+            return;
+        }
+
+        const trimmedReason = String(reason).trim();
+        if (trimmedReason.length < 5) {
+            window.alert('Dispute reason must contain at least 5 characters.');
+            return;
+        }
+
+        const note = window.prompt('Dispute note (optional):', String(line?.disputeNote || '')) || '';
+
+        router.post(
+            route('superadmin.settings.cod-settlement.lines.dispute', { line: line.id }),
+            {
+                reason: trimmedReason,
+                note,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to open settlement dispute.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleResolveSettlementLineDispute = (line) => {
+        const resolution = window.prompt('Resolution (payout_ready, withheld, rejected):', 'payout_ready');
+        if (resolution === null) {
+            return;
+        }
+
+        const normalizedResolution = String(resolution).trim().toLowerCase();
+        if (!['payout_ready', 'withheld', 'rejected'].includes(normalizedResolution)) {
+            window.alert('Resolution must be one of: payout_ready, withheld, rejected.');
+            return;
+        }
+
+        const collectedPrompt = window.prompt(
+            'Collected COD amount (leave blank to keep current value):',
+            String(line?.collectedCodAmount ?? ''),
+        );
+
+        if (collectedPrompt === null) {
+            return;
+        }
+
+        const trimmedCollectedPrompt = String(collectedPrompt).trim();
+        const hasCollectedAmount = trimmedCollectedPrompt !== '';
+        const collectedAmount = Number(trimmedCollectedPrompt || 0);
+
+        if (hasCollectedAmount && (Number.isNaN(collectedAmount) || collectedAmount < 0)) {
+            window.alert('Please enter a valid collected COD amount.');
+            return;
+        }
+
+        const note = window.prompt('Resolution note (optional):', String(line?.disputeNote || '')) || '';
+
+        router.post(
+            route('superadmin.settings.cod-settlement.lines.resolve', { line: line.id }),
+            {
+                resolution: normalizedResolution,
+                collectedAmount: hasCollectedAmount ? collectedAmount : null,
+                note,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to resolve settlement dispute.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleExportSettlementBatch = (batch) => {
+        if (!batch?.id) {
+            return;
+        }
+
+        if (!window.confirm('Export payout-ready lines and mark this batch as exported?')) {
+            return;
+        }
+
+        window.location.href = route('superadmin.settings.cod-settlement.batches.export', {
+            batch: batch.id,
+        });
     };
 
     const handleSettingsSubmit = (event) => {
@@ -565,6 +882,19 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         fetchCapabilityHistory(historyCapability?.id, nextPage, historyCapability);
     };
 
+    const settlementBatchesList = Array.isArray(settlementBatches) ? settlementBatches : [];
+    const settlementLinesList = Array.isArray(settlementLines) ? settlementLines : [];
+    const settlementCurrency = String(selectedSettlementBatch?.currencyCode || settings?.currency_code || 'LKR');
+
+    const formatMoney = (value) => {
+        const numericValue = Number(value || 0);
+        if (Number.isNaN(numericValue)) {
+            return '0.00';
+        }
+
+        return numericValue.toFixed(2);
+    };
+
     return (
         <>
             <Head title="Courier COD Settlement" />
@@ -598,6 +928,350 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             <StatCard title="Pending" value={stats?.pending || 0} color="text-[#FDB52A]" />
                             <StatCard title="Approved" value={stats?.approved || 0} color="text-[#14CA74]" />
                             <StatCard title="Rejected" value={stats?.rejected || 0} color="text-[#FF4757]" />
+                        </div>
+
+                        <div className="bg-[#0A1330] border border-cyan-800/50 rounded-lg p-6 mb-6">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-cyan-200">Phase 6 Settlement Reconciliation</h2>
+                                    <p className="text-sm text-cyan-100/80">Generate settlement batches, reconcile line-level COD differences, manage disputes, and export payout-ready files.</p>
+                                </div>
+                                {settlementSummary?.latestBatch?.reference && (
+                                    <div className="rounded-md border border-cyan-700 bg-cyan-900/20 px-3 py-2 text-xs text-cyan-100">
+                                        <p className="font-semibold">Latest Batch</p>
+                                        <p>{settlementSummary.latestBatch.reference}</p>
+                                        <p>{settlementSummary.latestBatch.statusLabel}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                                <StatCard title="Open Batches" value={Number(settlementSummary?.openBatchCount || 0)} color="text-cyan-200" />
+                                <StatCard title="Ready For Payout" value={Number(settlementSummary?.readyForPayoutBatchCount || 0)} color="text-emerald-300" />
+                                <StatCard title="Open Disputes" value={Number(settlementSummary?.openDisputeCount || 0)} color="text-amber-300" />
+                                <StatCard title="Payout Ready (LKR)" value={formatMoney(settlementSummary?.payoutReadyAmount || 0)} color="text-cyan-100" />
+                            </div>
+
+                            <form onSubmit={handleGenerateSettlementBatch} className="mt-5 rounded-md border border-gray-700 bg-[#081028] p-4">
+                                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Generate Settlement Batch</h3>
+                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-5">
+                                    <input
+                                        type="date"
+                                        value={settlementGenerationForm.fromDate}
+                                        onChange={(event) => handleSettlementGenerationInput('fromDate', event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={settlementGenerationForm.toDate}
+                                        onChange={(event) => handleSettlementGenerationInput('toDate', event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    />
+                                    <select
+                                        value={settlementGenerationForm.category}
+                                        onChange={(event) => handleSettlementGenerationInput('category', event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    >
+                                        {SETTLEMENT_BATCH_CATEGORY_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={settlementGenerationForm.note}
+                                        onChange={(event) => handleSettlementGenerationInput('note', event.target.value)}
+                                        placeholder="Generation note (optional)"
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={isGeneratingSettlementBatch}
+                                        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 disabled:opacity-50"
+                                    >
+                                        {isGeneratingSettlementBatch ? 'Generating...' : 'Generate Batch'}
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div className="mt-5 rounded-md border border-gray-700 bg-[#081028] p-4">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Settlement Batches</h3>
+                                        <p className="text-xs text-gray-500">Select a batch to review line-level reconciliation and dispute workflows.</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <select
+                                            value={batchStatus}
+                                            onChange={(event) => setBatchStatus(event.target.value)}
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        >
+                                            {SETTLEMENT_BATCH_STATUS_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={batchCategory}
+                                            onChange={(event) => setBatchCategory(event.target.value)}
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        >
+                                            {SETTLEMENT_BATCH_CATEGORY_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => applySettlementBatchFilters(1)}
+                                            className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 overflow-x-auto">
+                                    <table className="w-full min-w-[980px] text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-700 text-left text-gray-300">
+                                                <th className="py-2 pr-3">Reference</th>
+                                                <th className="py-2 pr-3">Status</th>
+                                                <th className="py-2 pr-3">Cycle</th>
+                                                <th className="py-2 pr-3">Counts</th>
+                                                <th className="py-2 pr-3">Amounts</th>
+                                                <th className="py-2">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {settlementBatchesList.length === 0 && (
+                                                <tr>
+                                                    <td className="py-5 text-center text-gray-400" colSpan={6}>No settlement batches found for the selected filters.</td>
+                                                </tr>
+                                            )}
+
+                                            {settlementBatchesList.map((batch) => (
+                                                <tr key={batch.id} className={`border-b border-gray-800 ${selectedSettlementBatch?.id === batch.id ? 'bg-cyan-900/10' : ''}`}>
+                                                    <td className="py-2 pr-3 text-white">
+                                                        <p className="font-semibold">{batch.batchReference}</p>
+                                                        <p className="text-xs text-gray-500">{batch.categoryLabel}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        <span className="inline-flex rounded-full border border-cyan-700 bg-cyan-900/20 px-2 py-0.5 text-xs font-semibold text-cyan-200">
+                                                            {batch.statusLabel}
+                                                        </span>
+                                                        <p className="mt-1 text-xs text-gray-400">{batch.reconciliationStatusLabel}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>{batch.cycleStartDate || '-'} to {batch.cycleEndDate || '-'}</p>
+                                                        <p className="text-xs text-gray-500">Generated: {batch.generatedAt || '-'}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>Total: {Number(batch.linesCount || 0)}</p>
+                                                        <p className="text-xs text-emerald-300">Payout Ready: {Number(batch.payoutReadyLinesCount || 0)}</p>
+                                                        <p className="text-xs text-amber-300">Pending: {Number(batch.pendingLinesCount || 0)}</p>
+                                                        <p className="text-xs text-red-300">Disputes: {Number(batch.openDisputeLinesCount || 0)}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>Gross: {batch.currencyCode || 'LKR'} {formatMoney(batch.grossCodAmount)}</p>
+                                                        <p className="text-xs text-gray-400">Reserve: {batch.currencyCode || 'LKR'} {formatMoney(batch.reserveAmount)}</p>
+                                                        <p className="text-xs text-cyan-200">Net: {batch.currencyCode || 'LKR'} {formatMoney(batch.netPayoutAmount)}</p>
+                                                        <p className="text-xs text-amber-300">Discrepancy: {batch.currencyCode || 'LKR'} {formatMoney(batch.discrepancyAmount)}</p>
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openSettlementBatch(batch.id)}
+                                                                className="rounded-md border border-gray-600 px-3 py-1 text-xs font-semibold text-white hover:border-cyan-500"
+                                                            >
+                                                                View Lines
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleExportSettlementBatch(batch)}
+                                                                disabled={batch.status !== 'ready_for_payout'}
+                                                                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                            >
+                                                                Export Payout
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+                                    <p>
+                                        Batch page {settlementBatchPagination?.currentPage || 1} of {settlementBatchPagination?.lastPage || 1}
+                                        {' '}({settlementBatchPagination?.total || 0} total)
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={(settlementBatchPagination?.currentPage || 1) <= 1}
+                                            onClick={() => applySettlementBatchFilters((settlementBatchPagination?.currentPage || 1) - 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Prev
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={(settlementBatchPagination?.currentPage || 1) >= (settlementBatchPagination?.lastPage || 1)}
+                                            onClick={() => applySettlementBatchFilters((settlementBatchPagination?.currentPage || 1) + 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 rounded-md border border-gray-700 bg-[#081028] p-4">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Settlement Lines</h3>
+                                        <p className="text-xs text-gray-500">
+                                            {selectedSettlementBatch?.batchReference
+                                                ? `Batch ${selectedSettlementBatch.batchReference}`
+                                                : 'Select a settlement batch to view reconciliation lines.'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <select
+                                            value={lineStatus}
+                                            onChange={(event) => setLineStatus(event.target.value)}
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        >
+                                            {SETTLEMENT_LINE_STATUS_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={lineSearch}
+                                            onChange={(event) => setLineSearch(event.target.value)}
+                                            placeholder="Search shipment or vendor"
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => applySettlementLineFilters(1)}
+                                            disabled={!selectedSettlementBatch?.id}
+                                            className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 overflow-x-auto">
+                                    <table className="w-full min-w-[1200px] text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-700 text-left text-gray-300">
+                                                <th className="py-2 pr-3">Shipment</th>
+                                                <th className="py-2 pr-3">Vendor</th>
+                                                <th className="py-2 pr-3">Status</th>
+                                                <th className="py-2 pr-3">Amounts ({settlementCurrency})</th>
+                                                <th className="py-2 pr-3">Dispute</th>
+                                                <th className="py-2">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {settlementLinesList.length === 0 && (
+                                                <tr>
+                                                    <td className="py-5 text-center text-gray-400" colSpan={6}>No settlement lines for the selected batch and filters.</td>
+                                                </tr>
+                                            )}
+
+                                            {settlementLinesList.map((line) => (
+                                                <tr key={line.id} className="border-b border-gray-800 align-top">
+                                                    <td className="py-2 pr-3 text-white">
+                                                        <p className="font-semibold">{line.shipmentReference || `Shipment #${line.shipmentId}`}</p>
+                                                        <p className="text-xs text-gray-500">Status: {line.shipmentStatus || '-'}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>{line.vendorName || 'Unknown vendor'}</p>
+                                                        <p className="text-xs text-gray-500">{line.vendorEmail || '-'}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${settlementLineStatusClassMap[line.lineStatus] || 'border-gray-600 bg-gray-900/20 text-gray-300'}`}>
+                                                            {line.lineStatusLabel || line.lineStatus || 'Unknown'}
+                                                        </span>
+                                                        {line.disputeStatusLabel && (
+                                                            <p className="mt-1 text-xs text-amber-300">Dispute: {line.disputeStatusLabel}</p>
+                                                        )}
+                                                        {line.reconciledAt && (
+                                                            <p className="mt-1 text-xs text-gray-500">Reconciled: {line.reconciledAt}</p>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>Requested: {formatMoney(line.requestedCodAmount)}</p>
+                                                        <p>Collected: {formatMoney(line.collectedCodAmount)}</p>
+                                                        <p className="text-xs text-gray-400">Reserve: {formatMoney(line.reserveAmount)}</p>
+                                                        <p className="text-xs text-cyan-200">Payout: {formatMoney(line.payoutAmount)}</p>
+                                                        <p className="text-xs text-amber-300">Discrepancy: {formatMoney(line.discrepancyAmount)}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>{line.disputeReason || '-'}</p>
+                                                        {line.disputeNote && <p className="mt-1 text-xs text-gray-500">{line.disputeNote}</p>}
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleReconcileSettlementLine(line)}
+                                                                className="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                                                            >
+                                                                Reconcile
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenSettlementLineDispute(line)}
+                                                                className="rounded-md bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                                                            >
+                                                                Open Dispute
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleResolveSettlementLineDispute(line)}
+                                                                disabled={line.disputeStatus !== 'open'}
+                                                                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+                                                            >
+                                                                Resolve Dispute
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+                                    <p>
+                                        Line page {settlementLinePagination?.currentPage || 1} of {settlementLinePagination?.lastPage || 1}
+                                        {' '}({settlementLinePagination?.total || 0} total)
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={(settlementLinePagination?.currentPage || 1) <= 1 || !selectedSettlementBatch?.id}
+                                            onClick={() => applySettlementLineFilters((settlementLinePagination?.currentPage || 1) - 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Prev
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={(settlementLinePagination?.currentPage || 1) >= (settlementLinePagination?.lastPage || 1) || !selectedSettlementBatch?.id}
+                                            onClick={() => applySettlementLineFilters((settlementLinePagination?.currentPage || 1) + 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="bg-[#0A1330] border border-gray-700 rounded-lg p-6 mb-6">

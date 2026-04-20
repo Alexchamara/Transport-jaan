@@ -143,6 +143,11 @@ class CourierShipment extends Model
         return $this->hasMany(VendorCourierLabel::class, 'shipment_id');
     }
 
+    public function codSettlementLines()
+    {
+        return $this->hasMany(CourierCodSettlementLine::class, 'shipment_id');
+    }
+
     public function superAdminActionAudits()
     {
         return $this->hasMany(SuperAdminCourierActionAudit::class, 'shipment_id');

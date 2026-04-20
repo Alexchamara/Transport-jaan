@@ -638,6 +638,21 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])
             ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
             ->name('cod-settlement.incidents.resolve');
+        Route::post('/cod-settlement/batches/generate', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'generateSettlementBatch'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.batch.manage')
+            ->name('cod-settlement.batches.generate');
+        Route::post('/cod-settlement/lines/{line}/reconcile', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'reconcileSettlementLine'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.line.reconcile')
+            ->name('cod-settlement.lines.reconcile');
+        Route::post('/cod-settlement/lines/{line}/dispute', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openSettlementLineDispute'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.dispute.manage')
+            ->name('cod-settlement.lines.dispute');
+        Route::post('/cod-settlement/lines/{line}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveSettlementLineDispute'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.dispute.manage')
+            ->name('cod-settlement.lines.resolve');
+        Route::get('/cod-settlement/batches/{batch}/export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportSettlementBatch'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.export')
+            ->name('cod-settlement.batches.export');
         
         Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
         Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');

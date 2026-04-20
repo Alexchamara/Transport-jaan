@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Courier\CourierCodSettlementBatch;
+use App\Models\Courier\CourierCodSettlementLine;
 use App\Models\Courier\CourierCodSettlementSetting;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\CourierVendorCodIntegrityIncident;
 use App\Services\Courier\CourierCodComplianceExportService;
 use App\Services\Courier\CourierCodIntegrityAlertService;
+use App\Services\Courier\CourierCodSettlementReconciliationService;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -27,6 +31,11 @@ class CourierCodSettingsController extends Controller
             'search' => ['nullable', 'string', 'max:120'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'batchStatus' => ['nullable', 'string', 'in:all,draft,reconciling,ready_for_payout,exported,closed'],
+            'batchCategory' => ['nullable', 'string', 'in:all,domestic,international'],
+            'batchId' => ['nullable', 'integer', 'exists:courier_cod_settlement_batches,id'],
+            'lineStatus' => ['nullable', 'string', 'in:all,pending_reconciliation,payout_ready,disputed,withheld'],
+            'lineSearch' => ['nullable', 'string', 'max:120'],
         ]);
 
         $statusFilter = (string) ($validated['status'] ?? 'all');
@@ -213,6 +222,8 @@ class CourierCodSettingsController extends Controller
             'rejected' => (clone $statsQuery)->where('status', CourierVendorCodCapability::STATUS_REJECTED)->count(),
         ];
 
+        $settlementPayload = $this->buildSettlementPayload($validated);
+
         return Inertia::render('Web/home/SuperAdmin/CourierCodSettings', [
             'settings' => [
                 'is_cod_enabled' => (bool) $settings->is_cod_enabled,
@@ -240,6 +251,14 @@ class CourierCodSettingsController extends Controller
                 'total' => $paginator->total(),
             ],
             'stats' => $stats,
+            'settlementSummary' => $settlementPayload['summary'],
+            'settlementBatchFilters' => $settlementPayload['batchFilters'],
+            'settlementBatches' => $settlementPayload['batches'],
+            'settlementBatchPagination' => $settlementPayload['batchPagination'],
+            'selectedSettlementBatch' => $settlementPayload['selectedBatch'],
+            'settlementLineFilters' => $settlementPayload['lineFilters'],
+            'settlementLines' => $settlementPayload['lines'],
+            'settlementLinePagination' => $settlementPayload['linePagination'],
         ]);
     }
 
@@ -326,6 +345,127 @@ class CourierCodSettingsController extends Controller
         $settings->save();
 
         return back()->with('success', 'COD settlement settings updated successfully.');
+    }
+
+    public function generateSettlementBatch(Request $request, CourierCodSettlementReconciliationService $reconciliationService)
+    {
+        $validated = $request->validate([
+            'fromDate' => ['required', 'date'],
+            'toDate' => ['required', 'date', 'after_or_equal:fromDate'],
+            'category' => ['required', 'string', 'in:all,domestic,international'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $batch = $reconciliationService->generateBatch([
+            'fromDate' => (string) $validated['fromDate'],
+            'toDate' => (string) $validated['toDate'],
+            'category' => (string) $validated['category'],
+            'note' => trim((string) ($validated['note'] ?? '')),
+        ], (int) optional($request->user())->id ?: null);
+
+        $redirectQuery = Arr::only($request->query(), [
+            'status',
+            'category',
+            'search',
+            'from',
+            'to',
+            'batchStatus',
+            'batchCategory',
+            'lineStatus',
+            'lineSearch',
+        ]);
+        $redirectQuery['batchId'] = (int) $batch->id;
+
+        return redirect()
+            ->route('superadmin.settings.cod-settlement.index', $redirectQuery)
+            ->with('success', 'COD settlement batch generated successfully.');
+    }
+
+    public function reconcileSettlementLine(
+        Request $request,
+        CourierCodSettlementLine $line,
+        CourierCodSettlementReconciliationService $reconciliationService
+    ) {
+        $validated = $request->validate([
+            'collectedAmount' => ['nullable', 'numeric', 'min:0'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $reconciliationService->reconcileLine(
+            $line,
+            array_key_exists('collectedAmount', $validated) ? (float) $validated['collectedAmount'] : null,
+            trim((string) ($validated['note'] ?? '')),
+            (int) optional($request->user())->id ?: null
+        );
+
+        return back()->with('success', 'Settlement line reconciled.');
+    }
+
+    public function openSettlementLineDispute(
+        Request $request,
+        CourierCodSettlementLine $line,
+        CourierCodSettlementReconciliationService $reconciliationService
+    ) {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:255'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $reconciliationService->openDispute(
+            $line,
+            trim((string) $validated['reason']),
+            trim((string) ($validated['note'] ?? '')),
+            (int) optional($request->user())->id ?: null
+        );
+
+        return back()->with('success', 'Settlement line moved to dispute workflow.');
+    }
+
+    public function resolveSettlementLineDispute(
+        Request $request,
+        CourierCodSettlementLine $line,
+        CourierCodSettlementReconciliationService $reconciliationService
+    ) {
+        $validated = $request->validate([
+            'resolution' => ['required', 'string', 'in:payout_ready,withheld,rejected'],
+            'collectedAmount' => ['nullable', 'numeric', 'min:0'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $reconciliationService->resolveDispute(
+            $line,
+            (string) $validated['resolution'],
+            array_key_exists('collectedAmount', $validated) ? (float) $validated['collectedAmount'] : null,
+            trim((string) ($validated['note'] ?? '')),
+            (int) optional($request->user())->id ?: null
+        );
+
+        return back()->with('success', 'Settlement dispute updated.');
+    }
+
+    public function exportSettlementBatch(
+        Request $request,
+        CourierCodSettlementBatch $batch,
+        CourierCodSettlementReconciliationService $reconciliationService
+    ) {
+        $validated = $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $batch = $reconciliationService->markBatchExported(
+            $batch,
+            (int) optional($request->user())->id ?: null,
+            trim((string) ($validated['note'] ?? ''))
+        );
+
+        $csvContents = $reconciliationService->buildPayoutReadyCsv($batch);
+        $fileName = strtolower((string) $batch->batch_reference) . '-payout-ready.csv';
+
+        return response()->streamDownload(function () use ($csvContents): void {
+            echo $csvContents;
+        }, $fileName, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function approveCapability(Request $request, CourierVendorCodCapability $capability)
@@ -833,6 +973,269 @@ class CourierCodSettingsController extends Controller
         ]);
 
         return back()->with('success', 'Integrity incident updated successfully.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function buildSettlementPayload(array $validated): array
+    {
+        $batchStatusFilter = strtolower(trim((string) ($validated['batchStatus'] ?? 'all')));
+        if (!in_array($batchStatusFilter, ['all', 'draft', 'reconciling', 'ready_for_payout', 'exported', 'closed'], true)) {
+            $batchStatusFilter = 'all';
+        }
+
+        $batchCategoryFilter = strtolower(trim((string) ($validated['batchCategory'] ?? 'all')));
+        if (!in_array($batchCategoryFilter, ['all', 'domestic', 'international'], true)) {
+            $batchCategoryFilter = 'all';
+        }
+
+        $lineStatusFilter = strtolower(trim((string) ($validated['lineStatus'] ?? 'all')));
+        if (!in_array($lineStatusFilter, ['all', 'pending_reconciliation', 'payout_ready', 'disputed', 'withheld'], true)) {
+            $lineStatusFilter = 'all';
+        }
+
+        $lineSearch = trim((string) ($validated['lineSearch'] ?? ''));
+        $selectedBatchId = (int) ($validated['batchId'] ?? 0);
+
+        $batchQuery = CourierCodSettlementBatch::query()
+            ->with(['generatedBy:id,name', 'reconciledBy:id,name', 'exportedBy:id,name'])
+            ->withCount([
+                'lines as total_lines_count',
+                'lines as payout_ready_lines_count' => function (Builder $builder) {
+                    $builder->where('line_status', CourierCodSettlementLine::STATUS_PAYOUT_READY);
+                },
+                'lines as pending_lines_count' => function (Builder $builder) {
+                    $builder->whereIn('line_status', [
+                        CourierCodSettlementLine::STATUS_PENDING_RECONCILIATION,
+                        CourierCodSettlementLine::STATUS_DISPUTED,
+                    ]);
+                },
+                'lines as open_dispute_lines_count' => function (Builder $builder) {
+                    $builder->where('dispute_status', CourierCodSettlementLine::DISPUTE_STATUS_OPEN);
+                },
+            ])
+            ->when($batchStatusFilter !== 'all', function (Builder $builder) use ($batchStatusFilter): void {
+                $builder->where('status', $batchStatusFilter);
+            })
+            ->when($batchCategoryFilter !== 'all', function (Builder $builder) use ($batchCategoryFilter): void {
+                $builder->where('category', $batchCategoryFilter);
+            })
+            ->orderByDesc('id');
+
+        $batchPaginator = $batchQuery->paginate(10, ['*'], 'settlementBatchPage')->withQueryString();
+        $batchCollection = collect($batchPaginator->items());
+
+        /** @var CourierCodSettlementBatch|null $selectedBatch */
+        $selectedBatch = null;
+
+        if ($selectedBatchId > 0) {
+            $selectedBatch = $batchCollection->firstWhere('id', $selectedBatchId);
+
+            if (!$selectedBatch instanceof CourierCodSettlementBatch) {
+                $selectedBatch = CourierCodSettlementBatch::query()
+                    ->with(['generatedBy:id,name', 'reconciledBy:id,name', 'exportedBy:id,name'])
+                    ->withCount([
+                        'lines as total_lines_count',
+                        'lines as payout_ready_lines_count' => function (Builder $builder) {
+                            $builder->where('line_status', CourierCodSettlementLine::STATUS_PAYOUT_READY);
+                        },
+                        'lines as pending_lines_count' => function (Builder $builder) {
+                            $builder->whereIn('line_status', [
+                                CourierCodSettlementLine::STATUS_PENDING_RECONCILIATION,
+                                CourierCodSettlementLine::STATUS_DISPUTED,
+                            ]);
+                        },
+                        'lines as open_dispute_lines_count' => function (Builder $builder) {
+                            $builder->where('dispute_status', CourierCodSettlementLine::DISPUTE_STATUS_OPEN);
+                        },
+                    ])
+                    ->whereKey($selectedBatchId)
+                    ->first();
+            }
+        }
+
+        if (!$selectedBatch instanceof CourierCodSettlementBatch) {
+            $selectedBatch = $batchCollection->first();
+        }
+
+        $lineRows = [];
+        $linePagination = [
+            'currentPage' => 1,
+            'lastPage' => 1,
+            'perPage' => 15,
+            'total' => 0,
+        ];
+
+        if ($selectedBatch instanceof CourierCodSettlementBatch) {
+            $linePaginator = CourierCodSettlementLine::query()
+                ->with(['vendor:id,name,email', 'shipment:id,reference,status', 'reconciledBy:id,name'])
+                ->where('courier_cod_settlement_batch_id', (int) $selectedBatch->id)
+                ->when($lineStatusFilter !== 'all', function (Builder $builder) use ($lineStatusFilter): void {
+                    $builder->where('line_status', $lineStatusFilter);
+                })
+                ->when($lineSearch !== '', function (Builder $builder) use ($lineSearch): void {
+                    $builder->where(function (Builder $nested) use ($lineSearch): void {
+                        $nested
+                            ->whereHas('shipment', function (Builder $shipmentQuery) use ($lineSearch): void {
+                                $shipmentQuery->where('reference', 'like', '%' . $lineSearch . '%');
+                            })
+                            ->orWhereHas('vendor', function (Builder $vendorQuery) use ($lineSearch): void {
+                                $vendorQuery
+                                    ->where('name', 'like', '%' . $lineSearch . '%')
+                                    ->orWhere('email', 'like', '%' . $lineSearch . '%');
+                            });
+                    });
+                })
+                ->orderByDesc('id')
+                ->paginate(15, ['*'], 'settlementLinePage')
+                ->withQueryString();
+
+            $lineRows = collect($linePaginator->items())
+                ->map(fn (CourierCodSettlementLine $line) => $this->serializeSettlementLine($line))
+                ->values()
+                ->all();
+
+            $linePagination = [
+                'currentPage' => $linePaginator->currentPage(),
+                'lastPage' => $linePaginator->lastPage(),
+                'perPage' => $linePaginator->perPage(),
+                'total' => $linePaginator->total(),
+            ];
+        }
+
+        $latestBatch = CourierCodSettlementBatch::query()->latest('id')->first();
+
+        $payoutReadyAmount = (float) CourierCodSettlementLine::query()
+            ->join('courier_cod_settlement_batches', 'courier_cod_settlement_batches.id', '=', 'courier_cod_settlement_lines.courier_cod_settlement_batch_id')
+            ->where('courier_cod_settlement_lines.line_status', CourierCodSettlementLine::STATUS_PAYOUT_READY)
+            ->whereIn('courier_cod_settlement_batches.status', [
+                CourierCodSettlementBatch::STATUS_RECONCILING,
+                CourierCodSettlementBatch::STATUS_READY_FOR_PAYOUT,
+            ])
+            ->sum('courier_cod_settlement_lines.payout_amount');
+
+        return [
+            'summary' => [
+                'openBatchCount' => CourierCodSettlementBatch::query()
+                    ->whereIn('status', [CourierCodSettlementBatch::STATUS_RECONCILING, CourierCodSettlementBatch::STATUS_READY_FOR_PAYOUT])
+                    ->count(),
+                'readyForPayoutBatchCount' => CourierCodSettlementBatch::query()
+                    ->where('status', CourierCodSettlementBatch::STATUS_READY_FOR_PAYOUT)
+                    ->count(),
+                'openDisputeCount' => CourierCodSettlementLine::query()
+                    ->where('dispute_status', CourierCodSettlementLine::DISPUTE_STATUS_OPEN)
+                    ->count(),
+                'payoutReadyAmount' => round($payoutReadyAmount, 2),
+                'latestBatch' => $latestBatch instanceof CourierCodSettlementBatch
+                    ? [
+                        'id' => (int) $latestBatch->id,
+                        'reference' => (string) $latestBatch->batch_reference,
+                        'statusLabel' => $latestBatch->statusLabel(),
+                    ]
+                    : null,
+            ],
+            'batchFilters' => [
+                'status' => $batchStatusFilter,
+                'category' => $batchCategoryFilter,
+            ],
+            'batches' => collect($batchPaginator->items())
+                ->map(fn (CourierCodSettlementBatch $batch) => $this->serializeSettlementBatch($batch))
+                ->values()
+                ->all(),
+            'batchPagination' => [
+                'currentPage' => $batchPaginator->currentPage(),
+                'lastPage' => $batchPaginator->lastPage(),
+                'perPage' => $batchPaginator->perPage(),
+                'total' => $batchPaginator->total(),
+            ],
+            'selectedBatch' => $selectedBatch instanceof CourierCodSettlementBatch
+                ? $this->serializeSettlementBatch($selectedBatch)
+                : null,
+            'lineFilters' => [
+                'status' => $lineStatusFilter,
+                'search' => $lineSearch,
+            ],
+            'lines' => $lineRows,
+            'linePagination' => $linePagination,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeSettlementBatch(CourierCodSettlementBatch $batch): array
+    {
+        return [
+            'id' => (int) $batch->id,
+            'batchReference' => (string) $batch->batch_reference,
+            'category' => (string) $batch->category,
+            'categoryLabel' => $this->settlementCategoryLabel((string) $batch->category),
+            'status' => (string) $batch->status,
+            'statusLabel' => $batch->statusLabel(),
+            'reconciliationStatus' => (string) $batch->reconciliation_status,
+            'reconciliationStatusLabel' => $batch->reconciliationStatusLabel(),
+            'currencyCode' => (string) $batch->currency_code,
+            'cycleStartDate' => optional($batch->cycle_start_date)->format('Y-m-d'),
+            'cycleEndDate' => optional($batch->cycle_end_date)->format('Y-m-d'),
+            'shipmentCount' => (int) $batch->shipment_count,
+            'grossCodAmount' => (float) $batch->gross_cod_amount,
+            'reserveAmount' => (float) $batch->reserve_amount,
+            'netPayoutAmount' => (float) $batch->net_payout_amount,
+            'discrepancyAmount' => (float) $batch->discrepancy_amount,
+            'generatedAt' => optional($batch->generated_at)->format('Y-m-d H:i:s'),
+            'generatedBy' => (string) ($batch->generatedBy->name ?? ''),
+            'reconciledAt' => optional($batch->reconciled_at)->format('Y-m-d H:i:s'),
+            'reconciledBy' => (string) ($batch->reconciledBy->name ?? ''),
+            'exportedAt' => optional($batch->exported_at)->format('Y-m-d H:i:s'),
+            'exportedBy' => (string) ($batch->exportedBy->name ?? ''),
+            'linesCount' => (int) ($batch->total_lines_count ?? $batch->shipment_count),
+            'payoutReadyLinesCount' => (int) ($batch->payout_ready_lines_count ?? 0),
+            'pendingLinesCount' => (int) ($batch->pending_lines_count ?? 0),
+            'openDisputeLinesCount' => (int) ($batch->open_dispute_lines_count ?? 0),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeSettlementLine(CourierCodSettlementLine $line): array
+    {
+        return [
+            'id' => (int) $line->id,
+            'batchId' => (int) $line->courier_cod_settlement_batch_id,
+            'shipmentId' => (int) $line->shipment_id,
+            'shipmentReference' => (string) ($line->shipment->reference ?? ''),
+            'shipmentStatus' => (string) ($line->shipment->status ?? ''),
+            'vendorId' => (int) ($line->vendor_user_id ?? 0),
+            'vendorName' => (string) ($line->vendor->name ?? ''),
+            'vendorEmail' => (string) ($line->vendor->email ?? ''),
+            'lineStatus' => (string) $line->line_status,
+            'lineStatusLabel' => $line->lineStatusLabel(),
+            'disputeStatus' => (string) ($line->dispute_status ?? ''),
+            'disputeStatusLabel' => $line->disputeStatusLabel(),
+            'disputeReason' => (string) ($line->dispute_reason ?? ''),
+            'disputeNote' => (string) ($line->dispute_note ?? ''),
+            'currencyCode' => (string) $line->currency_code,
+            'requestedCodAmount' => (float) $line->requested_cod_amount,
+            'collectedCodAmount' => (float) $line->collected_cod_amount,
+            'reserveAmount' => (float) $line->reserve_amount,
+            'payoutAmount' => (float) $line->payout_amount,
+            'discrepancyAmount' => (float) $line->discrepancy_amount,
+            'reconciledAt' => optional($line->reconciled_at)->format('Y-m-d H:i:s'),
+            'reconciledBy' => (string) ($line->reconciledBy->name ?? ''),
+        ];
+    }
+
+    private function settlementCategoryLabel(string $category): string
+    {
+        return match ($category) {
+            CourierCodSettlementBatch::CATEGORY_DOMESTIC => 'Domestic',
+            CourierCodSettlementBatch::CATEGORY_INTERNATIONAL => 'International',
+            CourierCodSettlementBatch::CATEGORY_ALL => 'All',
+            default => 'Unknown',
+        };
     }
 
     private function serializeCapabilityAuditEvent(CourierVendorCodCapabilityAudit $audit, ?array $integrityContext = null): array
