@@ -22,7 +22,7 @@ const RightSide = () => {
                 <div className="w-full">
                     <Cards />
                 </div>
-                <div className="w-full grid grid-cols-1 xl:grid-cols-[341px_minmax(0,1fr)] gap-4 xl:gap-[55px]">
+                <div className="w-full grid grid-cols-1 xl:grid-cols-[341px_minmax(0,1fr)] gap-4 xl:gap-[40px]">
                     <div className="w-full xl:w-[341px]">
                         <WebsiteVisitors />
                     </div>

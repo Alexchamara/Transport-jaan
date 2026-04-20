@@ -82,7 +82,7 @@ const CustomerTypeChart = () => {
     };
 
     return (
-        <div className="bg-[#0B1739] p-5 shadow-lg h-[460px] w-full min-w-0 pb-[120px] rounded-[10px] poppins">
+        <div className="bg-[#0B1739] p-5 shadow-lg h-[460px] w-[745px] min-w-0 pb-[120px] rounded-[10px] poppins">
             <div className="flex flex-row items-center w-full">
                 <div className="flex flex-col w-full gap-2">
                     <div className="flex flex-row items-center gap-2.5">
