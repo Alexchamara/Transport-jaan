@@ -4,7 +4,9 @@ namespace App\Support\Courier;
 
 use App\Models\Courier\CourierAddress;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierShipmentPayment;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class ClientCourierShipmentTransformer
 {
@@ -12,6 +14,7 @@ class ClientCourierShipmentTransformer
     {
         $packages = $this->toCollection($shipment->packages ?? []);
         $trackingEvents = $this->toCollection($shipment->trackingEvents ?? []);
+        $latestPayment = $this->resolveLatestPayment($shipment);
         $totalCost = (float) $packages->sum(fn ($package) => (float) ($package->quoted_price_usd ?? 0));
         $totalWeight = (float) $packages->sum(fn ($package) => (float) ($package->weight_kg ?? 0));
         $latestTracking = $trackingEvents
@@ -51,6 +54,11 @@ class ClientCourierShipmentTransformer
             'totalCost' => $totalCost,
             'estimatedCost' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
             'currencyCode' => $shipment->currency_code ?? 'USD',
+            'paymentStatus' => $latestPayment?->status ?? $shipment->resolvedPaymentStatus(),
+            'paymentMethod' => $latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'pending'),
+            'paymentProvider' => $latestPayment?->provider,
+            'paymentReference' => $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id,
+            'paymentRequired' => (bool) ($latestPayment?->is_required ?? false),
             'insuranceRequired' => (bool) $shipment->insurance_required,
             'declaredValue' => $shipment->declared_value,
             'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
@@ -67,6 +75,7 @@ class ClientCourierShipmentTransformer
     {
         $packages = $this->toCollection($shipment->packages ?? []);
         $trackingEvents = $this->toCollection($shipment->trackingEvents ?? []);
+        $latestPayment = $this->resolveLatestPayment($shipment);
 
         return [
             'id' => $shipment->id,
@@ -93,6 +102,11 @@ class ClientCourierShipmentTransformer
             'codPaymentMethod' => $shipment->cod_requested_method,
             'codPolicySnapshot' => is_array($shipment->cod_policy_snapshot) ? $shipment->cod_policy_snapshot : null,
             'currencyCode' => $shipment->currency_code ?? 'USD',
+            'paymentStatus' => $latestPayment?->status ?? $shipment->resolvedPaymentStatus(),
+            'paymentMethod' => $latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'pending'),
+            'paymentProvider' => $latestPayment?->provider,
+            'paymentReference' => $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id,
+            'paymentRequired' => (bool) ($latestPayment?->is_required ?? false),
             'estimatedCost' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
             'actualCost' => $shipment->actual_cost !== null ? (float) $shipment->actual_cost : null,
             'deliveryNotes' => $shipment->delivery_notes,
@@ -105,11 +119,15 @@ class ClientCourierShipmentTransformer
     public function forUnifiedBooking(CourierShipment $shipment): array
     {
         $packages = $this->toCollection($shipment->packages ?? []);
+        $latestPayment = $this->resolveLatestPayment($shipment);
         $senderAddress = $shipment->senderAddress;
         $recipientAddress = $shipment->recipientAddress;
 
         $totalWeight = (float) $packages->sum(fn ($package) => (float) ($package->weight_kg ?? 0));
         $totalAmount = (float) ($shipment->actual_cost ?? $shipment->estimated_cost ?? 0);
+        $paymentStatus = $latestPayment?->status ?? $shipment->resolvedPaymentStatus();
+        $paymentMethod = $latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'courier');
+        $paymentReference = $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id;
 
         $packageType = $packages
             ->pluck('package_type')
@@ -159,7 +177,13 @@ class ClientCourierShipmentTransformer
             'vendor_name' => 'Courier Service Provider',
             'notes' => $shipment->delivery_notes,
             'description' => $shipment->delivery_notes,
-            'payment_method' => 'Courier Payment',
+            'payment_method' => $paymentMethod,
+            'payment_status' => $paymentStatus,
+            'payment_reference' => $paymentReference,
+            'payment_provider' => $latestPayment?->provider,
+            'paymentMethod' => $paymentMethod,
+            'paymentStatus' => Str::title(str_replace('_', ' ', $paymentStatus)),
+            'paymentReference' => $paymentReference,
             'service_level' => ucfirst((string) ($shipment->service_level ?? 'standard')),
             'insurance_required' => $shipment->insurance_required ? 'Yes' : 'No',
             'declared_value' => $shipment->declared_value !== null ? (float) $shipment->declared_value : null,
@@ -295,6 +319,15 @@ class ClientCourierShipmentTransformer
         }
 
         return $address->instructions ?? $address->delivery_instructions ?? null;
+    }
+
+    private function resolveLatestPayment(CourierShipment $shipment): ?CourierShipmentPayment
+    {
+        $latestPayment = $shipment->relationLoaded('latestPayment')
+            ? $shipment->getRelation('latestPayment')
+            : $shipment->latestPayment()->first();
+
+        return $latestPayment instanceof CourierShipmentPayment ? $latestPayment : null;
     }
 
     private function toCollection($value): Collection

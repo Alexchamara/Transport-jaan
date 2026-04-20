@@ -39,6 +39,7 @@ use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
 use App\Http\Controllers\Api\LocationLookupController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
+use App\Http\Controllers\CourierControllers\Client\CourierPaymentController;
 use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierLabelController;
@@ -139,6 +140,25 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::delete('/favorites/{contact}', [ClientCourierController::class, 'removeFavoriteRecipient'])
         ->whereNumber('contact')
         ->name('favorites.remove');
+
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/{shipment}/checkout', [CourierPaymentController::class, 'checkout'])
+            ->whereNumber('shipment')
+            ->name('checkout');
+        Route::get('/{shipment}/status', [CourierPaymentController::class, 'status'])
+            ->whereNumber('shipment')
+            ->name('status');
+        Route::post('/{shipment}/retry', [CourierPaymentController::class, 'retry'])
+            ->whereNumber('shipment')
+            ->name('retry');
+        Route::get('/payhere/return', [CourierPaymentController::class, 'handleReturn'])
+            ->name('payhere.return');
+        Route::get('/payhere/cancel', [CourierPaymentController::class, 'handleCancel'])
+            ->name('payhere.cancel');
+        Route::post('/payhere/notify', [CourierPaymentController::class, 'handleNotify'])
+            ->name('payhere.notify');
+    });
+
     Route::post('/', [ClientCourierController::class, 'store'])->name('store');
     Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
         ->whereNumber('shipment')
@@ -2121,7 +2141,7 @@ Route::get('/clientAllBookings', function () {
     $courierShipmentTransformer = app(ClientCourierShipmentTransformer::class);
 
     $courierShipments = \App\Models\Courier\CourierShipment::where('requested_by_user_id', $clientId)
-        ->with(['requestedBy', 'sender', 'recipient', 'senderAddress', 'recipientAddress', 'packages'])
+        ->with(['requestedBy', 'sender', 'recipient', 'senderAddress', 'recipientAddress', 'packages', 'latestPayment'])
         ->get()
         ->map(fn ($shipment) => $courierShipmentTransformer->forUnifiedBooking($shipment));
 

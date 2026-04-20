@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'logout-alt',
             'csrf-token',
+            'couriers/payments/payhere/notify',
         ]);
 
         // Add CORS middleware to API routes

@@ -1,6 +1,23 @@
 <?php
 
 return [
+    'payments' => [
+        'enabled' => (bool) env('COURIER_PAYMENTS_ENABLED', true),
+        'gateway' => (string) env('COURIER_PAYMENTS_GATEWAY', 'payhere'),
+        'provider' => [
+            'payhere' => [
+                'enabled' => (bool) env('COURIER_PAYHERE_ENABLED', true),
+                'domestic_currency' => strtoupper((string) env('COURIER_PAYHERE_DOMESTIC_CURRENCY', 'LKR')),
+                'international_fallback_currency' => strtoupper((string) env('COURIER_PAYHERE_INTERNATIONAL_FALLBACK_CURRENCY', 'USD')),
+                'supported_international_currencies' => array_values(array_filter(array_map(
+                    static fn ($currency) => strtoupper(trim((string) $currency)),
+                    explode(',', (string) env('COURIER_PAYHERE_SUPPORTED_INTERNATIONAL_CURRENCIES', 'USD'))
+                ))),
+                'pending_expiry_minutes' => (int) env('COURIER_PAYHERE_PENDING_EXPIRY_MINUTES', 60),
+            ],
+        ],
+    ],
+
     'cod_compliance_export' => [
         'archive' => [
             'enabled' => (bool) env('COURIER_COD_COMPLIANCE_ARCHIVE_ENABLED', true),

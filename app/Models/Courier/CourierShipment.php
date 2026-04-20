@@ -5,6 +5,8 @@ namespace App\Models\Courier;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class CourierShipment extends Model
@@ -143,6 +145,16 @@ class CourierShipment extends Model
         return $this->hasMany(VendorCourierLabel::class, 'shipment_id');
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(CourierShipmentPayment::class, 'courier_shipment_id');
+    }
+
+    public function latestPayment(): HasOne
+    {
+        return $this->hasOne(CourierShipmentPayment::class, 'courier_shipment_id')->latestOfMany();
+    }
+
     public function codSettlementLines()
     {
         return $this->hasMany(CourierCodSettlementLine::class, 'shipment_id');
@@ -151,6 +163,41 @@ class CourierShipment extends Model
     public function superAdminActionAudits()
     {
         return $this->hasMany(SuperAdminCourierActionAudit::class, 'shipment_id');
+    }
+
+    public function resolvedPaymentStatus(): string
+    {
+        $latestPayment = $this->relationLoaded('latestPayment')
+            ? $this->getRelation('latestPayment')
+            : $this->latestPayment()->first();
+
+        if ($latestPayment instanceof CourierShipmentPayment) {
+            return (string) $latestPayment->status;
+        }
+
+        if ($this->status === self::STATUS_CANCELLED) {
+            return CourierShipmentPayment::STATUS_FAILED;
+        }
+
+        if ((float) ($this->estimated_cost ?? 0) <= 0 || $this->status === self::STATUS_PENDING) {
+            return CourierShipmentPayment::STATUS_PENDING;
+        }
+
+        return CourierShipmentPayment::STATUS_PAID;
+    }
+
+    public function requiresCardPayment(): bool
+    {
+        $latestPayment = $this->relationLoaded('latestPayment')
+            ? $this->getRelation('latestPayment')
+            : $this->latestPayment()->first();
+
+        if (!$latestPayment instanceof CourierShipmentPayment) {
+            return false;
+        }
+
+        return (bool) $latestPayment->is_required
+            && (string) $latestPayment->payment_method === CourierShipmentPayment::PAYMENT_METHOD_CARD;
     }
 
     public function isOperationsFrozen(): bool

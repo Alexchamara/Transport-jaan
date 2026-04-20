@@ -13,6 +13,7 @@ use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\SuperAdminCourierActionAudit;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierShipmentPayment;
 use App\Models\Courier\VendorCourierLabel;
 use App\Models\Courier\VendorCourierClientProfile;
 use App\Models\VendorActivityLog;
@@ -498,7 +499,10 @@ class VendorCourierDashboardController extends Controller
         $shipments = CourierShipment::query()
             ->where('assigned_vendor_user_id', $vendorId)
             ->whereIn('id', $ids)
-            ->with('trackingEvents:id,shipment_id,status,recorded_at')
+            ->with([
+                'trackingEvents:id,shipment_id,status,recorded_at',
+                'latestPayment',
+            ])
             ;
 
         $this->applyShipmentScopeFilter(
@@ -2204,6 +2208,7 @@ class VendorCourierDashboardController extends Controller
                 'senderAddress:id,country,city,state',
                 'recipientAddress:id,country,city,state',
                 'packages:id,shipment_id,service_tier_label,service_tier_key,service_eta,courier_provider_name',
+                'latestPayment',
                 'trackingEvents:id,shipment_id,status,location,description,recorded_at',
                 'labels:id,shipment_id',
             ])
@@ -2928,15 +2933,7 @@ class VendorCourierDashboardController extends Controller
 
     private function derivePaymentStatus(CourierShipment $shipment): string
     {
-        if ($shipment->status === CourierShipment::STATUS_CANCELLED) {
-            return 'failed';
-        }
-
-        if ((float) ($shipment->estimated_cost ?? 0) <= 0 || $shipment->status === CourierShipment::STATUS_PENDING) {
-            return 'pending';
-        }
-
-        return 'paid';
+        return $shipment->resolvedPaymentStatus();
     }
 
     private function resolveBookingConfirmHours(CourierShipment $shipment): ?float
@@ -2960,6 +2957,10 @@ class VendorCourierDashboardController extends Controller
 
     private function getAllowedBookingActionsForShipment(CourierShipment $shipment, string $bookingStatus, bool $canCodOverride = false): array
     {
+        if ($shipment->requiresCardPayment() && $shipment->resolvedPaymentStatus() !== CourierShipmentPayment::STATUS_PAID) {
+            return [];
+        }
+
         $actions = $this->getAllowedBookingActionsForStatus($bookingStatus);
 
         if ($this->canPerformCodCollectionAction($shipment)) {
@@ -3148,6 +3149,13 @@ class VendorCourierDashboardController extends Controller
             return [
                 'ok' => false,
                 'message' => 'Shipment operations are temporarily frozen by SuperAdmin.',
+            ];
+        }
+
+        if ($shipment->requiresCardPayment() && $shipment->resolvedPaymentStatus() !== CourierShipmentPayment::STATUS_PAID) {
+            return [
+                'ok' => false,
+                'message' => 'Booking lifecycle actions are blocked until card payment is completed.',
             ];
         }
 

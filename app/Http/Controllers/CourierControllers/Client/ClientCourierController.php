@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierShipmentPayment;
 use App\Models\Courier\SuperAdminCourierActionAudit;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Location\LocationCity;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -43,6 +45,7 @@ class ClientCourierController extends Controller
             'senderAddress',
             'recipientAddress',
             'packages',
+            'latestPayment',
             'trackingEvents' => function ($query) {
                 $query->orderBy('recorded_at', 'desc');
             }
@@ -270,6 +273,7 @@ class ClientCourierController extends Controller
             'senderAddress',
             'recipientAddress',
             'packages',
+            'latestPayment',
             'trackingEvents' => function ($query) {
                 $query->orderBy('recorded_at', 'desc');
             }
@@ -1541,6 +1545,10 @@ class ClientCourierController extends Controller
             'recipient' => ['nullable', 'array'],
             'recipient.address' => ['nullable', 'array'],
             'shipment' => ['nullable', 'array'],
+            'shipment.paymentOptions' => ['nullable', 'array'],
+            'shipment.paymentOptions.all' => ['nullable', 'boolean'],
+            'shipment.paymentOptions.cod' => ['nullable', 'boolean'],
+            'shipment.paymentOptions.card' => ['nullable', 'boolean'],
             'shipment.codEnabled' => ['nullable', 'boolean'],
             'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
             'shipment.internationalDimensions' => ['nullable', 'array'],
@@ -1623,6 +1631,11 @@ class ClientCourierController extends Controller
                 'insurance' => false,
                 'deliveryNotes' => null,
                 'estimatedValue' => null,
+                'paymentOptions' => [
+                    'all' => false,
+                    'cod' => false,
+                    'card' => false,
+                ],
                 'codEnabled' => false,
                 'codAmount' => null,
                 'codPaymentMethod' => null,
@@ -1911,6 +1924,10 @@ class ClientCourierController extends Controller
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
                 'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
+                'shipment.paymentOptions' => ['nullable', 'array'],
+                'shipment.paymentOptions.all' => ['nullable', 'boolean'],
+                'shipment.paymentOptions.cod' => ['nullable', 'boolean'],
+                'shipment.paymentOptions.card' => ['nullable', 'boolean'],
                 'shipment.codEnabled' => ['nullable', 'boolean'],
                 'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
@@ -2205,6 +2222,18 @@ class ClientCourierController extends Controller
         $this->assertPayloadMatchesFlowRoute($payload, $request);
         $this->assertShipmentCodRequestPayload($payload);
         $codRequest = $this->resolveCodBookingPayload($payload);
+        $paymentOptions = (array) ($payload['shipment']['paymentOptions'] ?? []);
+        $requiresCardPayment = (bool) ($payload['shipment']['requiresCardPayment'] ?? ($paymentOptions['card'] ?? false));
+
+        if ($requiresCardPayment && (
+            !(bool) config('courier.payments.enabled', false)
+            || !(bool) config('courier.payments.provider.payhere.enabled', false)
+        )) {
+            throw ValidationException::withMessages([
+                'shipment.paymentOptions.card' => 'Card payments are currently unavailable for courier bookings. Please choose a different payment option.',
+            ]);
+        }
+
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
@@ -2358,6 +2387,51 @@ class ClientCourierController extends Controller
             'estimated_cost_usd' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
         ]);
 
+        if ($requiresCardPayment) {
+            $checkoutAmount = (float) ($shipment->estimated_cost ?? 0);
+            if ($checkoutAmount <= 0) {
+                throw ValidationException::withMessages([
+                    'shipment.paymentOptions.card' => 'Card payment cannot be initialized because the shipment amount is not available.',
+                ]);
+            }
+
+            [$paymentCurrency, $currencyNotice] = $this->resolveCourierCheckoutCurrency($payload);
+
+            CourierShipmentPayment::create([
+                'courier_shipment_id' => (int) $shipment->id,
+                'requested_by_user_id' => Auth::id(),
+                'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
+                'payment_method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
+                'is_required' => true,
+                'amount' => round($checkoutAmount, 2),
+                'currency_code' => $paymentCurrency,
+                'status' => CourierShipmentPayment::STATUS_PENDING,
+                'gateway_order_id' => $this->generateCourierPaymentOrderReference($shipment),
+                'initiated_at' => now(),
+                'metadata' => [
+                    'shipmentFlow' => $this->resolvePayloadCategory($payload),
+                    'selectedCurrency' => strtoupper((string) ($payload['shipment']['currency'] ?? '')),
+                    'fallbackApplied' => $currencyNotice !== null,
+                ],
+            ]);
+
+            $request->session()->forget('courier_preview');
+            $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
+            $this->rememberGuestBillAccess($request, (int) $shipment->id);
+
+            $response = redirect()
+                ->route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])
+                ->with('success', 'Courier request submitted. Complete PayHere payment to continue processing.')
+                ->with('courier_reference', $shipment->reference)
+                ->with('courier_bill_id', $shipment->id);
+
+            if ($currencyNotice !== null) {
+                $response->with('warning', $currencyNotice);
+            }
+
+            return $response;
+        }
+
         $request->session()->forget('courier_preview');
         $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
         $this->rememberGuestBillAccess($request, (int) $shipment->id);
@@ -2494,6 +2568,7 @@ class ClientCourierController extends Controller
     private function flowPayloadFingerprint(array $payload): string
     {
         $codRequest = $this->resolveCodBookingPayload($payload);
+        $paymentOptions = $this->resolveShipmentPaymentOptions($payload);
 
         $packages = collect($payload['packages'] ?? [])
             ->values()
@@ -2539,6 +2614,12 @@ class ClientCourierController extends Controller
                 'serviceLevel' => trim((string) ($payload['shipment']['serviceLevel'] ?? '')),
                 'currency' => strtoupper(trim((string) ($payload['shipment']['currency'] ?? 'LKR'))),
                 'pickupDate' => (string) ($payload['shipment']['pickupDate'] ?? ''),
+                'paymentOptions' => [
+                    'all' => (bool) ($paymentOptions['all'] ?? false),
+                    'cod' => (bool) ($paymentOptions['cod'] ?? false),
+                    'card' => (bool) ($paymentOptions['card'] ?? false),
+                ],
+                'requiresCardPayment' => (bool) ($paymentOptions['card'] ?? false),
                 'codEnabled' => (bool) ($codRequest['enabled'] ?? false),
                 'codAmount' => $codRequest['requestedAmount'] !== null
                     ? round((float) $codRequest['requestedAmount'], 2)
@@ -2877,6 +2958,8 @@ class ClientCourierController extends Controller
             $allowedServiceLevels
         );
         $payload['shipment']['currency'] = $this->resolveShipmentCurrencyFromPayload($payload);
+        $payload['shipment']['paymentOptions'] = $this->resolveShipmentPaymentOptions($payload);
+        $payload['shipment']['requiresCardPayment'] = (bool) ($payload['shipment']['paymentOptions']['card'] ?? false);
 
         $codRequest = $this->resolveCodBookingPayload($payload);
         $payload['shipment']['codEnabled'] = (bool) ($codRequest['enabled'] ?? false);
@@ -2931,6 +3014,61 @@ class ClientCourierController extends Controller
         $candidate = is_string($candidate) ? strtoupper(trim($candidate)) : '';
 
         return $candidate !== '' ? $candidate : 'LKR';
+    }
+
+    private function resolveShipmentPaymentOptions(array $payload): array
+    {
+        $shipment = is_array($payload['shipment'] ?? null) ? $payload['shipment'] : [];
+        $options = is_array($shipment['paymentOptions'] ?? null) ? $shipment['paymentOptions'] : [];
+
+        $normalized = [
+            'all' => (bool) ($options['all'] ?? false),
+            'cod' => (bool) ($options['cod'] ?? false),
+            'card' => (bool) ($options['card'] ?? false),
+        ];
+
+        if ($normalized['all']) {
+            $normalized['cod'] = true;
+            $normalized['card'] = true;
+        }
+
+        $normalized['all'] = $normalized['cod'] && $normalized['card'];
+
+        return $normalized;
+    }
+
+    private function resolveCourierCheckoutCurrency(array $payload): array
+    {
+        $category = $this->resolvePayloadCategory($payload);
+        $selectedCurrency = strtoupper(trim((string) ($payload['shipment']['currency'] ?? '')));
+
+        $domesticCurrency = strtoupper(trim((string) config('courier.payments.provider.payhere.domestic_currency', 'LKR')));
+        if ($category === 'domestic') {
+            return [$domesticCurrency !== '' ? $domesticCurrency : 'LKR', null];
+        }
+
+        $supportedInternationalCurrencies = collect(config('courier.payments.provider.payhere.supported_international_currencies', ['USD']))
+            ->map(fn ($currency) => strtoupper(trim((string) $currency)))
+            ->filter(fn ($currency) => $currency !== '')
+            ->values();
+
+        if ($selectedCurrency !== '' && $supportedInternationalCurrencies->contains($selectedCurrency)) {
+            return [$selectedCurrency, null];
+        }
+
+        $fallbackCurrency = strtoupper(trim((string) config('courier.payments.provider.payhere.international_fallback_currency', 'USD')));
+        $fallbackCurrency = $fallbackCurrency !== '' ? $fallbackCurrency : 'USD';
+
+        $warning = $selectedCurrency !== '' && $selectedCurrency !== $fallbackCurrency
+            ? "Selected currency {$selectedCurrency} is not supported for international card payments. Checkout will continue in {$fallbackCurrency}."
+            : null;
+
+        return [$fallbackCurrency, $warning];
+    }
+
+    private function generateCourierPaymentOrderReference(CourierShipment $shipment): string
+    {
+        return 'CPH-' . (int) $shipment->id . '-' . strtoupper(Str::random(8));
     }
 
     private function resolveCodBookingPayload(array $payload): array
