@@ -4628,6 +4628,15 @@ class ClientCourierController extends Controller
             ->where('vendor_user_id', $vendorId)
             ->value('settings');
 
+        return $this->resolveVendorCodServicePolicyFromSettings(is_array($settings) ? $settings : []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array<string, bool>
+     */
+    private function resolveVendorCodServicePolicyFromSettings(array $settings): array
+    {
         $cod = is_array($settings['services']['cod'] ?? null)
             ? $settings['services']['cod']
             : [];
@@ -4874,19 +4883,47 @@ class ClientCourierController extends Controller
             return [];
         }
 
+        $vendorIds = $registrations
+            ->pluck('user_id')
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0)
+            ->unique()
+            ->values();
+
         $settingsByVendor = VendorCourierSetting::query()
-            ->whereIn('vendor_user_id', $registrations->pluck('user_id')->unique()->values())
+            ->whereIn('vendor_user_id', $vendorIds)
             ->pluck('settings', 'vendor_user_id')
             ->all();
 
+        $approvedDomesticCodVendorLookup = CourierVendorCodCapability::query()
+            ->whereIn('vendor_user_id', $vendorIds)
+            ->where('category', CourierVendorCodCapability::CATEGORY_DOMESTIC)
+            ->where('status', CourierVendorCodCapability::STATUS_APPROVED)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->pluck('vendor_user_id')
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn (int $value) => $value > 0)
+            ->unique()
+            ->mapWithKeys(fn (int $value) => [$value => true])
+            ->all();
+
         return $registrations
-            ->map(function (VendorServiceRegistration $registration) use ($settingsByVendor) {
+            ->map(function (VendorServiceRegistration $registration) use ($approvedDomesticCodVendorLookup, $settingsByVendor) {
                 $vendorId = (int) $registration->user_id;
                 $vendorSettings = $settingsByVendor[$vendorId] ?? [];
 
+                if (is_string($vendorSettings)) {
+                    $decodedSettings = json_decode($vendorSettings, true);
+                    $vendorSettings = is_array($decodedSettings) ? $decodedSettings : [];
+                }
+
                 return $this->mapRegistrationToCreateQuoteProvider(
                     $registration,
-                    is_array($vendorSettings) ? $vendorSettings : []
+                    is_array($vendorSettings) ? $vendorSettings : [],
+                    $approvedDomesticCodVendorLookup
                 );
             })
             ->filter()
@@ -4904,7 +4941,14 @@ class ClientCourierController extends Controller
             ->all();
     }
 
-    private function mapRegistrationToCreateQuoteProvider(VendorServiceRegistration $registration, array $settings): ?array
+    /**
+     * @param  array<int, bool>  $approvedDomesticCodVendorLookup
+     */
+    private function mapRegistrationToCreateQuoteProvider(
+        VendorServiceRegistration $registration,
+        array $settings,
+        array $approvedDomesticCodVendorLookup = []
+    ): ?array
     {
         $category = $this->normalizeQuoteProviderCategory((string) optional($registration->serviceSubCategory)->slug);
         $vendor = $registration->user;
@@ -4921,6 +4965,12 @@ class ClientCourierController extends Controller
 
         $theme = $this->resolveQuoteProviderTheme((int) $vendor->id, $category);
         $pricing = $this->resolveQuoteProviderPricing($category, $settings);
+        $codServicePolicy = $this->resolveVendorCodServicePolicyFromSettings($settings);
+        $hasApprovedDomesticCodCapability = isset($approvedDomesticCodVendorLookup[(int) $vendor->id]);
+        $supportsCodAtCheckout = $category === 'domestic'
+            && $hasApprovedDomesticCodCapability
+            && (bool) ($codServicePolicy['acceptCodAtCheckout'] ?? false)
+            && (bool) ($codServicePolicy['allowCodForDomestic'] ?? false);
 
         return [
             'id' => sprintf('vendor-%d-%s', (int) $vendor->id, $category),
@@ -4936,6 +4986,14 @@ class ClientCourierController extends Controller
             'cutoff' => $this->resolveQuoteProviderCutoff($category, $settings),
             'badges' => $this->resolveQuoteProviderBadges($category),
             'tiers' => $this->resolveQuoteProviderTiers($category),
+            'paymentOptions' => [
+                'cod' => $supportsCodAtCheckout,
+                'card' => true,
+            ],
+            'codEligibility' => [
+                'hasApprovedDomesticCapability' => $hasApprovedDomesticCodCapability,
+                'servicePolicy' => $codServicePolicy,
+            ],
         ];
     }
 

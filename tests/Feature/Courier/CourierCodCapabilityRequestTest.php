@@ -5,6 +5,7 @@ namespace Tests\Feature\Courier;
 use App\Models\Courier\CourierVendorCodCapabilityAudit;
 use App\Models\Courier\CourierVendorCodCapability;
 use App\Models\Courier\CourierVendorCodIntegrityIncident;
+use App\Models\Courier\VendorCourierSetting;
 use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\ServiceWorkspace;
@@ -1244,6 +1245,90 @@ class CourierCodCapabilityRequestTest extends TestCase
 
         $response->assertRedirect(route('courierService.settings.module', ['module' => 'services']));
         $response->assertSessionHasErrors(['category']);
+    }
+
+    public function test_create_quote_providers_mark_domestic_cod_checkout_eligibility(): void
+    {
+        [$eligibleVendor, $eligibleWorkspace] = $this->createCourierVendorWorkspace();
+        [$ineligibleVendor] = $this->createCourierVendorWorkspace();
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $eligibleVendor->id],
+            [
+                'settings' => [
+                    'services' => [
+                        'cod' => [
+                            'acceptCodAtCheckout' => true,
+                            'allowCodForDomestic' => true,
+                            'allowTeamOverride' => false,
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => $ineligibleVendor->id],
+            [
+                'settings' => [
+                    'services' => [
+                        'cod' => [
+                            'acceptCodAtCheckout' => true,
+                            'allowCodForDomestic' => true,
+                            'allowTeamOverride' => false,
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        CourierVendorCodCapability::query()->create([
+            'vendor_user_id' => $eligibleVendor->id,
+            'service_workspace_id' => $eligibleWorkspace->id,
+            'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+            'requested_by_user_id' => $eligibleVendor->id,
+            'status' => CourierVendorCodCapability::STATUS_APPROVED,
+            'requested_at' => now()->subDays(2),
+            'reviewed_at' => now()->subDay(),
+            'approved_at' => now()->subDay(),
+            'reviewed_by_user_id' => $eligibleVendor->id,
+            'expires_at' => now()->addMonth(),
+        ]);
+
+        $client = User::factory()->create([
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        $eligibleProviderId = sprintf('vendor-%d-domestic', $eligibleVendor->id);
+        $ineligibleProviderId = sprintf('vendor-%d-domestic', $ineligibleVendor->id);
+
+        $response = $this->actingAs($client)
+            ->get(route('couriers.flow.create', ['flow' => 'domestic']));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page->component('Web/courier/domestic/Create'));
+
+        $inertiaPage = $response->viewData('page');
+        $providers = data_get($inertiaPage, 'props.quoteProviders', []);
+
+        $this->assertIsArray($providers);
+
+        $providerById = collect($providers)
+            ->filter(fn ($provider) => is_array($provider) && isset($provider['id']))
+            ->keyBy(fn (array $provider) => (string) $provider['id'])
+            ->all();
+
+        $this->assertArrayHasKey($eligibleProviderId, $providerById);
+        $this->assertArrayHasKey($ineligibleProviderId, $providerById);
+
+        $eligible = $providerById[$eligibleProviderId];
+        $ineligible = $providerById[$ineligibleProviderId];
+
+        $this->assertTrue((bool) ($eligible['paymentOptions']['cod'] ?? false));
+        $this->assertTrue((bool) ($eligible['paymentOptions']['card'] ?? false));
+        $this->assertFalse((bool) ($ineligible['paymentOptions']['cod'] ?? false));
+        $this->assertTrue((bool) ($ineligible['paymentOptions']['card'] ?? false));
     }
 
     private function createCourierVendorWorkspace(): array
