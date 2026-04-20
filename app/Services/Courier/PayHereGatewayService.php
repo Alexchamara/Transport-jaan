@@ -66,9 +66,10 @@ class PayHereGatewayService
         $notifySecret = (string) config('services.payhere.notify_secret', config('services.payhere.merchant_secret', ''));
 
         $payloadMerchantId = trim((string) ($payload['merchant_id'] ?? ''));
-        $orderId = trim((string) ($payload['order_id'] ?? ''));
-        $amount = number_format((float) ($payload['payhere_amount'] ?? $payload['amount'] ?? 0), 2, '.', '');
-        $currency = strtoupper(trim((string) ($payload['payhere_currency'] ?? $payload['currency'] ?? '')));
+        $normalized = $this->extractNotifyOrderAmountCurrency($payload);
+        $orderId = $normalized['orderId'];
+        $amount = $normalized['amount'];
+        $currency = $normalized['currency'];
         $statusCode = (string) ($payload['status_code'] ?? '');
         $providedSignature = strtoupper(trim((string) ($payload['md5sig'] ?? '')));
 
@@ -90,6 +91,53 @@ class PayHereGatewayService
         );
 
         return hash_equals($expectedSignature, $providedSignature);
+    }
+
+    public function validateNotifyAgainstPayment(array $payload, CourierShipmentPayment $payment): array
+    {
+        $normalized = $this->extractNotifyOrderAmountCurrency($payload);
+
+        $expectedOrderId = trim((string) ($payment->gateway_order_id ?? ''));
+        $expectedAmount = number_format((float) $payment->amount, 2, '.', '');
+        $expectedCurrency = strtoupper(trim((string) ($payment->currency_code ?: 'LKR')));
+
+        if ($normalized['orderId'] === '' || $expectedOrderId === '' || !hash_equals($expectedOrderId, $normalized['orderId'])) {
+            return [
+                'isValid' => false,
+                'reason' => 'order_id mismatch',
+                'expectedOrderId' => $expectedOrderId,
+                'receivedOrderId' => $normalized['orderId'],
+            ];
+        }
+
+        if ($normalized['currency'] === '' || !hash_equals($expectedCurrency, $normalized['currency'])) {
+            return [
+                'isValid' => false,
+                'reason' => 'currency mismatch',
+                'expectedCurrency' => $expectedCurrency,
+                'receivedCurrency' => $normalized['currency'],
+            ];
+        }
+
+        if (!hash_equals($expectedAmount, $normalized['amount'])) {
+            return [
+                'isValid' => false,
+                'reason' => 'amount mismatch',
+                'expectedAmount' => $expectedAmount,
+                'receivedAmount' => $normalized['amount'],
+            ];
+        }
+
+        return [
+            'isValid' => true,
+            'reason' => null,
+            'expectedOrderId' => $expectedOrderId,
+            'receivedOrderId' => $normalized['orderId'],
+            'expectedAmount' => $expectedAmount,
+            'receivedAmount' => $normalized['amount'],
+            'expectedCurrency' => $expectedCurrency,
+            'receivedCurrency' => $normalized['currency'],
+        ];
     }
 
     public function normalizeStatusFromNotify(array $payload): string
@@ -127,6 +175,15 @@ class PayHereGatewayService
         $secretHash = strtoupper(md5($merchantSecret));
 
         return strtoupper(md5($merchantId . $orderId . $amount . $currency . $statusCode . $secretHash));
+    }
+
+    public function extractNotifyOrderAmountCurrency(array $payload): array
+    {
+        return [
+            'orderId' => trim((string) ($payload['order_id'] ?? '')),
+            'amount' => number_format((float) ($payload['payhere_amount'] ?? $payload['amount'] ?? 0), 2, '.', ''),
+            'currency' => strtoupper(trim((string) ($payload['payhere_currency'] ?? $payload['currency'] ?? ''))),
+        ];
     }
 
     private function splitName(string $name): array

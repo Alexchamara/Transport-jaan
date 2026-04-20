@@ -52,6 +52,7 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.paymentOptions.all' => ['nullable', 'boolean'],
             'shipment.paymentOptions.cod' => ['nullable', 'boolean'],
             'shipment.paymentOptions.card' => ['nullable', 'boolean'],
+            'shipment.requiresCardPayment' => ['nullable', 'boolean'],
             'shipment.codEnabled' => ['nullable', 'boolean'],
             'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
             'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],

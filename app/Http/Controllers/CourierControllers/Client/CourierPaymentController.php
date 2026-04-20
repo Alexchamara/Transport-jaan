@@ -45,14 +45,20 @@ class CourierPaymentController extends Controller
                 'amount' => (float) $payment->amount,
                 'currency' => (string) $payment->currency_code,
                 'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
                 'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
                 'txReference' => (string) ($payment->tx_reference ?? ''),
                 'failureReason' => (string) ($payment->failure_reason ?? ''),
+                'paidAt' => optional($payment->paid_at)->toIso8601String(),
+                'failedAt' => optional($payment->failed_at)->toIso8601String(),
+                'lastNotifiedAt' => optional($payment->last_notified_at)->toIso8601String(),
             ],
             'checkout' => $checkout,
             'pollingUrl' => route('couriers.payments.status', ['shipment' => (int) $shipmentModel->id]),
             'retryUrl' => route('couriers.payments.retry', ['shipment' => (int) $shipmentModel->id]),
             'returnToCreateUrl' => route('couriers.flow.create', ['flow' => $this->resolveFlow($shipmentModel)]),
+            'shipmentDetailUrl' => route('courier.shipment.show', ['id' => (int) $shipmentModel->id]),
+            'dashboardUrl' => route('courierBookingDashboard'),
         ]);
     }
 
@@ -69,10 +75,18 @@ class CourierPaymentController extends Controller
         return response()->json([
             'shipmentId' => (int) $shipmentModel->id,
             'shipmentStatus' => (string) $shipmentModel->status,
+            'paymentId' => $payment?->id ? (int) $payment->id : null,
             'paymentStatus' => $payment?->status ?? $shipmentModel->resolvedPaymentStatus(),
+            'orderId' => (string) ($payment?->gateway_order_id ?? ''),
+            'gatewayStatus' => (string) ($payment?->gateway_status ?? ''),
+            'gatewayPaymentId' => (string) ($payment?->gateway_payment_id ?? ''),
+            'txReference' => (string) ($payment?->tx_reference ?? ''),
+            'amount' => $payment?->amount !== null ? (float) $payment->amount : null,
+            'currency' => (string) ($payment?->currency_code ?? ''),
             'paidAt' => optional($payment?->paid_at)->toIso8601String(),
             'failedAt' => optional($payment?->failed_at)->toIso8601String(),
             'failureReason' => (string) ($payment?->failure_reason ?? ''),
+            'lastNotifiedAt' => optional($payment?->last_notified_at)->toIso8601String(),
         ]);
     }
 
@@ -93,11 +107,28 @@ class CourierPaymentController extends Controller
             return redirect()->back()->with('success', 'This courier payment is already completed.');
         }
 
+        if ($payment->status === CourierShipmentPayment::STATUS_PENDING) {
+            return redirect()->back()->with('warning', 'A payment attempt is already pending. Continue with the current checkout session.');
+        }
+
+        if (!in_array($payment->status, [
+            CourierShipmentPayment::STATUS_FAILED,
+            CourierShipmentPayment::STATUS_CANCELLED,
+            CourierShipmentPayment::STATUS_EXPIRED,
+        ], true)) {
+            return redirect()->back()->with('error', 'Payment cannot be retried from its current state.');
+        }
+
         $payment->forceFill([
             'status' => CourierShipmentPayment::STATUS_PENDING,
             'gateway_order_id' => $this->generateGatewayOrderId($shipmentModel),
+            'gateway_payment_id' => null,
+            'tx_reference' => null,
+            'gateway_status' => null,
             'failed_at' => null,
             'failure_reason' => null,
+            'paid_at' => null,
+            'last_notified_at' => null,
             'initiated_at' => now(),
         ])->save();
 
@@ -175,27 +206,84 @@ class CourierPaymentController extends Controller
             return response('Payment not found', 404);
         }
 
+        if ((string) $payment->provider !== CourierShipmentPayment::PROVIDER_PAYHERE) {
+            return response('Unsupported payment provider', 422);
+        }
+
         $gateway = app(PayHereGatewayService::class);
         if (!$gateway->verifyNotifySignature($payload)) {
+            $this->appendCallbackAudit($payment, $payload, 'rejected', 'invalid_signature');
+
             return response('Invalid signature', 422);
+        }
+
+        $crossCheck = $gateway->validateNotifyAgainstPayment($payload, $payment);
+        if (!(bool) ($crossCheck['isValid'] ?? false)) {
+            $this->appendCallbackAudit(
+                $payment,
+                $payload,
+                'rejected',
+                (string) ($crossCheck['reason'] ?? 'notify_payload_mismatch'),
+                [
+                    'crossCheck' => $crossCheck,
+                ]
+            );
+
+            return response('Payload mismatch', 422);
         }
 
         $resolvedStatus = $gateway->normalizeStatusFromNotify($payload);
 
-        DB::transaction(function () use ($payment, $payload, $resolvedStatus) {
-            $currentCallbackPayload = is_array($payment->callback_payload) ? $payment->callback_payload : [];
+        DB::transaction(function () use ($payment, $payload, $resolvedStatus, $crossCheck) {
+            $lockedPayment = CourierShipmentPayment::query()
+                ->whereKey((int) $payment->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$lockedPayment instanceof CourierShipmentPayment) {
+                return;
+            }
+
+            $currentStatus = (string) $lockedPayment->status;
+            $terminalStatuses = [
+                CourierShipmentPayment::STATUS_PAID,
+                CourierShipmentPayment::STATUS_FAILED,
+                CourierShipmentPayment::STATUS_CANCELLED,
+                CourierShipmentPayment::STATUS_EXPIRED,
+            ];
+
+            $currentCallbackPayload = is_array($lockedPayment->callback_payload) ? $lockedPayment->callback_payload : [];
             $currentCallbackPayload[] = [
                 'received_at' => now()->toIso8601String(),
                 'payload' => $payload,
+                'previous_status' => $currentStatus,
+                'resolved_status' => $resolvedStatus,
+                'outcome' => 'accepted',
+                'cross_check' => [
+                    'order_id' => $crossCheck['receivedOrderId'] ?? null,
+                    'amount' => $crossCheck['receivedAmount'] ?? null,
+                    'currency' => $crossCheck['receivedCurrency'] ?? null,
+                ],
             ];
 
+            // Idempotent guard: do not regress a terminal payment status once reached.
+            if (in_array($currentStatus, $terminalStatuses, true) && $currentStatus !== $resolvedStatus) {
+                $lockedPayment->forceFill([
+                    'last_notified_at' => now(),
+                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
+                    'callback_payload' => $currentCallbackPayload,
+                ])->save();
+
+                return;
+            }
+
             if ($resolvedStatus === CourierShipmentPayment::STATUS_PAID) {
-                $payment->forceFill([
+                $lockedPayment->forceFill([
                     'status' => CourierShipmentPayment::STATUS_PAID,
-                    'gateway_payment_id' => (string) ($payload['payment_id'] ?? $payment->gateway_payment_id),
-                    'tx_reference' => (string) ($payload['payhere_reference'] ?? $payload['payment_id'] ?? $payment->tx_reference),
-                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $payment->gateway_status),
-                    'paid_at' => $payment->paid_at ?: now(),
+                    'gateway_payment_id' => (string) ($payload['payment_id'] ?? $lockedPayment->gateway_payment_id),
+                    'tx_reference' => (string) ($payload['payhere_reference'] ?? $payload['payment_id'] ?? $lockedPayment->tx_reference),
+                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
+                    'paid_at' => $lockedPayment->paid_at ?: now(),
                     'failed_at' => null,
                     'failure_reason' => null,
                     'last_notified_at' => now(),
@@ -210,11 +298,11 @@ class CourierPaymentController extends Controller
                 CourierShipmentPayment::STATUS_CANCELLED,
                 CourierShipmentPayment::STATUS_EXPIRED,
             ], true)) {
-                $payment->forceFill([
+                $lockedPayment->forceFill([
                     'status' => $resolvedStatus,
-                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $payment->gateway_status),
-                    'failed_at' => now(),
-                    'failure_reason' => (string) ($payload['status_message'] ?? $payment->failure_reason ?? 'Gateway rejected payment.'),
+                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
+                    'failed_at' => $lockedPayment->failed_at ?: now(),
+                    'failure_reason' => (string) ($payload['status_message'] ?? $lockedPayment->failure_reason ?? 'Gateway rejected payment.'),
                     'last_notified_at' => now(),
                     'callback_payload' => $currentCallbackPayload,
                 ])->save();
@@ -222,9 +310,9 @@ class CourierPaymentController extends Controller
                 return;
             }
 
-            $payment->forceFill([
+            $lockedPayment->forceFill([
                 'status' => CourierShipmentPayment::STATUS_PENDING,
-                'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $payment->gateway_status),
+                'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
                 'last_notified_at' => now(),
                 'callback_payload' => $currentCallbackPayload,
             ])->save();
@@ -265,5 +353,28 @@ class CourierPaymentController extends Controller
     private function generateGatewayOrderId(CourierShipment $shipment): string
     {
         return 'CPH-' . (int) $shipment->id . '-' . strtoupper(Str::random(8));
+    }
+
+    private function appendCallbackAudit(
+        CourierShipmentPayment $payment,
+        array $payload,
+        string $outcome,
+        string $reason,
+        array $context = []
+    ): void {
+        $history = is_array($payment->callback_payload) ? $payment->callback_payload : [];
+        $history[] = [
+            'received_at' => now()->toIso8601String(),
+            'payload' => $payload,
+            'outcome' => $outcome,
+            'reason' => $reason,
+            'context' => $context,
+            'previous_status' => (string) $payment->status,
+        ];
+
+        $payment->forceFill([
+            'last_notified_at' => now(),
+            'callback_payload' => $history,
+        ])->save();
     }
 }

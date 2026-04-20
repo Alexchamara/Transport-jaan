@@ -1549,6 +1549,7 @@ class ClientCourierController extends Controller
             'shipment.paymentOptions.all' => ['nullable', 'boolean'],
             'shipment.paymentOptions.cod' => ['nullable', 'boolean'],
             'shipment.paymentOptions.card' => ['nullable', 'boolean'],
+            'shipment.requiresCardPayment' => ['nullable', 'boolean'],
             'shipment.codEnabled' => ['nullable', 'boolean'],
             'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
             'shipment.internationalDimensions' => ['nullable', 'array'],
@@ -1656,6 +1657,7 @@ class ClientCourierController extends Controller
         $normalized = $this->normalizeShipmentPreferencePayload($normalized);
         $normalized['reviewContext'] = is_array($normalized['reviewContext'] ?? null) ? $normalized['reviewContext'] : [];
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
+        $this->assertShipmentPaymentIntentPayload($normalized);
 
         $this->assertPayloadMatchesFlowRoute($normalized, $request);
         $request->session()->put('courier_preview', $normalized);
@@ -1928,6 +1930,7 @@ class ClientCourierController extends Controller
                 'shipment.paymentOptions.all' => ['nullable', 'boolean'],
                 'shipment.paymentOptions.cod' => ['nullable', 'boolean'],
                 'shipment.paymentOptions.card' => ['nullable', 'boolean'],
+                'shipment.requiresCardPayment' => ['nullable', 'boolean'],
                 'shipment.codEnabled' => ['nullable', 'boolean'],
                 'shipment.codPaymentMethod' => ['nullable', 'string', 'in:cash,card,check,bank_transfer'],
                 'shipment.distanceKm' => ['nullable', 'numeric', 'min:0.1'],
@@ -2034,6 +2037,7 @@ class ClientCourierController extends Controller
         $normalized['reviewContext']['selectedQuotes'] = $normalizedSelectedQuotes;
         $normalized['reviewContext']['displayCurrency'] = strtoupper((string) ($normalized['reviewContext']['displayCurrency'] ?? 'LKR'));
         $normalized = $this->normalizeShipmentPreferencePayload($normalized, $allowedServiceLevels);
+        $this->assertShipmentPaymentIntentPayload($normalized);
         $this->assertShipmentCodRequestPayload($normalized);
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
         $normalized['reviewContext']['totalPriceUSD'] = array_reduce(
@@ -2220,6 +2224,7 @@ class ClientCourierController extends Controller
             $this->serviceLevelLabelsForCategory($category)
         );
         $this->assertPayloadMatchesFlowRoute($payload, $request);
+        $this->assertShipmentPaymentIntentPayload($payload);
         $this->assertShipmentCodRequestPayload($payload);
         $codRequest = $this->resolveCodBookingPayload($payload);
         $paymentOptions = (array) ($payload['shipment']['paymentOptions'] ?? []);
@@ -2377,8 +2382,12 @@ class ClientCourierController extends Controller
             throw $exception;
         }
 
+        $finalPayableAmountUsd = $enforcedEstimatedCostUsd > 0
+            ? round($enforcedEstimatedCostUsd, 2)
+            : null;
+
         $shipment->update([
-            'estimated_cost' => $enforcedEstimatedCostUsd > 0 ? round($enforcedEstimatedCostUsd, 2) : null,
+            'estimated_cost' => $finalPayableAmountUsd,
         ]);
 
         $this->observability()->logStoreSucceeded($request, (int) $shipment->id, [
@@ -2388,14 +2397,14 @@ class ClientCourierController extends Controller
         ]);
 
         if ($requiresCardPayment) {
-            $checkoutAmount = (float) ($shipment->estimated_cost ?? 0);
+            $checkoutAmount = (float) ($finalPayableAmountUsd ?? 0);
             if ($checkoutAmount <= 0) {
                 throw ValidationException::withMessages([
                     'shipment.paymentOptions.card' => 'Card payment cannot be initialized because the shipment amount is not available.',
                 ]);
             }
 
-            [$paymentCurrency, $currencyNotice] = $this->resolveCourierCheckoutCurrency($payload);
+            [$paymentCurrency, $currencyNotice, $fallbackApplied] = $this->resolveCourierCheckoutCurrency($payload);
 
             CourierShipmentPayment::create([
                 'courier_shipment_id' => (int) $shipment->id,
@@ -2411,7 +2420,8 @@ class ClientCourierController extends Controller
                 'metadata' => [
                     'shipmentFlow' => $this->resolvePayloadCategory($payload),
                     'selectedCurrency' => strtoupper((string) ($payload['shipment']['currency'] ?? '')),
-                    'fallbackApplied' => $currencyNotice !== null,
+                    'fallbackApplied' => $fallbackApplied,
+                    'payableAmountSource' => 'enforced_estimate',
                 ],
             ]);
 
@@ -2449,6 +2459,10 @@ class ClientCourierController extends Controller
             return false;
         }
 
+        if (!$this->hasValidShipmentPaymentIntent($payload)) {
+            return false;
+        }
+
         $packages = $payload['packages'] ?? [];
         if (!is_array($packages) || count($packages) < 1) {
             return false;
@@ -2483,6 +2497,10 @@ class ClientCourierController extends Controller
             return false;
         }
 
+        if (!$this->hasValidShipmentPaymentIntent($payload)) {
+            return false;
+        }
+
         $packages = $payload['packages'] ?? [];
         if (!is_array($packages) || count($packages) < 1) {
             return false;
@@ -2510,6 +2528,10 @@ class ClientCourierController extends Controller
     private function hasValidCourierPreviewPayload($payload): bool
     {
         if (!is_array($payload)) {
+            return false;
+        }
+
+        if (!$this->hasValidShipmentPaymentIntent($payload)) {
             return false;
         }
 
@@ -2555,6 +2577,41 @@ class ClientCourierController extends Controller
         $selectedQuotes = $payload['reviewContext']['selectedQuotes'] ?? [];
 
         return is_array($selectedQuotes) && count($selectedQuotes) >= 1;
+    }
+
+    private function hasValidShipmentPaymentIntent(array $payload): bool
+    {
+        $paymentOptions = $this->resolveShipmentPaymentOptions($payload);
+        $requiresSelection = (bool) ($paymentOptions['cod'] ?? false) || (bool) ($paymentOptions['card'] ?? false);
+
+        if (!$requiresSelection) {
+            return false;
+        }
+
+        $shipment = is_array($payload['shipment'] ?? null) ? $payload['shipment'] : [];
+        if (array_key_exists('requiresCardPayment', $shipment)) {
+            return (bool) $shipment['requiresCardPayment'] === (bool) ($paymentOptions['card'] ?? false);
+        }
+
+        return true;
+    }
+
+    private function assertShipmentPaymentIntentPayload(array $payload): void
+    {
+        if ($this->hasValidShipmentPaymentIntent($payload)) {
+            return;
+        }
+
+        $paymentOptions = $this->resolveShipmentPaymentOptions($payload);
+        if (!(bool) ($paymentOptions['cod'] ?? false) && !(bool) ($paymentOptions['card'] ?? false)) {
+            throw ValidationException::withMessages([
+                'shipment.paymentOptions' => 'Select at least one payment option to continue.',
+            ]);
+        }
+
+        throw ValidationException::withMessages([
+            'shipment.requiresCardPayment' => 'Payment intent mismatch detected. Please reselect your payment options and continue.',
+        ]);
     }
 
     private function flowPayloadMatchesSessionPreview(array $preview, array $payload): bool
@@ -2619,12 +2676,15 @@ class ClientCourierController extends Controller
                     'cod' => (bool) ($paymentOptions['cod'] ?? false),
                     'card' => (bool) ($paymentOptions['card'] ?? false),
                 ],
-                'requiresCardPayment' => (bool) ($paymentOptions['card'] ?? false),
+                'requiresCardPayment' => (bool) ($payload['shipment']['requiresCardPayment'] ?? ($paymentOptions['card'] ?? false)),
+                'resolvedRequiresCardPayment' => (bool) ($paymentOptions['card'] ?? false),
                 'codEnabled' => (bool) ($codRequest['enabled'] ?? false),
+                'rawCodEnabled' => (bool) ($payload['shipment']['codEnabled'] ?? false),
                 'codAmount' => $codRequest['requestedAmount'] !== null
                     ? round((float) $codRequest['requestedAmount'], 2)
                     : 0.0,
                 'codPaymentMethod' => (string) ($codRequest['requestedMethod'] ?? ''),
+                'rawCodPaymentMethod' => strtolower(trim((string) ($payload['shipment']['codPaymentMethod'] ?? ''))),
             ],
             'packages' => $packages,
             'selectedQuotes' => $selectedQuotes,
@@ -3044,7 +3104,7 @@ class ClientCourierController extends Controller
 
         $domesticCurrency = strtoupper(trim((string) config('courier.payments.provider.payhere.domestic_currency', 'LKR')));
         if ($category === 'domestic') {
-            return [$domesticCurrency !== '' ? $domesticCurrency : 'LKR', null];
+            return [$domesticCurrency !== '' ? $domesticCurrency : 'LKR', null, false];
         }
 
         $supportedInternationalCurrencies = collect(config('courier.payments.provider.payhere.supported_international_currencies', ['USD']))
@@ -3053,17 +3113,17 @@ class ClientCourierController extends Controller
             ->values();
 
         if ($selectedCurrency !== '' && $supportedInternationalCurrencies->contains($selectedCurrency)) {
-            return [$selectedCurrency, null];
+            return [$selectedCurrency, null, false];
         }
 
         $fallbackCurrency = strtoupper(trim((string) config('courier.payments.provider.payhere.international_fallback_currency', 'USD')));
         $fallbackCurrency = $fallbackCurrency !== '' ? $fallbackCurrency : 'USD';
 
-        $warning = $selectedCurrency !== '' && $selectedCurrency !== $fallbackCurrency
+        $warning = $selectedCurrency !== ''
             ? "Selected currency {$selectedCurrency} is not supported for international card payments. Checkout will continue in {$fallbackCurrency}."
-            : null;
+            : "No supported international checkout currency was selected. Checkout will continue in {$fallbackCurrency}.";
 
-        return [$fallbackCurrency, $warning];
+        return [$fallbackCurrency, $warning, true];
     }
 
     private function generateCourierPaymentOrderReference(CourierShipment $shipment): string
