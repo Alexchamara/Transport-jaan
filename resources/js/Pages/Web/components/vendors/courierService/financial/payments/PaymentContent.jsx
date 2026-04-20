@@ -1,519 +1,500 @@
-import React, { useState, useRef, useEffect } from "react";
-import { usePage, Link } from "@inertiajs/react";
+import React, { useEffect, useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { CalendarDays, Download, Search } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import {
-    Search,
-    Settings,
-    Bell,
-    UserCircle2,
-    Wallet,
-    TrendingUp,
-    TrendingDown,
-    Download,
-    Calendar,
-    Filter,
-    ChevronDown,
 
-    ChevronsUpDown,
-} from "lucide-react";
+const EMPTY_PAYMENTS = {
+    summary: {
+        totalTransactions: 0,
+        paidTransactions: 0,
+        pendingTransactions: 0,
+        failedTransactions: 0,
+        collectedAmount: 0,
+        pendingAmount: 0,
+    },
+    rows: [],
+    filters: {
+        q: "",
+        status: "",
+        category: "",
+        service: "",
+        fromDate: "",
+        toDate: "",
+        perPage: 10,
+        page: 1,
+    },
+    pagination: {
+        page: 1,
+        perPage: 10,
+        total: 0,
+        totalPages: 1,
+    },
+    filterOptions: {
+        statuses: [],
+        categories: [],
+        services: [],
+        perPageOptions: [10, 20, 50],
+    },
+};
+
+const normalizeText = (value) => String(value ?? "").trim();
+
+const formatAmount = (amount, currency = "LKR") => {
+    const numericAmount = Number(amount ?? 0);
+    return `${String(currency || "LKR").toUpperCase()} ${numericAmount.toFixed(2)}`;
+};
+
+const statusBadgeClasses = (status) => {
+    switch (status) {
+        case "paid":
+            return "text-[#2f6f28] bg-[#d7f1d2] border-[#9dd592]";
+        case "pending":
+            return "text-[#8a6200] bg-[#fff1ca] border-[#f0d68f]";
+        case "failed":
+        case "cancelled":
+        case "expired":
+            return "text-[#9d2626] bg-[#ffd9d9] border-[#e6adad]";
+        default:
+            return "text-[#4a5565] bg-[#edf1f6] border-[#cfd7e2]";
+    }
+};
 
 const PaymentContent = () => {
-    const { auth } = usePage().props;
-    const user = auth?.user;
-    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const { courierPayments: rawCourierPayments, flash = {} } = usePage().props;
+    const courierPayments = rawCourierPayments ?? EMPTY_PAYMENTS;
 
-    const transactions = [
-        {
-            id: "INV-1001",
-            customer: "Bob Smith",
-            service: "Express Delivery",
-            packages: 2,
-            amount: "$12.50",
-            dueDate: "2025-08-10",
-            status: "Paid",
-            statusColor: "#3B8F31",
-            statusBg: "#ACE19957",
-        },
-        {
-            id: "INV-1002",
-            customer: "Alice Johnson",
-            service: "Standard Delivery",
-            packages: 1,
-            amount: "$7.90",
-            dueDate: "2025-08-12",
-            status: "Pending",
-            statusColor: "#FF6060",
-            statusBg: "#FF60608C",
-        },
-        {
-            id: "INV-1003",
-            customer: "Nimal Perera",
-            service: "International",
-            packages: 3,
-            amount: "$38.00",
-            dueDate: "2025-08-15",
-            status: "Paid",
-            statusColor: "#3B8F31",
-            statusBg: "#ACE19957",
-        },
-        {
-            id: "INV-1004",
-            customer: "Chamari Silva",
-            service: "Economy",
-            packages: 1,
-            amount: "$5.40",
-            dueDate: "2025-08-18",
-            status: "Paid",
-            statusColor: "#3B8F31",
-            statusBg: "#ACE19957",
-        },
-        {
-            id: "INV-1005",
-            customer: "Steve Gibson",
-            service: "Same Day",
-            packages: 2,
-            amount: "$9.20",
-            dueDate: "2025-08-20",
-            status: "Pending",
-            statusColor: "#FF6060",
-            statusBg: "#FF60608C",
-        },
-    ];
+    const rows = Array.isArray(courierPayments.rows) ? courierPayments.rows : [];
+    const summary = courierPayments.summary ?? EMPTY_PAYMENTS.summary;
+    const summaryCurrency = courierPayments.summaryCurrency || "LKR";
+    const filterOptions = courierPayments.filterOptions ?? EMPTY_PAYMENTS.filterOptions;
+    const pagination = courierPayments.pagination ?? EMPTY_PAYMENTS.pagination;
+    const backendFilters = courierPayments.filters ?? EMPTY_PAYMENTS.filters;
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [selectedRows, setSelectedRows] = useState(new Set());
-    const [showUserDropdown, setShowUserDropdown] = useState(false);
-    const wrapperRef = useRef(null);
+    const [filters, setFilters] = useState({ ...backendFilters });
 
-    const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(transactions.length / itemsPerPage);
-    const startIdx = (currentPage - 1) * itemsPerPage;
-    const endIdx = startIdx + itemsPerPage;
-    const currentTransactions = transactions.slice(startIdx, endIdx);
+    useEffect(() => {
+        setFilters({ ...backendFilters });
+    }, [
+        backendFilters.q,
+        backendFilters.status,
+        backendFilters.category,
+        backendFilters.service,
+        backendFilters.fromDate,
+        backendFilters.toDate,
+        backendFilters.perPage,
+        backendFilters.page,
+    ]);
 
-    const goToPage = (page) => {
-        if (page < 1 || page > totalPages) return;
-        setCurrentPage(page);
-    };
+    const hasActiveFilters = useMemo(
+        () =>
+            normalizeText(filters.q) !== "" ||
+            normalizeText(filters.status) !== "" ||
+            normalizeText(filters.category) !== "" ||
+            normalizeText(filters.service) !== "" ||
+            normalizeText(filters.fromDate) !== "" ||
+            normalizeText(filters.toDate) !== "",
+        [filters]
+    );
 
-    const getPageNumbers = () => {
-        const pages = [];
-        if (totalPages <= 5) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else {
-            if (currentPage <= 3) {
-                pages.push(1, 2, 3, "...", totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pages.push(
-                    1,
-                    "...",
-                    totalPages - 2,
-                    totalPages - 1,
-                    totalPages
-                );
-            } else {
-                pages.push(
-                    1,
-                    "...",
-                    currentPage - 1,
-                    currentPage,
-                    currentPage + 1,
-                    "...",
-                    totalPages
-                );
+    const runPaymentSearch = (overrides = {}) => {
+        router.get(
+            route("courierService.payment"),
+            {
+                ...filters,
+                ...overrides,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
             }
-        }
-        return pages;
+        );
     };
 
-    const handleRowSelection = (rowIndex) => {
-        const actualIndex = startIdx + rowIndex;
-        const newSelectedRows = new Set(selectedRows);
-        if (newSelectedRows.has(actualIndex)) {
-            newSelectedRows.delete(actualIndex);
-        } else {
-            newSelectedRows.add(actualIndex);
-        }
-        setSelectedRows(newSelectedRows);
+    const applyFilters = () => {
+        runPaymentSearch({ page: 1 });
     };
 
-    const handleSelectAll = () => {
-        if (selectedRows.size === currentTransactions.length) {
-            setSelectedRows(new Set());
-        } else {
-            const allCurrentIndices = currentTransactions.map(
-                (_, index) => startIdx + index
-            );
-            setSelectedRows(new Set(allCurrentIndices));
-        }
+    const resetFilters = () => {
+        const resetState = {
+            ...EMPTY_PAYMENTS.filters,
+            perPage: Number(filters.perPage || 10),
+            page: 1,
+        };
+
+        setFilters(resetState);
+        router.get(route("courierService.payment"), resetState, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const handleFilterInput = (field, value) => {
+        setFilters((previous) => ({
+            ...previous,
+            [field]: value,
+        }));
     };
 
     const downloadTableAsPDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text("Recent Transactions", 14, 20);
+        const doc = new jsPDF({ orientation: "landscape" });
 
-        const tableData = transactions.map((txn) => [
-            txn.id,
-            txn.customer,
-            txn.service,
-            String(txn.packages),
-            txn.amount,
-            txn.dueDate,
-            txn.status,
+        doc.setFontSize(16);
+        doc.text("Courier Payment Transactions", 14, 16);
+
+        const tableData = rows.map((row) => [
+            row.paymentNumber || row.id,
+            row.shipmentReference || "-",
+            row.client || "-",
+            row.service || "-",
+            formatAmount(row.amount, row.currency),
+            row.statusLabel || row.status || "-",
+            row.updatedAt || row.createdAt || "-",
+            row.txReference || row.gatewayPaymentId || row.gatewayOrderId || "-",
         ]);
 
         autoTable(doc, {
             head: [
                 [
-                    "Invoice Id",
-                    "Customer",
+                    "Payment",
+                    "Shipment",
+                    "Client",
                     "Service",
-                    "Packages",
                     "Amount",
-                    "Due Date",
                     "Status",
+                    "Updated",
+                    "Gateway Ref",
                 ],
             ],
             body: tableData,
-            startY: 30,
-            theme: "grid",
+            startY: 24,
+            styles: {
+                fontSize: 9,
+                cellPadding: 2,
+            },
             headStyles: {
                 fillColor: [216, 228, 242],
                 textColor: [0, 0, 0],
                 fontStyle: "bold",
             },
-            styles: {
-                cellPadding: 2,
-                fontSize: 10,
-                textColor: [0, 0, 0],
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-            },
-            columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 35 },
-                2: { cellWidth: 35 },
-                3: { cellWidth: 20 },
-                4: { cellWidth: 25 },
-                5: { cellWidth: 25 },
-                6: { cellWidth: 20 },
-            },
+            theme: "grid",
         });
 
-        doc.save("transactions.pdf");
+        doc.save("courier-payment-transactions.pdf");
     };
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [itemsPerPage]);
+    const summaryCards = [
+        {
+            label: "Total Transactions",
+            value: summary.totalTransactions ?? 0,
+            hint: "All card payment attempts",
+        },
+        {
+            label: "Paid",
+            value: summary.paidTransactions ?? 0,
+            hint: "Successfully settled",
+        },
+        {
+            label: "Pending",
+            value: summary.pendingTransactions ?? 0,
+            hint: "Awaiting confirmation",
+        },
+        {
+            label: "Failed / Cancelled",
+            value: summary.failedTransactions ?? 0,
+            hint: "Needs retry or support",
+        },
+        {
+            label: "Collected",
+            value: formatAmount(summary.collectedAmount ?? 0, summaryCurrency),
+            hint: "Paid card collection",
+        },
+        {
+            label: "Pending Amount",
+            value: formatAmount(summary.pendingAmount ?? 0, summaryCurrency),
+            hint: "Pending card collection",
+        },
+    ];
 
     return (
         <div className="pt-6 pb-12">
-            <div className="flex flex-col gap-10 w-full h-auto lg:pl-4 lg:pr-5 ">
-                {/* Header section */}
+            <div className="flex flex-col gap-8 w-full h-auto lg:pl-4 lg:pr-5">
                 <div className="flex flex-row gap-5 justify-between items-center">
-                    <h1 className="figtree text-[35px] font-[700]">
-                        Courier Service Payment
-                    </h1>
-                    <div className="flex flex-row gap-5 relative items-center">
-                        {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Search size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Settings size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Bell size={28} />
-                    </div> */}
-
-                        {/* <div className="flex flex-row gap-5 relative items-center">
-                        <UserDropdown />
-                    </div> */}
-                    </div>
+                    <h1 className="figtree text-[35px] font-[700]">Courier Service Payment</h1>
+                    <button
+                        onClick={downloadTableAsPDF}
+                        className="h-[40px] px-4 bg-[#0955AC] text-[14px] rounded-[6px] text-white font-[700] flex justify-center items-center gap-2"
+                    >
+                        <Download size={16} />
+                        Download
+                    </button>
                 </div>
-                {/* end of header section */}
 
-                {/* mini 4 cards */}
-                <div className="flex flex-row gap-5 w-full">
-                    {/* card 1 */}
-                    <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <Wallet />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                    Balance
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">$8,450</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <TrendingUp className="w-[19px] h-[19px]" />
-                                <h1>+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
-                        </div>
+                {flash?.success && (
+                    <div className="rounded-[8px] border border-[#8bc48b] bg-[#e5f4e5] px-4 py-3 text-[14px] text-[#2f6f28]">
+                        {flash.success}
                     </div>
-                    {/* end of card 1 */}
-
-                    {/* card 2 */}
-                    <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <TrendingUp />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                    Income
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">$25,700</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <TrendingUp className="w-[19px] h-[19px]" />
-                                <h1>+1.73%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
-                        </div>
+                )}
+                {flash?.error && (
+                    <div className="rounded-[8px] border border-[#d89d9d] bg-[#fbe9e9] px-4 py-3 text-[14px] text-[#9d2626]">
+                        {flash.error}
                     </div>
-                    {/* end of card 2 */}
+                )}
 
-                    <div className="flex flex-row gap-5 w-full">
-                        {/* card 3 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full">
+                    {summaryCards.map((card) => (
                         <div
-                            className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                            key={card.label}
+                            className="w-full min-h-[92px] bg-white rounded-[8px] px-5 py-4"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-row gap-5 justify-center items-center">
-                                <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                    <TrendingDown />
-                                </div>
-                                <div>
-                                    <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                        Expenses
-                                    </h1>
-                                    <h1 className="text-[26px] font-[700]">
-                                        $14,756
-                                    </h1>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                                <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
-                                    <TrendingDown className="w-[19px] h-[19px]" />
-                                    <h1>+2.86%</h1>
-                                </div>
-                                <h1 className="text-[#7B7B7A]">from last week</h1>
-                            </div>
+                            <h2 className="text-[14px] font-[500] text-[#6c7583]">{card.label}</h2>
+                            <h3 className="text-[24px] font-[700] text-[#111827]">{card.value}</h3>
+                            <p className="text-[12px] text-[#8c96a3] mt-1">{card.hint}</p>
                         </div>
-                        {/* end of card 3 */}
-                    </div>
+                    ))}
                 </div>
 
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full h-auto bg-white rounded-[10px] px-6 py-6"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    {/* card header */}
-                    <div className="flex flex-row justify-between">
-                        <h1 className="text-[24px] font-[700]">
-                            Recent Transactions
-                        </h1>
-                        <div className="flex flex-row gap-5">
-                            <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="flex flex-col gap-4">
+                        <h2 className="text-[24px] font-[700]">Payment Transactions</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
                                 <Search size={14} />
                                 <input
                                     type="text"
-                                    className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                    placeholder="Search customer, service, etc."
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    placeholder="Search payment, shipment, client"
+                                    value={filters.q}
+                                    onChange={(event) => handleFilterInput("q", event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                            applyFilters();
+                                        }
+                                    }}
                                 />
                             </div>
-                            <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                                <Filter size={12} />
-                                <input
-                                    type="text"
-                                    className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                    placeholder="Status"
-                                />
-                                <ChevronDown size={14} />
-                            </div>
-                            <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                                <Calendar size={17} />
-                                <input
-                                    type="text"
-                                    className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                    placeholder="25th May"
-                                />
-                                <ChevronDown size={14} />
-                            </div>
-                            <button
-                                onClick={downloadTableAsPDF}
-                                className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
-                            >
-                                <Download size={18} />
-                                <h1>Download</h1>
-                            </button>
-                        </div>
-                    </div>
-                    {/* end */}
 
-                    {/* expenses table */}
-                    {/* table headings */}
-                    <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                        <div className="flex flex-row gap-3 items-center">
-                            <input
-                                type="checkbox"
-                                className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                                checked={
-                                    selectedRows.size ===
-                                    currentTransactions.length &&
-                                    currentTransactions.length > 0
-                                }
-                                onChange={handleSelectAll}
-                            />
-                            <h1>Invoice Id</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center">
-                            <h1>Customer</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center">
-                            <h1>Service</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center ml-5">
-                            <h1>Packages</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center">
-                            <h1>Amount</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center">
-                            <h1>Due Date</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center">
-                            <h1>Status</h1>
-                            <ChevronsUpDown size={12} />
-                        </div>
-                        <div className="flex flex-row gap-2 items-center">
-                            <h1>Action</h1>
-                        </div>
-                    </div>
-                    {/* end */}
-                    {currentTransactions.map((txn, idx) => (
-                        <div
-                            key={startIdx + idx}
-                            className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
-                            style={{
-                                backgroundColor: selectedRows.has(startIdx + idx)
-                                    ? "#CCCCCC4F"
-                                    : "transparent",
-                            }}
-                        >
-                            <div className="flex flex-row items-center gap-5">
-                                <input
-                                    type="checkbox"
-                                    className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                                    checked={selectedRows.has(startIdx + idx)}
-                                    onChange={() => handleRowSelection(idx)}
-                                />
-                                <h1>{txn.id}</h1>
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <select
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.status}
+                                    onChange={(event) => handleFilterInput("status", event.target.value)}
+                                >
+                                    <option value="">All statuses</option>
+                                    {(filterOptions.statuses || []).map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                            <div>{txn.customer}</div>
-                            <div>{txn.service}</div>
-                            <div className="ml-5">{txn.packages}</div>
-                            <div>{txn.amount}</div>
-                            <div>{txn.dueDate}</div>
-                            <div>
-                                <div
-                                    className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
-                                    style={{
-                                        border: `1px solid ${txn.statusColor}`,
-                                        background: txn.statusBg,
-                                        color: txn.statusColor,
+
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <select
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.category}
+                                    onChange={(event) => handleFilterInput("category", event.target.value)}
+                                >
+                                    <option value="">All categories</option>
+                                    {(filterOptions.categories || []).map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <select
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.service}
+                                    onChange={(event) => handleFilterInput("service", event.target.value)}
+                                >
+                                    <option value="">All services</option>
+                                    {(filterOptions.services || []).map((service) => (
+                                        <option key={service} value={service}>
+                                            {service}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <CalendarDays size={15} />
+                                <input
+                                    type="date"
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.fromDate}
+                                    onChange={(event) => handleFilterInput("fromDate", event.target.value)}
+                                />
+                            </div>
+
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <CalendarDays size={15} />
+                                <input
+                                    type="date"
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.toDate}
+                                    onChange={(event) => handleFilterInput("toDate", event.target.value)}
+                                />
+                            </div>
+
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <span className="text-[13px] text-[#6c7583] whitespace-nowrap">Rows</span>
+                                <select
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.perPage}
+                                    onChange={(event) => {
+                                        const nextPerPage = Number(event.target.value);
+                                        handleFilterInput("perPage", nextPerPage);
+                                        runPaymentSearch({ perPage: nextPerPage, page: 1 });
                                     }}
                                 >
-                                    {txn.status}
-                                </div>
+                                    {(filterOptions.perPageOptions || [10, 20, 50]).map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                            <div className="flex flex-row justify-center items-center gap-2">
-                                <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
-                                    Edit
-                                </div>
-                                <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
-                                    Delete
-                                </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={applyFilters}
+                                    className="h-[40px] px-4 rounded-[6px] bg-[#0955AC] text-white text-[14px] font-[600]"
+                                >
+                                    Apply
+                                </button>
+                                <button
+                                    onClick={resetFilters}
+                                    disabled={!hasActiveFilters}
+                                    className="h-[40px] px-4 rounded-[6px] bg-[#EEF2F8] text-[#2f3a49] text-[14px] font-[600] disabled:opacity-50"
+                                >
+                                    Clear
+                                </button>
                             </div>
                         </div>
-                    ))}
-                    {/* Pagination Controls and Results per page inline */}
-                    <div className="flex justify-between items-center gap-2 mt-20">
-                        {/* Left: Results per page */}
-                        <div className="flex items-center">
-                            <span className="mr-3 text-[#00000080] text-[15px]">
-                                Results per page
-                            </span>
-                            <select
-                                className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
-                                value={itemsPerPage}
-                                onChange={(e) =>
-                                    setItemsPerPage(Number(e.target.value))
-                                }
-                            >
-                                {perPageOptions.map((opt) => (
-                                    <option key={opt} value={opt}>
-                                        {opt}
-                                    </option>
+                    </div>
+
+                    <div className="mt-6 overflow-x-auto">
+                        <table className="min-w-full border-separate border-spacing-0">
+                            <thead>
+                                <tr className="bg-[#D8E4F2] text-[13px] text-[#1f2937]">
+                                    <th className="text-left px-4 py-3 rounded-tl-[8px]">Payment</th>
+                                    <th className="text-left px-4 py-3">Shipment</th>
+                                    <th className="text-left px-4 py-3">Client</th>
+                                    <th className="text-left px-4 py-3">Service</th>
+                                    <th className="text-left px-4 py-3">Amount</th>
+                                    <th className="text-left px-4 py-3">Status</th>
+                                    <th className="text-left px-4 py-3">Updated</th>
+                                    <th className="text-left px-4 py-3">Gateway Ref</th>
+                                    <th className="text-left px-4 py-3 rounded-tr-[8px]">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.length === 0 && (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-10 text-center text-[14px] text-[#6c7583]">
+                                            No courier payment transactions found for the current filters.
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {rows.map((row) => (
+                                    <tr key={row.id} className="text-[14px] border-b border-[#e4e8ef]">
+                                        <td className="px-4 py-4 align-top">
+                                            <div className="font-[600] text-[#111827]">{row.paymentNumber || row.id}</div>
+                                            <div className="text-[12px] text-[#6b7280]">{row.category || "-"}</div>
+                                        </td>
+                                        <td className="px-4 py-4 align-top">
+                                            <div className="font-[600] text-[#111827]">{row.shipmentReference || "-"}</div>
+                                            <div className="text-[12px] text-[#6b7280]">{row.trackingNumber || "-"}</div>
+                                        </td>
+                                        <td className="px-4 py-4 align-top">
+                                            <div className="font-[600] text-[#111827]">{row.client || "-"}</div>
+                                            {row.clientCompany ? (
+                                                <div className="text-[12px] text-[#6b7280]">{row.clientCompany}</div>
+                                            ) : null}
+                                        </td>
+                                        <td className="px-4 py-4 align-top">
+                                            <div>{row.service || "-"}</div>
+                                            <div className="text-[12px] text-[#6b7280]">Packages: {row.packageCount || 0}</div>
+                                        </td>
+                                        <td className="px-4 py-4 align-top font-[600] text-[#111827]">
+                                            {formatAmount(row.amount, row.currency)}
+                                        </td>
+                                        <td className="px-4 py-4 align-top">
+                                            <span
+                                                className={`inline-flex px-2 py-[3px] rounded-[5px] border text-[11px] font-[700] ${statusBadgeClasses(
+                                                    row.status
+                                                )}`}
+                                            >
+                                                {row.statusLabel || row.status || "Unknown"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 align-top text-[13px] text-[#374151]">
+                                            {row.updatedAt || row.createdAt || "-"}
+                                        </td>
+                                        <td className="px-4 py-4 align-top text-[13px] text-[#374151]">
+                                            {row.txReference || row.gatewayPaymentId || row.gatewayOrderId || "-"}
+                                        </td>
+                                        <td className="px-4 py-4 align-top">
+                                            <button
+                                                onClick={() =>
+                                                    router.get(route("courierService.bookings"), {
+                                                        q: row.shipmentReference,
+                                                    })
+                                                }
+                                                className="h-[30px] px-3 rounded-[5px] border border-[#0955AC] text-[#0955AC] text-[12px] font-[700]"
+                                            >
+                                                Open Booking
+                                            </button>
+                                            {row.lifecycleBlocked ? (
+                                                <p className="text-[11px] text-[#9d2626] mt-2">
+                                                    Lifecycle actions are blocked until payment is paid.
+                                                </p>
+                                            ) : null}
+                                        </td>
+                                    </tr>
                                 ))}
-                            </select>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-5 flex flex-col md:flex-row gap-3 md:items-center md:justify-between text-[13px] text-[#5c6776]">
+                        <div>
+                            Showing {rows.length} of {pagination.total} transactions
                         </div>
-                        {/* Right: Pagination */}
                         <div className="flex items-center gap-2">
                             <button
-                                className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                                onClick={() => goToPage(currentPage - 1)}
-                                disabled={currentPage === 1}
+                                onClick={() => runPaymentSearch({ page: Math.max(1, Number(pagination.page) - 1) })}
+                                disabled={Number(pagination.page) <= 1}
+                                className="h-[34px] px-3 rounded-[6px] bg-[#EEF2F8] text-[#2f3a49] disabled:opacity-50"
                             >
-                                <span className="text-lg">&lt;</span>
+                                Previous
                             </button>
-                            {getPageNumbers().map((num, idx) =>
-                                num === "..." ? (
-                                    <span key={idx} className="px-2">
-                                        ...
-                                    </span>
-                                ) : (
-                                    <button
-                                        key={num}
-                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
-                                            ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
-                                            : "bg-[#F4F3F3]"
-                                            }`}
-                                        onClick={() => goToPage(num)}
-                                    >
-                                        {num}
-                                    </button>
-                                )
-                            )}
+                            <div className="h-[34px] px-3 rounded-[6px] bg-[#F8FAFD] border border-[#E1E7F0] flex items-center">
+                                Page {pagination.page} of {pagination.totalPages}
+                            </div>
                             <button
-                                className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                                onClick={() => goToPage(currentPage + 1)}
-                                disabled={currentPage === totalPages}
+                                onClick={() =>
+                                    runPaymentSearch({
+                                        page: Math.min(Number(pagination.totalPages), Number(pagination.page) + 1),
+                                    })
+                                }
+                                disabled={Number(pagination.page) >= Number(pagination.totalPages)}
+                                className="h-[34px] px-3 rounded-[6px] bg-[#EEF2F8] text-[#2f3a49] disabled:opacity-50"
                             >
-                                <span className="text-lg">&gt;</span>
+                                Next
                             </button>
                         </div>
                     </div>

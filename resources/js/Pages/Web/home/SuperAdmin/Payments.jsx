@@ -7,6 +7,7 @@ const Payments = ({
     airVehiclePayments = [],
     seaVehiclePayments = [],
     warehousePayments = [],
+    courierCardPayments = [],
     codSettlementSummary = {},
     recentCodSettlementBatches = [],
 }) => {
@@ -21,8 +22,17 @@ const Payments = ({
     };
 
     const formatDate = (dateString) => {
+        if (!dateString) {
+            return '-';
+        }
+
         try {
-            return new Date(dateString).toLocaleString();
+            const parsedDate = new Date(dateString);
+            if (Number.isNaN(parsedDate.getTime())) {
+                return dateString;
+            }
+
+            return parsedDate.toLocaleString();
         } catch {
             return dateString;
         }
@@ -65,7 +75,7 @@ const Payments = ({
                                         <td className="px-4 py-3 text-gray-300">{payment.method || 'N/A'}</td>
                                         <td className="px-4 py-3 text-gray-300">{payment.option || 'N/A'}</td>
                                         <td className="px-4 py-3 text-green-400 font-semibold">
-                                            LKR {typeof payment.amount_paid === 'number' ? payment.amount_paid.toFixed(2) : parseFloat(payment.amount_paid || 0).toFixed(2)}
+                                            {(payment.currency_code || 'LKR').toUpperCase()} {typeof payment.amount_paid === 'number' ? payment.amount_paid.toFixed(2) : parseFloat(payment.amount_paid || 0).toFixed(2)}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(payment.status)}`}>
@@ -81,6 +91,73 @@ const Payments = ({
                             ) : (
                                 <tr>
                                     <td colSpan={showCompanyName ? "7" : "6"} className="px-4 py-8 text-center text-gray-400">
+                                        {emptyMessage}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+
+    const CourierCardPaymentTable = ({ title, payments, emptyMessage = "No courier card payments found" }) => (
+        <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 text-white">{title}</h2>
+            <div className="bg-[#0A1330] border border-gray-700 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[1400px]">
+                        <thead>
+                            <tr className="bg-[#1E40AF] text-white">
+                                <th className="px-4 py-3 text-left font-semibold rounded-tl-lg">Payment ID</th>
+                                <th className="px-4 py-3 text-left font-semibold">Shipment Ref</th>
+                                <th className="px-4 py-3 text-left font-semibold">Method</th>
+                                <th className="px-4 py-3 text-left font-semibold">Provider</th>
+                                <th className="px-4 py-3 text-left font-semibold">Amount</th>
+                                <th className="px-4 py-3 text-left font-semibold">Status</th>
+                                <th className="px-4 py-3 text-left font-semibold">Order Ref</th>
+                                <th className="px-4 py-3 text-left font-semibold">Gateway Ref</th>
+                                <th className="px-4 py-3 text-left font-semibold">Txn Ref</th>
+                                <th className="px-4 py-3 text-left font-semibold">Initiated</th>
+                                <th className="px-4 py-3 text-left font-semibold">Paid At</th>
+                                <th className="px-4 py-3 text-left font-semibold">Failed At</th>
+                                <th className="px-4 py-3 text-left font-semibold">Last Notified</th>
+                                <th className="px-4 py-3 text-left font-semibold rounded-tr-lg">Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payments && payments.length > 0 ? (
+                                payments.map((payment, index) => (
+                                    <tr
+                                        key={payment.id}
+                                        className={`${index % 2 === 0 ? 'bg-[#081028]' : 'bg-[#0A1330]'} hover:bg-[#1E40AF]/20 transition-colors duration-200 border-b border-gray-600`}
+                                    >
+                                        <td className="px-4 py-3 text-white">{payment.id}</td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.shipment_reference || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300 uppercase">{payment.method || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300 uppercase">{payment.option || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-green-400 font-semibold">
+                                            {(payment.currency_code || 'LKR').toUpperCase()} {typeof payment.amount_paid === 'number' ? payment.amount_paid.toFixed(2) : parseFloat(payment.amount_paid || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(payment.status)}`}>
+                                                {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Unknown'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.gateway_order_id || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.gateway_payment_id || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.tx_reference || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-400">{formatDate(payment.initiated_at)}</td>
+                                        <td className="px-4 py-3 text-gray-400">{formatDate(payment.paid_at)}</td>
+                                        <td className="px-4 py-3 text-gray-400">{formatDate(payment.failed_at)}</td>
+                                        <td className="px-4 py-3 text-gray-400">{formatDate(payment.last_notified_at)}</td>
+                                        <td className="px-4 py-3 text-gray-400">{formatDate(payment.created_at)}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="14" className="px-4 py-8 text-center text-gray-400">
                                         {emptyMessage}
                                     </td>
                                 </tr>
@@ -199,12 +276,18 @@ const Payments = ({
                                 emptyMessage="No warehouse payments found"
                                 showCompanyName={true}
                             />
+
+                            <CourierCardPaymentTable
+                                title="Courier Card Payments"
+                                payments={courierCardPayments}
+                                emptyMessage="No courier card payments found"
+                            />
                         </div>
 
                         {/* Usage Information */}
                         <div className='mt-8 bg-[#0A1330] border border-gray-700 rounded-lg p-6'>
                             <h3 className='text-lg font-semibold text-white mb-3'>Payment Statistics</h3>
-                            <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+                            <div className='grid grid-cols-1 md:grid-cols-5 gap-4'>
                                 <div className='space-y-1'>
                                     <h4 className='text-sm font-medium text-blue-400'>Land Booking Payments</h4>
                                     <p className='text-sm text-gray-300'>
@@ -227,6 +310,12 @@ const Payments = ({
                                     <h4 className='text-sm font-medium text-orange-400'>Warehouse Payments</h4>
                                     <p className='text-sm text-gray-300'>
                                         Total: {warehousePayments?.length || 0} transactions
+                                    </p>
+                                </div>
+                                <div className='space-y-1'>
+                                    <h4 className='text-sm font-medium text-cyan-400'>Courier Card Payments</h4>
+                                    <p className='text-sm text-gray-300'>
+                                        Total: {courierCardPayments?.length || 0} transactions
                                     </p>
                                 </div>
                             </div>

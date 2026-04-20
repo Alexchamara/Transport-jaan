@@ -6,9 +6,11 @@ import autoTable from 'jspdf-autotable';
 const CourierReports = ({ bookings = [], stats = {} }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [showExportModal, setShowExportModal] = useState(false);
   const [statusOptions, setStatusOptions] = useState([]);
+  const [paymentStatusOptions, setPaymentStatusOptions] = useState([]);
   const [dateOptions, setDateOptions] = useState(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
 
   // Fetch filter options from database
@@ -17,10 +19,24 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
       .then(res => res.json())
       .then(data => {
         setStatusOptions(data.courierStatuses || []);
+        setPaymentStatusOptions(data.courierPaymentStatuses || ['pending', 'paid', 'failed', 'cancelled', 'expired']);
         setDateOptions(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
       })
       .catch(err => console.error('Failed to fetch filter options:', err));
   }, []);
+
+  const formatDateTime = (value) => {
+    if (!value) {
+      return 'N/A';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleString();
+  };
 
   const matchesDateFilter = (createdAt) => {
     if (dateFilter === 'All') return true;
@@ -44,34 +60,67 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
         booking.sender_name,
         booking.receiver_name,
         booking.status,
+        booking.payment_status,
+        booking.payment_method,
+        booking.payment_reference,
+        booking.gateway_order_id,
+        booking.gateway_payment_id,
+        booking.tx_reference,
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
 
       const matchesSearch = !searchValue || searchTarget.includes(searchValue);
-      const matchesStatus = statusFilter === 'All' || booking.status === statusFilter;
+      const matchesStatus = statusFilter === 'All' || String(booking.status || '').toLowerCase() === statusFilter.toLowerCase();
+      const matchesPaymentStatus =
+        paymentStatusFilter === 'All' ||
+        String(booking.payment_status || '').toLowerCase() === paymentStatusFilter.toLowerCase();
       const matchesDate = matchesDateFilter(booking.created_at);
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
     });
-  }, [bookings, searchTerm, statusFilter, dateFilter]);
+  }, [bookings, searchTerm, statusFilter, paymentStatusFilter, dateFilter]);
 
   const resetFilters = () => {
     setSearchTerm('');
     setStatusFilter('All');
+    setPaymentStatusFilter('All');
     setDateFilter('All');
   };
 
   const handleExport = (format) => {
-    const headers = ['Tracking #', 'Sender', 'Receiver', 'Status', 'Amount', 'Date'];
+    const headers = [
+      'Tracking #',
+      'Sender',
+      'Receiver',
+      'Shipment Status',
+      'Payment Status',
+      'Payment Method',
+      'Payment Ref',
+      'Order Ref',
+      'Gateway Ref',
+      'Amount',
+      'Shipment Date',
+      'Payment Initiated',
+      'Paid At',
+      'Failed At',
+    ];
     const rows = filteredBookings.map((booking) => [
       booking.tracking_number,
       booking.sender_name,
       booking.receiver_name,
       booking.status,
+      booking.payment_status || 'N/A',
+      booking.payment_method || 'N/A',
+      booking.payment_reference || 'N/A',
+      booking.gateway_order_id || 'N/A',
+      booking.gateway_payment_id || 'N/A',
       `LKR ${booking.total_amount.toLocaleString()}`,
-      new Date(booking.created_at).toLocaleDateString(),
+      formatDateTime(booking.created_at),
+      formatDateTime(booking.payment_initiated_at),
+      formatDateTime(booking.payment_paid_at),
+      formatDateTime(booking.payment_failed_at),
     ]);
 
     if (format === 'csv') {
@@ -130,7 +179,7 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
           <h1 className='text-white text-3xl font-bold mb-6'>Courier Bookings Report</h1>
           <p className='text-gray-400 mb-8'>Comprehensive report of all courier bookings.</p>
           
-          <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
+          <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8'>
             <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
               <h3 className='text-gray-400 text-sm mb-2'>Total Shipments</h3>
               <p className='text-white text-2xl font-bold'>{stats.totalShipments || 0}</p>
@@ -147,6 +196,18 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
               <h3 className='text-gray-400 text-sm mb-2'>Delivered</h3>
               <p className='text-white text-2xl font-bold'>{stats.delivered || 0}</p>
             </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Card Payments</h3>
+              <p className='text-white text-2xl font-bold'>{stats.cardPaymentsTotal || 0}</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Card Paid</h3>
+              <p className='text-emerald-400 text-2xl font-bold'>{stats.cardPaymentsPaid || 0}</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Card Pending / Failed</h3>
+              <p className='text-amber-300 text-2xl font-bold'>{(stats.cardPaymentsPending || 0) + (stats.cardPaymentsFailed || 0)}</p>
+            </div>
           </div>
 
           <div className='bg-[#0F1A3A] rounded-lg p-4 border border-gray-700 mb-6'>
@@ -154,7 +215,7 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
               <div className='flex-1 min-w-[200px]'>
                 <input
                   className='w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0E43FB]'
-                  placeholder='Search shipments...'
+                  placeholder='Search shipment or payment references...'
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                 />
@@ -166,6 +227,18 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
               >
                 <option value='All'>All Statuses</option>
                 {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <select
+                className='bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm'
+                value={paymentStatusFilter}
+                onChange={(event) => setPaymentStatusFilter(event.target.value)}
+              >
+                <option value='All'>All Payment Statuses</option>
+                {paymentStatusOptions.map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
@@ -211,14 +284,22 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
                       <th className='text-gray-400 pb-3 px-2'>Tracking #</th>
                       <th className='text-gray-400 pb-3 px-2'>Sender</th>
                       <th className='text-gray-400 pb-3 px-2'>Receiver</th>
-                      <th className='text-gray-400 pb-3 px-2'>Status</th>
+                      <th className='text-gray-400 pb-3 px-2'>Shipment Status</th>
+                      <th className='text-gray-400 pb-3 px-2'>Payment Status</th>
+                      <th className='text-gray-400 pb-3 px-2'>Payment Method</th>
+                      <th className='text-gray-400 pb-3 px-2'>Payment Ref</th>
+                      <th className='text-gray-400 pb-3 px-2'>Order Ref</th>
+                      <th className='text-gray-400 pb-3 px-2'>Gateway Ref</th>
                       <th className='text-gray-400 pb-3 px-2'>Amount</th>
-                      <th className='text-gray-400 pb-3 px-2'>Date</th>
+                      <th className='text-gray-400 pb-3 px-2'>Shipment Date</th>
+                      <th className='text-gray-400 pb-3 px-2'>Initiated</th>
+                      <th className='text-gray-400 pb-3 px-2'>Paid At</th>
+                      <th className='text-gray-400 pb-3 px-2'>Failed At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredBookings.map((booking, index) => (
-                      <tr key={index} className='border-b border-gray-800'>
+                      <tr key={booking.id || index} className='border-b border-gray-800'>
                         <td className='text-white py-3 px-2'>{booking.tracking_number}</td>
                         <td className='text-gray-300 py-3 px-2'>{booking.sender_name || 'N/A'}</td>
                         <td className='text-gray-300 py-3 px-2'>{booking.receiver_name || 'N/A'}</td>
@@ -231,8 +312,24 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
                             {booking.status}
                           </span>
                         </td>
+                        <td className='py-3 px-2'>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            booking.payment_status === 'paid' ? 'bg-green-600 text-white' :
+                            booking.payment_status === 'pending' ? 'bg-yellow-600 text-white' :
+                            'bg-red-600 text-white'
+                          }`}>
+                            {booking.payment_status || 'N/A'}
+                          </span>
+                        </td>
+                        <td className='text-gray-300 py-3 px-2 uppercase'>{booking.payment_method || 'N/A'}</td>
+                        <td className='text-gray-300 py-3 px-2'>{booking.payment_reference || 'N/A'}</td>
+                        <td className='text-gray-300 py-3 px-2'>{booking.gateway_order_id || 'N/A'}</td>
+                        <td className='text-gray-300 py-3 px-2'>{booking.gateway_payment_id || 'N/A'}</td>
                         <td className='text-white py-3 px-2'>LKR {(booking.total_amount || 0).toLocaleString()}</td>
-                        <td className='text-gray-400 py-3 px-2'>{new Date(booking.created_at).toLocaleDateString()}</td>
+                        <td className='text-gray-400 py-3 px-2'>{formatDateTime(booking.created_at)}</td>
+                        <td className='text-gray-400 py-3 px-2'>{formatDateTime(booking.payment_initiated_at)}</td>
+                        <td className='text-gray-400 py-3 px-2'>{formatDateTime(booking.payment_paid_at)}</td>
+                        <td className='text-gray-400 py-3 px-2'>{formatDateTime(booking.payment_failed_at)}</td>
                       </tr>
                     ))}
                   </tbody>

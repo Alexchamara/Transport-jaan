@@ -15,6 +15,7 @@ class ClientCourierShipmentTransformer
         $packages = $this->toCollection($shipment->packages ?? []);
         $trackingEvents = $this->toCollection($shipment->trackingEvents ?? []);
         $latestPayment = $this->resolveLatestPayment($shipment);
+        $paymentData = $this->mapPaymentData($shipment, $latestPayment);
         $totalCost = (float) $packages->sum(fn ($package) => (float) ($package->quoted_price_usd ?? 0));
         $totalWeight = (float) $packages->sum(fn ($package) => (float) ($package->weight_kg ?? 0));
         $latestTracking = $trackingEvents
@@ -54,11 +55,7 @@ class ClientCourierShipmentTransformer
             'totalCost' => $totalCost,
             'estimatedCost' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
             'currencyCode' => $shipment->currency_code ?? 'USD',
-            'paymentStatus' => $latestPayment?->status ?? $shipment->resolvedPaymentStatus(),
-            'paymentMethod' => $latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'pending'),
-            'paymentProvider' => $latestPayment?->provider,
-            'paymentReference' => $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id,
-            'paymentRequired' => (bool) ($latestPayment?->is_required ?? false),
+            ...$paymentData,
             'insuranceRequired' => (bool) $shipment->insurance_required,
             'declaredValue' => $shipment->declared_value,
             'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
@@ -76,6 +73,7 @@ class ClientCourierShipmentTransformer
         $packages = $this->toCollection($shipment->packages ?? []);
         $trackingEvents = $this->toCollection($shipment->trackingEvents ?? []);
         $latestPayment = $this->resolveLatestPayment($shipment);
+        $paymentData = $this->mapPaymentData($shipment, $latestPayment);
 
         return [
             'id' => $shipment->id,
@@ -102,11 +100,7 @@ class ClientCourierShipmentTransformer
             'codPaymentMethod' => $shipment->cod_requested_method,
             'codPolicySnapshot' => is_array($shipment->cod_policy_snapshot) ? $shipment->cod_policy_snapshot : null,
             'currencyCode' => $shipment->currency_code ?? 'USD',
-            'paymentStatus' => $latestPayment?->status ?? $shipment->resolvedPaymentStatus(),
-            'paymentMethod' => $latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'pending'),
-            'paymentProvider' => $latestPayment?->provider,
-            'paymentReference' => $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id,
-            'paymentRequired' => (bool) ($latestPayment?->is_required ?? false),
+            ...$paymentData,
             'estimatedCost' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
             'actualCost' => $shipment->actual_cost !== null ? (float) $shipment->actual_cost : null,
             'deliveryNotes' => $shipment->delivery_notes,
@@ -120,14 +114,15 @@ class ClientCourierShipmentTransformer
     {
         $packages = $this->toCollection($shipment->packages ?? []);
         $latestPayment = $this->resolveLatestPayment($shipment);
+        $paymentData = $this->mapPaymentData($shipment, $latestPayment);
         $senderAddress = $shipment->senderAddress;
         $recipientAddress = $shipment->recipientAddress;
 
         $totalWeight = (float) $packages->sum(fn ($package) => (float) ($package->weight_kg ?? 0));
         $totalAmount = (float) ($shipment->actual_cost ?? $shipment->estimated_cost ?? 0);
-        $paymentStatus = $latestPayment?->status ?? $shipment->resolvedPaymentStatus();
-        $paymentMethod = $latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'courier');
-        $paymentReference = $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id;
+        $paymentStatus = (string) ($paymentData['payment_status'] ?? $shipment->resolvedPaymentStatus());
+        $paymentMethod = (string) ($paymentData['payment_method'] ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'pending'));
+        $paymentReference = $paymentData['payment_reference'] ?? null;
 
         $packageType = $packages
             ->pluck('package_type')
@@ -177,10 +172,7 @@ class ClientCourierShipmentTransformer
             'vendor_name' => 'Courier Service Provider',
             'notes' => $shipment->delivery_notes,
             'description' => $shipment->delivery_notes,
-            'payment_method' => $paymentMethod,
-            'payment_status' => $paymentStatus,
-            'payment_reference' => $paymentReference,
-            'payment_provider' => $latestPayment?->provider,
+            ...$paymentData,
             'paymentMethod' => $paymentMethod,
             'paymentStatus' => Str::title(str_replace('_', ' ', $paymentStatus)),
             'paymentReference' => $paymentReference,
@@ -319,6 +311,57 @@ class ClientCourierShipmentTransformer
         }
 
         return $address->instructions ?? $address->delivery_instructions ?? null;
+    }
+
+    private function mapPaymentData(CourierShipment $shipment, ?CourierShipmentPayment $latestPayment): array
+    {
+        $paymentStatus = (string) ($latestPayment?->status ?? $shipment->resolvedPaymentStatus());
+        $paymentMethod = (string) ($latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false)
+            ? CourierShipmentPayment::PAYMENT_METHOD_COD
+            : 'pending'));
+        $paymentProvider = $latestPayment?->provider ? (string) $latestPayment->provider : null;
+        $paymentReference = $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id;
+        $paymentRequired = (bool) ($latestPayment?->is_required ?? false);
+
+        $gatewayOrderId = $latestPayment?->gateway_order_id;
+        $gatewayPaymentId = $latestPayment?->gateway_payment_id;
+        $txReference = $latestPayment?->tx_reference;
+
+        $initiatedAt = optional($latestPayment?->initiated_at)->format('Y-m-d H:i:s');
+        $paidAt = optional($latestPayment?->paid_at)->format('Y-m-d H:i:s');
+        $failedAt = optional($latestPayment?->failed_at)->format('Y-m-d H:i:s');
+        $lastNotifiedAt = optional($latestPayment?->last_notified_at)->format('Y-m-d H:i:s');
+
+        return [
+            'paymentStatus' => $paymentStatus,
+            'paymentMethod' => $paymentMethod,
+            'paymentProvider' => $paymentProvider,
+            'paymentReference' => $paymentReference,
+            'paymentRequired' => $paymentRequired,
+            'paymentStatusLabel' => Str::title(str_replace('_', ' ', $paymentStatus)),
+            'paymentMethodLabel' => Str::title(str_replace('_', ' ', $paymentMethod)),
+            'paymentGatewayOrderId' => $gatewayOrderId,
+            'paymentGatewayPaymentId' => $gatewayPaymentId,
+            'paymentTxReference' => $txReference,
+            'paymentInitiatedAt' => $initiatedAt,
+            'paymentPaidAt' => $paidAt,
+            'paymentFailedAt' => $failedAt,
+            'paymentLastNotifiedAt' => $lastNotifiedAt,
+            'requiresCardPayment' => $shipment->requiresCardPayment(),
+            'payment_status' => $paymentStatus,
+            'payment_method' => $paymentMethod,
+            'payment_provider' => $paymentProvider,
+            'payment_reference' => $paymentReference,
+            'payment_required' => $paymentRequired,
+            'payment_gateway_order_id' => $gatewayOrderId,
+            'payment_gateway_payment_id' => $gatewayPaymentId,
+            'payment_tx_reference' => $txReference,
+            'payment_initiated_at' => $initiatedAt,
+            'payment_paid_at' => $paidAt,
+            'payment_failed_at' => $failedAt,
+            'payment_last_notified_at' => $lastNotifiedAt,
+            'requires_card_payment' => $shipment->requiresCardPayment(),
+        ];
     }
 
     private function resolveLatestPayment(CourierShipment $shipment): ?CourierShipmentPayment

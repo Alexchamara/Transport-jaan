@@ -56,6 +56,7 @@ class VendorCourierDashboardController extends Controller
         $this->middleware('service.permission:courier.bookings.view')->only(['bookings']);
         $this->middleware('service.permission:courier.bookings.manage_lifecycle')->only(['updateBookingLifecycle']);
         $this->middleware('service.permission:courier.bookings.bulk_update')->only(['bulkUpdateBookingLifecycle']);
+        $this->middleware('service.permission:courier.finance.view')->only(['payments']);
 
         $this->middleware('service.permission:courier.shipments.view')->only(['shipments']);
         $this->middleware('service.permission:courier.shipments.update_stage')->only(['updateShipmentStage']);
@@ -309,6 +310,118 @@ class VendorCourierDashboardController extends Controller
 
         return Inertia::render('Web/home/vendors/courierService/Booking', [
             'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates, $canCodOverride, $approvedCategories),
+        ]);
+    }
+
+    public function payments(Request $request)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to access payments.');
+        }
+
+        $this->assertAdvancedPermission($request, $policy, 'payouts', 'view');
+
+        $approvedCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
+        $scope = $this->resolveScopeForPermission($request, $policy, 'payouts', 'view');
+        $dataScopeConstraints = $this->resolveEffectiveDataScopeConstraints($request, $policy, 'payouts', 'view');
+
+        $allowedStatuses = [
+            CourierShipmentPayment::STATUS_PENDING,
+            CourierShipmentPayment::STATUS_PAID,
+            CourierShipmentPayment::STATUS_FAILED,
+            CourierShipmentPayment::STATUS_CANCELLED,
+            CourierShipmentPayment::STATUS_EXPIRED,
+        ];
+
+        $statusFilter = strtolower(trim((string) $request->query('status', '')));
+        if (!in_array($statusFilter, $allowedStatuses, true)) {
+            $statusFilter = '';
+        }
+
+        $filters = [
+            'q' => trim((string) $request->query('q', '')),
+            'status' => $statusFilter,
+            'category' => $this->sanitizeApprovedCategoryFilter(
+                trim((string) $request->query('category', '')),
+                $approvedCategories
+            ),
+            'service' => trim((string) $request->query('service', '')),
+            'fromDate' => trim((string) $request->query('fromDate', '')),
+            'toDate' => trim((string) $request->query('toDate', '')),
+            'perPage' => max(5, min(50, (int) $request->query('perPage', 10))),
+            'page' => max(1, (int) $request->query('page', 1)),
+        ];
+
+        $query = CourierShipmentPayment::query()
+            ->with([
+                'shipment:id,reference,service_level,status,assignment_category,assigned_vendor_user_id,currency_code,sender_contact_id,sender_address_id,recipient_address_id,estimated_cost',
+                'shipment.sender:id,name,company_name',
+                'shipment.senderAddress:id,city,country',
+                'shipment.recipientAddress:id,city,country',
+                'shipment.packages:id,shipment_id,quantity,courier_provider_name,service_tier_label,service_tier_key',
+                'shipment.latestPayment:id,courier_shipment_id,payment_method,is_required,status',
+            ])
+            ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
+            ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+            ->whereHas('shipment', function (Builder $shipmentQuery) use ($vendorId, $scope, $request, $dataScopeConstraints, $approvedCategories, $filters) {
+                $shipmentQuery->where('assigned_vendor_user_id', $vendorId);
+                $this->applyShipmentScopeFilter($shipmentQuery, $scope, $request, $vendorId);
+                $this->applyShipmentDataScopeFilter($shipmentQuery, $dataScopeConstraints, $vendorId);
+                $this->applyApprovedCategoryConstraints($shipmentQuery, $approvedCategories);
+
+                if ($filters['service'] !== '') {
+                    $shipmentQuery->where('service_level', $filters['service']);
+                }
+
+                if ($filters['category'] === 'domestic') {
+                    $this->applyDomesticCategoryConstraint($shipmentQuery);
+                }
+
+                if ($filters['category'] === 'international') {
+                    $this->applyInternationalCategoryConstraint($shipmentQuery);
+                }
+            })
+            ->orderByDesc('created_at');
+
+        if ($filters['q'] !== '') {
+            $raw = strtoupper($filters['q']);
+            $normalized = str_starts_with($raw, 'TRK-')
+                ? 'CR-' . substr($raw, 4)
+                : $raw;
+
+            $query->where(function (Builder $nested) use ($raw, $normalized) {
+                $nested->whereRaw('UPPER(gateway_order_id) LIKE ?', ['%' . $raw . '%'])
+                    ->orWhereRaw('UPPER(gateway_payment_id) LIKE ?', ['%' . $raw . '%'])
+                    ->orWhereRaw('UPPER(tx_reference) LIKE ?', ['%' . $raw . '%'])
+                    ->orWhereHas('shipment', function (Builder $shipmentQuery) use ($raw, $normalized) {
+                        $shipmentQuery->whereRaw('UPPER(reference) LIKE ?', ['%' . $raw . '%'])
+                            ->orWhereRaw('UPPER(reference) LIKE ?', ['%' . $normalized . '%'])
+                            ->orWhereHas('sender', function (Builder $senderQuery) use ($raw) {
+                                $senderQuery->whereRaw('UPPER(name) LIKE ?', ['%' . $raw . '%']);
+                            });
+                    });
+            });
+        }
+
+        if ($filters['status'] !== '') {
+            $query->where('status', $filters['status']);
+        }
+
+        if ($filters['fromDate'] !== '') {
+            $query->whereDate('created_at', '>=', $filters['fromDate']);
+        }
+
+        if ($filters['toDate'] !== '') {
+            $query->whereDate('created_at', '<=', $filters['toDate']);
+        }
+
+        $payments = $query->get();
+
+        return Inertia::render('Web/home/vendors/courierService/Payment', [
+            'courierPayments' => $this->buildPaymentsPayload($payments, $filters, $approvedCategories),
         ]);
     }
 
@@ -2693,6 +2806,135 @@ class VendorCourierDashboardController extends Controller
                         'label' => Str::title(str_replace('_', ' ', (string) $action)),
                     ])
                     ->values(),
+            ],
+        ];
+    }
+
+    private function buildPaymentsPayload(Collection $payments, array $filters, array $approvedCategories): array
+    {
+        $rows = $payments
+            ->map(function (CourierShipmentPayment $payment) {
+                $shipment = $payment->shipment;
+                if (!$shipment instanceof CourierShipment) {
+                    return null;
+                }
+
+                $packageCount = (int) $shipment->packages->sum('quantity');
+                if ($packageCount <= 0) {
+                    $packageCount = $shipment->packages->count();
+                }
+
+                $effectiveUpdatedAt = $payment->paid_at
+                    ?: $payment->failed_at
+                    ?: $payment->last_notified_at
+                    ?: $payment->updated_at
+                    ?: $payment->created_at;
+
+                $status = strtolower((string) ($payment->status ?? CourierShipmentPayment::STATUS_PENDING));
+                $cardRequired = (bool) $shipment->requiresCardPayment();
+                $resolvedPaymentStatus = strtolower($shipment->resolvedPaymentStatus());
+
+                return [
+                    'id' => (int) $payment->id,
+                    'paymentNumber' => 'CP-' . str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT),
+                    'shipmentId' => (int) $shipment->id,
+                    'shipmentReference' => (string) $shipment->reference,
+                    'trackingNumber' => $this->trackingNumber($shipment),
+                    'client' => (string) ($shipment->sender?->name ?? '-'),
+                    'clientCompany' => (string) ($shipment->sender?->company_name ?? ''),
+                    'route' => trim(implode(' to ', array_filter([
+                        trim(implode(', ', array_filter([
+                            optional($shipment->senderAddress)->city,
+                            optional($shipment->senderAddress)->country,
+                        ]))),
+                        trim(implode(', ', array_filter([
+                            optional($shipment->recipientAddress)->city,
+                            optional($shipment->recipientAddress)->country,
+                        ]))),
+                    ]))),
+                    'category' => $this->resolveCategory($shipment),
+                    'service' => $this->normalizeServiceLabel((string) $shipment->service_level),
+                    'packageCount' => $packageCount,
+                    'amount' => (float) $payment->amount,
+                    'currency' => strtoupper((string) ($payment->currency_code ?: ($shipment->currency_code ?? 'LKR'))),
+                    'status' => $status,
+                    'statusLabel' => Str::title(str_replace('_', ' ', $status)),
+                    'gatewayOrderId' => (string) ($payment->gateway_order_id ?? ''),
+                    'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                    'txReference' => (string) ($payment->tx_reference ?? ''),
+                    'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+                    'failureReason' => (string) ($payment->failure_reason ?? ''),
+                    'initiatedAt' => optional($payment->initiated_at)->format('Y-m-d H:i'),
+                    'createdAt' => optional($payment->created_at)->format('Y-m-d H:i'),
+                    'updatedAt' => optional($effectiveUpdatedAt)->format('Y-m-d H:i'),
+                    'paidAt' => optional($payment->paid_at)->format('Y-m-d H:i'),
+                    'failedAt' => optional($payment->failed_at)->format('Y-m-d H:i'),
+                    'shipmentStatus' => (string) ($shipment->status ?? CourierShipment::STATUS_PENDING),
+                    'resolvedPaymentStatus' => $resolvedPaymentStatus,
+                    'cardRequired' => $cardRequired,
+                    'lifecycleBlocked' => $cardRequired && $resolvedPaymentStatus !== CourierShipmentPayment::STATUS_PAID,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $summary = [
+            'totalTransactions' => $rows->count(),
+            'paidTransactions' => $rows->where('status', CourierShipmentPayment::STATUS_PAID)->count(),
+            'pendingTransactions' => $rows->where('status', CourierShipmentPayment::STATUS_PENDING)->count(),
+            'failedTransactions' => $rows->filter(fn ($row) => in_array($row['status'], [
+                CourierShipmentPayment::STATUS_FAILED,
+                CourierShipmentPayment::STATUS_CANCELLED,
+                CourierShipmentPayment::STATUS_EXPIRED,
+            ], true))->count(),
+            'collectedAmount' => round((float) $rows->where('status', CourierShipmentPayment::STATUS_PAID)->sum('amount'), 2),
+            'pendingAmount' => round((float) $rows->where('status', CourierShipmentPayment::STATUS_PENDING)->sum('amount'), 2),
+        ];
+
+        $perPage = max(5, min(50, (int) ($filters['perPage'] ?? 10)));
+        $total = $rows->count();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min((int) ($filters['page'] ?? 1), $totalPages);
+        $pagedRows = $rows->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $summaryCurrency = (string) ($rows->pluck('currency')->filter()->countBy()->sortDesc()->keys()->first() ?? 'LKR');
+
+        return [
+            'summary' => $summary,
+            'summaryCurrency' => $summaryCurrency,
+            'rows' => $pagedRows,
+            'filters' => [
+                'q' => (string) ($filters['q'] ?? ''),
+                'status' => (string) ($filters['status'] ?? ''),
+                'category' => (string) ($filters['category'] ?? ''),
+                'service' => (string) ($filters['service'] ?? ''),
+                'fromDate' => (string) ($filters['fromDate'] ?? ''),
+                'toDate' => (string) ($filters['toDate'] ?? ''),
+                'perPage' => $perPage,
+                'page' => $page,
+            ],
+            'pagination' => [
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'totalPages' => $totalPages,
+            ],
+            'filterOptions' => [
+                'statuses' => [
+                    ['value' => CourierShipmentPayment::STATUS_PAID, 'label' => 'Paid'],
+                    ['value' => CourierShipmentPayment::STATUS_PENDING, 'label' => 'Pending'],
+                    ['value' => CourierShipmentPayment::STATUS_FAILED, 'label' => 'Failed'],
+                    ['value' => CourierShipmentPayment::STATUS_CANCELLED, 'label' => 'Cancelled'],
+                    ['value' => CourierShipmentPayment::STATUS_EXPIRED, 'label' => 'Expired'],
+                ],
+                'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
+                'services' => $payments
+                    ->map(fn (CourierShipmentPayment $payment) => $payment->shipment?->service_level)
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values(),
+                'perPageOptions' => [10, 20, 50],
             ],
         ];
     }

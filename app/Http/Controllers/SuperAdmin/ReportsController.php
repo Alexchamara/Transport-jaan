@@ -11,6 +11,7 @@ use App\Models\AirVehicleBookings;
 use App\Models\SeaVehicleBookings;
 use App\Models\Warehouse\WarehouseBooking;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierShipmentPayment;
 use App\Models\FreightQuote;
 use App\Models\User;
 use App\Models\Driver;
@@ -369,15 +370,33 @@ class ReportsController extends Controller
      */
     public function courierBookings()
     {
-        $bookings = CourierShipment::with(['sender', 'recipient', 'senderAddress', 'recipientAddress'])
+        $bookings = CourierShipment::with(['sender', 'recipient', 'senderAddress', 'recipientAddress', 'latestPayment'])
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($shipment) {
+            ->map(function (CourierShipment $shipment) {
+                $latestPayment = $shipment->latestPayment;
+                $resolvedPaymentStatus = (string) $shipment->resolvedPaymentStatus();
+                $paymentReference = $latestPayment?->tx_reference
+                    ?: $latestPayment?->gateway_payment_id
+                    ?: $latestPayment?->gateway_order_id;
+
                 return [
                     'id' => $shipment->id,
                     'tracking_number' => $shipment->reference,
                     'status' => $shipment->status,
                     'total_amount' => (float)($shipment->actual_cost ?? $shipment->estimated_cost ?? 0),
+                    'payment_status' => $resolvedPaymentStatus,
+                    'payment_method' => (string) ($latestPayment?->payment_method ?? 'N/A'),
+                    'payment_provider' => (string) ($latestPayment?->provider ?? 'N/A'),
+                    'payment_reference' => (string) ($paymentReference ?? 'N/A'),
+                    'gateway_order_id' => (string) ($latestPayment?->gateway_order_id ?? 'N/A'),
+                    'gateway_payment_id' => (string) ($latestPayment?->gateway_payment_id ?? 'N/A'),
+                    'tx_reference' => (string) ($latestPayment?->tx_reference ?? 'N/A'),
+                    'payment_created_at' => optional($latestPayment?->created_at)->format('Y-m-d H:i:s'),
+                    'payment_initiated_at' => optional($latestPayment?->initiated_at)->format('Y-m-d H:i:s'),
+                    'payment_paid_at' => optional($latestPayment?->paid_at)->format('Y-m-d H:i:s'),
+                    'payment_failed_at' => optional($latestPayment?->failed_at)->format('Y-m-d H:i:s'),
+                    'payment_last_notified_at' => optional($latestPayment?->last_notified_at)->format('Y-m-d H:i:s'),
                     'sender_name' => $shipment->sender ? $shipment->sender->name : 'N/A',
                     'sender_email' => $shipment->sender ? $shipment->sender->email : 'N/A',
                     'sender_phone' => $shipment->sender ? $shipment->sender->phone : 'N/A',
@@ -395,6 +414,25 @@ class ReportsController extends Controller
                              CourierShipment::whereNull('actual_cost')->sum('estimated_cost'),
             'inTransit' => CourierShipment::where('status', 'in_transit')->count(),
             'delivered' => CourierShipment::where('status', 'delivered')->count(),
+            'cardPaymentsTotal' => CourierShipmentPayment::query()
+                ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+                ->count(),
+            'cardPaymentsPaid' => CourierShipmentPayment::query()
+                ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+                ->where('status', CourierShipmentPayment::STATUS_PAID)
+                ->count(),
+            'cardPaymentsPending' => CourierShipmentPayment::query()
+                ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+                ->where('status', CourierShipmentPayment::STATUS_PENDING)
+                ->count(),
+            'cardPaymentsFailed' => CourierShipmentPayment::query()
+                ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+                ->whereIn('status', [
+                    CourierShipmentPayment::STATUS_FAILED,
+                    CourierShipmentPayment::STATUS_CANCELLED,
+                    CourierShipmentPayment::STATUS_EXPIRED,
+                ])
+                ->count(),
         ];
 
         return Inertia::render('Web/home/SuperAdmin/CourierReports', [
@@ -626,6 +664,13 @@ class ReportsController extends Controller
             'warehouseStatuses' => ['pending', 'confirmed', 'cancelled', 'completed', 'cancelled_by_vendor'],
             'multimodalStatuses' => ['pending', 'confirmed', 'cancelled', 'completed'],
             'courierStatuses' => ['pending', 'in_transit', 'delivered', 'cancelled'],
+            'courierPaymentStatuses' => [
+                CourierShipmentPayment::STATUS_PENDING,
+                CourierShipmentPayment::STATUS_PAID,
+                CourierShipmentPayment::STATUS_FAILED,
+                CourierShipmentPayment::STATUS_CANCELLED,
+                CourierShipmentPayment::STATUS_EXPIRED,
+            ],
             'freightStatuses' => ['pending', 'quoted', 'accepted', 'rejected', 'expired'],
         ]);
     }

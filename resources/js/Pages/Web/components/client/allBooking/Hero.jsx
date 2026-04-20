@@ -101,6 +101,29 @@ const statusMap = {
     },
 };
 
+const toTitleLabel = (value, fallback = 'N/A') => {
+    if (value === null || value === undefined || value === '') {
+        return fallback;
+    }
+
+    return String(value)
+        .replaceAll('_', ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatDateTime = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return date.toLocaleString();
+};
+
 const Hero = ({ 
     allBookings = [],
     statistics = {},
@@ -329,6 +352,15 @@ const Hero = ({
             const codMethod = codEnabled && booking.cod_payment_method
                 ? String(booking.cod_payment_method).replaceAll('_', ' ')
                 : '';
+            const paymentStatus = isCourier
+                ? toTitleLabel(booking.payment_status || booking.paymentStatus, '')
+                : '';
+            const paymentMethod = isCourier
+                ? toTitleLabel(booking.payment_method || booking.paymentMethod, '')
+                : '';
+            const paymentReference = isCourier
+                ? (booking.payment_reference || booking.paymentReference || '')
+                : '';
 
             return {
                 Type: booking.booking_type || "booking",
@@ -353,6 +385,9 @@ const Hero = ({
                     booking.tracking_reference ||
                     booking.id ||
                     "",
+                PaymentStatus: paymentStatus,
+                PaymentMethod: paymentMethod,
+                PaymentReference: paymentReference,
                 CodEnabled: codEnabled ? 'Yes' : '',
                 CodAmount: codAmount,
                 CodMethod: codMethod,
@@ -611,6 +646,21 @@ const Hero = ({
     const courierCodPaymentMethod = courierCodEnabled && selectedBookingDetails?.cod_payment_method
         ? String(selectedBookingDetails.cod_payment_method).replaceAll('_', ' ')
         : null;
+    const bookingPaymentStatusRaw = selectedBookingDetails?.payment_status || selectedBookingDetails?.paymentStatus || null;
+    const bookingPaymentMethodRaw = selectedBookingDetails?.payment_method || selectedBookingDetails?.paymentMethod || null;
+    const bookingPaymentReference = selectedBookingDetails?.payment_reference
+        || selectedBookingDetails?.paymentReference
+        || selectedBookingDetails?.payment_tx_reference
+        || selectedBookingDetails?.paymentTxReference
+        || selectedBookingDetails?.payment_gateway_payment_id
+        || selectedBookingDetails?.paymentGatewayPaymentId
+        || selectedBookingDetails?.payment_gateway_order_id
+        || selectedBookingDetails?.paymentGatewayOrderId
+        || null;
+    const bookingPaymentStatusLabel = toTitleLabel(bookingPaymentStatusRaw, 'Pending');
+    const bookingPaymentMethodLabel = toTitleLabel(bookingPaymentMethodRaw, 'Payment Method Not Specified');
+    const bookingPaymentProvider = selectedBookingDetails?.payment_provider || selectedBookingDetails?.paymentProvider || null;
+    const bookingPaymentPaidAt = formatDateTime(selectedBookingDetails?.payment_paid_at || selectedBookingDetails?.paymentPaidAt);
     const billToName = isCourierBooking
         ? courierSenderName
         : (selectedBookingDetails?.customer?.name
@@ -1032,6 +1082,21 @@ const Hero = ({
                                                                         )}
                                                                     </div>
                                                                 )}
+                                                                {(booking.booking_type === 'courier' || booking.type === 'courier' || booking.type === 'shipment') && (
+                                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                                                                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-700">
+                                                                            Payment: {toTitleLabel(booking.payment_status || booking.paymentStatus, 'Pending')}
+                                                                        </span>
+                                                                        <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
+                                                                            {toTitleLabel(booking.payment_method || booking.paymentMethod, 'Pending')}
+                                                                        </span>
+                                                                        {(booking.payment_reference || booking.paymentReference) && (
+                                                                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                                                                                Ref: {booking.payment_reference || booking.paymentReference}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
@@ -1375,7 +1440,7 @@ const Hero = ({
                                                     ${(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
                                                 </p>
                                                 <p className="text-[11px] sm:text-[12px] text-slate-500 mt-1">
-                                                    {selectedBookingDetails.currency || 'LKR'} • {selectedBookingDetails.payment_method || 'Payment Method Not Specified'}
+                                                    {selectedBookingDetails.currency || 'LKR'} • {bookingPaymentMethodLabel} • {bookingPaymentStatusLabel}
                                                 </p>
                                             </div>
                                             <div className="flex flex-col gap-2 w-full sm:w-auto">
@@ -1735,6 +1800,30 @@ const Hero = ({
                                                                 <span className="font-semibold text-slate-900 capitalize">{courierCodPaymentMethod || 'N/A'}</span>
                                                             </div>
                                                         </>
+                                                    )}
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Payment Status:</span>
+                                                        <span className="font-semibold text-slate-900">{bookingPaymentStatusLabel}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Payment Method:</span>
+                                                        <span className="font-semibold text-slate-900">{bookingPaymentMethodLabel}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Payment Reference:</span>
+                                                        <span className="font-semibold text-slate-900 break-all text-right">{bookingPaymentReference || 'N/A'}</span>
+                                                    </div>
+                                                    {bookingPaymentProvider && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Payment Provider:</span>
+                                                            <span className="font-semibold text-slate-900">{toTitleLabel(bookingPaymentProvider)}</span>
+                                                        </div>
+                                                    )}
+                                                    {bookingPaymentPaidAt && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Paid At:</span>
+                                                            <span className="font-semibold text-slate-900 text-right">{bookingPaymentPaidAt}</span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -2466,6 +2555,24 @@ const Hero = ({
                                                                 </tr>
                                                             </>
                                                         )}
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Payment Status</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {bookingPaymentStatusLabel}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Payment Method</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {bookingPaymentMethodLabel}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Payment Reference</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900 break-all">
+                                                                {bookingPaymentReference || 'N/A'}
+                                                            </td>
+                                                        </tr>
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -2579,6 +2686,40 @@ const Hero = ({
                                                             <td className="p-3 text-slate-600">Amount Due</td>
                                                             <td className="p-3 text-right font-medium text-red-600">
                                                                 LKR {(parseFloat(selectedBookingDetails.amount_due) || 0).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    <tr>
+                                                        <td className="p-3 text-slate-600">Payment Status</td>
+                                                        <td className="p-3 text-right font-medium text-slate-900">
+                                                            {bookingPaymentStatusLabel}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="p-3 text-slate-600">Payment Method</td>
+                                                        <td className="p-3 text-right font-medium text-slate-900">
+                                                            {bookingPaymentMethodLabel}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className="p-3 text-slate-600">Payment Reference</td>
+                                                        <td className="p-3 text-right font-medium text-slate-900 break-all">
+                                                            {bookingPaymentReference || 'N/A'}
+                                                        </td>
+                                                    </tr>
+                                                    {bookingPaymentProvider && (
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Payment Provider</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {toTitleLabel(bookingPaymentProvider)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {bookingPaymentPaidAt && (
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Paid At</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {bookingPaymentPaidAt}
                                                             </td>
                                                         </tr>
                                                     )}

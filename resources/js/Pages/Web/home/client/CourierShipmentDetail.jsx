@@ -50,6 +50,29 @@ const statusMap = {
     },
 };
 
+const toTitleLabel = (value, fallback = 'N/A') => {
+    if (value === null || value === undefined || value === '') {
+        return fallback;
+    }
+
+    return String(value)
+        .replaceAll('_', ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatDateTime = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return date.toLocaleString();
+};
+
 const CourierShipmentDetail = () => {
     const { shipment } = usePage().props;
     const statusInfo = statusMap[shipment.status] || statusMap.pending;
@@ -62,6 +85,23 @@ const CourierShipmentDetail = () => {
         ? String(shipment.codPaymentMethod).replaceAll('_', ' ')
         : null;
     const codPolicySnapshot = shipment.codPolicySnapshot || null;
+    const paymentStatusRaw = shipment.payment_status || shipment.paymentStatus || null;
+    const paymentMethodRaw = shipment.payment_method || shipment.paymentMethod || null;
+    const paymentReference = shipment.payment_reference
+        || shipment.paymentReference
+        || shipment.payment_tx_reference
+        || shipment.paymentTxReference
+        || shipment.payment_gateway_payment_id
+        || shipment.paymentGatewayPaymentId
+        || shipment.payment_gateway_order_id
+        || shipment.paymentGatewayOrderId
+        || null;
+    const paymentProvider = shipment.payment_provider || shipment.paymentProvider || null;
+    const paymentStatusLabel = toTitleLabel(paymentStatusRaw, 'Pending');
+    const paymentMethodLabel = toTitleLabel(paymentMethodRaw, 'Not Available');
+    const paymentPaidAt = formatDateTime(shipment.payment_paid_at || shipment.paymentPaidAt);
+    const paymentInitiatedAt = formatDateTime(shipment.payment_initiated_at || shipment.paymentInitiatedAt);
+    const paymentFailedAt = formatDateTime(shipment.payment_failed_at || shipment.paymentFailedAt);
 
     const handleDownloadBill = () => {
         window.open(`/couriers/${shipment.id}/bill`, '_blank');
@@ -376,6 +416,44 @@ const CourierShipmentDetail = () => {
                                                     </div>
                                                 )}
                                             </>
+                                        )}
+                                    </div>
+                                    <div className="pt-3 border-t space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Payment Status</span>
+                                            <span className="font-semibold text-slate-900">{paymentStatusLabel}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Payment Method</span>
+                                            <span className="font-semibold text-slate-900">{paymentMethodLabel}</span>
+                                        </div>
+                                        <div className="flex justify-between gap-2">
+                                            <span className="text-slate-600">Payment Reference</span>
+                                            <span className="font-semibold text-slate-900 text-right break-all">{paymentReference || 'N/A'}</span>
+                                        </div>
+                                        {paymentProvider && (
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Payment Provider</span>
+                                                <span className="font-semibold text-slate-900">{toTitleLabel(paymentProvider)}</span>
+                                            </div>
+                                        )}
+                                        {paymentInitiatedAt && (
+                                            <div className="flex justify-between gap-2">
+                                                <span className="text-slate-600">Initiated At</span>
+                                                <span className="font-semibold text-slate-900 text-right">{paymentInitiatedAt}</span>
+                                            </div>
+                                        )}
+                                        {paymentPaidAt && (
+                                            <div className="flex justify-between gap-2">
+                                                <span className="text-slate-600">Paid At</span>
+                                                <span className="font-semibold text-slate-900 text-right">{paymentPaidAt}</span>
+                                            </div>
+                                        )}
+                                        {paymentFailedAt && (
+                                            <div className="flex justify-between gap-2">
+                                                <span className="text-slate-600">Failed At</span>
+                                                <span className="font-semibold text-slate-900 text-right">{paymentFailedAt}</span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

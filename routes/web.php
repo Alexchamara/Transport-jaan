@@ -1248,9 +1248,9 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         return Inertia::render('Web/home/vendors/courierService/Expenses');
     })->middleware('service.permission:courier.finance.view')->name('courierService.expenses');
 
-    Route::get('/courierService/payment', function () {
-        return Inertia::render('Web/home/vendors/courierService/Payment');
-    })->middleware('service.permission:courier.finance.view')->name('courierService.payment');
+    Route::get('/courierService/payment', [VendorCourierDashboardController::class, 'payments'])
+        ->middleware('service.permission:courier.finance.view')
+        ->name('courierService.payment');
 
     Route::get('/courierService/tracking', [VendorCourierDashboardController::class, 'tracking'])
         ->middleware('service.permission:courier.tracking.view')
@@ -2143,7 +2143,22 @@ Route::get('/clientAllBookings', function () {
     $courierShipments = \App\Models\Courier\CourierShipment::where('requested_by_user_id', $clientId)
         ->with(['requestedBy', 'sender', 'recipient', 'senderAddress', 'recipientAddress', 'packages', 'latestPayment'])
         ->get()
-        ->map(fn ($shipment) => $courierShipmentTransformer->forUnifiedBooking($shipment));
+        ->map(function ($shipment) use ($courierShipmentTransformer) {
+            $booking = $courierShipmentTransformer->forUnifiedBooking($shipment);
+
+            $paymentStatus = $booking['payment_status'] ?? $booking['paymentStatus'] ?? null;
+            $paymentMethod = $booking['payment_method'] ?? $booking['paymentMethod'] ?? null;
+            $paymentReference = $booking['payment_reference'] ?? $booking['paymentReference'] ?? null;
+
+            return array_merge($booking, [
+                'payment_status' => $paymentStatus,
+                'payment_method' => $paymentMethod,
+                'payment_reference' => $paymentReference,
+                'paymentStatus' => $paymentStatus ? \Illuminate\Support\Str::title(str_replace('_', ' ', (string) $paymentStatus)) : null,
+                'paymentMethod' => $paymentMethod,
+                'paymentReference' => $paymentReference,
+            ]);
+        });
 
     // Fetch warehouse bookings
     $warehouseBookings = \App\Models\Warehouse\WarehouseBooking::where('user_id', $clientId)
