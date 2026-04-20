@@ -421,7 +421,7 @@ Route::prefix('client')->as('client.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\SuperAdminDashboardController::class, 'index'])->name('dashboard');
+    Route::redirect('/dashboard', '/superadmin/analytics')->name('dashboard');
 
     // Profile Routes
     Route::get('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'index'])->name('profile');

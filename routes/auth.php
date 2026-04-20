@@ -60,7 +60,7 @@ Route::get('approval-pending', function() {
         } elseif ($user->role === 'client') {
             return redirect()->route('client.dashboard');
         } elseif ($user->role === 'SuperAdmin') {
-            return redirect()->route('superadmin.dashboard');
+            return redirect()->route('superadmin.Analytics');
         }
         
         // Default fallback

@@ -11,7 +11,7 @@ const UsersByDeviceChart = () => {
   const COLORS = ["#ffffff", "#0038FF", "#00C2FF"];
 
   return (
-    <div className="w-[341px] h-[264px]">
+    <div className="w-full h-[264px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -31,11 +31,11 @@ const UsersByDeviceChart = () => {
           </Pie>
         </PieChart>
         <div className="text-center -mt-[180px]">
-        <h1 className="text-white text-[32px] font-bold">80%</h1>
-        <p className="text-[#AEB9E1] text-lg">Transactions</p>
-      </div>
+          <h1 className="text-white text-[32px] font-bold">80%</h1>
+          <p className="text-[#AEB9E1] text-lg">Transactions</p>
+        </div>
       </ResponsiveContainer>
-      
+
       <div className="flex flex-row justify-center gap-6 -mt-[50px]">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-3 h-3 bg-[#ffffff] rounded-full"></span>

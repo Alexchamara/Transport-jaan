@@ -7,7 +7,7 @@ const Service = () => {
     ];
 
     return (
-        <div className="flex flex-col poppins">
+        <div className="w-full flex flex-col poppins">
             <h1 className="text-white px-6 py-6">Service</h1>
             <div className="flex flex-col gap-8">
                 <div className="flex flex-row justify-between items-center">

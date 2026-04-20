@@ -77,7 +77,7 @@ const OrderStatus = () => {
     ];
 
     return (
-        <div className="flex flex-col poppins rounded-[10px] border border-[#0B1739] bg-[#0B1739] w-[1040px] mx-10 pb-6">
+        <div className="flex flex-col poppins rounded-[10px] border border-[#0B1739] bg-[#0B1739] w-full pb-6">
             <div className="flex flex-row justify-between items-center pt-[30px] px-[25px]">
                 <h1 className="text-white poppins font-[500]">Order Status</h1>
                 <div className="flex flex-row justify-center items-center gap-2 w-[110px] h-[30px] border border-[#0A1330] bg-[#0A1330]">
