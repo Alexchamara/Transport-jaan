@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
+import React from 'react';
+import { Head, Link } from '@inertiajs/react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 
-const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePayments = [], warehousePayments = [] }) => {
+const Payments = ({
+    bookingPayments = [],
+    airVehiclePayments = [],
+    seaVehiclePayments = [],
+    warehousePayments = [],
+    codSettlementSummary = {},
+    recentCodSettlementBatches = [],
+}) => {
     const getStatusBadge = (status) => {
         const statusConfig = {
             paid: 'bg-green-600 text-white',
@@ -19,6 +26,15 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
         } catch {
             return dateString;
         }
+    };
+
+    const formatAmount = (value) => {
+        const numericValue = Number(value || 0);
+        if (Number.isNaN(numericValue)) {
+            return '0.00';
+        }
+
+        return numericValue.toFixed(2);
     };
 
     const PaymentTable = ({ title, payments, emptyMessage = "No payments found", showCompanyName = false }) => (
@@ -91,6 +107,70 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                         <div className='mb-8'>
                             <h1 className='text-3xl font-bold text-white mb-2'>Payments</h1>
                             <p className='text-gray-400'>View and manage all payment transactions across booking types</p>
+                        </div>
+
+                        <div className='mb-8 rounded-lg border border-cyan-800/60 bg-cyan-900/10 p-6'>
+                            <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+                                <div>
+                                    <h2 className='text-xl font-semibold text-cyan-200'>COD Settlement Reconciliation</h2>
+                                    <p className='mt-1 text-sm text-cyan-100/80'>Phase 6 settlement pipeline status and payout-readiness.</p>
+                                </div>
+
+                                {codSettlementSummary?.route && (
+                                    <Link
+                                        href={codSettlementSummary.route}
+                                        className='inline-flex items-center rounded-md border border-cyan-500 px-4 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-900/30'
+                                    >
+                                        Open COD Settlement Workspace
+                                    </Link>
+                                )}
+                            </div>
+
+                            <div className='mt-4 grid grid-cols-1 gap-4 md:grid-cols-4'>
+                                <div className='rounded-md border border-gray-700 bg-[#081028] px-4 py-3'>
+                                    <p className='text-[11px] uppercase tracking-wide text-gray-400'>Open Batches</p>
+                                    <p className='mt-1 text-xl font-semibold text-white'>{Number(codSettlementSummary?.openBatchCount || 0)}</p>
+                                </div>
+                                <div className='rounded-md border border-gray-700 bg-[#081028] px-4 py-3'>
+                                    <p className='text-[11px] uppercase tracking-wide text-gray-400'>Ready For Payout</p>
+                                    <p className='mt-1 text-xl font-semibold text-emerald-300'>{Number(codSettlementSummary?.readyForPayoutBatchCount || 0)}</p>
+                                </div>
+                                <div className='rounded-md border border-gray-700 bg-[#081028] px-4 py-3'>
+                                    <p className='text-[11px] uppercase tracking-wide text-gray-400'>Open Disputes</p>
+                                    <p className='mt-1 text-xl font-semibold text-amber-300'>{Number(codSettlementSummary?.openDisputeCount || 0)}</p>
+                                </div>
+                                <div className='rounded-md border border-gray-700 bg-[#081028] px-4 py-3'>
+                                    <p className='text-[11px] uppercase tracking-wide text-gray-400'>Payout Ready Amount</p>
+                                    <p className='mt-1 text-xl font-semibold text-cyan-200'>LKR {formatAmount(codSettlementSummary?.payoutReadyAmount)}</p>
+                                </div>
+                            </div>
+
+                            <div className='mt-4 rounded-md border border-gray-700 bg-[#081028] p-4'>
+                                <h3 className='text-sm font-semibold uppercase tracking-wide text-gray-300'>Recent COD Settlement Batches</h3>
+
+                                {Array.isArray(recentCodSettlementBatches) && recentCodSettlementBatches.length > 0 ? (
+                                    <div className='mt-3 space-y-2'>
+                                        {recentCodSettlementBatches.map((batch) => (
+                                            <div key={batch.id} className='flex flex-col gap-1 rounded-md border border-gray-700 bg-[#03091E] px-3 py-2 text-xs md:flex-row md:items-center md:justify-between'>
+                                                <div className='text-gray-200'>
+                                                    <span className='font-semibold text-white'>{batch.reference}</span>
+                                                    <span className='mx-2 text-gray-500'>|</span>
+                                                    <span>{batch.statusLabel}</span>
+                                                    <span className='mx-2 text-gray-500'>|</span>
+                                                    <span>{batch.reconciliationStatusLabel}</span>
+                                                </div>
+                                                <div className='text-gray-300'>
+                                                    {batch.currencyCode || 'LKR'} {formatAmount(batch.netPayoutAmount)}
+                                                    <span className='mx-2 text-gray-500'>|</span>
+                                                    {batch.generatedAt || '-'}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className='mt-3 text-sm text-gray-400'>No settlement batches available yet.</p>
+                                )}
+                            </div>
                         </div>
 
                         {/* Payment Tables */}

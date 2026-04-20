@@ -4958,6 +4958,10 @@ const Settings = () => {
     const activePricingGovernance = (pricingGovernanceByCategory && typeof pricingGovernanceByCategory[activePricingCategory] === "object")
         ? pricingGovernanceByCategory[activePricingCategory]
         : DEFAULT_SETTINGS.pricing.governance[activePricingCategory];
+    const activePricingApprovalAuthority = String(activePricingGovernance.approvalAuthority || "vendor").toLowerCase() === "superadmin"
+        ? "superadmin"
+        : "vendor";
+    const isSuperAdminPricingAuthority = activePricingApprovalAuthority === "superadmin";
     const activePricingVersionHistory = Array.isArray(activePricingGovernance.versionHistory)
         ? activePricingGovernance.versionHistory
         : [];
@@ -4979,9 +4983,9 @@ const Settings = () => {
     ])]
         .map((role) => String(role || "").trim())
         .filter(Boolean);
-    const canConfigurePricingGovernance = canAssignPermissions;
+    const canConfigurePricingGovernance = canAssignPermissions && !isSuperAdminPricingAuthority;
     const canPublishPricingChanges = canAssignPermissions;
-    const canReviewPricingPublish = canAssignPermissions && (hasGovernanceApproverRole || normalizedCurrentUserRoles.length === 0);
+    const canReviewPricingPublish = !isSuperAdminPricingAuthority && canAssignPermissions && (hasGovernanceApproverRole || normalizedCurrentUserRoles.length === 0);
     const activeServiceCatalogRows = Array.isArray(pricingServiceCatalog?.[activePricingCategory])
         ? pricingServiceCatalog[activePricingCategory]
         : [];
@@ -6218,7 +6222,7 @@ const Settings = () => {
                                             </div>
                                         </div>
 
-                                        {activePricingCategory === "international" ? (
+                                        {activePricingCategory === "international" && (
                                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
                                                 <p className="text-[12px] font-[700] text-[#111827]">International Dimensions Engine</p>
                                                 <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
@@ -6377,13 +6381,6 @@ const Settings = () => {
                                                     </Field>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-3 md:col-span-2">
-                                                <p className="text-[12px] font-[700] text-[#0F172A]">International Dimensions Engine</p>
-                                                <p className="text-[11px] text-[#64748B] mt-1">
-                                                    This module is available only in the International pricing category. Switch to the International tab to configure it.
-                                                </p>
-                                            </div>
                                         )}
 
                                         <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
@@ -6477,7 +6474,7 @@ const Settings = () => {
                                             </Field>
                                         </div>
 
-                                        {activePricingCategory === "domestic" ? (
+                                        {activePricingCategory === "domestic" && (
                                             <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
                                                 <p className="text-[12px] font-[700] text-[#111827]">COD and Minimum Charge Guardrail</p>
                                                 <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
@@ -6505,13 +6502,6 @@ const Settings = () => {
                                                 <Field label="Minimum Total">
                                                     <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
                                                 </Field>
-                                            </div>
-                                        ) : (
-                                            <div className="rounded-[8px] border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                                                <p className="text-[12px] font-[700] text-[#0F172A]">COD Fee Guardrail</p>
-                                                <p className="text-[11px] text-[#64748B] mt-1">
-                                                    COD capability and COD fee policies are available only in the Domestic pricing category.
-                                                </p>
                                             </div>
                                         )}
 
@@ -7191,6 +7181,7 @@ const Settings = () => {
                                         <p className="text-[11px] text-[#475569]">Published Version: {Number(activePricingGovernance.publishedVersion || 1)}</p>
                                         <p className="text-[11px] text-[#475569]">Published At: {activePricingGovernance.publishedAt || "Not published"}</p>
                                         <p className="text-[11px] text-[#475569]">Pending Approval: {activePricingGovernance.pendingApproval ? "Yes" : "No"}</p>
+                                        <p className="text-[11px] text-[#475569]">Approval Authority: {titleCase(activePricingApprovalAuthority)}</p>
                                     </div>
 
                                     <textarea
@@ -7271,6 +7262,9 @@ const Settings = () => {
                                     </div>
                                     {pendingApprovalRequestedByCurrentActor && canReviewPricingPublish && (
                                         <p className="mt-2 text-[11px] text-[#B45309]">Four-eyes control: requester cannot approve their own publish request.</p>
+                                    )}
+                                    {isSuperAdminPricingAuthority && (
+                                        <p className="mt-2 text-[11px] text-[#1E3A8A]">Approval, rejection, and rollback are delegated to SuperAdmin for this pricing category.</p>
                                     )}
                                     {!canPublishPricingChanges && !canReviewPricingPublish && (
                                         <p className="mt-2 text-[11px] text-[#6B7280]">You do not have permission to run pricing governance actions.</p>

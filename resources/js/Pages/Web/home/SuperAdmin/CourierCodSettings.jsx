@@ -13,7 +13,38 @@ const STATUS_OPTIONS = [
 const CATEGORY_OPTIONS = [
     { value: 'all', label: 'All Requests' },
     { value: 'domestic', label: 'Domestic Scope' },
+    { value: 'international', label: 'International Scope' },
 ];
+
+const SETTLEMENT_BATCH_STATUS_OPTIONS = [
+    { value: 'all', label: 'All Batch Statuses' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'reconciling', label: 'Reconciling' },
+    { value: 'ready_for_payout', label: 'Ready For Payout' },
+    { value: 'exported', label: 'Exported' },
+    { value: 'closed', label: 'Closed' },
+];
+
+const SETTLEMENT_BATCH_CATEGORY_OPTIONS = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'domestic', label: 'Domestic' },
+    { value: 'international', label: 'International' },
+];
+
+const SETTLEMENT_LINE_STATUS_OPTIONS = [
+    { value: 'all', label: 'All Line Statuses' },
+    { value: 'pending_reconciliation', label: 'Pending Reconciliation' },
+    { value: 'payout_ready', label: 'Payout Ready' },
+    { value: 'disputed', label: 'Disputed' },
+    { value: 'withheld', label: 'Withheld' },
+];
+
+const settlementLineStatusClassMap = {
+    pending_reconciliation: 'border-amber-600 bg-amber-900/20 text-amber-300',
+    payout_ready: 'border-emerald-600 bg-emerald-900/20 text-emerald-300',
+    disputed: 'border-red-600 bg-red-900/20 text-red-300',
+    withheld: 'border-gray-600 bg-gray-900/20 text-gray-300',
+};
 
 const statusClassMap = {
     pending: 'bg-[#FDB52A33] text-[#FDB52A] border border-[#FDB52A80]',
@@ -26,6 +57,7 @@ const auditEventAccentMap = {
     cod_capability_request_submitted: 'bg-[#5B8DEF]',
     cod_capability_approved: 'bg-[#14CA74]',
     cod_capability_rejected: 'bg-[#FF4757]',
+    cod_capability_revoked: 'bg-[#FF8A00]',
 };
 
 const HISTORY_EVENT_OPTIONS = [
@@ -33,6 +65,7 @@ const HISTORY_EVENT_OPTIONS = [
     { value: 'cod_capability_request_submitted', label: 'Request Submitted' },
     { value: 'cod_capability_approved', label: 'Capability Approved' },
     { value: 'cod_capability_rejected', label: 'Capability Rejected' },
+    { value: 'cod_capability_revoked', label: 'Capability Revoked' },
     { value: 'cod_integrity_incident_opened', label: 'Integrity Incident Opened' },
     { value: 'cod_integrity_incident_assigned', label: 'Integrity Incident Assigned' },
     { value: 'cod_integrity_incident_resolved', label: 'Integrity Incident Resolved' },
@@ -73,7 +106,57 @@ const defaultHistoryIntegrity = {
     verifiedEvents: 0,
 };
 
-const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) => {
+const DEFAULT_CATEGORY_POLICIES = {
+    domestic: {
+        cod_enabled: true,
+        allow_lock_override: true,
+    },
+    international: {
+        cod_enabled: false,
+        allow_lock_override: false,
+    },
+};
+
+const DEFAULT_OVERRIDE_POLICY = {
+    enabled: true,
+    maker_checker: true,
+    level1_min_amount: 25000,
+    level2_min_amount: 100000,
+    required_approvals_level1: 1,
+    required_approvals_level2: 2,
+};
+
+const resolveCategoryPolicies = (settings = {}) => ({
+    domestic: {
+        ...DEFAULT_CATEGORY_POLICIES.domestic,
+        ...(settings?.category_policies?.domestic || {}),
+    },
+    international: {
+        ...DEFAULT_CATEGORY_POLICIES.international,
+        ...(settings?.category_policies?.international || {}),
+    },
+});
+
+const resolveOverridePolicy = (settings = {}) => ({
+    ...DEFAULT_OVERRIDE_POLICY,
+    ...(settings?.override_policy || {}),
+});
+
+const CourierCodSettings = ({
+    settings,
+    requests,
+    filters,
+    pagination,
+    stats,
+    settlementSummary,
+    settlementBatchFilters,
+    settlementBatches,
+    settlementBatchPagination,
+    selectedSettlementBatch,
+    settlementLineFilters,
+    settlementLines,
+    settlementLinePagination,
+}) => {
     const { flash } = usePage().props;
 
     const [search, setSearch] = useState(filters?.search || '');
@@ -97,6 +180,23 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
     const [historyActorFilter, setHistoryActorFilter] = useState('');
     const [historyFromFilter, setHistoryFromFilter] = useState('');
     const [historyToFilter, setHistoryToFilter] = useState('');
+    const [overrideControls, setOverrideControls] = useState({});
+    const [batchStatus, setBatchStatus] = useState(settlementBatchFilters?.status || 'all');
+    const [batchCategory, setBatchCategory] = useState(settlementBatchFilters?.category || 'all');
+    const [lineStatus, setLineStatus] = useState(settlementLineFilters?.status || 'all');
+    const [lineSearch, setLineSearch] = useState(settlementLineFilters?.search || '');
+    const [isGeneratingSettlementBatch, setIsGeneratingSettlementBatch] = useState(false);
+
+    const today = new Date();
+    const defaultToDate = today.toISOString().slice(0, 10);
+    const defaultFromDate = new Date(today.getTime() - (6 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+
+    const [settlementGenerationForm, setSettlementGenerationForm] = useState({
+        fromDate: defaultFromDate,
+        toDate: defaultToDate,
+        category: 'all',
+        note: '',
+    });
 
     const {
         data,
@@ -112,7 +212,17 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         minimum_payout_amount: Number(settings?.minimum_payout_amount ?? 0),
         currency_code: String(settings?.currency_code || 'LKR'),
         notes: String(settings?.notes || ''),
+        category_policies: resolveCategoryPolicies(settings),
+        override_policy: resolveOverridePolicy(settings),
     });
+
+    useEffect(() => {
+        setData((current) => ({
+            ...current,
+            category_policies: resolveCategoryPolicies(settings),
+            override_policy: resolveOverridePolicy(settings),
+        }));
+    }, [settings?.category_policies, settings?.override_policy, setData]);
 
     useEffect(() => {
         setSearch(filters?.search || '');
@@ -122,13 +232,34 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         setToDate(filters?.to || '');
     }, [filters?.search, filters?.status, filters?.category, filters?.from, filters?.to]);
 
-    const applyFilters = (nextPage = 1) => {
+    useEffect(() => {
+        setBatchStatus(settlementBatchFilters?.status || 'all');
+        setBatchCategory(settlementBatchFilters?.category || 'all');
+    }, [settlementBatchFilters?.status, settlementBatchFilters?.category]);
+
+    useEffect(() => {
+        setLineStatus(settlementLineFilters?.status || 'all');
+        setLineSearch(settlementLineFilters?.search || '');
+    }, [settlementLineFilters?.status, settlementLineFilters?.search]);
+
+    const buildCombinedQueryParams = () => {
         const params = {
             status,
             category,
-            search,
-            page: nextPage,
+            batchStatus,
+            batchCategory,
+            lineStatus,
         };
+
+        const trimmedSearch = search.trim();
+        if (trimmedSearch !== '') {
+            params.search = trimmedSearch;
+        }
+
+        const trimmedLineSearch = lineSearch.trim();
+        if (trimmedLineSearch !== '') {
+            params.lineSearch = trimmedLineSearch;
+        }
 
         if (fromDate !== '') {
             params.from = fromDate;
@@ -137,6 +268,19 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         if (toDate !== '') {
             params.to = toDate;
         }
+
+        if (selectedSettlementBatch?.id) {
+            params.batchId = selectedSettlementBatch.id;
+        }
+
+        return params;
+    };
+
+    const applyFilters = (nextPage = 1) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            page: nextPage,
+        };
 
         router.get(
             route('superadmin.settings.cod-settlement.index'),
@@ -171,6 +315,229 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         window.location.href = route('superadmin.settings.cod-settlement.compliance-export', params);
     };
 
+    const applySettlementBatchFilters = (nextPage = 1) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            settlementBatchPage: nextPage,
+        };
+
+        router.get(route('superadmin.settings.cod-settlement.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const applySettlementLineFilters = (nextPage = 1) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            settlementLinePage: nextPage,
+        };
+
+        router.get(route('superadmin.settings.cod-settlement.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const openSettlementBatch = (batchId) => {
+        const params = {
+            ...buildCombinedQueryParams(),
+            batchId,
+            settlementLinePage: 1,
+        };
+
+        router.get(route('superadmin.settings.cod-settlement.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const handleSettlementGenerationInput = (field, value) => {
+        setSettlementGenerationForm((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const handleGenerateSettlementBatch = (event) => {
+        event.preventDefault();
+
+        if (settlementGenerationForm.fromDate === '' || settlementGenerationForm.toDate === '') {
+            window.alert('Please select both cycle start and cycle end dates.');
+            return;
+        }
+
+        setIsGeneratingSettlementBatch(true);
+
+        router.post(
+            route('superadmin.settings.cod-settlement.batches.generate', buildCombinedQueryParams()),
+            {
+                fromDate: settlementGenerationForm.fromDate,
+                toDate: settlementGenerationForm.toDate,
+                category: settlementGenerationForm.category,
+                note: String(settlementGenerationForm.note || '').trim(),
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsGeneratingSettlementBatch(false);
+                },
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to generate settlement batch.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleReconcileSettlementLine = (line) => {
+        const collectedPrompt = window.prompt(
+            'Collected COD amount (leave blank to keep current value):',
+            String(line?.collectedCodAmount ?? ''),
+        );
+
+        if (collectedPrompt === null) {
+            return;
+        }
+
+        const trimmedCollectedPrompt = String(collectedPrompt).trim();
+        const hasCollectedAmount = trimmedCollectedPrompt !== '';
+        const collectedAmount = Number(trimmedCollectedPrompt || 0);
+
+        if (hasCollectedAmount && (Number.isNaN(collectedAmount) || collectedAmount < 0)) {
+            window.alert('Please enter a valid collected COD amount.');
+            return;
+        }
+
+        const note = window.prompt('Reconciliation note (optional):', '') || '';
+
+        router.post(
+            route('superadmin.settings.cod-settlement.lines.reconcile', { line: line.id }),
+            {
+                collectedAmount: hasCollectedAmount ? collectedAmount : null,
+                note,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to reconcile settlement line.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleOpenSettlementLineDispute = (line) => {
+        const reason = window.prompt(
+            'Dispute reason (required):',
+            String(line?.disputeReason || ''),
+        );
+
+        if (reason === null) {
+            return;
+        }
+
+        const trimmedReason = String(reason).trim();
+        if (trimmedReason.length < 5) {
+            window.alert('Dispute reason must contain at least 5 characters.');
+            return;
+        }
+
+        const note = window.prompt('Dispute note (optional):', String(line?.disputeNote || '')) || '';
+
+        router.post(
+            route('superadmin.settings.cod-settlement.lines.dispute', { line: line.id }),
+            {
+                reason: trimmedReason,
+                note,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to open settlement dispute.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleResolveSettlementLineDispute = (line) => {
+        const resolution = window.prompt('Resolution (payout_ready, withheld, rejected):', 'payout_ready');
+        if (resolution === null) {
+            return;
+        }
+
+        const normalizedResolution = String(resolution).trim().toLowerCase();
+        if (!['payout_ready', 'withheld', 'rejected'].includes(normalizedResolution)) {
+            window.alert('Resolution must be one of: payout_ready, withheld, rejected.');
+            return;
+        }
+
+        const collectedPrompt = window.prompt(
+            'Collected COD amount (leave blank to keep current value):',
+            String(line?.collectedCodAmount ?? ''),
+        );
+
+        if (collectedPrompt === null) {
+            return;
+        }
+
+        const trimmedCollectedPrompt = String(collectedPrompt).trim();
+        const hasCollectedAmount = trimmedCollectedPrompt !== '';
+        const collectedAmount = Number(trimmedCollectedPrompt || 0);
+
+        if (hasCollectedAmount && (Number.isNaN(collectedAmount) || collectedAmount < 0)) {
+            window.alert('Please enter a valid collected COD amount.');
+            return;
+        }
+
+        const note = window.prompt('Resolution note (optional):', String(line?.disputeNote || '')) || '';
+
+        router.post(
+            route('superadmin.settings.cod-settlement.lines.resolve', { line: line.id }),
+            {
+                resolution: normalizedResolution,
+                collectedAmount: hasCollectedAmount ? collectedAmount : null,
+                note,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errorsBag) => {
+                    const values = Object.values(errorsBag || {});
+                    if (values.length > 0) {
+                        window.alert(String(values[0] || 'Unable to resolve settlement dispute.'));
+                    }
+                },
+            },
+        );
+    };
+
+    const handleExportSettlementBatch = (batch) => {
+        if (!batch?.id) {
+            return;
+        }
+
+        if (!window.confirm('Export payout-ready lines and mark this batch as exported?')) {
+            return;
+        }
+
+        window.location.href = route('superadmin.settings.cod-settlement.batches.export', {
+            batch: batch.id,
+        });
+    };
+
     const handleSettingsSubmit = (event) => {
         event.preventDefault();
         put(route('superadmin.settings.cod-settlement.update'), {
@@ -185,8 +552,27 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
             return;
         }
 
+        if (actionType === 'revoke' && note.length < 10) {
+            window.alert('Please provide a revoke reason with at least 10 characters.');
+            return;
+        }
+
+        const overrideState = overrideControls[capabilityId] || {
+            enabled: false,
+            exposureAmount: '',
+        };
+        const overrideEnabled = Boolean(overrideState.enabled);
+        const overrideExposureAmount = Number(overrideState.exposureAmount || 0);
+
+        if (overrideEnabled && overrideExposureAmount <= 0) {
+            window.alert('Enter a positive override exposure amount.');
+            return;
+        }
+
         const payload = {
             note,
+            overrideLock: overrideEnabled,
+            overrideExposureAmount: overrideEnabled ? overrideExposureAmount : null,
         };
 
         if (actionType === 'approve') {
@@ -196,10 +582,19 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
             }
         }
 
+        const routeName = {
+            approve: 'superadmin.settings.cod-settlement.capabilities.approve',
+            reject: 'superadmin.settings.cod-settlement.capabilities.reject',
+            revoke: 'superadmin.settings.cod-settlement.capabilities.revoke',
+        }[actionType];
+
+        if (!routeName) {
+            window.alert('Unsupported capability action.');
+            return;
+        }
+
         router.post(
-            actionType === 'approve'
-                ? route('superadmin.settings.cod-settlement.capabilities.approve', { capability: capabilityId })
-                : route('superadmin.settings.cod-settlement.capabilities.reject', { capability: capabilityId }),
+            route(routeName, { capability: capabilityId }),
             payload,
             {
                 preserveState: true,
@@ -216,6 +611,14 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             [capabilityId]: '',
                         }));
                     }
+
+                    setOverrideControls((prev) => ({
+                        ...prev,
+                        [capabilityId]: {
+                            enabled: false,
+                            exposureAmount: '',
+                        },
+                    }));
                 },
                 onError: (errorsBag) => {
                     const values = Object.values(errorsBag || {});
@@ -479,6 +882,19 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
         fetchCapabilityHistory(historyCapability?.id, nextPage, historyCapability);
     };
 
+    const settlementBatchesList = Array.isArray(settlementBatches) ? settlementBatches : [];
+    const settlementLinesList = Array.isArray(settlementLines) ? settlementLines : [];
+    const settlementCurrency = String(selectedSettlementBatch?.currencyCode || settings?.currency_code || 'LKR');
+
+    const formatMoney = (value) => {
+        const numericValue = Number(value || 0);
+        if (Number.isNaN(numericValue)) {
+            return '0.00';
+        }
+
+        return numericValue.toFixed(2);
+    };
+
     return (
         <>
             <Head title="Courier COD Settlement" />
@@ -492,7 +908,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                     <div className="max-w-7xl mx-auto">
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-white mb-2">Courier COD Settlement</h1>
-                            <p className="text-gray-400">Configure COD settlement policy and review vendor domestic COD capability requests.</p>
+                            <p className="text-gray-400">Configure COD settlement policy and review vendor COD capability governance across domestic and international scopes.</p>
                         </div>
 
                         {flash?.success && (
@@ -512,6 +928,350 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             <StatCard title="Pending" value={stats?.pending || 0} color="text-[#FDB52A]" />
                             <StatCard title="Approved" value={stats?.approved || 0} color="text-[#14CA74]" />
                             <StatCard title="Rejected" value={stats?.rejected || 0} color="text-[#FF4757]" />
+                        </div>
+
+                        <div className="bg-[#0A1330] border border-cyan-800/50 rounded-lg p-6 mb-6">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-cyan-200">Phase 6 Settlement Reconciliation</h2>
+                                    <p className="text-sm text-cyan-100/80">Generate settlement batches, reconcile line-level COD differences, manage disputes, and export payout-ready files.</p>
+                                </div>
+                                {settlementSummary?.latestBatch?.reference && (
+                                    <div className="rounded-md border border-cyan-700 bg-cyan-900/20 px-3 py-2 text-xs text-cyan-100">
+                                        <p className="font-semibold">Latest Batch</p>
+                                        <p>{settlementSummary.latestBatch.reference}</p>
+                                        <p>{settlementSummary.latestBatch.statusLabel}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+                                <StatCard title="Open Batches" value={Number(settlementSummary?.openBatchCount || 0)} color="text-cyan-200" />
+                                <StatCard title="Ready For Payout" value={Number(settlementSummary?.readyForPayoutBatchCount || 0)} color="text-emerald-300" />
+                                <StatCard title="Open Disputes" value={Number(settlementSummary?.openDisputeCount || 0)} color="text-amber-300" />
+                                <StatCard title="Payout Ready (LKR)" value={formatMoney(settlementSummary?.payoutReadyAmount || 0)} color="text-cyan-100" />
+                            </div>
+
+                            <form onSubmit={handleGenerateSettlementBatch} className="mt-5 rounded-md border border-gray-700 bg-[#081028] p-4">
+                                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Generate Settlement Batch</h3>
+                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-5">
+                                    <input
+                                        type="date"
+                                        value={settlementGenerationForm.fromDate}
+                                        onChange={(event) => handleSettlementGenerationInput('fromDate', event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={settlementGenerationForm.toDate}
+                                        onChange={(event) => handleSettlementGenerationInput('toDate', event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    />
+                                    <select
+                                        value={settlementGenerationForm.category}
+                                        onChange={(event) => handleSettlementGenerationInput('category', event.target.value)}
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    >
+                                        {SETTLEMENT_BATCH_CATEGORY_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={settlementGenerationForm.note}
+                                        onChange={(event) => handleSettlementGenerationInput('note', event.target.value)}
+                                        placeholder="Generation note (optional)"
+                                        className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={isGeneratingSettlementBatch}
+                                        className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 disabled:opacity-50"
+                                    >
+                                        {isGeneratingSettlementBatch ? 'Generating...' : 'Generate Batch'}
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div className="mt-5 rounded-md border border-gray-700 bg-[#081028] p-4">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Settlement Batches</h3>
+                                        <p className="text-xs text-gray-500">Select a batch to review line-level reconciliation and dispute workflows.</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <select
+                                            value={batchStatus}
+                                            onChange={(event) => setBatchStatus(event.target.value)}
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        >
+                                            {SETTLEMENT_BATCH_STATUS_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                        <select
+                                            value={batchCategory}
+                                            onChange={(event) => setBatchCategory(event.target.value)}
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        >
+                                            {SETTLEMENT_BATCH_CATEGORY_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => applySettlementBatchFilters(1)}
+                                            className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 overflow-x-auto">
+                                    <table className="w-full min-w-[980px] text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-700 text-left text-gray-300">
+                                                <th className="py-2 pr-3">Reference</th>
+                                                <th className="py-2 pr-3">Status</th>
+                                                <th className="py-2 pr-3">Cycle</th>
+                                                <th className="py-2 pr-3">Counts</th>
+                                                <th className="py-2 pr-3">Amounts</th>
+                                                <th className="py-2">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {settlementBatchesList.length === 0 && (
+                                                <tr>
+                                                    <td className="py-5 text-center text-gray-400" colSpan={6}>No settlement batches found for the selected filters.</td>
+                                                </tr>
+                                            )}
+
+                                            {settlementBatchesList.map((batch) => (
+                                                <tr key={batch.id} className={`border-b border-gray-800 ${selectedSettlementBatch?.id === batch.id ? 'bg-cyan-900/10' : ''}`}>
+                                                    <td className="py-2 pr-3 text-white">
+                                                        <p className="font-semibold">{batch.batchReference}</p>
+                                                        <p className="text-xs text-gray-500">{batch.categoryLabel}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        <span className="inline-flex rounded-full border border-cyan-700 bg-cyan-900/20 px-2 py-0.5 text-xs font-semibold text-cyan-200">
+                                                            {batch.statusLabel}
+                                                        </span>
+                                                        <p className="mt-1 text-xs text-gray-400">{batch.reconciliationStatusLabel}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>{batch.cycleStartDate || '-'} to {batch.cycleEndDate || '-'}</p>
+                                                        <p className="text-xs text-gray-500">Generated: {batch.generatedAt || '-'}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>Total: {Number(batch.linesCount || 0)}</p>
+                                                        <p className="text-xs text-emerald-300">Payout Ready: {Number(batch.payoutReadyLinesCount || 0)}</p>
+                                                        <p className="text-xs text-amber-300">Pending: {Number(batch.pendingLinesCount || 0)}</p>
+                                                        <p className="text-xs text-red-300">Disputes: {Number(batch.openDisputeLinesCount || 0)}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>Gross: {batch.currencyCode || 'LKR'} {formatMoney(batch.grossCodAmount)}</p>
+                                                        <p className="text-xs text-gray-400">Reserve: {batch.currencyCode || 'LKR'} {formatMoney(batch.reserveAmount)}</p>
+                                                        <p className="text-xs text-cyan-200">Net: {batch.currencyCode || 'LKR'} {formatMoney(batch.netPayoutAmount)}</p>
+                                                        <p className="text-xs text-amber-300">Discrepancy: {batch.currencyCode || 'LKR'} {formatMoney(batch.discrepancyAmount)}</p>
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openSettlementBatch(batch.id)}
+                                                                className="rounded-md border border-gray-600 px-3 py-1 text-xs font-semibold text-white hover:border-cyan-500"
+                                                            >
+                                                                View Lines
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleExportSettlementBatch(batch)}
+                                                                disabled={batch.status !== 'ready_for_payout'}
+                                                                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                            >
+                                                                Export Payout
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+                                    <p>
+                                        Batch page {settlementBatchPagination?.currentPage || 1} of {settlementBatchPagination?.lastPage || 1}
+                                        {' '}({settlementBatchPagination?.total || 0} total)
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={(settlementBatchPagination?.currentPage || 1) <= 1}
+                                            onClick={() => applySettlementBatchFilters((settlementBatchPagination?.currentPage || 1) - 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Prev
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={(settlementBatchPagination?.currentPage || 1) >= (settlementBatchPagination?.lastPage || 1)}
+                                            onClick={() => applySettlementBatchFilters((settlementBatchPagination?.currentPage || 1) + 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 rounded-md border border-gray-700 bg-[#081028] p-4">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Settlement Lines</h3>
+                                        <p className="text-xs text-gray-500">
+                                            {selectedSettlementBatch?.batchReference
+                                                ? `Batch ${selectedSettlementBatch.batchReference}`
+                                                : 'Select a settlement batch to view reconciliation lines.'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <select
+                                            value={lineStatus}
+                                            onChange={(event) => setLineStatus(event.target.value)}
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        >
+                                            {SETTLEMENT_LINE_STATUS_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={lineSearch}
+                                            onChange={(event) => setLineSearch(event.target.value)}
+                                            placeholder="Search shipment or vendor"
+                                            className="rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-sm text-white"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => applySettlementLineFilters(1)}
+                                            disabled={!selectedSettlementBatch?.id}
+                                            className="rounded-md bg-[#0955AC] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 overflow-x-auto">
+                                    <table className="w-full min-w-[1200px] text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-700 text-left text-gray-300">
+                                                <th className="py-2 pr-3">Shipment</th>
+                                                <th className="py-2 pr-3">Vendor</th>
+                                                <th className="py-2 pr-3">Status</th>
+                                                <th className="py-2 pr-3">Amounts ({settlementCurrency})</th>
+                                                <th className="py-2 pr-3">Dispute</th>
+                                                <th className="py-2">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {settlementLinesList.length === 0 && (
+                                                <tr>
+                                                    <td className="py-5 text-center text-gray-400" colSpan={6}>No settlement lines for the selected batch and filters.</td>
+                                                </tr>
+                                            )}
+
+                                            {settlementLinesList.map((line) => (
+                                                <tr key={line.id} className="border-b border-gray-800 align-top">
+                                                    <td className="py-2 pr-3 text-white">
+                                                        <p className="font-semibold">{line.shipmentReference || `Shipment #${line.shipmentId}`}</p>
+                                                        <p className="text-xs text-gray-500">Status: {line.shipmentStatus || '-'}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>{line.vendorName || 'Unknown vendor'}</p>
+                                                        <p className="text-xs text-gray-500">{line.vendorEmail || '-'}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3">
+                                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${settlementLineStatusClassMap[line.lineStatus] || 'border-gray-600 bg-gray-900/20 text-gray-300'}`}>
+                                                            {line.lineStatusLabel || line.lineStatus || 'Unknown'}
+                                                        </span>
+                                                        {line.disputeStatusLabel && (
+                                                            <p className="mt-1 text-xs text-amber-300">Dispute: {line.disputeStatusLabel}</p>
+                                                        )}
+                                                        {line.reconciledAt && (
+                                                            <p className="mt-1 text-xs text-gray-500">Reconciled: {line.reconciledAt}</p>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>Requested: {formatMoney(line.requestedCodAmount)}</p>
+                                                        <p>Collected: {formatMoney(line.collectedCodAmount)}</p>
+                                                        <p className="text-xs text-gray-400">Reserve: {formatMoney(line.reserveAmount)}</p>
+                                                        <p className="text-xs text-cyan-200">Payout: {formatMoney(line.payoutAmount)}</p>
+                                                        <p className="text-xs text-amber-300">Discrepancy: {formatMoney(line.discrepancyAmount)}</p>
+                                                    </td>
+                                                    <td className="py-2 pr-3 text-gray-300">
+                                                        <p>{line.disputeReason || '-'}</p>
+                                                        {line.disputeNote && <p className="mt-1 text-xs text-gray-500">{line.disputeNote}</p>}
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleReconcileSettlementLine(line)}
+                                                                className="rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                                                            >
+                                                                Reconcile
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenSettlementLineDispute(line)}
+                                                                className="rounded-md bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                                                            >
+                                                                Open Dispute
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleResolveSettlementLineDispute(line)}
+                                                                disabled={line.disputeStatus !== 'open'}
+                                                                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+                                                            >
+                                                                Resolve Dispute
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+                                    <p>
+                                        Line page {settlementLinePagination?.currentPage || 1} of {settlementLinePagination?.lastPage || 1}
+                                        {' '}({settlementLinePagination?.total || 0} total)
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={(settlementLinePagination?.currentPage || 1) <= 1 || !selectedSettlementBatch?.id}
+                                            onClick={() => applySettlementLineFilters((settlementLinePagination?.currentPage || 1) - 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Prev
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={(settlementLinePagination?.currentPage || 1) >= (settlementLinePagination?.lastPage || 1) || !selectedSettlementBatch?.id}
+                                            onClick={() => applySettlementLineFilters((settlementLinePagination?.currentPage || 1) + 1)}
+                                            className="rounded-md border border-gray-600 px-3 py-1 text-white disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="bg-[#0A1330] border border-gray-700 rounded-lg p-6 mb-6">
@@ -595,6 +1355,166 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                     </Field>
                                 </div>
 
+                                <div className="rounded-md border border-gray-700 bg-[#081028] p-4">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Category Policy Scope</h3>
+                                    <p className="mt-1 text-xs text-gray-500">Define where COD capability approvals are enabled and whether lock overrides are allowed.</p>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div className="rounded-md border border-gray-700 bg-[#03091E] p-3">
+                                            <p className="text-sm font-semibold text-white">Domestic</p>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.domestic?.cod_enabled)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        domestic: {
+                                                            ...(data.category_policies?.domestic || DEFAULT_CATEGORY_POLICIES.domestic),
+                                                            cod_enabled: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                COD approvals enabled
+                                            </label>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.domestic?.allow_lock_override)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        domestic: {
+                                                            ...(data.category_policies?.domestic || DEFAULT_CATEGORY_POLICIES.domestic),
+                                                            allow_lock_override: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                Lock override allowed
+                                            </label>
+                                        </div>
+
+                                        <div className="rounded-md border border-gray-700 bg-[#03091E] p-3">
+                                            <p className="text-sm font-semibold text-white">International</p>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.international?.cod_enabled)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        international: {
+                                                            ...(data.category_policies?.international || DEFAULT_CATEGORY_POLICIES.international),
+                                                            cod_enabled: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                COD approvals enabled
+                                            </label>
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(data.category_policies?.international?.allow_lock_override)}
+                                                    onChange={(event) => setData('category_policies', {
+                                                        ...(data.category_policies || DEFAULT_CATEGORY_POLICIES),
+                                                        international: {
+                                                            ...(data.category_policies?.international || DEFAULT_CATEGORY_POLICIES.international),
+                                                            allow_lock_override: event.target.checked,
+                                                        },
+                                                    })}
+                                                />
+                                                Lock override allowed
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-md border border-gray-700 bg-[#081028] p-4">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Override Threshold Policy</h3>
+                                    <p className="mt-1 text-xs text-gray-500">Thresholds are aligned to sensitive action COD override controls.</p>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(data.override_policy?.enabled)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    enabled: event.target.checked,
+                                                })}
+                                            />
+                                            Policy enabled
+                                        </label>
+
+                                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(data.override_policy?.maker_checker)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    maker_checker: event.target.checked,
+                                                })}
+                                            />
+                                            Maker-checker required
+                                        </label>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <Field label="Level 1 Min Amount" error={errors['override_policy.level1_min_amount']}>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={0.01}
+                                                value={Number(data.override_policy?.level1_min_amount || 0)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    level1_min_amount: Number(event.target.value || 0),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+
+                                        <Field label="Level 2 Min Amount" error={errors['override_policy.level2_min_amount']}>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={0.01}
+                                                value={Number(data.override_policy?.level2_min_amount || 0)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    level2_min_amount: Number(event.target.value || 0),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+
+                                        <Field label="Level 1 Required Approvals" error={errors['override_policy.required_approvals_level1']}>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={3}
+                                                value={Number(data.override_policy?.required_approvals_level1 || 1)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    required_approvals_level1: Number(event.target.value || 1),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+
+                                        <Field label="Level 2 Required Approvals" error={errors['override_policy.required_approvals_level2']}>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={3}
+                                                value={Number(data.override_policy?.required_approvals_level2 || 2)}
+                                                onChange={(event) => setData('override_policy', {
+                                                    ...(data.override_policy || DEFAULT_OVERRIDE_POLICY),
+                                                    required_approvals_level2: Number(event.target.value || 2),
+                                                })}
+                                                className="w-full rounded-md border border-gray-600 bg-[#03091E] px-3 py-2 text-white"
+                                            />
+                                        </Field>
+                                    </div>
+                                </div>
+
                                 <div className="flex justify-end">
                                     <button
                                         type="submit"
@@ -611,7 +1531,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
                                 <div>
                                     <h2 className="text-xl font-semibold text-white">Vendor COD Capability Requests</h2>
-                                    <p className="text-sm text-gray-400">Approve or reject vendor requests to enable domestic COD collection.</p>
+                                    <p className="text-sm text-gray-400">Approve, reject, or revoke COD capability decisions across category scopes with lock-aware override controls.</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <input
@@ -687,7 +1607,16 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                             </tr>
                                         )}
 
-                                        {(Array.isArray(requests) ? requests : []).map((row) => (
+                                        {(Array.isArray(requests) ? requests : []).map((row) => {
+                                            const overrideState = overrideControls[row.id] || {
+                                                enabled: false,
+                                                exposureAmount: '',
+                                            };
+                                            const lockBypassEnabled = Boolean(overrideState.enabled);
+                                            const rowPolicy = row?.categoryPolicy || {};
+                                            const lockOverrideAllowed = Boolean(rowPolicy.allowLockOverride ?? true);
+
+                                            return (
                                             <tr key={row.id} className="border-b border-gray-800 align-top">
                                                 <td className="py-3 pr-4">
                                                     <p className="font-semibold text-white">{row.vendorName || 'Unknown vendor'}</p>
@@ -712,6 +1641,47 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         placeholder="Optional approval note / required rejection reason"
                                                         className="w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white"
                                                     />
+                                                    <div className="mt-2 rounded-md border border-gray-700 bg-[#03091E] px-2 py-2">
+                                                        <label className="flex items-center gap-2 text-[11px] text-gray-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={lockBypassEnabled}
+                                                                disabled={!lockOverrideAllowed}
+                                                                onChange={(event) => setOverrideControls((prev) => ({
+                                                                    ...prev,
+                                                                    [row.id]: {
+                                                                        ...(prev[row.id] || { exposureAmount: '' }),
+                                                                        enabled: event.target.checked,
+                                                                    },
+                                                                }))}
+                                                            />
+                                                            Override lock conditions
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={0.01}
+                                                            value={overrideState.exposureAmount}
+                                                            onChange={(event) => setOverrideControls((prev) => ({
+                                                                ...prev,
+                                                                [row.id]: {
+                                                                    ...(prev[row.id] || { enabled: false }),
+                                                                    exposureAmount: event.target.value,
+                                                                },
+                                                            }))}
+                                                            disabled={!lockBypassEnabled}
+                                                            placeholder="Override exposure amount"
+                                                            className="mt-2 w-full rounded-md border border-gray-600 bg-[#081028] px-2 py-1 text-white disabled:opacity-50"
+                                                        />
+                                                        <p className="mt-1 text-[10px] text-gray-500">
+                                                            Use for lock override thresholds (Level 1 / Level 2 policy).
+                                                        </p>
+                                                        {!lockOverrideAllowed && (
+                                                            <p className="mt-1 text-[10px] text-amber-300">
+                                                                Category policy currently disables lock overrides.
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                     <input
                                                         type="datetime-local"
                                                         value={actionExpiryAt[row.id] || ''}
@@ -844,7 +1814,7 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCapabilityAction(row.id, 'approve')}
-                                                            disabled={Boolean(row.isActionLocked)}
+                                                            disabled={Boolean(row.isActionLocked) && !lockBypassEnabled}
                                                             className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                         >
                                                             Approve
@@ -852,18 +1822,35 @@ const CourierCodSettings = ({ settings, requests, filters, pagination, stats }) 
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCapabilityAction(row.id, 'reject')}
-                                                            disabled={Boolean(row.isActionLocked)}
+                                                            disabled={Boolean(row.isActionLocked) && !lockBypassEnabled}
                                                             className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                         >
                                                             Reject
                                                         </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (!window.confirm('Revoke this COD capability? This action records an immutable audit event.')) {
+                                                                    return;
+                                                                }
+
+                                                                handleCapabilityAction(row.id, 'revoke');
+                                                            }}
+                                                            disabled={Boolean(row.isActionLocked) && !lockBypassEnabled}
+                                                            className="rounded-md bg-orange-600 px-3 py-1 text-xs font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            Revoke
+                                                        </button>
                                                     </div>
                                                     {row.isActionLocked && (
-                                                        <p className="mt-2 text-[11px] text-red-300">Actions locked until incident resolution.</p>
+                                                        <p className="mt-2 text-[11px] text-red-300">
+                                                            Actions locked until incident resolution{lockBypassEnabled ? ' (override mode enabled)' : ''}.
+                                                        </p>
                                                     )}
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

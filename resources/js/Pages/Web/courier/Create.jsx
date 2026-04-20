@@ -1950,12 +1950,39 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
     };
 
+    const paymentFilteredQuoteProviders = useMemo(() => {
+        const requiresCod = Boolean(paymentOptions.cod);
+        const requiresCard = Boolean(paymentOptions.card);
+
+        if (!requiresCod && !requiresCard) {
+            return quoteProviders;
+        }
+
+        return quoteProviders.filter((provider) => {
+            const providerPaymentOptions = provider?.paymentOptions || {};
+            const supportsCod = Boolean(providerPaymentOptions.cod);
+            const supportsCard = providerPaymentOptions.card === undefined
+                ? true
+                : Boolean(providerPaymentOptions.card);
+
+            if (requiresCod && !supportsCod) {
+                return false;
+            }
+
+            if (requiresCard && !supportsCard) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [paymentOptions.card, paymentOptions.cod, quoteProviders]);
+
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, {
             metrics: packageMetrics,
-            services: quoteProviders,
+            services: paymentFilteredQuoteProviders,
         }),
-        [data.packages, packageMetrics, quoteProviders]
+        [data.packages, packageMetrics, paymentFilteredQuoteProviders]
     );
 
     const selectedQuotes = useMemo(

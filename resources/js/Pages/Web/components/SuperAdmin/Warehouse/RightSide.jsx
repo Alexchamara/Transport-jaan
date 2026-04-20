@@ -36,7 +36,7 @@ const RightSide = ({ warehouses = {}, filters = {}, error }) => {
         setSelectedType(newType);
 
         // Update URL with new filter
-        router.get('/superadmin/Warehouse', {
+        router.get('/superadmin/warehouse', {
             search: searchTerm,
             type_filter: newType === 'all' ? '' : newType,
             status_filter: selectedStatus === 'all' ? '' : selectedStatus
@@ -52,7 +52,7 @@ const RightSide = ({ warehouses = {}, filters = {}, error }) => {
         setSelectedStatus(newStatus);
 
         // Update URL with new filter
-        router.get('/superadmin/Warehouse', {
+        router.get('/superadmin/warehouse', {
             search: searchTerm,
             type_filter: selectedType === 'all' ? '' : selectedType,
             status_filter: newStatus === 'all' ? '' : newStatus
@@ -74,7 +74,7 @@ const RightSide = ({ warehouses = {}, filters = {}, error }) => {
 
         // Set new timeout for debounced search
         const timeout = setTimeout(() => {
-            router.get('/superadmin/Warehouse', {
+            router.get('/superadmin/warehouse', {
                 search: newSearch,
                 type_filter: selectedType === 'all' ? '' : selectedType,
                 status_filter: selectedStatus === 'all' ? '' : selectedStatus
@@ -93,7 +93,7 @@ const RightSide = ({ warehouses = {}, filters = {}, error }) => {
         setSelectedType('');
         setSelectedStatus('');
 
-        router.get('/superadmin/Warehouse', {}, {
+        router.get('/superadmin/warehouse', {}, {
             preserveState: true,
             preserveScroll: true
         });

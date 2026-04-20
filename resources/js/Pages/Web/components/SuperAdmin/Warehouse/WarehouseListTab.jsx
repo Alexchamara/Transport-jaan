@@ -88,7 +88,7 @@ const WarehouseListTab = ({ warehouses = {}, filters = {}, error }) => {
             type_filter: overrides.type ?? (selectedType === "all" ? "" : selectedType),
             status_filter: overrides.status ?? (selectedStatus === "all" ? "" : selectedStatus),
         };
-        router.get("/superadmin/Warehouse", params, { preserveState: true, preserveScroll: true });
+        router.get("/superadmin/warehouse", params, { preserveState: true, preserveScroll: true });
     };
 
     const handleTypeFilterChange = (e) => {
@@ -114,7 +114,7 @@ const WarehouseListTab = ({ warehouses = {}, filters = {}, error }) => {
         setSearchTerm("");
         setSelectedType("");
         setSelectedStatus("");
-        router.get("/superadmin/Warehouse", {}, { preserveState: true, preserveScroll: true });
+        router.get("/superadmin/warehouse", {}, { preserveState: true, preserveScroll: true });
     };
 
     const handlePagination = (url) => {

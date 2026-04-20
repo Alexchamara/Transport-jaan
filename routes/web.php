@@ -427,15 +427,27 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'index'])->name('profile');
     Route::put('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'update'])->name('profile.update');
 
-    Route::get('/Analytics', function () {
+    // In-group mixed-case compatibility redirects.
+    Route::redirect('/Analytics', '/superadmin/analytics');
+    Route::redirect('/Users', '/superadmin/users');
+    Route::redirect('/AddUser', '/superadmin/users/create')->name('AddUser');
+    Route::redirect('/Vehicles', '/superadmin/vehicles');
+    Route::redirect('/Warehouse', '/superadmin/warehouse');
+    Route::redirect('/LandVehicleDetails', '/superadmin/land-vehicle-details');
+    Route::redirect('/SeaVehicleDetails', '/superadmin/sea-vehicle-details');
+    Route::redirect('/AirVehicleDetails', '/superadmin/air-vehicle-details');
+    Route::redirect('/Vender', '/superadmin/vendors')->name('NewVender');
+    Route::redirect('/CourierOperations', '/superadmin/courier-operations')->name('CourierOperations');
+    Route::redirect('/PricingGovernance', '/superadmin/pricing-governance')->name('PricingGovernance');
+
+    Route::get('/analytics', function () {
         return Inertia::render('Web/home/SuperAdmin/Analytics');
     })->name('Analytics');
 
-    Route::get('/Users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
+    Route::get('/users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
 
     // User Management Routes
     Route::prefix('users')->name('users.')->group(function () { 
-        Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
         Route::get('/clients', [\App\Http\Controllers\SuperAdmin\UserController::class, 'clients'])->name('clients');
         Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'index'])->name('serviceProviders');
         Route::get('/service-providers/{user}/review', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'show'])->name('serviceProviders.review');
@@ -473,12 +485,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/{user}/status', [\App\Http\Controllers\SuperAdmin\UserController::class, 'changeStatus'])->name('changeStatus');
     });
 
-    Route::get('/AddUser', function () {
-        return Inertia::render('Web/home/SuperAdmin/AddUser');
-    })->name('AddUser');
-
     // Vehicle Management Routes
-    Route::get('/Vehicles', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'index'])->name('Vehicles');
+    Route::get('/vehicles', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'index'])->name('Vehicles');
     Route::get('/vehicles/{vehicle}', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'show'])->name('vehicles.show');
     Route::put('/vehicles/{vehicle}/approval', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'updateApprovalStatus'])->name('vehicles.approval');
     Route::put('/vehicles/{vehicle}/status', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'updateStatus'])->name('vehicles.status');
@@ -488,24 +496,101 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/vehicles/export', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'export'])->name('vehicles.export');
 
     // Warehouse Management Routes
-    Route::get('/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('Warehouse');
+    Route::get('/warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('Warehouse');
     Route::get('/warehouses/{warehouse}', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'show'])->name('warehouses.show');
     Route::put('/warehouses/{warehouse}/status', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'updateStatus'])->name('warehouses.updateStatus');
 
     // Legacy vehicle detail routes (can be updated later to use the main vehicle show route)
-    Route::get('/LandVehicleDetails', function () {
+    Route::get('/land-vehicle-details', function () {
         return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
     })->name('LandVehicleDetails');
 
-    Route::get('/SeaVehicleDetails', function () {
+    Route::get('/sea-vehicle-details', function () {
         return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
     })->name('SeaVehicleDetails');
 
-    Route::get('/AirVehicleDetails', function () {
+    Route::get('/air-vehicle-details', function () {
         return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
     })->name('AirVehicleDetails');
 
-    Route::get('/Vender', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('NewVender');
+    // Reports Routes
+    Route::prefix('reports')->name('reports.')->middleware('superadmin.courier.permission:superadmin.courier.reports.view')->group(function () {
+        Route::get('/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('filterOptions');
+        Route::get('/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('vehicles');
+        Route::get('/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('vehicles.land');
+        Route::get('/vehicles/air', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'airVehicleBookings'])->name('vehicles.air');
+        Route::get('/vehicles/sea', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'seaVehicleBookings'])->name('vehicles.sea');
+        Route::get('/tickets', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'ticketBookings'])->name('tickets');
+        Route::get('/warehouse', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'warehouseBookings'])->name('warehouse');
+        Route::get('/multimodal', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'multimodalBookings'])->name('multimodal');
+        Route::get('/courier', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'courierBookings'])->name('courier');
+        Route::get('/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('freight');
+        Route::get('/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('users.clients');
+        Route::get('/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('users.serviceProviders');
+        Route::get('/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('users.drivers');
+    });
+
+    // Courier Operations (Phase 3)
+    Route::prefix('courier-operations')->name('courier-operations.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'index'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.view')
+            ->name('index');
+
+        Route::post('/shipments/{shipment}/reassign', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'reassign'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.reassign')
+            ->name('reassign');
+
+        Route::post('/shipments/{shipment}/force-transition', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'forceTransition'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.force_transition')
+            ->name('force-transition');
+
+        Route::post('/shipments/{shipment}/freeze', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'freeze'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.freeze')
+            ->name('freeze');
+
+        Route::post('/shipments/{shipment}/unfreeze', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'unfreeze'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.freeze')
+            ->name('unfreeze');
+
+        Route::post('/shipments/{shipment}/cancel-override', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'cancelOverride'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.cancel_override')
+            ->name('cancel-override');
+
+        Route::get('/shipments/{shipment}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierOperationsController::class, 'auditHistory'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.operations.audit.view')
+            ->name('audit-history');
+    });
+
+    // Courier Pricing Governance (Phase 4)
+    Route::prefix('pricing-governance')->name('pricing-governance.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'index'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.view')
+            ->name('index');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/policy', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'updatePolicy'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.policy.manage')
+            ->name('policy.update');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/approve', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'approve'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.review')
+            ->name('approve');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/reject', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'reject'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.review')
+            ->name('reject');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/force-publish', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'forcePublish'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.override')
+            ->name('force-publish');
+
+        Route::post('/vendors/{vendorUserId}/categories/{category}/rollback', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'rollback'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.override')
+            ->name('rollback');
+
+        Route::get('/vendors/{vendorUserId}/categories/{category}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierPricingGovernanceController::class, 'auditHistory'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.pricing.governance.audit.view')
+            ->name('audit-history');
+    });
 
     // Vendor User Management API Routes
     Route::prefix('vendors')->name('vendors.')->group(function () {
@@ -523,15 +608,51 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         
         Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
 
-        Route::get('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'index'])->name('cod-settlement.index');
-        Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])->name('cod-settlement.update');
-        Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])->name('cod-settlement.capabilities.approve');
-        Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])->name('cod-settlement.capabilities.reject');
-        Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])->name('cod-settlement.capabilities.incidents.open');
-        Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])->name('cod-settlement.capabilities.audit-history');
-        Route::get('/cod-settlement/compliance-export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportCompliancePackage'])->name('cod-settlement.compliance-export');
-        Route::post('/cod-settlement/incidents/{incident}/assign', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'assignIntegrityIncident'])->name('cod-settlement.incidents.assign');
-        Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])->name('cod-settlement.incidents.resolve');
+        Route::get('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'index'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settings.view')
+            ->name('cod-settlement.index');
+        Route::put('/cod-settlement', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'update'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settings.update')
+            ->name('cod-settlement.update');
+        Route::post('/cod-settlement/capabilities/{capability}/approve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'approveCapability'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
+            ->name('cod-settlement.capabilities.approve');
+        Route::post('/cod-settlement/capabilities/{capability}/reject', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'rejectCapability'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
+            ->name('cod-settlement.capabilities.reject');
+        Route::post('/cod-settlement/capabilities/{capability}/revoke', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'revokeCapability'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.capabilities.review')
+            ->name('cod-settlement.capabilities.revoke');
+        Route::post('/cod-settlement/capabilities/{capability}/incidents', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openIntegrityIncident'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
+            ->name('cod-settlement.capabilities.incidents.open');
+        Route::get('/cod-settlement/capabilities/{capability}/audit-history', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'capabilityAuditHistory'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settings.view')
+            ->name('cod-settlement.capabilities.audit-history');
+        Route::get('/cod-settlement/compliance-export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportCompliancePackage'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.compliance.export')
+            ->name('cod-settlement.compliance-export');
+        Route::post('/cod-settlement/incidents/{incident}/assign', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'assignIntegrityIncident'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
+            ->name('cod-settlement.incidents.assign');
+        Route::post('/cod-settlement/incidents/{incident}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveIntegrityIncident'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.incidents.manage')
+            ->name('cod-settlement.incidents.resolve');
+        Route::post('/cod-settlement/batches/generate', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'generateSettlementBatch'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.batch.manage')
+            ->name('cod-settlement.batches.generate');
+        Route::post('/cod-settlement/lines/{line}/reconcile', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'reconcileSettlementLine'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.line.reconcile')
+            ->name('cod-settlement.lines.reconcile');
+        Route::post('/cod-settlement/lines/{line}/dispute', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'openSettlementLineDispute'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.dispute.manage')
+            ->name('cod-settlement.lines.dispute');
+        Route::post('/cod-settlement/lines/{line}/resolve', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'resolveSettlementLineDispute'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.dispute.manage')
+            ->name('cod-settlement.lines.resolve');
+        Route::get('/cod-settlement/batches/{batch}/export', [\App\Http\Controllers\SuperAdmin\CourierCodSettingsController::class, 'exportSettlementBatch'])
+            ->middleware('superadmin.courier.permission:superadmin.courier.cod.settlement.export')
+            ->name('cod-settlement.batches.export');
         
         Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
         Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');
@@ -559,8 +680,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     });
 
     // Payments Routes
-    Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments');
-    Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])->name('payments.stats');
+    Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])
+        ->middleware('superadmin.courier.permission:superadmin.courier.payments.view')
+        ->name('payments');
+    Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])
+        ->middleware('superadmin.courier.permission:superadmin.courier.payments.view')
+        ->name('payments.stats');
 });
 
 
@@ -665,7 +790,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
 });
 
 // Payments page (Legacy route for backward compatibility)
-Route::get('/SuperAdmin/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments.index');
+Route::redirect('/SuperAdmin/payments', '/superadmin/payments')->name('payments.index');
 
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
 Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
@@ -898,16 +1023,21 @@ Route::redirect('/dashboard', '/vendors/dashboard')->name('dashboard.legacy');
 
 // SuperAdmin legacy redirects
 Route::redirect('/SuperAdmin/Dashboard', '/superadmin/dashboard')->name('SuperAdmin.Dashboard.legacy');
-Route::redirect('/SuperAdmin/Analytics', '/superadmin/Analytics')->name('SuperAdmin.Analytics.legacy');
-Route::redirect('/SuperAdmin/Users', '/superadmin/Users')->name('SuperAdmin.Users.legacy');
-Route::redirect('/SuperAdmin/AddUser', '/superadmin/AddUser')->name('SuperAdmin.AddUser.legacy');
-Route::redirect('/SuperAdmin/Vehicles', '/superadmin/Vehicles')->name('SuperAdmin.Vehicles.legacy');
-Route::redirect('/SuperAdmin/Warehouse', '/superadmin/Warehouse')->name('SuperAdmin.Warehouse.legacy');
-Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetails')->name('SuperAdmin.LandVehicleDetails.legacy');
-Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
-Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
-Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
+Route::redirect('/SuperAdmin/Analytics', '/superadmin/analytics')->name('SuperAdmin.Analytics.legacy');
+Route::redirect('/SuperAdmin/Users', '/superadmin/users')->name('SuperAdmin.Users.legacy');
+Route::redirect('/SuperAdmin/AddUser', '/superadmin/users/create')->name('SuperAdmin.AddUser.legacy');
+Route::redirect('/SuperAdmin/Vehicles', '/superadmin/vehicles')->name('SuperAdmin.Vehicles.legacy');
+Route::redirect('/SuperAdmin/Warehouse', '/superadmin/warehouse')->name('SuperAdmin.Warehouse.legacy');
+Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/land-vehicle-details')->name('SuperAdmin.LandVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/sea-vehicle-details')->name('SuperAdmin.SeaVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/air-vehicle-details')->name('SuperAdmin.AirVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/Vender', '/superadmin/vendors')->name('SuperAdmin.NewVender.legacy');
 Route::redirect('/SuperAdmin/settings/cancellation', '/superadmin/settings/cancellation')->name('SuperAdmin.settings.cancellation.legacy');
+Route::redirect('/SuperAdmin/settings/commission', '/superadmin/settings/commission')->name('SuperAdmin.settings.commission.legacy');
+Route::redirect('/SuperAdmin/settings/website', '/superadmin/settings/website')->name('SuperAdmin.settings.website.legacy');
+Route::redirect('/SuperAdmin/settings/cod-settlement', '/superadmin/settings/cod-settlement')->name('SuperAdmin.settings.cod-settlement.legacy');
+Route::redirect('/SuperAdmin/CourierOperations', '/superadmin/courier-operations')->name('SuperAdmin.CourierOperations.legacy');
+Route::redirect('/SuperAdmin/PricingGovernance', '/superadmin/pricing-governance')->name('SuperAdmin.PricingGovernance.legacy');
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');
@@ -924,157 +1054,25 @@ Route::middleware(['auth'])->group(function () {
 
 // end
 
-//SuperAdmin
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
-
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
-
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {
     return Inertia::render('Web/home/vendors/warehouse/Bookings');
 })->name('warehouse.bookings');
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
 
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
-
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-
-Route::get('/superadmin/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('superadmin.Warehouse');
-
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
-
-// SuperAdmin Reports Routes
-Route::get('/SuperAdmin/reports/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('SuperAdmin.reports.filterOptions');
-
-Route::get('/SuperAdmin/reports/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('SuperAdmin.reports.vehicles');
-
-Route::get('/SuperAdmin/reports/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('SuperAdmin.reports.vehicles.land');
-
-Route::get('/SuperAdmin/reports/vehicles/air', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'airVehicleBookings'])->name('SuperAdmin.reports.vehicles.air');
-
-Route::get('/SuperAdmin/reports/vehicles/sea', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'seaVehicleBookings'])->name('SuperAdmin.reports.vehicles.sea');
-
-Route::get('/SuperAdmin/reports/tickets', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'ticketBookings'])->name('SuperAdmin.reports.tickets');
-
-Route::get('/SuperAdmin/reports/warehouse', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'warehouseBookings'])->name('SuperAdmin.reports.warehouse');
-
-Route::get('/SuperAdmin/reports/multimodal', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'multimodalBookings'])->name('SuperAdmin.reports.multimodal');
-
-Route::get('/SuperAdmin/reports/courier', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'courierBookings'])->name('SuperAdmin.reports.courier');
-
-Route::get('/SuperAdmin/reports/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('SuperAdmin.reports.freight');
-
-Route::get('/SuperAdmin/reports/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('SuperAdmin.reports.users.clients');
-
-Route::get('/SuperAdmin/reports/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('SuperAdmin.reports.users.serviceProviders');
-
-Route::get('/SuperAdmin/reports/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('SuperAdmin.reports.users.drivers');
+// Legacy SuperAdmin report routes (mixed-case) redirected to canonical protected endpoints.
+Route::redirect('/SuperAdmin/reports/filter-options', '/superadmin/reports/filter-options')->name('SuperAdmin.reports.filterOptions');
+Route::redirect('/SuperAdmin/reports/vehicles', '/superadmin/reports/vehicles')->name('SuperAdmin.reports.vehicles');
+Route::redirect('/SuperAdmin/reports/vehicles/land', '/superadmin/reports/vehicles/land')->name('SuperAdmin.reports.vehicles.land');
+Route::redirect('/SuperAdmin/reports/vehicles/air', '/superadmin/reports/vehicles/air')->name('SuperAdmin.reports.vehicles.air');
+Route::redirect('/SuperAdmin/reports/vehicles/sea', '/superadmin/reports/vehicles/sea')->name('SuperAdmin.reports.vehicles.sea');
+Route::redirect('/SuperAdmin/reports/tickets', '/superadmin/reports/tickets')->name('SuperAdmin.reports.tickets');
+Route::redirect('/SuperAdmin/reports/warehouse', '/superadmin/reports/warehouse')->name('SuperAdmin.reports.warehouse');
+Route::redirect('/SuperAdmin/reports/multimodal', '/superadmin/reports/multimodal')->name('SuperAdmin.reports.multimodal');
+Route::redirect('/SuperAdmin/reports/courier', '/superadmin/reports/courier')->name('SuperAdmin.reports.courier');
+Route::redirect('/SuperAdmin/reports/freight', '/superadmin/reports/freight')->name('SuperAdmin.reports.freight');
+Route::redirect('/SuperAdmin/reports/users/clients', '/superadmin/reports/users/clients')->name('SuperAdmin.reports.users.clients');
+Route::redirect('/SuperAdmin/reports/users/service-providers', '/superadmin/reports/users/service-providers')->name('SuperAdmin.reports.users.serviceProviders');
+Route::redirect('/SuperAdmin/reports/users/drivers', '/superadmin/reports/users/drivers')->name('SuperAdmin.reports.users.drivers');
 
 // vendor - warehouse rent
 Route::get('/warehouse/unit', function () {
