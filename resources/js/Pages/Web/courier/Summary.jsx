@@ -278,6 +278,7 @@ const Summary = ({
 
     const handleConfirm = () => {
         if (!formState || isSubmitting) {
+            console.debug('[CourierSummary] handleConfirm blocked — formState:', !!formState, '| isSubmitting:', isSubmitting);
             return;
         }
 
@@ -293,13 +294,35 @@ const Summary = ({
         }
         payload.reviewContext.displayCurrency = payload.reviewContext.displayCurrency || payload.shipment.currency;
 
+        console.group('[CourierSummary] handleConfirm — Confirm & Submit clicked');
+        console.log('► storeRoute:', storeRoute);
+        console.log('► inline:', inline);
+        console.log('► preserveState:', !inline);
+        console.log('► requiresCardPayment:', payload.shipment?.requiresCardPayment);
+        console.log('► paymentOptions (expanded):', JSON.stringify(payload.shipment?.paymentOptions));
+        console.log('► shipment (full):', JSON.stringify(payload.shipment));
+        console.log('► payload (full):', JSON.parse(JSON.stringify(payload)));
+        console.groupEnd();
+
         router.post(storeRoute, payload, {
             preserveScroll: false,
             preserveState: !inline,
-            onStart: () => setIsSubmitting(true),
-            onSuccess: scrollToTop,
-            onError: scrollToTop,
-            onFinish: () => setIsSubmitting(false),
+            onStart: () => {
+                console.log('[CourierSummary] onStart — POST to', storeRoute, '| current URL:', window.location.href);
+                setIsSubmitting(true);
+            },
+            onSuccess: (page) => {
+                console.log('[CourierSummary] onSuccess — redirected to:', window.location.href, '| page component:', page?.component);
+                scrollToTop();
+            },
+            onError: (errors) => {
+                console.warn('[CourierSummary] onError — validation/server errors:', JSON.stringify(errors, null, 2), '| current URL:', window.location.href);
+                scrollToTop();
+            },
+            onFinish: () => {
+                console.log('[CourierSummary] onFinish — done. URL:', window.location.href);
+                setIsSubmitting(false);
+            },
         });
     };
 

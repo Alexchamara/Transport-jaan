@@ -2447,7 +2447,7 @@ class ClientCourierController extends Controller
         $this->rememberGuestBillAccess($request, (int) $shipment->id);
 
         return redirect()
-            ->to($this->resolveFlowRoute($request, 'create'))
+            ->route('courier.shipment.show', ['id' => (int) $shipment->id])
             ->with('success', 'Courier request submitted successfully.')
             ->with('courier_reference', $shipment->reference)
             ->with('courier_bill_id', $shipment->id);
@@ -2880,7 +2880,7 @@ class ClientCourierController extends Controller
 
         return match ($normalized) {
             'priority_4h', 'priority4h', 'priority_4_hours', 'priority_4hour', '4h', 'rush_4h', 'rush4h' => 'priority_4h',
-            'same_day', 'sameday' => 'same_day',
+            'same_day', 'sameday', 'priority' => 'same_day',
             'next_day', 'nextday', 'express', 'one_day', 'oneday' => 'next_day',
             '2_3_day', '2_3_days', 'two_three_day', 'standard', 'within_3_days' => 'two_three_day',
             default => $normalized,
