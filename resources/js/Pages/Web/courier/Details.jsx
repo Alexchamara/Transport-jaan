@@ -14,6 +14,43 @@ const USD_TO_LKR_RATE = 325;
 const DEFAULT_CURRENCY = "LKR";
 
 const normalizeCountryCode = (value) => String(value || "").trim().toUpperCase();
+const normalizeFavoriteValue = (value) => String(value || "").trim().toLowerCase();
+const LOCAL_SENDER_FAVORITES_KEY = "courier.localFavorites.sender";
+const LOCAL_RECIPIENT_FAVORITES_KEY = "courier.localFavorites.recipient";
+
+const readCsrfToken = () => {
+    if (typeof document === "undefined") {
+        return "";
+    }
+
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+};
+
+const readLocalFavorites = (storageKey) => {
+    if (typeof window === "undefined") {
+        return [];
+    }
+
+    try {
+        const raw = window.localStorage.getItem(storageKey);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeLocalFavorites = (storageKey, contacts) => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(storageKey, JSON.stringify(Array.isArray(contacts) ? contacts : []));
+    } catch {
+        // Best-effort persistence only.
+    }
+};
 
 const resolveShipmentCategory = (payload) => {
     const senderCountry = normalizeCountryCode(payload?.sender?.address?.country);
@@ -53,6 +90,7 @@ const Details = ({
     const resolvedFlowRoutes = resolvedProps.flowRoutes && typeof resolvedProps.flowRoutes === "object"
         ? resolvedProps.flowRoutes
         : {};
+    const authUser = resolvedProps?.auth?.user || inertiaProps?.auth?.user || null;
     const resolvedBackHref = backHref || resolvedFlowRoutes.create || "/couriers/create";
     const resolvedSubmitRoute = submitRoute
         || resolvedFlowRoutes.detailsStore
@@ -211,8 +249,24 @@ const Details = ({
     const [showFavoritePicker, setShowFavoritePicker] = useState(false);
     const [showSenderFavoritePicker, setShowSenderFavoritePicker] = useState(false);
     const [useSenderDetails, setUseSenderDetails] = useState(false);
-    const hasFavoriteRecipients = (favoriteRecipients || []).length > 0;
-    const hasFavoriteSenders = (favoriteSenders || []).length > 0;
+    const [savedRecipients, setSavedRecipients] = useState(() => {
+        if (Array.isArray(favoriteRecipients) && favoriteRecipients.length > 0) {
+            return favoriteRecipients;
+        }
+
+        return readLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY);
+    });
+    const [savedSenders, setSavedSenders] = useState(() => {
+        if (Array.isArray(favoriteSenders) && favoriteSenders.length > 0) {
+            return favoriteSenders;
+        }
+
+        return readLocalFavorites(LOCAL_SENDER_FAVORITES_KEY);
+    });
+    const [favoriteActionRole, setFavoriteActionRole] = useState("");
+    const [favoriteActionError, setFavoriteActionError] = useState("");
+    const hasFavoriteRecipients = savedRecipients.length > 0;
+    const hasFavoriteSenders = savedSenders.length > 0;
 
     const formatContactAddress = (address) => {
         if (!address) {
@@ -224,6 +278,44 @@ const Details = ({
         const country = address.country;
 
         return [street, locality, country].filter(Boolean).join(", ");
+    };
+
+    const matchesFavoriteContact = (formContact, savedContact) => {
+        const formAddress = formContact?.address || {};
+        const savedAddress = savedContact?.address || {};
+
+        return normalizeFavoriteValue(formContact?.name) === normalizeFavoriteValue(savedContact?.name)
+            && normalizeFavoriteValue(formContact?.email) === normalizeFavoriteValue(savedContact?.email)
+            && normalizeFavoriteValue(formContact?.phone) === normalizeFavoriteValue(savedContact?.phone)
+            && normalizeFavoriteValue(formContact?.company) === normalizeFavoriteValue(savedContact?.company)
+            && normalizeFavoriteValue(formAddress?.line1) === normalizeFavoriteValue(savedAddress?.line1)
+            && normalizeFavoriteValue(formAddress?.city) === normalizeFavoriteValue(savedAddress?.city)
+            && normalizeCountryCode(formAddress?.country) === normalizeCountryCode(savedAddress?.country);
+    };
+
+    const favoriteStorageKey = (roleKey) => roleKey === "sender"
+        ? LOCAL_SENDER_FAVORITES_KEY
+        : LOCAL_RECIPIENT_FAVORITES_KEY;
+
+    const buildLocalFavorite = (roleKey, contact) => {
+        const address = contact?.address || {};
+
+        return {
+            id: `local-${roleKey}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            name: String(contact?.name || "").trim(),
+            email: String(contact?.email || "").trim(),
+            phone: String(contact?.phone || "").trim(),
+            company: String(contact?.company || "").trim(),
+            address: {
+                line1: String(address?.line1 || "").trim(),
+                line2: String(address?.line2 || "").trim(),
+                city: String(address?.city || "").trim(),
+                state: String(address?.state || "").trim(),
+                postalCode: String(address?.postalCode || "").trim(),
+                country: normalizeCountryCode(address?.country || countries[0] || "US"),
+                instructions: String(address?.instructions || "").trim(),
+            },
+        };
     };
 
     const buildRecipientFromSender = (sender, currentRecipient) => {
@@ -253,6 +345,28 @@ const Details = ({
     const senderProfileData = senderProfile?.sender || null;
     const senderProfileLabel = senderProfile?.label || "Same as profile";
     const canUseSenderProfile = Boolean(senderProfileData);
+
+    useEffect(() => {
+        const serverFavorites = Array.isArray(favoriteRecipients) ? favoriteRecipients : [];
+        if (serverFavorites.length > 0) {
+            setSavedRecipients(serverFavorites);
+            writeLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY, serverFavorites);
+            return;
+        }
+
+        setSavedRecipients(readLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY));
+    }, [favoriteRecipients]);
+
+    useEffect(() => {
+        const serverFavorites = Array.isArray(favoriteSenders) ? favoriteSenders : [];
+        if (serverFavorites.length > 0) {
+            setSavedSenders(serverFavorites);
+            writeLocalFavorites(LOCAL_SENDER_FAVORITES_KEY, serverFavorites);
+            return;
+        }
+
+        setSavedSenders(readLocalFavorites(LOCAL_SENDER_FAVORITES_KEY));
+    }, [favoriteSenders]);
 
 
     const applyRecipientSelection = (recipient) => {
@@ -780,6 +894,163 @@ const Details = ({
     const senderFavorite = Boolean(data.sender?.saveToFavorites);
     const recipientFavorite = Boolean(data.recipient?.saveToFavorites);
 
+    const handleFavoriteToggle = async (role) => {
+        if (favoriteActionRole && favoriteActionRole !== role) {
+            return;
+        }
+
+        const roleKey = role === "sender" ? "sender" : "recipient";
+        const roleLabel = roleKey === "sender" ? "sender" : "recipient";
+        const currentContact = data?.[roleKey] || {};
+        const currentAddress = currentContact.address || {};
+        const currentlyFavorite = Boolean(currentContact.saveToFavorites);
+        const favoritesList = roleKey === "sender" ? savedSenders : savedRecipients;
+        const setFavoritesList = roleKey === "sender" ? setSavedSenders : setSavedRecipients;
+        const storageKey = favoriteStorageKey(roleKey);
+
+        setFavoriteActionError("");
+
+        const saveLocally = () => {
+            const localContact = buildLocalFavorite(roleKey, currentContact);
+            setFavoritesList((previous) => {
+                const deduped = previous.filter((item) => !matchesFavoriteContact(localContact, item));
+                const next = [localContact, ...deduped];
+                writeLocalFavorites(storageKey, next);
+                return next;
+            });
+            updateNestedField(`${roleKey}.saveToFavorites`, true);
+        };
+
+        const removeLocally = (favoriteId) => {
+            setFavoritesList((previous) => {
+                const next = previous.filter((item) => item.id !== favoriteId);
+                writeLocalFavorites(storageKey, next);
+                return next;
+            });
+            updateNestedField(`${roleKey}.saveToFavorites`, false);
+        };
+
+        if (!currentlyFavorite) {
+            const missingRequired = !String(currentContact.name || "").trim()
+                || !String(currentAddress.line1 || "").trim()
+                || !String(currentAddress.city || "").trim()
+                || !String(currentAddress.country || "").trim();
+
+            if (missingRequired) {
+                setFavoriteActionError(`Fill ${roleLabel} name, address line 1, city, and country before saving to favorites.`);
+                return;
+            }
+
+            if (!authUser) {
+                saveLocally();
+                return;
+            }
+
+            setFavoriteActionRole(roleKey);
+
+            try {
+                const response = await fetch("/couriers/favorites", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRF-TOKEN": readCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        role: roleKey,
+                        [roleKey]: currentContact,
+                    }),
+                });
+
+                const result = await response.json().catch(() => null);
+
+                const responseMessage = String(result?.message || "").toLowerCase();
+                const unauthenticated = response.status === 401
+                    || responseMessage.includes("unauthenticated")
+                    || (!response.ok && response.status === 419);
+
+                if (unauthenticated) {
+                    saveLocally();
+                    return;
+                }
+
+                if (!response.ok || !result?.success) {
+                    throw new Error(result?.message || `Unable to save ${roleLabel} to favorites.`);
+                }
+
+                const savedContact = result?.contact;
+                if (savedContact && savedContact.id) {
+                    setFavoritesList((previous) => {
+                        const filtered = previous.filter((item) => item.id !== savedContact.id);
+                        const deduped = filtered.filter((item) => !matchesFavoriteContact(savedContact, item));
+                        const next = [savedContact, ...deduped];
+                        writeLocalFavorites(storageKey, next);
+                        return next;
+                    });
+                }
+
+                updateNestedField(`${roleKey}.saveToFavorites`, true);
+            } catch (error) {
+                setFavoriteActionError(error?.message || `Unable to save ${roleLabel} to favorites.`);
+            } finally {
+                setFavoriteActionRole("");
+            }
+
+            return;
+        }
+
+        const existingFavorite = favoritesList.find((item) => matchesFavoriteContact(currentContact, item));
+
+        if (!existingFavorite?.id) {
+            updateNestedField(`${roleKey}.saveToFavorites`, false);
+            return;
+        }
+
+        const isLocalFavorite = typeof existingFavorite.id === "string" && existingFavorite.id.startsWith("local-");
+        if (!authUser || isLocalFavorite) {
+            removeLocally(existingFavorite.id);
+            return;
+        }
+
+        setFavoriteActionRole(roleKey);
+
+        try {
+            const response = await fetch(`/couriers/favorites/${existingFavorite.id}`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRF-TOKEN": readCsrfToken(),
+                },
+            });
+
+            const result = await response.json().catch(() => null);
+
+            const responseMessage = String(result?.message || "").toLowerCase();
+            const unauthenticated = response.status === 401
+                || responseMessage.includes("unauthenticated")
+                || (!response.ok && response.status === 419);
+
+            if (unauthenticated) {
+                removeLocally(existingFavorite.id);
+                return;
+            }
+
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.message || `Unable to remove ${roleLabel} from favorites.`);
+            }
+
+            removeLocally(existingFavorite.id);
+        } catch (error) {
+            setFavoriteActionError(error?.message || `Unable to remove ${roleLabel} from favorites.`);
+        } finally {
+            setFavoriteActionRole("");
+        }
+    };
+
     const handleCourierProviderChange = (index, providerId) => {
         setData((previous) => {
             const packagesDraft = Array.isArray(previous.packages) ? [...previous.packages] : [];
@@ -862,6 +1133,12 @@ const Details = ({
                                         <p key={`governance-runtime-error-${index}`} className="text-xs text-amber-900">• {message}</p>
                                     ))}
                                 </div>
+                            </section>
+                        )}
+
+                        {favoriteActionError && (
+                            <section className="rounded-lg border border-red-200 bg-red-50 p-3">
+                                <p className="text-xs text-red-700">{favoriteActionError}</p>
                             </section>
                         )}
 
@@ -1141,7 +1418,8 @@ const Details = ({
 
                                         <button
                                             type="button"
-                                            onClick={() => updateNestedField("sender.saveToFavorites", !senderFavorite)}
+                                            onClick={() => handleFavoriteToggle("sender")}
+                                            disabled={favoriteActionRole === "sender"}
                                             className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1 text-xs font-semibold transition ${senderFavorite ? "border-amber-300 bg-amber-50 text-amber-900" : "border-[#D6DEEB] bg-white text-[#0B1739] hover:border-[#0955AC]"}`}
                                             aria-pressed={senderFavorite}
                                             title={senderFavorite ? "Sender saved" : "Add sender to favorites"}
@@ -1150,7 +1428,11 @@ const Details = ({
                                                 className={`h-4 w-4 ${senderFavorite ? "text-amber-500" : "text-[#6B7893]"}`}
                                                 fill={senderFavorite ? "currentColor" : "none"}
                                             />
-                                            <span>{senderFavorite ? "Saved to favorites" : "Add to favorites"}</span>
+                                            <span>
+                                                {favoriteActionRole === "sender"
+                                                    ? "Saving..."
+                                                    : (senderFavorite ? "Saved to favorites" : "Add to favorites")}
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
@@ -1340,7 +1622,8 @@ const Details = ({
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => updateNestedField("recipient.saveToFavorites", !recipientFavorite)}
+                                            onClick={() => handleFavoriteToggle("recipient")}
+                                            disabled={favoriteActionRole === "recipient"}
                                             className={`inline-flex items-center gap-2 rounded-[5px] border px-3 py-1 text-xs font-semibold transition ${recipientFavorite ? "border-amber-300 bg-amber-50 text-amber-900" : "border-[#D6DEEB] bg-white text-[#0B1739] hover:border-[#0955AC]"}`}
                                             aria-pressed={recipientFavorite}
                                             title={recipientFavorite ? "Recipient saved" : "Add recipient to favorites"}
@@ -1349,7 +1632,11 @@ const Details = ({
                                                 className={`h-4 w-4 ${recipientFavorite ? "text-amber-500" : "text-[#6B7893]"}`}
                                                 fill={recipientFavorite ? "currentColor" : "none"}
                                             />
-                                            <span>{recipientFavorite ? "Saved to favorites" : "Add to favorites"}</span>
+                                            <span>
+                                                {favoriteActionRole === "recipient"
+                                                    ? "Saving..."
+                                                    : (recipientFavorite ? "Saved to favorites" : "Add to favorites")}
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
@@ -1718,7 +2005,7 @@ const Details = ({
 
                         {hasFavoriteRecipients ? (
                             <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                                {favoriteRecipients.map((recipient) => (
+                                {savedRecipients.map((recipient) => (
                                     <div key={`favorite-recipient-${recipient.id}`} className="rounded-xl border border-[#E3EAF5] bg-[#F9FBFF] p-3">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
@@ -1776,7 +2063,7 @@ const Details = ({
 
                         {hasFavoriteSenders ? (
                             <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                                {favoriteSenders.map((sender) => (
+                                {savedSenders.map((sender) => (
                                     <div key={`favorite-sender-${sender.id}`} className="rounded-xl border border-[#E3EAF5] bg-[#F9FBFF] p-3">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>

@@ -177,44 +177,105 @@ class ClientCourierController extends Controller
         $user = Auth::user();
 
         if (!$user) {
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
             return redirect()->route('signin.signin');
         }
 
+        $requestedRole = strtolower((string) $request->input('role', CourierContact::ROLE_RECIPIENT));
+        $allowedRoles = [
+            CourierContact::ROLE_RECIPIENT,
+            CourierContact::ROLE_SENDER,
+        ];
+        $role = in_array($requestedRole, $allowedRoles, true)
+            ? $requestedRole
+            : CourierContact::ROLE_RECIPIENT;
+        $payloadKey = $role === CourierContact::ROLE_SENDER ? 'sender' : 'recipient';
+        $roleLabel = $role === CourierContact::ROLE_SENDER ? 'Sender' : 'Recipient';
+
         $validated = $request->validate(
             [
-                'recipient.name' => ['required', 'string', 'max:120'],
-                'recipient.email' => ['nullable', 'email', 'max:150'],
-                'recipient.phone' => ['nullable', 'string', 'max:40'],
-                'recipient.company' => ['nullable', 'string', 'max:120'],
-                'recipient.address.line1' => ['required', 'string', 'max:180'],
-                'recipient.address.line2' => ['nullable', 'string', 'max:180'],
-                'recipient.address.city' => ['required', 'string', 'max:120'],
-                'recipient.address.state' => ['nullable', 'string', 'max:120'],
-                'recipient.address.postalCode' => ['nullable', 'string', 'max:30'],
-                'recipient.address.country' => ['required', 'string', 'size:2'],
-                'recipient.address.instructions' => ['nullable', 'string', 'max:500'],
+                "{$payloadKey}.name" => ['required', 'string', 'max:120'],
+                "{$payloadKey}.email" => ['nullable', 'email', 'max:150'],
+                "{$payloadKey}.phone" => ['nullable', 'string', 'max:40'],
+                "{$payloadKey}.company" => ['nullable', 'string', 'max:120'],
+                "{$payloadKey}.address.line1" => ['required', 'string', 'max:180'],
+                "{$payloadKey}.address.line2" => ['nullable', 'string', 'max:180'],
+                "{$payloadKey}.address.city" => ['required', 'string', 'max:120'],
+                "{$payloadKey}.address.state" => ['nullable', 'string', 'max:120'],
+                "{$payloadKey}.address.postalCode" => ['nullable', 'string', 'max:30'],
+                "{$payloadKey}.address.country" => ['required', 'string', 'size:2'],
+                "{$payloadKey}.address.instructions" => ['nullable', 'string', 'max:500'],
             ],
             [],
             [
-                'recipient.address.line1' => 'recipient address line 1',
+                "{$payloadKey}.address.line1" => strtolower($roleLabel) . ' address line 1',
             ]
         );
 
-        $recipient = $validated['recipient'] ?? [];
-        $address = $recipient['address'] ?? [];
+        $contactPayload = $validated[$payloadKey] ?? [];
+        $address = $contactPayload['address'] ?? [];
 
-        $contact = CourierContact::create([
-            'user_id' => $user->id,
-            'role' => CourierContact::ROLE_RECIPIENT,
-            'name' => $recipient['name'],
-            'email' => $recipient['email'] ?? null,
-            'phone' => $recipient['phone'] ?? null,
-            'company_name' => $recipient['company'] ?? null,
-            'is_favorite' => true,
-        ]);
+        $name = trim((string) ($contactPayload['name'] ?? ''));
+        $email = trim((string) ($contactPayload['email'] ?? ''));
+        $phone = trim((string) ($contactPayload['phone'] ?? ''));
+        $company = trim((string) ($contactPayload['company'] ?? ''));
 
-        $contact->addresses()->create([
-            'label' => 'dropoff',
+        $email = $email !== '' ? $email : null;
+        $phone = $phone !== '' ? $phone : null;
+        $company = $company !== '' ? $company : null;
+
+        $contactQuery = CourierContact::query()
+            ->where('user_id', $user->id)
+            ->where('role', $role)
+            ->where('name', $name);
+
+        if ($email === null) {
+            $contactQuery->whereNull('email');
+        } else {
+            $contactQuery->where('email', $email);
+        }
+
+        if ($phone === null) {
+            $contactQuery->whereNull('phone');
+        } else {
+            $contactQuery->where('phone', $phone);
+        }
+
+        if ($company === null) {
+            $contactQuery->whereNull('company_name');
+        } else {
+            $contactQuery->where('company_name', $company);
+        }
+
+        $contact = $contactQuery->first();
+
+        if (!$contact) {
+            $contact = CourierContact::create([
+                'user_id' => $user->id,
+                'role' => $role,
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'company_name' => $company,
+                'is_favorite' => true,
+            ]);
+        } else {
+            $contact->update([
+                'email' => $email,
+                'phone' => $phone,
+                'company_name' => $company,
+                'is_favorite' => true,
+            ]);
+        }
+
+        $addressData = [
+            'label' => $role === CourierContact::ROLE_SENDER ? 'pickup' : 'dropoff',
             'line1' => $address['line1'],
             'line2' => $address['line2'] ?? null,
             'city' => $address['city'],
@@ -223,11 +284,38 @@ class ClientCourierController extends Controller
             'country' => strtoupper((string) ($address['country'] ?? '')),
             'instructions' => $address['instructions'] ?? null,
             'is_primary' => true,
+        ];
+
+        $primaryAddress = $contact->addresses()
+            ->where('is_primary', true)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($primaryAddress) {
+            $primaryAddress->update($addressData);
+        } else {
+            $contact->addresses()->create($addressData);
+        }
+
+        $contact->load([
+            'addresses' => function ($query) {
+                $query->orderByDesc('is_primary')->orderBy('id');
+            },
         ]);
+
+        $message = $roleLabel . ' saved to favorites.';
+
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'contact' => $this->mapFavoriteContact($contact),
+            ]);
+        }
 
         return redirect()
             ->route('courierBookingDashboard')
-            ->with('success', 'Recipient saved to favorites.');
+            ->with('success', $message);
     }
 
     public function removeFavoriteRecipient(Request $request, CourierContact $contact)
@@ -235,10 +323,17 @@ class ClientCourierController extends Controller
         $user = Auth::user();
 
         if (!$user) {
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
             return redirect()->route('signin.signin');
         }
 
-        if ((int) $contact->user_id !== (int) $user->id || $contact->role !== CourierContact::ROLE_RECIPIENT) {
+        if ((int) $contact->user_id !== (int) $user->id) {
             abort(404);
         }
 
@@ -248,7 +343,45 @@ class ClientCourierController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Recipient removed from favorites.');
+        $roleLabel = $contact->role === CourierContact::ROLE_SENDER ? 'Sender' : 'Recipient';
+        $message = $roleLabel . ' removed from favorites.';
+
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    private function mapFavoriteContact(CourierContact $contact): array
+    {
+        $contact->loadMissing([
+            'addresses' => function ($query) {
+                $query->orderByDesc('is_primary')->orderBy('id');
+            },
+        ]);
+
+        $address = $contact->addresses->first();
+
+        return [
+            'id' => $contact->id,
+            'name' => $contact->name,
+            'email' => $contact->email,
+            'phone' => $contact->phone,
+            'company' => $contact->company_name,
+            'address' => $address ? [
+                'line1' => $address->line1,
+                'line2' => $address->line2,
+                'city' => $address->city,
+                'state' => $address->state,
+                'postalCode' => $address->postal_code,
+                'country' => $address->country,
+                'instructions' => $address->instructions,
+            ] : null,
+        ];
     }
 
     public function show(Request $request, $id)
