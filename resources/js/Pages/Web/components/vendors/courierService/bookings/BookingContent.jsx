@@ -93,6 +93,42 @@ const paymentBadge = (status) => {
     }
 };
 
+const normalizePaymentMethod = (
+    method,
+    codEnabled = false,
+    codRequestedAmount = null,
+    codCollectedAmount = null,
+    codCollectionStatus = null,
+) => {
+    const normalized = String(method || "").toLowerCase().trim();
+    const inferredCod = Boolean(codEnabled)
+        || Number(codRequestedAmount || 0) > 0
+        || Number(codCollectedAmount || 0) > 0
+        || String(codCollectionStatus || "").trim() !== "";
+
+    if (normalized === "cod") {
+        return "cod";
+    }
+    if (normalized === "card") {
+        return "card";
+    }
+    if ((normalized === "" || normalized === "pending") && inferredCod) {
+        return "cod";
+    }
+    return normalized === "" || normalized === "pending" ? "other" : normalized;
+};
+
+const paymentMethodBadge = (method) => {
+    switch (method) {
+        case "cod":
+            return "bg-[#FEF3C7] text-[#92400E]";
+        case "card":
+            return "bg-[#DBEAFE] text-[#1E40AF]";
+        default:
+            return "bg-[#F3F4F6] text-[#374151]";
+    }
+};
+
 const BookingContent = () => {
     const props = usePage().props;
     const bookings = props.courierBookings || EMPTY;
@@ -528,7 +564,30 @@ const BookingContent = () => {
                                     <td className="px-3 py-3">{row.category}</td>
                                     <td className="px-3 py-3">{row.service}</td>
                                     <td className="px-3 py-3">{row.currency} {Number(row.quoteAmount).toFixed(2)}</td>
-                                    <td className="px-3 py-3"><span className={`px-2 py-1 rounded-full text-[11px] font-[700] ${paymentBadge(row.paymentStatus)}`}>{titleCase(row.paymentStatus)}</span></td>
+                                    <td className="px-3 py-3">
+                                        <div className="flex flex-col gap-1">
+                                            <span
+                                                className={`inline-flex w-fit px-2 py-1 rounded-full text-[11px] font-[700] ${paymentMethodBadge(normalizePaymentMethod(
+                                                    row.paymentMethod,
+                                                    row.codEnabled,
+                                                    row.codRequestedAmount,
+                                                    row.codCollectedAmount,
+                                                    row.codCollectionStatus,
+                                                ))}`}
+                                            >
+                                                {titleCase(normalizePaymentMethod(
+                                                    row.paymentMethod,
+                                                    row.codEnabled,
+                                                    row.codRequestedAmount,
+                                                    row.codCollectedAmount,
+                                                    row.codCollectionStatus,
+                                                ))}
+                                            </span>
+                                            <span className={`inline-flex w-fit px-2 py-1 rounded-full text-[11px] font-[700] ${paymentBadge(row.paymentStatus)}`}>
+                                                {titleCase(row.paymentStatus)}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td className="px-3 py-3"><span className={`px-2 py-1 rounded-full text-[11px] font-[700] ${bookingBadge(row.bookingStatus)}`}>{row.bookingStatusLabel}</span></td>
                                     <td className="px-3 py-3">{row.confirmHours !== null ? `${row.confirmHours} h` : "-"}</td>
                                     <td className="px-3 py-3">
@@ -602,7 +661,14 @@ const BookingContent = () => {
                             <p><span className="font-[700]">Category:</span> {selectedBooking.category}</p>
                             <p><span className="font-[700]">Service:</span> {selectedBooking.service}</p>
                             <p><span className="font-[700]">Quote:</span> {selectedBooking.currency} {Number(selectedBooking.quoteAmount).toFixed(2)}</p>
-                            <p><span className="font-[700]">Payment:</span> {titleCase(selectedBooking.paymentStatus)}</p>
+                            <p><span className="font-[700]">Payment Method:</span> {titleCase(normalizePaymentMethod(
+                                selectedBooking.paymentMethod,
+                                selectedBooking.codEnabled,
+                                selectedBooking.codRequestedAmount,
+                                selectedBooking.codCollectedAmount,
+                                selectedBooking.codCollectionStatus,
+                            ))}</p>
+                            <p><span className="font-[700]">Payment Status:</span> {titleCase(selectedBooking.paymentStatus)}</p>
                             <p><span className="font-[700]">Booking Status:</span> {selectedBooking.bookingStatusLabel}</p>
                             {selectedBooking.codEnabled && (
                                 <>

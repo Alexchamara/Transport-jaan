@@ -283,6 +283,57 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         );
     }
 
+    public function test_payments_route_includes_computed_cod_rows_and_method_filtering(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.finance.view',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncRoles(['courier_finance']);
+
+        $shipment = $this->createAssignedShipment($vendor, [
+            'status' => CourierShipment::STATUS_DELIVERED,
+            'is_cod_enabled' => true,
+            'cod_requested_amount' => 2400,
+            'cod_collected_amount' => 1800,
+            'cod_collection_status' => 'partially_collected',
+            'cod_collection_recorded_at' => now()->subMinutes(15),
+            'estimated_cost' => 2400,
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.payment'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Web/home/vendors/courierService/Payment')
+            ->where('courierPayments.summary.totalTransactions', 1)
+            ->where('courierPayments.summary.codTransactions', 1)
+            ->where('courierPayments.rows.0.shipmentReference', (string) $shipment->reference)
+            ->where('courierPayments.rows.0.paymentMethod', CourierShipmentPayment::PAYMENT_METHOD_COD)
+            ->where('courierPayments.rows.0.status', CourierShipmentPayment::STATUS_PAID)
+            ->where('courierPayments.rows.0.cardRequired', false)
+            ->where('courierPayments.rows.0.lifecycleBlocked', false)
+            ->where('courierPayments.rows.0.codRequestedAmount', 2400)
+            ->where('courierPayments.rows.0.codCollectedAmount', 1800)
+            ->where('courierPayments.rows.0.codCollectionStatus', 'partially_collected')
+        );
+
+        $filtered = $this->actingAs($actor)->get(route('courierService.payment', [
+            'method' => CourierShipmentPayment::PAYMENT_METHOD_CARD,
+        ]));
+
+        $filtered->assertOk();
+        $filtered->assertInertia(fn (Assert $page) => $page
+            ->where('courierPayments.summary.totalTransactions', 0)
+            ->where('courierPayments.rows', [])
+            ->where('courierPayments.filters.method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
+        );
+    }
+
     public function test_dispatcher_cannot_cancel_when_team_policy_disables_dispatcher_cancellation(): void
     {
         [$vendor, $workspace] = $this->createCourierVendorWorkspace();

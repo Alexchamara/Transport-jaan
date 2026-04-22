@@ -167,37 +167,105 @@ class CourierShipment extends Model
 
     public function resolvedPaymentStatus(): string
     {
-        $latestPayment = $this->relationLoaded('latestPayment')
-            ? $this->getRelation('latestPayment')
-            : $this->latestPayment()->first();
-
-        if ($latestPayment instanceof CourierShipmentPayment) {
-            return (string) $latestPayment->status;
-        }
-
-        if ($this->status === self::STATUS_CANCELLED) {
-            return CourierShipmentPayment::STATUS_FAILED;
-        }
-
-        if ((float) ($this->estimated_cost ?? 0) <= 0 || $this->status === self::STATUS_PENDING) {
-            return CourierShipmentPayment::STATUS_PENDING;
-        }
-
-        return CourierShipmentPayment::STATUS_PAID;
+        return (string) ($this->resolveDashboardPaymentSnapshot()['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING);
     }
 
     public function requiresCardPayment(): bool
     {
-        $latestPayment = $this->relationLoaded('latestPayment')
-            ? $this->getRelation('latestPayment')
-            : $this->latestPayment()->first();
+        return (bool) ($this->resolveDashboardPaymentSnapshot()['cardRequired'] ?? false);
+    }
 
-        if (!$latestPayment instanceof CourierShipmentPayment) {
-            return false;
+    public function resolveDashboardPaymentSnapshot(?CourierShipmentPayment $latestPayment = null): array
+    {
+        $codFlowDetected = $this->isCodFlowDetectedForDashboard();
+
+        $resolvedPayment = $latestPayment;
+        if (!$resolvedPayment instanceof CourierShipmentPayment) {
+            if ($this->relationLoaded('latestPayment')) {
+                $relation = $this->getRelation('latestPayment');
+            } elseif ($this->exists) {
+                $relation = $this->latestPayment()->first();
+            } else {
+                $relation = null;
+            }
+            $resolvedPayment = $relation instanceof CourierShipmentPayment ? $relation : null;
         }
 
-        return (bool) $latestPayment->is_required
-            && (string) $latestPayment->payment_method === CourierShipmentPayment::PAYMENT_METHOD_CARD;
+        if ($resolvedPayment instanceof CourierShipmentPayment) {
+            $paymentStatus = (string) ($resolvedPayment->status ?: CourierShipmentPayment::STATUS_PENDING);
+            $paymentMethod = (string) ($resolvedPayment->payment_method ?: CourierShipmentPayment::PAYMENT_METHOD_CARD);
+            $paymentProvider = $resolvedPayment->provider ? (string) $resolvedPayment->provider : null;
+            $paymentReference = (string) ($resolvedPayment->tx_reference
+                ?: $resolvedPayment->gateway_payment_id
+                ?: $resolvedPayment->gateway_order_id
+                ?: '');
+            $cardRequired = (bool) $resolvedPayment->is_required
+                && $paymentMethod === CourierShipmentPayment::PAYMENT_METHOD_CARD;
+        } else {
+            $paymentMethod = $codFlowDetected
+                ? CourierShipmentPayment::PAYMENT_METHOD_COD
+                : 'pending';
+            $paymentProvider = $paymentMethod === CourierShipmentPayment::PAYMENT_METHOD_COD ? CourierShipmentPayment::PAYMENT_METHOD_COD : null;
+            $paymentReference = '';
+            $cardRequired = false;
+
+            if ($codFlowDetected) {
+                $paymentStatus = $this->mapCodCollectionStatusToPaymentStatus((string) ($this->cod_collection_status ?? ''));
+            } elseif ($this->status === self::STATUS_CANCELLED) {
+                $paymentStatus = CourierShipmentPayment::STATUS_FAILED;
+            } elseif ((float) ($this->estimated_cost ?? 0) <= 0 || $this->status === self::STATUS_PENDING) {
+                $paymentStatus = CourierShipmentPayment::STATUS_PENDING;
+            } else {
+                $paymentStatus = CourierShipmentPayment::STATUS_PAID;
+            }
+        }
+
+        return [
+            'paymentStatus' => $paymentStatus,
+            'paymentMethod' => $paymentMethod,
+            'paymentProvider' => $paymentProvider,
+            'paymentReference' => $paymentReference,
+            'cardRequired' => $cardRequired,
+            'lifecycleBlocked' => $cardRequired && $paymentStatus !== CourierShipmentPayment::STATUS_PAID,
+            'codRequestedAmount' => $this->cod_requested_amount !== null ? (float) $this->cod_requested_amount : null,
+            'codCollectedAmount' => $this->cod_collected_amount !== null ? (float) $this->cod_collected_amount : null,
+            'codCollectionStatus' => $this->cod_collection_status !== null ? (string) $this->cod_collection_status : null,
+            'codEnabled' => $codFlowDetected,
+        ];
+    }
+
+    public function isCodFlowDetectedForDashboard(): bool
+    {
+        if ((bool) ($this->is_cod_enabled ?? false)) {
+            return true;
+        }
+
+        if ($this->cod_requested_amount !== null && (float) $this->cod_requested_amount > 0) {
+            return true;
+        }
+
+        if ($this->cod_collected_amount !== null && (float) $this->cod_collected_amount > 0) {
+            return true;
+        }
+
+        if (is_string($this->cod_requested_method) && trim($this->cod_requested_method) !== '') {
+            return true;
+        }
+
+        if (is_string($this->cod_collection_status) && trim($this->cod_collection_status) !== '') {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function mapCodCollectionStatusToPaymentStatus(string $codCollectionStatus): string
+    {
+        return match (strtolower(trim($codCollectionStatus))) {
+            'collected', 'partially_collected' => CourierShipmentPayment::STATUS_PAID,
+            'failed', 'refused' => CourierShipmentPayment::STATUS_FAILED,
+            default => CourierShipmentPayment::STATUS_PENDING,
+        };
     }
 
     public function isOperationsFrozen(): bool

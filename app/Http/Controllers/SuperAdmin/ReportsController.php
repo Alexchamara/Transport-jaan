@@ -375,10 +375,11 @@ class ReportsController extends Controller
             ->get()
             ->map(function (CourierShipment $shipment) {
                 $latestPayment = $shipment->latestPayment;
-                $resolvedPaymentStatus = (string) $shipment->resolvedPaymentStatus();
-                $paymentReference = $latestPayment?->tx_reference
-                    ?: $latestPayment?->gateway_payment_id
-                    ?: $latestPayment?->gateway_order_id;
+                $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot($latestPayment);
+                $resolvedPaymentStatus = (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING);
+                $paymentMethod = (string) ($paymentSnapshot['paymentMethod'] ?? 'N/A');
+                $paymentProvider = (string) ($paymentSnapshot['paymentProvider'] ?? 'N/A');
+                $paymentReference = (string) ($paymentSnapshot['paymentReference'] ?? '');
 
                 return [
                     'id' => $shipment->id,
@@ -386,8 +387,8 @@ class ReportsController extends Controller
                     'status' => $shipment->status,
                     'total_amount' => (float)($shipment->actual_cost ?? $shipment->estimated_cost ?? 0),
                     'payment_status' => $resolvedPaymentStatus,
-                    'payment_method' => (string) ($latestPayment?->payment_method ?? 'N/A'),
-                    'payment_provider' => (string) ($latestPayment?->provider ?? 'N/A'),
+                    'payment_method' => $paymentMethod,
+                    'payment_provider' => $paymentProvider,
                     'payment_reference' => (string) ($paymentReference ?? 'N/A'),
                     'gateway_order_id' => (string) ($latestPayment?->gateway_order_id ?? 'N/A'),
                     'gateway_payment_id' => (string) ($latestPayment?->gateway_payment_id ?? 'N/A'),
@@ -432,6 +433,24 @@ class ReportsController extends Controller
                     CourierShipmentPayment::STATUS_CANCELLED,
                     CourierShipmentPayment::STATUS_EXPIRED,
                 ])
+                ->count(),
+            'codPaymentsTotal' => CourierShipment::query()
+                ->where('is_cod_enabled', true)
+                ->count(),
+            'codPaymentsPaid' => CourierShipment::query()
+                ->where('is_cod_enabled', true)
+                ->whereIn('cod_collection_status', ['collected', 'partially_collected'])
+                ->count(),
+            'codPaymentsPending' => CourierShipment::query()
+                ->where('is_cod_enabled', true)
+                ->where(function ($query) {
+                    $query->whereNull('cod_collection_status')
+                        ->orWhereNotIn('cod_collection_status', ['collected', 'partially_collected', 'failed', 'refused']);
+                })
+                ->count(),
+            'codPaymentsFailed' => CourierShipment::query()
+                ->where('is_cod_enabled', true)
+                ->whereIn('cod_collection_status', ['failed', 'refused'])
                 ->count(),
         ];
 

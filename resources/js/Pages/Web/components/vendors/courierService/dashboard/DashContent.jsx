@@ -67,6 +67,54 @@ const statusBadgeCls = (status) => {
     }
 };
 
+const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const normalizePaymentMethod = (
+    method,
+    codEnabled = false,
+    codRequestedAmount = null,
+    codCollectedAmount = null,
+    codCollectionStatus = null,
+) => {
+    const normalized = String(method || "").toLowerCase().trim();
+    const inferredCod = Boolean(codEnabled)
+        || Number(codRequestedAmount || 0) > 0
+        || Number(codCollectedAmount || 0) > 0
+        || String(codCollectionStatus || "").trim() !== "";
+    if (normalized === "cod") {
+        return "cod";
+    }
+    if (normalized === "card") {
+        return "card";
+    }
+    if ((normalized === "" || normalized === "pending") && inferredCod) {
+        return "cod";
+    }
+    return normalized === "" || normalized === "pending" ? "other" : normalized;
+};
+
+const paymentMethodBadgeCls = (method) => {
+    switch (method) {
+        case "cod":
+            return "bg-[#FEF3C7] text-[#92400E]";
+        case "card":
+            return "bg-[#DBEAFE] text-[#1E40AF]";
+        default:
+            return "bg-[#F3F4F6] text-[#374151]";
+    }
+};
+
+const paymentStatusBadgeCls = (status) => {
+    switch (String(status || "").toLowerCase()) {
+        case "paid":
+            return "bg-[#DCFCE7] text-[#166534]";
+        case "pending":
+            return "bg-[#FEF3C7] text-[#92400E]";
+        default:
+            return "bg-[#FEE2E2] text-[#991B1B]";
+    }
+};
+
 const metricCards = [
     { key: "delayed", label: "Delayed" },
     { key: "exceptions", label: "Exceptions" },
@@ -313,6 +361,23 @@ const DashContent = ({ mode = "dashboard" }) => {
                                     {item.timelineState === "delayed" && <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#FFE9E9] text-[#8A1C1C]">Delayed</span>}
                                     {item.hasException && <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#FFF2E5] text-[#8A4A00]">Exception</span>}
                                     {item.pendingPickup && <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#F2EEFF] text-[#3F2472]">Pending Pickup</span>}
+                                    <span
+                                        className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] ${paymentMethodBadgeCls(normalizePaymentMethod(
+                                            item.paymentMethod,
+                                            item.codEnabled,
+                                            item.codRequestedAmount,
+                                            item.codCollectedAmount,
+                                            item.codCollectionStatus,
+                                        ))}`}
+                                    >
+                                        {titleCase(normalizePaymentMethod(
+                                            item.paymentMethod,
+                                            item.codEnabled,
+                                            item.codRequestedAmount,
+                                            item.codCollectedAmount,
+                                            item.codCollectionStatus,
+                                        ))}
+                                    </span>
                                 </div>
                                 <div className="flex gap-2 mt-3">
                                     <a
@@ -510,6 +575,7 @@ const DashContent = ({ mode = "dashboard" }) => {
                                 <th className="px-4 py-3 font-[700]">Booking Date</th>
                                 <th className="px-4 py-3 font-[700]">Tracking Number</th>
                                 <th className="px-4 py-3 font-[700]">Service</th>
+                                <th className="px-4 py-3 font-[700]">Payment</th>
                                 <th className="px-4 py-3 font-[700]">Status</th>
                                 <th className="px-4 py-3 font-[700]">Estimated Delivery</th>
                             </tr>
@@ -530,6 +596,32 @@ const DashContent = ({ mode = "dashboard" }) => {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
+                                            <div className="flex flex-col gap-1">
+                                                <span
+                                                    className={`inline-flex w-fit px-2 py-0.5 rounded-full text-[10px] font-[700] ${paymentMethodBadgeCls(normalizePaymentMethod(
+                                                        row.paymentMethod,
+                                                        row.codEnabled,
+                                                        row.codRequestedAmount,
+                                                        row.codCollectedAmount,
+                                                        row.codCollectionStatus,
+                                                    ))}`}
+                                                >
+                                                    {titleCase(normalizePaymentMethod(
+                                                        row.paymentMethod,
+                                                        row.codEnabled,
+                                                        row.codRequestedAmount,
+                                                        row.codCollectedAmount,
+                                                        row.codCollectionStatus,
+                                                    ))}
+                                                </span>
+                                                <span
+                                                    className={`inline-flex w-fit px-2 py-0.5 rounded-full text-[10px] font-[700] ${paymentStatusBadgeCls(row.paymentStatus)}`}
+                                                >
+                                                    {titleCase(row.paymentStatus || "pending")}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
                                             <span
                                                 className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-[700] ${statusBadgeCls(row.status)}`}
                                             >
@@ -541,7 +633,7 @@ const DashContent = ({ mode = "dashboard" }) => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-10 text-center text-[#6B7280]">
+                                    <td colSpan={7} className="px-4 py-10 text-center text-[#6B7280]">
                                         No courier bookings found for the selected filters.
                                     </td>
                                 </tr>

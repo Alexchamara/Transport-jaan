@@ -208,6 +208,18 @@ const CourierReports = ({ bookings = [], stats = {} }) => {
               <h3 className='text-gray-400 text-sm mb-2'>Card Pending / Failed</h3>
               <p className='text-amber-300 text-2xl font-bold'>{(stats.cardPaymentsPending || 0) + (stats.cardPaymentsFailed || 0)}</p>
             </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>COD Payments</h3>
+              <p className='text-white text-2xl font-bold'>{stats.codPaymentsTotal || 0}</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>COD Paid</h3>
+              <p className='text-emerald-400 text-2xl font-bold'>{stats.codPaymentsPaid || 0}</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>COD Pending / Failed</h3>
+              <p className='text-amber-300 text-2xl font-bold'>{(stats.codPaymentsPending || 0) + (stats.codPaymentsFailed || 0)}</p>
+            </div>
           </div>
 
           <div className='bg-[#0F1A3A] rounded-lg p-4 border border-gray-700 mb-6'>

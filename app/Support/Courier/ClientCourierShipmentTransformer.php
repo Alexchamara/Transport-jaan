@@ -328,15 +328,13 @@ class ClientCourierShipmentTransformer
 
     private function mapPaymentData(CourierShipment $shipment, ?CourierShipmentPayment $latestPayment): array
     {
-        $paymentStatus = (string) ($latestPayment?->status ?? $shipment->resolvedPaymentStatus());
-        $paymentMethod = (string) ($latestPayment?->payment_method ?? ((bool) ($shipment->is_cod_enabled ?? false)
-            ? CourierShipmentPayment::PAYMENT_METHOD_COD
-            : 'pending'));
-        $paymentProvider = $latestPayment?->provider ? (string) $latestPayment->provider : null;
-        $paymentReference = $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id;
-        $paymentRequired = (bool) ($latestPayment?->is_required ?? false);
-        $paymentNeedsAction = $shipment->requiresCardPayment()
-            && $paymentStatus !== CourierShipmentPayment::STATUS_PAID;
+        $snapshot = $shipment->resolveDashboardPaymentSnapshot($latestPayment);
+        $paymentStatus = (string) ($snapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING);
+        $paymentMethod = (string) ($snapshot['paymentMethod'] ?? 'pending');
+        $paymentProvider = $snapshot['paymentProvider'] ?? null;
+        $paymentReference = $snapshot['paymentReference'] ?? null;
+        $paymentRequired = (bool) ($snapshot['cardRequired'] ?? false);
+        $paymentNeedsAction = (bool) ($snapshot['lifecycleBlocked'] ?? false);
 
         $gatewayOrderId = $latestPayment?->gateway_order_id;
         $gatewayPaymentId = $latestPayment?->gateway_payment_id;

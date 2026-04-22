@@ -7,10 +7,15 @@ const Payments = ({
     airVehiclePayments = [],
     seaVehiclePayments = [],
     warehousePayments = [],
+    courierPayments = [],
     courierCardPayments = [],
     codSettlementSummary = {},
     recentCodSettlementBatches = [],
 }) => {
+    const courierPaymentRows = Array.isArray(courierPayments) && courierPayments.length > 0
+        ? courierPayments
+        : courierCardPayments;
+
     const getStatusBadge = (status) => {
         const statusConfig = {
             paid: 'bg-green-600 text-white',
@@ -102,20 +107,23 @@ const Payments = ({
         </div>
     );
 
-    const CourierCardPaymentTable = ({ title, payments, emptyMessage = "No courier card payments found" }) => (
+    const CourierPaymentTable = ({ title, payments, emptyMessage = "No courier payments found" }) => (
         <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-white">{title}</h2>
             <div className="bg-[#0A1330] border border-gray-700 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1400px]">
+                    <table className="w-full min-w-[1650px]">
                         <thead>
                             <tr className="bg-[#1E40AF] text-white">
                                 <th className="px-4 py-3 text-left font-semibold rounded-tl-lg">Payment ID</th>
                                 <th className="px-4 py-3 text-left font-semibold">Shipment Ref</th>
+                                <th className="px-4 py-3 text-left font-semibold">Client</th>
                                 <th className="px-4 py-3 text-left font-semibold">Method</th>
                                 <th className="px-4 py-3 text-left font-semibold">Provider</th>
                                 <th className="px-4 py-3 text-left font-semibold">Amount</th>
                                 <th className="px-4 py-3 text-left font-semibold">Status</th>
+                                <th className="px-4 py-3 text-left font-semibold">Payment Ref</th>
+                                <th className="px-4 py-3 text-left font-semibold">COD</th>
                                 <th className="px-4 py-3 text-left font-semibold">Order Ref</th>
                                 <th className="px-4 py-3 text-left font-semibold">Gateway Ref</th>
                                 <th className="px-4 py-3 text-left font-semibold">Txn Ref</th>
@@ -135,6 +143,7 @@ const Payments = ({
                                     >
                                         <td className="px-4 py-3 text-white">{payment.id}</td>
                                         <td className="px-4 py-3 text-gray-300">{payment.shipment_reference || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.client_name || 'N/A'}</td>
                                         <td className="px-4 py-3 text-gray-300 uppercase">{payment.method || 'N/A'}</td>
                                         <td className="px-4 py-3 text-gray-300 uppercase">{payment.option || 'N/A'}</td>
                                         <td className="px-4 py-3 text-green-400 font-semibold">
@@ -144,6 +153,12 @@ const Payments = ({
                                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(payment.status)}`}>
                                                 {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Unknown'}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.payment_reference || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300">
+                                            {String(payment.method || '').toLowerCase() === 'cod'
+                                                ? `Req ${(payment.currency_code || 'LKR').toUpperCase()} ${formatAmount(payment.cod_requested_amount)} / Col ${(payment.currency_code || 'LKR').toUpperCase()} ${formatAmount(payment.cod_collected_amount)} (${payment.cod_collection_status || 'pending'})`
+                                                : '-'}
                                         </td>
                                         <td className="px-4 py-3 text-gray-300">{payment.gateway_order_id || 'N/A'}</td>
                                         <td className="px-4 py-3 text-gray-300">{payment.gateway_payment_id || 'N/A'}</td>
@@ -157,7 +172,7 @@ const Payments = ({
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="14" className="px-4 py-8 text-center text-gray-400">
+                                    <td colSpan="17" className="px-4 py-8 text-center text-gray-400">
                                         {emptyMessage}
                                     </td>
                                 </tr>
@@ -277,10 +292,10 @@ const Payments = ({
                                 showCompanyName={true}
                             />
 
-                            <CourierCardPaymentTable
-                                title="Courier Card Payments"
-                                payments={courierCardPayments}
-                                emptyMessage="No courier card payments found"
+                            <CourierPaymentTable
+                                title="Courier Payments (Card + COD)"
+                                payments={courierPaymentRows}
+                                emptyMessage="No courier payments found"
                             />
                         </div>
 
@@ -313,9 +328,9 @@ const Payments = ({
                                     </p>
                                 </div>
                                 <div className='space-y-1'>
-                                    <h4 className='text-sm font-medium text-cyan-400'>Courier Card Payments</h4>
+                                    <h4 className='text-sm font-medium text-cyan-400'>Courier Payments</h4>
                                     <p className='text-sm text-gray-300'>
-                                        Total: {courierCardPayments?.length || 0} transactions
+                                        Total: {courierPaymentRows?.length || 0} transactions
                                     </p>
                                 </div>
                             </div>

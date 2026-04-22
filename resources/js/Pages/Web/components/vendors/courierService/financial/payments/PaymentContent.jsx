@@ -17,6 +17,7 @@ const EMPTY_PAYMENTS = {
     filters: {
         q: "",
         status: "",
+        method: "all",
         category: "",
         service: "",
         fromDate: "",
@@ -32,6 +33,7 @@ const EMPTY_PAYMENTS = {
     },
     filterOptions: {
         statuses: [],
+        methods: [],
         categories: [],
         services: [],
         perPageOptions: [10, 20, 50],
@@ -78,6 +80,7 @@ const PaymentContent = () => {
     }, [
         backendFilters.q,
         backendFilters.status,
+        backendFilters.method,
         backendFilters.category,
         backendFilters.service,
         backendFilters.fromDate,
@@ -90,6 +93,7 @@ const PaymentContent = () => {
         () =>
             normalizeText(filters.q) !== "" ||
             normalizeText(filters.status) !== "" ||
+            normalizeText(filters.method) !== "" && normalizeText(filters.method) !== "all" ||
             normalizeText(filters.category) !== "" ||
             normalizeText(filters.service) !== "" ||
             normalizeText(filters.fromDate) !== "" ||
@@ -149,10 +153,14 @@ const PaymentContent = () => {
             row.shipmentReference || "-",
             row.client || "-",
             row.service || "-",
+            row.paymentMethodLabel || row.paymentMethod || "-",
             formatAmount(row.amount, row.currency),
             row.statusLabel || row.status || "-",
+            row.paymentMethod === "cod"
+                ? `Req ${formatAmount(row.codRequestedAmount, row.currency)} | Col ${formatAmount(row.codCollectedAmount, row.currency)}`
+                : "-",
             row.updatedAt || row.createdAt || "-",
-            row.txReference || row.gatewayPaymentId || row.gatewayOrderId || "-",
+            row.txReference || row.gatewayPaymentId || row.gatewayOrderId || row.paymentReference || "-",
         ]);
 
         autoTable(doc, {
@@ -162,8 +170,10 @@ const PaymentContent = () => {
                     "Shipment",
                     "Client",
                     "Service",
+                    "Method",
                     "Amount",
                     "Status",
+                    "COD",
                     "Updated",
                     "Gateway Ref",
                 ],
@@ -189,7 +199,7 @@ const PaymentContent = () => {
         {
             label: "Total Transactions",
             value: summary.totalTransactions ?? 0,
-            hint: "All card payment attempts",
+            hint: "Card and COD payment flows",
         },
         {
             label: "Paid",
@@ -209,12 +219,22 @@ const PaymentContent = () => {
         {
             label: "Collected",
             value: formatAmount(summary.collectedAmount ?? 0, summaryCurrency),
-            hint: "Paid card collection",
+            hint: "Paid collections across methods",
         },
         {
             label: "Pending Amount",
             value: formatAmount(summary.pendingAmount ?? 0, summaryCurrency),
-            hint: "Pending card collection",
+            hint: "Pending collections across methods",
+        },
+        {
+            label: "Card Transactions",
+            value: summary.cardTransactions ?? 0,
+            hint: "Gateway card attempts",
+        },
+        {
+            label: "COD Transactions",
+            value: summary.codTransactions ?? 0,
+            hint: "Cash on delivery records",
         },
     ];
 
@@ -243,7 +263,7 @@ const PaymentContent = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full">
                     {summaryCards.map((card) => (
                         <div
                             key={card.label}
@@ -264,7 +284,7 @@ const PaymentContent = () => {
                     <div className="flex flex-col gap-4">
                         <h2 className="text-[24px] font-[700]">Payment Transactions</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
                             <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
                                 <Search size={14} />
                                 <input
@@ -289,6 +309,21 @@ const PaymentContent = () => {
                                 >
                                     <option value="">All statuses</option>
                                     {(filterOptions.statuses || []).map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="h-[40px] bg-[#F3F3F3] rounded-[6px] flex items-center px-3 gap-2">
+                                <select
+                                    className="w-full bg-transparent border-none outline-none shadow-none focus:ring-0 text-[14px]"
+                                    value={filters.method || "all"}
+                                    onChange={(event) => handleFilterInput("method", event.target.value)}
+                                >
+                                    <option value="all">All methods</option>
+                                    {(filterOptions.methods || []).map((option) => (
                                         <option key={option.value} value={option.value}>
                                             {option.label}
                                         </option>
@@ -393,8 +428,10 @@ const PaymentContent = () => {
                                     <th className="text-left px-4 py-3">Shipment</th>
                                     <th className="text-left px-4 py-3">Client</th>
                                     <th className="text-left px-4 py-3">Service</th>
+                                    <th className="text-left px-4 py-3">Method</th>
                                     <th className="text-left px-4 py-3">Amount</th>
                                     <th className="text-left px-4 py-3">Status</th>
+                                    <th className="text-left px-4 py-3">COD</th>
                                     <th className="text-left px-4 py-3">Updated</th>
                                     <th className="text-left px-4 py-3">Gateway Ref</th>
                                     <th className="text-left px-4 py-3 rounded-tr-[8px]">Action</th>
@@ -403,7 +440,7 @@ const PaymentContent = () => {
                             <tbody>
                                 {rows.length === 0 && (
                                     <tr>
-                                        <td colSpan={9} className="px-4 py-10 text-center text-[14px] text-[#6c7583]">
+                                        <td colSpan={11} className="px-4 py-10 text-center text-[14px] text-[#6c7583]">
                                             No courier payment transactions found for the current filters.
                                         </td>
                                     </tr>
@@ -429,6 +466,9 @@ const PaymentContent = () => {
                                             <div>{row.service || "-"}</div>
                                             <div className="text-[12px] text-[#6b7280]">Packages: {row.packageCount || 0}</div>
                                         </td>
+                                        <td className="px-4 py-4 align-top text-[13px] text-[#374151] uppercase">
+                                            {row.paymentMethodLabel || row.paymentMethod || "-"}
+                                        </td>
                                         <td className="px-4 py-4 align-top font-[600] text-[#111827]">
                                             {formatAmount(row.amount, row.currency)}
                                         </td>
@@ -441,11 +481,22 @@ const PaymentContent = () => {
                                                 {row.statusLabel || row.status || "Unknown"}
                                             </span>
                                         </td>
+                                        <td className="px-4 py-4 align-top text-[12px] text-[#374151]">
+                                            {row.paymentMethod === "cod" ? (
+                                                <div className="space-y-1">
+                                                    <div>Req: {formatAmount(row.codRequestedAmount, row.currency)}</div>
+                                                    <div>Col: {formatAmount(row.codCollectedAmount, row.currency)}</div>
+                                                    <div>{row.codCollectionStatus ? String(row.codCollectionStatus).replaceAll("_", " ") : "pending"}</div>
+                                                </div>
+                                            ) : (
+                                                "-"
+                                            )}
+                                        </td>
                                         <td className="px-4 py-4 align-top text-[13px] text-[#374151]">
                                             {row.updatedAt || row.createdAt || "-"}
                                         </td>
                                         <td className="px-4 py-4 align-top text-[13px] text-[#374151]">
-                                            {row.txReference || row.gatewayPaymentId || row.gatewayOrderId || "-"}
+                                            {row.txReference || row.gatewayPaymentId || row.gatewayOrderId || row.paymentReference || "-"}
                                         </td>
                                         <td className="px-4 py-4 align-top">
                                             <button
@@ -460,7 +511,7 @@ const PaymentContent = () => {
                                             </button>
                                             {row.lifecycleBlocked ? (
                                                 <p className="text-[11px] text-[#9d2626] mt-2">
-                                                    Lifecycle actions are blocked until payment is paid.
+                                                    Lifecycle actions are blocked until required card payment is paid.
                                                 </p>
                                             ) : null}
                                         </td>

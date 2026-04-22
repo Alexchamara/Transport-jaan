@@ -335,15 +335,25 @@ class VendorCourierDashboardController extends Controller
             CourierShipmentPayment::STATUS_CANCELLED,
             CourierShipmentPayment::STATUS_EXPIRED,
         ];
+        $allowedMethods = [
+            'all',
+            CourierShipmentPayment::PAYMENT_METHOD_CARD,
+            CourierShipmentPayment::PAYMENT_METHOD_COD,
+        ];
 
         $statusFilter = strtolower(trim((string) $request->query('status', '')));
         if (!in_array($statusFilter, $allowedStatuses, true)) {
             $statusFilter = '';
         }
+        $methodFilter = strtolower(trim((string) $request->query('method', 'all')));
+        if (!in_array($methodFilter, $allowedMethods, true)) {
+            $methodFilter = 'all';
+        }
 
         $filters = [
             'q' => trim((string) $request->query('q', '')),
             'status' => $statusFilter,
+            'method' => $methodFilter,
             'category' => $this->sanitizeApprovedCategoryFilter(
                 trim((string) $request->query('category', '')),
                 $approvedCategories
@@ -355,81 +365,59 @@ class VendorCourierDashboardController extends Controller
             'page' => max(1, (int) $request->query('page', 1)),
         ];
 
-        $query = CourierShipmentPayment::query()
+        $query = CourierShipment::query()
             ->with([
-                'shipment:id,reference,service_level,status,assignment_category,assigned_vendor_user_id,currency_code,sender_contact_id,sender_address_id,recipient_address_id,estimated_cost',
-                'shipment.sender:id,name,company_name',
-                'shipment.senderAddress:id,city,country',
-                'shipment.recipientAddress:id,city,country',
-                'shipment.packages:id,shipment_id,quantity,courier_provider_name,service_tier_label,service_tier_key',
-                'shipment.latestPayment' => function ($query) {
+                'sender:id,name,company_name',
+                'senderAddress:id,city,country',
+                'recipientAddress:id,city,country',
+                'packages:id,shipment_id,quantity,courier_provider_name,service_tier_label,service_tier_key',
+                'latestPayment' => function ($query) {
                     $query->select(
                         'courier_shipment_payments.id',
                         'courier_shipment_payments.courier_shipment_id',
+                        'courier_shipment_payments.provider',
                         'courier_shipment_payments.payment_method',
                         'courier_shipment_payments.is_required',
-                        'courier_shipment_payments.status'
+                        'courier_shipment_payments.amount',
+                        'courier_shipment_payments.currency_code',
+                        'courier_shipment_payments.status',
+                        'courier_shipment_payments.gateway_order_id',
+                        'courier_shipment_payments.gateway_payment_id',
+                        'courier_shipment_payments.tx_reference',
+                        'courier_shipment_payments.gateway_status',
+                        'courier_shipment_payments.failure_reason',
+                        'courier_shipment_payments.initiated_at',
+                        'courier_shipment_payments.created_at',
+                        'courier_shipment_payments.updated_at',
+                        'courier_shipment_payments.paid_at',
+                        'courier_shipment_payments.failed_at',
+                        'courier_shipment_payments.last_notified_at'
                     );
                 },
             ])
-            ->where('provider', CourierShipmentPayment::PROVIDER_PAYHERE)
-            ->where('payment_method', CourierShipmentPayment::PAYMENT_METHOD_CARD)
-            ->whereHas('shipment', function (Builder $shipmentQuery) use ($vendorId, $scope, $request, $dataScopeConstraints, $approvedCategories, $filters) {
-                $shipmentQuery->where('assigned_vendor_user_id', $vendorId);
-                $this->applyShipmentScopeFilter($shipmentQuery, $scope, $request, $vendorId);
-                $this->applyShipmentDataScopeFilter($shipmentQuery, $dataScopeConstraints, $vendorId);
-                $this->applyApprovedCategoryConstraints($shipmentQuery, $approvedCategories);
-
-                if ($filters['service'] !== '') {
-                    $shipmentQuery->where('service_level', $filters['service']);
-                }
-
-                if ($filters['category'] === 'domestic') {
-                    $this->applyDomesticCategoryConstraint($shipmentQuery);
-                }
-
-                if ($filters['category'] === 'international') {
-                    $this->applyInternationalCategoryConstraint($shipmentQuery);
-                }
-            })
+            ->where('assigned_vendor_user_id', $vendorId)
             ->orderByDesc('created_at');
 
-        if ($filters['q'] !== '') {
-            $raw = strtoupper($filters['q']);
-            $normalized = str_starts_with($raw, 'TRK-')
-                ? 'CR-' . substr($raw, 4)
-                : $raw;
+        $this->applyShipmentScopeFilter($query, $scope, $request, $vendorId);
+        $this->applyShipmentDataScopeFilter($query, $dataScopeConstraints, $vendorId);
+        $this->applyApprovedCategoryConstraints($query, $approvedCategories);
 
-            $query->where(function (Builder $nested) use ($raw, $normalized) {
-                $nested->whereRaw('UPPER(gateway_order_id) LIKE ?', ['%' . $raw . '%'])
-                    ->orWhereRaw('UPPER(gateway_payment_id) LIKE ?', ['%' . $raw . '%'])
-                    ->orWhereRaw('UPPER(tx_reference) LIKE ?', ['%' . $raw . '%'])
-                    ->orWhereHas('shipment', function (Builder $shipmentQuery) use ($raw, $normalized) {
-                        $shipmentQuery->whereRaw('UPPER(reference) LIKE ?', ['%' . $raw . '%'])
-                            ->orWhereRaw('UPPER(reference) LIKE ?', ['%' . $normalized . '%'])
-                            ->orWhereHas('sender', function (Builder $senderQuery) use ($raw) {
-                                $senderQuery->whereRaw('UPPER(name) LIKE ?', ['%' . $raw . '%']);
-                            });
-                    });
-            });
+        if ($filters['service'] !== '') {
+            $query->where('service_level', $filters['service']);
         }
 
-        if ($filters['status'] !== '') {
-            $query->where('status', $filters['status']);
+        if ($filters['category'] === 'domestic') {
+            $this->applyDomesticCategoryConstraint($query);
         }
 
-        if ($filters['fromDate'] !== '') {
-            $query->whereDate('created_at', '>=', $filters['fromDate']);
+        if ($filters['category'] === 'international') {
+            $this->applyInternationalCategoryConstraint($query);
         }
 
-        if ($filters['toDate'] !== '') {
-            $query->whereDate('created_at', '<=', $filters['toDate']);
-        }
-
-        $payments = $query->get();
+        $shipments = $query->get();
 
         return Inertia::render('Web/home/vendors/courierService/Payment', [
-            'courierPayments' => $this->buildPaymentsPayload($payments, $filters, $approvedCategories),
+            'courierPayments' => $this->buildPaymentsPayload($shipments, $filters, $approvedCategories),
         ]);
     }
 
@@ -2373,6 +2361,7 @@ class VendorCourierDashboardController extends Controller
             $deliveredAt = $this->getDeliveredAt($shipment);
             $timelineState = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
             $assignmentHealth = $this->resolveAssignmentHealth($shipment);
+            $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
             $codAllowedActions = $assignmentHealth === 'assigned'
                 ? $this->getAllowedCodCollectionActionsForShipment($shipment, $canCodOverride, $canManageBookingLifecycle)
                 : [];
@@ -2411,7 +2400,11 @@ class VendorCourierDashboardController extends Controller
                     : [],
                 'canManageBookingLifecycle' => $canManageBookingLifecycle,
                 'canCodOverride' => $canCodOverride,
-                'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
+                'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
+                'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
+                'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
                 'codRequestedAmount' => $shipment->cod_requested_amount !== null
                     ? (float) $shipment->cod_requested_amount
                     : null,
@@ -2501,6 +2494,7 @@ class VendorCourierDashboardController extends Controller
             $deliveredAt = $this->getDeliveredAt($shipment);
             $timelineState = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
             $assignmentHealth = $this->resolveAssignmentHealth($shipment);
+            $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
             $codAllowedActions = $assignmentHealth === 'assigned'
                 ? $this->getAllowedCodCollectionActionsForShipment($shipment, $canCodOverride, $canManageBookingLifecycle)
                 : [];
@@ -2551,7 +2545,11 @@ class VendorCourierDashboardController extends Controller
                     : [],
                 'canManageBookingLifecycle' => $canManageBookingLifecycle,
                 'canCodOverride' => $canCodOverride,
-                'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
+                'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
+                'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
+                'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
                 'codRequestedAmount' => $shipment->cod_requested_amount !== null
                     ? (float) $shipment->cod_requested_amount
                     : null,
@@ -2687,6 +2685,7 @@ class VendorCourierDashboardController extends Controller
             $bookingStatus = $this->resolveBookingStatus($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
             $confirmHours = $this->resolveBookingConfirmHours($shipment);
+            $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
 
             return [
                 'id' => $shipment->id,
@@ -2709,13 +2708,17 @@ class VendorCourierDashboardController extends Controller
                 ]))),
                 'quoteAmount' => (float) ($shipment->estimated_cost ?? 0),
                 'currency' => (string) ($shipment->currency_code ?? 'LKR'),
-                'paymentStatus' => $this->derivePaymentStatus($shipment),
+                'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
+                'paymentProvider' => (string) ($paymentSnapshot['paymentProvider'] ?? ''),
                 'bookingStatus' => $bookingStatus,
                 'bookingStatusLabel' => $this->bookingStatusLabel($bookingStatus),
                 'pickupWindow' => $this->formatPickupWindow($shipment),
                 'eta' => optional($estimatedDelivery)->format('Y-m-d H:i'),
                 'allowedActions' => $this->getAllowedBookingActionsForShipment($shipment, $bookingStatus, $canCodOverride),
-                'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
+                'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
+                'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
+                'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
                 'canCodOverride' => $canCodOverride,
                 'codRequestedAmount' => $shipment->cod_requested_amount !== null
                     ? (float) $shipment->cod_requested_amount
@@ -2803,6 +2806,8 @@ class VendorCourierDashboardController extends Controller
                     ['value' => 'paid', 'label' => 'Paid'],
                     ['value' => 'pending', 'label' => 'Pending'],
                     ['value' => 'failed', 'label' => 'Failed'],
+                    ['value' => 'cancelled', 'label' => 'Cancelled'],
+                    ['value' => 'expired', 'label' => 'Expired'],
                 ],
                 'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
                 'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
@@ -2818,33 +2823,51 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildPaymentsPayload(Collection $payments, array $filters, array $approvedCategories): array
+    private function buildPaymentsPayload(Collection $shipments, array $filters, array $approvedCategories): array
     {
-        $rows = $payments
-            ->map(function (CourierShipmentPayment $payment) {
-                $shipment = $payment->shipment;
-                if (!$shipment instanceof CourierShipment) {
+        $rows = $shipments
+            ->map(function (CourierShipment $shipment) {
+                $payment = $shipment->latestPayment;
+                if (!$payment instanceof CourierShipmentPayment && !$shipment->isCodFlowDetectedForDashboard()) {
                     return null;
                 }
+
+                $snapshot = $shipment->resolveDashboardPaymentSnapshot($payment);
 
                 $packageCount = (int) $shipment->packages->sum('quantity');
                 if ($packageCount <= 0) {
                     $packageCount = $shipment->packages->count();
                 }
 
-                $effectiveUpdatedAt = $payment->paid_at
-                    ?: $payment->failed_at
-                    ?: $payment->last_notified_at
-                    ?: $payment->updated_at
-                    ?: $payment->created_at;
+                $paymentMethod = strtolower((string) ($snapshot['paymentMethod'] ?? 'pending'));
+                $status = strtolower((string) ($snapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING));
 
-                $status = strtolower((string) ($payment->status ?? CourierShipmentPayment::STATUS_PENDING));
-                $cardRequired = (bool) $shipment->requiresCardPayment();
-                $resolvedPaymentStatus = strtolower($shipment->resolvedPaymentStatus());
+                $effectiveUpdatedAt = $payment instanceof CourierShipmentPayment
+                    ? ($payment->paid_at ?: $payment->failed_at ?: $payment->last_notified_at ?: $payment->updated_at ?: $payment->created_at)
+                    : ($shipment->cod_collection_recorded_at ?: $shipment->updated_at ?: $shipment->created_at);
+
+                $amount = $payment instanceof CourierShipmentPayment
+                    ? (float) $payment->amount
+                    : (float) ($snapshot['codCollectedAmount']
+                        ?? $snapshot['codRequestedAmount']
+                        ?? $shipment->estimated_cost
+                        ?? 0);
+
+                $paidAt = $payment instanceof CourierShipmentPayment
+                    ? $payment->paid_at
+                    : ($status === CourierShipmentPayment::STATUS_PAID ? ($shipment->cod_collection_recorded_at ?: $effectiveUpdatedAt) : null);
+
+                $failedAt = $payment instanceof CourierShipmentPayment
+                    ? $payment->failed_at
+                    : ($status === CourierShipmentPayment::STATUS_FAILED ? ($shipment->cod_collection_recorded_at ?: $effectiveUpdatedAt) : null);
 
                 return [
-                    'id' => (int) $payment->id,
-                    'paymentNumber' => 'CP-' . str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT),
+                    'id' => $payment instanceof CourierShipmentPayment
+                        ? (int) $payment->id
+                        : 'cod-' . (int) $shipment->id,
+                    'paymentNumber' => $payment instanceof CourierShipmentPayment
+                        ? 'CP-' . str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT)
+                        : 'CP-COD-' . str_pad((string) $shipment->id, 6, '0', STR_PAD_LEFT),
                     'shipmentId' => (int) $shipment->id,
                     'shipmentReference' => (string) $shipment->reference,
                     'trackingNumber' => $this->trackingNumber($shipment),
@@ -2863,28 +2886,83 @@ class VendorCourierDashboardController extends Controller
                     'category' => $this->resolveCategory($shipment),
                     'service' => $this->normalizeServiceLabel((string) $shipment->service_level),
                     'packageCount' => $packageCount,
-                    'amount' => (float) $payment->amount,
-                    'currency' => strtoupper((string) ($payment->currency_code ?: ($shipment->currency_code ?? 'LKR'))),
+                    'amount' => round($amount, 2),
+                    'currency' => strtoupper((string) (($payment instanceof CourierShipmentPayment ? $payment->currency_code : null) ?: ($shipment->currency_code ?? 'LKR'))),
                     'status' => $status,
                     'statusLabel' => Str::title(str_replace('_', ' ', $status)),
-                    'gatewayOrderId' => (string) ($payment->gateway_order_id ?? ''),
-                    'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
-                    'txReference' => (string) ($payment->tx_reference ?? ''),
-                    'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
-                    'failureReason' => (string) ($payment->failure_reason ?? ''),
-                    'initiatedAt' => optional($payment->initiated_at)->format('Y-m-d H:i'),
-                    'createdAt' => optional($payment->created_at)->format('Y-m-d H:i'),
+                    'paymentMethod' => $paymentMethod,
+                    'paymentMethodLabel' => Str::title(str_replace('_', ' ', $paymentMethod)),
+                    'paymentProvider' => (string) ($snapshot['paymentProvider'] ?? ''),
+                    'paymentReference' => (string) ($snapshot['paymentReference'] ?? ''),
+                    'gatewayOrderId' => (string) ($payment?->gateway_order_id ?? ''),
+                    'gatewayPaymentId' => (string) ($payment?->gateway_payment_id ?? ''),
+                    'txReference' => (string) ($payment?->tx_reference ?? ''),
+                    'gatewayStatus' => (string) ($payment?->gateway_status ?? ''),
+                    'failureReason' => (string) ($payment?->failure_reason ?? ''),
+                    'initiatedAt' => optional($payment?->initiated_at ?: $shipment->created_at)->format('Y-m-d H:i'),
+                    'createdAt' => optional($payment?->created_at ?: $shipment->created_at)->format('Y-m-d H:i'),
                     'updatedAt' => optional($effectiveUpdatedAt)->format('Y-m-d H:i'),
-                    'paidAt' => optional($payment->paid_at)->format('Y-m-d H:i'),
-                    'failedAt' => optional($payment->failed_at)->format('Y-m-d H:i'),
+                    'paidAt' => optional($paidAt)->format('Y-m-d H:i'),
+                    'failedAt' => optional($failedAt)->format('Y-m-d H:i'),
                     'shipmentStatus' => (string) ($shipment->status ?? CourierShipment::STATUS_PENDING),
-                    'resolvedPaymentStatus' => $resolvedPaymentStatus,
-                    'cardRequired' => $cardRequired,
-                    'lifecycleBlocked' => $cardRequired && $resolvedPaymentStatus !== CourierShipmentPayment::STATUS_PAID,
+                    'resolvedPaymentStatus' => $status,
+                    'cardRequired' => (bool) ($snapshot['cardRequired'] ?? false),
+                    'lifecycleBlocked' => (bool) ($snapshot['lifecycleBlocked'] ?? false),
+                    'codEnabled' => (bool) ($snapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
+                    'codRequestedAmount' => $snapshot['codRequestedAmount'] ?? null,
+                    'codCollectedAmount' => $snapshot['codCollectedAmount'] ?? null,
+                    'codCollectionStatus' => $snapshot['codCollectionStatus'] ?? null,
+                    '__effectiveUpdatedAt' => optional($effectiveUpdatedAt)->format('Y-m-d H:i:s'),
                 ];
             })
             ->filter()
             ->values();
+
+        $methodFilter = strtolower((string) ($filters['method'] ?? 'all'));
+        if ($methodFilter !== 'all') {
+            $rows = $rows->where('paymentMethod', $methodFilter)->values();
+        }
+
+        $search = strtoupper(trim((string) ($filters['q'] ?? '')));
+        if ($search !== '') {
+            $normalized = str_starts_with($search, 'TRK-')
+                ? 'CR-' . substr($search, 4)
+                : $search;
+
+            $rows = $rows->filter(function (array $row) use ($search, $normalized) {
+                $haystack = strtoupper(implode(' ', array_filter([
+                    $row['paymentNumber'] ?? '',
+                    $row['shipmentReference'] ?? '',
+                    $row['trackingNumber'] ?? '',
+                    $row['client'] ?? '',
+                    $row['clientCompany'] ?? '',
+                    $row['gatewayOrderId'] ?? '',
+                    $row['gatewayPaymentId'] ?? '',
+                    $row['txReference'] ?? '',
+                    $row['paymentReference'] ?? '',
+                ])));
+
+                return str_contains($haystack, $search) || str_contains($haystack, $normalized);
+            })->values();
+        }
+
+        if (($filters['status'] ?? '') !== '') {
+            $rows = $rows->where('status', (string) $filters['status'])->values();
+        }
+
+        if (($filters['fromDate'] ?? '') !== '') {
+            $rows = $rows->filter(function (array $row) use ($filters) {
+                $effective = (string) ($row['__effectiveUpdatedAt'] ?? '');
+                return $effective === '' || substr($effective, 0, 10) >= (string) $filters['fromDate'];
+            })->values();
+        }
+
+        if (($filters['toDate'] ?? '') !== '') {
+            $rows = $rows->filter(function (array $row) use ($filters) {
+                $effective = (string) ($row['__effectiveUpdatedAt'] ?? '');
+                return $effective === '' || substr($effective, 0, 10) <= (string) $filters['toDate'];
+            })->values();
+        }
 
         $summary = [
             'totalTransactions' => $rows->count(),
@@ -2897,13 +2975,25 @@ class VendorCourierDashboardController extends Controller
             ], true))->count(),
             'collectedAmount' => round((float) $rows->where('status', CourierShipmentPayment::STATUS_PAID)->sum('amount'), 2),
             'pendingAmount' => round((float) $rows->where('status', CourierShipmentPayment::STATUS_PENDING)->sum('amount'), 2),
+            'cardTransactions' => $rows->where('paymentMethod', CourierShipmentPayment::PAYMENT_METHOD_CARD)->count(),
+            'codTransactions' => $rows->where('paymentMethod', CourierShipmentPayment::PAYMENT_METHOD_COD)->count(),
+            'codCollectedAmount' => round((float) $rows
+                ->where('paymentMethod', CourierShipmentPayment::PAYMENT_METHOD_COD)
+                ->where('status', CourierShipmentPayment::STATUS_PAID)
+                ->sum('amount'), 2),
         ];
 
         $perPage = max(5, min(50, (int) ($filters['perPage'] ?? 10)));
         $total = $rows->count();
         $totalPages = max(1, (int) ceil($total / $perPage));
         $page = min((int) ($filters['page'] ?? 1), $totalPages);
-        $pagedRows = $rows->slice(($page - 1) * $perPage, $perPage)->values();
+        $pagedRows = $rows
+            ->slice(($page - 1) * $perPage, $perPage)
+            ->map(function (array $row) {
+                unset($row['__effectiveUpdatedAt']);
+                return $row;
+            })
+            ->values();
 
         $summaryCurrency = (string) ($rows->pluck('currency')->filter()->countBy()->sortDesc()->keys()->first() ?? 'LKR');
 
@@ -2914,6 +3004,7 @@ class VendorCourierDashboardController extends Controller
             'filters' => [
                 'q' => (string) ($filters['q'] ?? ''),
                 'status' => (string) ($filters['status'] ?? ''),
+                'method' => (string) ($filters['method'] ?? 'all'),
                 'category' => (string) ($filters['category'] ?? ''),
                 'service' => (string) ($filters['service'] ?? ''),
                 'fromDate' => (string) ($filters['fromDate'] ?? ''),
@@ -2935,9 +3026,14 @@ class VendorCourierDashboardController extends Controller
                     ['value' => CourierShipmentPayment::STATUS_CANCELLED, 'label' => 'Cancelled'],
                     ['value' => CourierShipmentPayment::STATUS_EXPIRED, 'label' => 'Expired'],
                 ],
+                'methods' => [
+                    ['value' => 'all', 'label' => 'All Methods'],
+                    ['value' => CourierShipmentPayment::PAYMENT_METHOD_CARD, 'label' => 'Card'],
+                    ['value' => CourierShipmentPayment::PAYMENT_METHOD_COD, 'label' => 'COD'],
+                ],
                 'categories' => $this->buildApprovedCategoryFilterOptions($approvedCategories),
-                'services' => $payments
-                    ->map(fn (CourierShipmentPayment $payment) => $payment->shipment?->service_level)
+                'services' => $shipments
+                    ->map(fn (CourierShipment $shipment) => $shipment->service_level)
                     ->filter()
                     ->unique()
                     ->sort()
@@ -3997,6 +4093,7 @@ class VendorCourierDashboardController extends Controller
                 $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
                 $deliveredAt = $this->getDeliveredAt($shipment);
                 $timeline = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
+                $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
 
                 return [
                     'id' => $shipment->id,
@@ -4017,6 +4114,20 @@ class VendorCourierDashboardController extends Controller
                     'pendingPickup' => $this->isPendingPickup($shipment),
                     'labelCreated' => $this->isLabelCreated($shipment),
                     'deliveredAt' => optional($deliveredAt)->format('Y-m-d H:i'),
+                    'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                    'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
+                    'paymentMethodLabel' => Str::title(str_replace('_', ' ', (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'))),
+                    'paymentProvider' => (string) ($paymentSnapshot['paymentProvider'] ?? ''),
+                    'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
+                    'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
+                    'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
+                    'codRequestedAmount' => $shipment->cod_requested_amount !== null
+                        ? (float) $shipment->cod_requested_amount
+                        : null,
+                    'codCollectedAmount' => $shipment->cod_collected_amount !== null
+                        ? (float) $shipment->cod_collected_amount
+                        : null,
+                    'codCollectionStatus' => (string) ($shipment->cod_collection_status ?? ''),
                 ];
             })
             ->values();
@@ -4168,6 +4279,9 @@ class VendorCourierDashboardController extends Controller
                     'timelineState' => $row['timelineState'],
                     'hasException' => $row['hasException'],
                     'pendingPickup' => $row['pendingPickup'],
+                    'paymentMethod' => (string) ($row['paymentMethod'] ?? 'pending'),
+                    'paymentStatus' => (string) ($row['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                    'codEnabled' => (bool) ($row['codEnabled'] ?? false),
                 ];
             })
             ->values();
@@ -8309,6 +8423,3 @@ class VendorCourierDashboardController extends Controller
             ->exists();
     }
 }
-
-
-
