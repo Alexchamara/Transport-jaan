@@ -9,7 +9,7 @@ const TeamProgress = () => {
     ];
 
     return (
-        <div className="flex flex-col poppins ">
+        <div className="w-full flex flex-col poppins ">
             <h1 className="text-white px-6 py-6">Team Progress</h1>
             <div className="flex flex-col gap-4">
                 <div className="flex flex-row justify-between">

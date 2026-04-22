@@ -13,7 +13,7 @@ const WebsiteVisitors = () => {
     const COLORS = ["#00C2FF", "#0E43FB", "#ffffff"]; // Distinct colors for each layer
 
     return (
-        <div className="rounded-[10px] bg-[#0B1739] shadow-lg min-w-[341px] h-[460px] flex flex-col justify-center px-4 py-4">
+        <div className="rounded-[10px] bg-[#0B1739] shadow-lg min-w-[360px] h-[460px] flex flex-col justify-center px-4 py-4">
             <div className="flex flex-row justify-between items-center">
                 <h1 className="text-white text-[16px] font-500">
                     Website Visitors
