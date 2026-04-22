@@ -2299,9 +2299,23 @@ class CourierTeamController extends Controller
                 [
                     'key' => 'dispatcher_colombo_hub',
                     'label' => 'Dispatcher - Colombo Hub',
-                    'description' => 'Dispatcher profile with operational defaults for Colombo hub workflows.',
+                    'description' => 'Dispatcher profile with operational defaults for Colombo hub workflows, including COD collection and handover intake.',
                     'role' => 'courier_dispatcher',
-                    'defaultDirectPermissions' => [],
+                    'defaultDirectPermissions' => [
+                        'courier.cod.collection.record',
+                        'courier.cod.handover.record',
+                    ],
+                    'blockedServiceKeys' => [],
+                ],
+                [
+                    'key' => 'finance_cod_reconciliation',
+                    'label' => 'Finance - COD Reconciliation',
+                    'description' => 'Finance profile for COD handover verification and settlement readiness.',
+                    'role' => 'courier_finance',
+                    'defaultDirectPermissions' => [
+                        'courier.cod.handover.verify',
+                        'courier.cod.settlement.view_export',
+                    ],
                     'blockedServiceKeys' => [],
                 ],
                 [
@@ -2600,6 +2614,14 @@ class CourierTeamController extends Controller
                     'key' => 'assign_permissions_and_approve_access_request',
                     'label' => 'Cannot both assign permissions and approve access requests',
                     'permissions' => ['courier.team.assign_permissions', 'courier.team.access_requests.approve'],
+                    'enforceRoleEdit' => true,
+                    'enforceUserAssignment' => true,
+                    'enabled' => true,
+                ],
+                [
+                    'key' => 'cod_handover_record_and_verify',
+                    'label' => 'Cannot both record COD handover and verify COD handover',
+                    'permissions' => ['courier.cod.handover.record', 'courier.cod.handover.verify'],
                     'enforceRoleEdit' => true,
                     'enforceUserAssignment' => true,
                     'enabled' => true,

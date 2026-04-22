@@ -64,9 +64,9 @@ class ClientCourierShipmentTransformer
             ...$paymentData,
             'insuranceRequired' => (bool) $shipment->insurance_required,
             'declaredValue' => $shipment->declared_value,
-            'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
-            'codAmount' => $shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null,
-            'codPaymentMethod' => $shipment->cod_requested_method,
+            'codEnabled' => (bool) ($paymentData['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
+            'codAmount' => $paymentData['codRequestedAmount'] ?? ($shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null),
+            'codPaymentMethod' => $shipment->cod_requested_method ?: (($paymentData['paymentMethod'] ?? null) === CourierShipmentPayment::PAYMENT_METHOD_COD ? CourierShipmentPayment::PAYMENT_METHOD_COD : null),
             'deliveryNotes' => $shipment->delivery_notes,
             'latestTracking' => $latestTracking ? $this->mapTrackingEvent($latestTracking) : null,
             'createdAt' => $shipment->created_at?->format('Y-m-d H:i:s'),
@@ -106,9 +106,9 @@ class ClientCourierShipmentTransformer
                 ->all(),
             'insuranceRequired' => (bool) $shipment->insurance_required,
             'declaredValue' => $shipment->declared_value !== null ? (float) $shipment->declared_value : null,
-            'codEnabled' => (bool) ($shipment->is_cod_enabled ?? false),
-            'codAmount' => $shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null,
-            'codPaymentMethod' => $shipment->cod_requested_method,
+            'codEnabled' => (bool) ($paymentData['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
+            'codAmount' => $paymentData['codRequestedAmount'] ?? ($shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null),
+            'codPaymentMethod' => $shipment->cod_requested_method ?: (($paymentData['paymentMethod'] ?? null) === CourierShipmentPayment::PAYMENT_METHOD_COD ? CourierShipmentPayment::PAYMENT_METHOD_COD : null),
             'codPolicySnapshot' => is_array($shipment->cod_policy_snapshot) ? $shipment->cod_policy_snapshot : null,
             'currencyCode' => strtoupper((string) ($shipment->currency_code ?: 'LKR')),
             'displayAmount' => $displayAmount,
@@ -134,7 +134,7 @@ class ClientCourierShipmentTransformer
         $totalWeight = (float) $packages->sum(fn ($package) => (float) ($package->weight_kg ?? 0));
         $totalAmount = (float) ($shipment->actual_cost ?? $shipment->estimated_cost ?? 0);
         $paymentStatus = (string) ($paymentData['payment_status'] ?? $shipment->resolvedPaymentStatus());
-        $paymentMethod = (string) ($paymentData['payment_method'] ?? ((bool) ($shipment->is_cod_enabled ?? false) ? 'cod' : 'pending'));
+        $paymentMethod = (string) ($paymentData['payment_method'] ?? ((bool) ($paymentData['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()) ? 'cod' : 'pending'));
         $paymentReference = $paymentData['payment_reference'] ?? null;
 
         $packageType = $packages
@@ -192,9 +192,9 @@ class ClientCourierShipmentTransformer
             'service_level' => ucfirst((string) ($shipment->service_level ?? 'standard')),
             'insurance_required' => $shipment->insurance_required ? 'Yes' : 'No',
             'declared_value' => $shipment->declared_value !== null ? (float) $shipment->declared_value : null,
-            'cod_enabled' => (bool) ($shipment->is_cod_enabled ?? false),
-            'cod_amount' => $shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null,
-            'cod_payment_method' => $shipment->cod_requested_method,
+            'cod_enabled' => (bool) ($paymentData['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
+            'cod_amount' => $paymentData['codRequestedAmount'] ?? ($shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null),
+            'cod_payment_method' => $shipment->cod_requested_method ?: (($paymentData['paymentMethod'] ?? null) === CourierShipmentPayment::PAYMENT_METHOD_COD ? CourierShipmentPayment::PAYMENT_METHOD_COD : null),
             'package_count' => (int) $packages->count(),
             'package_type' => $packageType !== '' ? $packageType : null,
             'weight' => $totalWeight,
@@ -331,10 +331,15 @@ class ClientCourierShipmentTransformer
         $snapshot = $shipment->resolveDashboardPaymentSnapshot($latestPayment);
         $paymentStatus = (string) ($snapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING);
         $paymentMethod = (string) ($snapshot['paymentMethod'] ?? 'pending');
+        $paymentMethodRaw = (string) ($snapshot['paymentMethodRaw'] ?? '');
         $paymentProvider = $snapshot['paymentProvider'] ?? null;
         $paymentReference = $snapshot['paymentReference'] ?? null;
         $paymentRequired = (bool) ($snapshot['cardRequired'] ?? false);
         $paymentNeedsAction = (bool) ($snapshot['lifecycleBlocked'] ?? false);
+        $codEnabled = (bool) ($snapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard());
+        $codRequestedAmount = $snapshot['codRequestedAmount'] ?? ($shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null);
+        $codCollectedAmount = $snapshot['codCollectedAmount'] ?? ($shipment->cod_collected_amount !== null ? (float) $shipment->cod_collected_amount : null);
+        $codCollectionStatus = $snapshot['codCollectionStatus'] ?? null;
 
         $gatewayOrderId = $latestPayment?->gateway_order_id;
         $gatewayPaymentId = $latestPayment?->gateway_payment_id;
@@ -348,6 +353,7 @@ class ClientCourierShipmentTransformer
         return [
             'paymentStatus' => $paymentStatus,
             'paymentMethod' => $paymentMethod,
+            'paymentMethodRaw' => $paymentMethodRaw,
             'paymentProvider' => $paymentProvider,
             'paymentReference' => $paymentReference,
             'paymentRequired' => $paymentRequired,
@@ -360,6 +366,14 @@ class ClientCourierShipmentTransformer
             'paymentPaidAt' => $paidAt,
             'paymentFailedAt' => $failedAt,
             'paymentLastNotifiedAt' => $lastNotifiedAt,
+            'codEnabled' => $codEnabled,
+            'codRequestedAmount' => $codRequestedAmount,
+            'codCollectedAmount' => $codCollectedAmount,
+            'codCollectionStatus' => $codCollectionStatus,
+            'codHandoverStatus' => $snapshot['codHandoverStatus'] ?? null,
+            'codHandoverRecordedAt' => $snapshot['codHandoverRecordedAt'] ?? null,
+            'codHandoverVerifiedAt' => $snapshot['codHandoverVerifiedAt'] ?? null,
+            'codManualSettlementReadyAt' => $snapshot['codManualSettlementReadyAt'] ?? null,
             'requiresCardPayment' => $shipment->requiresCardPayment(),
             'paymentCheckoutUrl' => $paymentNeedsAction
                 ? route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])
@@ -372,6 +386,7 @@ class ClientCourierShipmentTransformer
                 : null,
             'payment_status' => $paymentStatus,
             'payment_method' => $paymentMethod,
+            'payment_method_raw' => $paymentMethodRaw,
             'payment_provider' => $paymentProvider,
             'payment_reference' => $paymentReference,
             'payment_required' => $paymentRequired,
@@ -382,6 +397,14 @@ class ClientCourierShipmentTransformer
             'payment_paid_at' => $paidAt,
             'payment_failed_at' => $failedAt,
             'payment_last_notified_at' => $lastNotifiedAt,
+            'cod_enabled' => $codEnabled,
+            'cod_requested_amount' => $codRequestedAmount,
+            'cod_collected_amount' => $codCollectedAmount,
+            'cod_collection_status' => $codCollectionStatus,
+            'cod_handover_status' => $snapshot['codHandoverStatus'] ?? null,
+            'cod_handover_recorded_at' => $snapshot['codHandoverRecordedAt'] ?? null,
+            'cod_handover_verified_at' => $snapshot['codHandoverVerifiedAt'] ?? null,
+            'cod_manual_settlement_ready_at' => $snapshot['codManualSettlementReadyAt'] ?? null,
             'requires_card_payment' => $shipment->requiresCardPayment(),
             'payment_checkout_url' => $paymentNeedsAction
                 ? route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])

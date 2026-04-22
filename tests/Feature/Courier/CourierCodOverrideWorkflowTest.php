@@ -277,6 +277,90 @@ class CourierCodOverrideWorkflowTest extends TestCase
         );
     }
 
+    public function test_cod_handover_verification_enforces_separation_of_duties(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+        $this->createApprovedCodCapability($vendor, $workspace, $vendor);
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.manage_lifecycle',
+            'courier.cod.handover.record',
+            'courier.cod.handover.verify',
+        ], 'courier_admin');
+
+        $shipment = $this->createDeliveredCodShipment($vendor, [
+            'cod_requested_amount' => 1450,
+            'cod_collected_amount' => 1450,
+            'cod_collection_status' => 'collected',
+            'cod_collection_recorded_at' => now()->subMinutes(25),
+        ]);
+
+        $this->actingAs($actor)->post(
+            route('courierService.bookings.lifecycle', ['shipment' => $shipment->id]),
+            ['action' => 'cod_handover_recorded', 'codHandoverNote' => 'Received sealed cash bag']
+        )->assertRedirect();
+
+        $shipment->refresh();
+        $this->assertSame(CourierShipment::COD_HANDOVER_STATUS_RECORDED, (string) $shipment->cod_handover_status);
+        $this->assertSame((int) $actor->id, (int) ($shipment->cod_handover_recorded_by_user_id ?? 0));
+
+        $response = $this->actingAs($actor)->post(
+            route('courierService.bookings.lifecycle', ['shipment' => $shipment->id]),
+            ['action' => 'cod_handover_verified', 'codHandoverNote' => 'Attempted self-verify']
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', function ($message) {
+            return str_contains(strtolower((string) $message), 'separation of duties');
+        });
+
+        $shipment->refresh();
+        $this->assertSame(CourierShipment::COD_HANDOVER_STATUS_RECORDED, (string) $shipment->cod_handover_status);
+        $this->assertNull($shipment->cod_handover_verified_by_user_id);
+    }
+
+    public function test_finance_can_verify_cod_handover_recorded_by_dispatcher(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+        $this->createApprovedCodCapability($vendor, $workspace, $vendor);
+
+        $dispatcher = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.manage_lifecycle',
+            'courier.cod.handover.record',
+        ], 'courier_dispatcher');
+
+        $finance = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.manage_lifecycle',
+            'courier.cod.handover.verify',
+        ], 'courier_finance');
+
+        $shipment = $this->createDeliveredCodShipment($vendor, [
+            'cod_requested_amount' => 2100,
+            'cod_collected_amount' => 2100,
+            'cod_collection_status' => 'collected',
+            'cod_collection_recorded_at' => now()->subMinutes(20),
+        ]);
+
+        $this->actingAs($dispatcher)->post(
+            route('courierService.bookings.lifecycle', ['shipment' => $shipment->id]),
+            ['action' => 'cod_handover_recorded', 'codHandoverNote' => 'Cash counted by dispatcher']
+        )->assertRedirect();
+
+        $response = $this->actingAs($finance)->post(
+            route('courierService.bookings.lifecycle', ['shipment' => $shipment->id]),
+            ['action' => 'cod_handover_verified', 'codHandoverNote' => 'Finance verified and reconciled']
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $shipment->refresh();
+        $this->assertSame(CourierShipment::COD_HANDOVER_STATUS_VERIFIED, (string) $shipment->cod_handover_status);
+        $this->assertSame((int) $dispatcher->id, (int) ($shipment->cod_handover_recorded_by_user_id ?? 0));
+        $this->assertSame((int) $finance->id, (int) ($shipment->cod_handover_verified_by_user_id ?? 0));
+        $this->assertNotNull($shipment->cod_handover_verified_at);
+    }
+
     private function createCourierVendorWorkspace(): array
     {
         $vendor = User::factory()->create([

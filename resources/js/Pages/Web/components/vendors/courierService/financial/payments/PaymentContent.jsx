@@ -41,6 +41,23 @@ const EMPTY_PAYMENTS = {
 };
 
 const normalizeText = (value) => String(value ?? "").trim();
+const resolvePaymentMethod = (row) => {
+    const method = String(row?.paymentMethod || "").toLowerCase().trim();
+    const unknownMethods = ["", "pending", "other", "unknown", "n/a", "na"];
+    const codEvidence = Number(row?.codRequestedAmount || 0) > 0
+        || Number(row?.codCollectedAmount || 0) > 0
+        || String(row?.codCollectionStatus || "").trim() !== "";
+
+    if (method === "cod" || method === "card") {
+        return method;
+    }
+
+    if (unknownMethods.includes(method) && codEvidence) {
+        return "cod";
+    }
+
+    return unknownMethods.includes(method) ? "other" : method;
+};
 
 const formatAmount = (amount, currency = "LKR") => {
     const numericAmount = Number(amount ?? 0);
@@ -148,20 +165,24 @@ const PaymentContent = () => {
         doc.setFontSize(16);
         doc.text("Courier Payment Transactions", 14, 16);
 
-        const tableData = rows.map((row) => [
-            row.paymentNumber || row.id,
-            row.shipmentReference || "-",
-            row.client || "-",
-            row.service || "-",
-            row.paymentMethodLabel || row.paymentMethod || "-",
-            formatAmount(row.amount, row.currency),
-            row.statusLabel || row.status || "-",
-            row.paymentMethod === "cod"
-                ? `Req ${formatAmount(row.codRequestedAmount, row.currency)} | Col ${formatAmount(row.codCollectedAmount, row.currency)}`
-                : "-",
-            row.updatedAt || row.createdAt || "-",
-            row.txReference || row.gatewayPaymentId || row.gatewayOrderId || row.paymentReference || "-",
-        ]);
+        const tableData = rows.map((row) => {
+            const method = resolvePaymentMethod(row);
+
+            return [
+                row.paymentNumber || row.id,
+                row.shipmentReference || "-",
+                row.client || "-",
+                row.service || "-",
+                method === "other" ? "Other" : String(method || "-").toUpperCase(),
+                formatAmount(row.amount, row.currency),
+                row.statusLabel || row.status || "-",
+                method === "cod"
+                    ? `Req ${formatAmount(row.codRequestedAmount, row.currency)} | Col ${formatAmount(row.codCollectedAmount, row.currency)}`
+                    : "-",
+                row.updatedAt || row.createdAt || "-",
+                row.txReference || row.gatewayPaymentId || row.gatewayOrderId || row.paymentReference || "-",
+            ];
+        });
 
         autoTable(doc, {
             head: [
@@ -446,7 +467,10 @@ const PaymentContent = () => {
                                     </tr>
                                 )}
 
-                                {rows.map((row) => (
+                                {rows.map((row) => {
+                                    const method = resolvePaymentMethod(row);
+
+                                    return (
                                     <tr key={row.id} className="text-[14px] border-b border-[#e4e8ef]">
                                         <td className="px-4 py-4 align-top">
                                             <div className="font-[600] text-[#111827]">{row.paymentNumber || row.id}</div>
@@ -467,7 +491,7 @@ const PaymentContent = () => {
                                             <div className="text-[12px] text-[#6b7280]">Packages: {row.packageCount || 0}</div>
                                         </td>
                                         <td className="px-4 py-4 align-top text-[13px] text-[#374151] uppercase">
-                                            {row.paymentMethodLabel || row.paymentMethod || "-"}
+                                            {method === "other" ? "OTHER" : String(method || "-").toUpperCase()}
                                         </td>
                                         <td className="px-4 py-4 align-top font-[600] text-[#111827]">
                                             {formatAmount(row.amount, row.currency)}
@@ -482,7 +506,7 @@ const PaymentContent = () => {
                                             </span>
                                         </td>
                                         <td className="px-4 py-4 align-top text-[12px] text-[#374151]">
-                                            {row.paymentMethod === "cod" ? (
+                                            {method === "cod" ? (
                                                 <div className="space-y-1">
                                                     <div>Req: {formatAmount(row.codRequestedAmount, row.currency)}</div>
                                                     <div>Col: {formatAmount(row.codCollectedAmount, row.currency)}</div>
@@ -516,7 +540,8 @@ const PaymentContent = () => {
                                             ) : null}
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

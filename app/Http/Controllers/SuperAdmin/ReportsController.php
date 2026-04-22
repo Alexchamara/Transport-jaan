@@ -370,6 +370,15 @@ class ReportsController extends Controller
      */
     public function courierBookings()
     {
+        $codScope = function ($query): void {
+            $query->where('is_cod_enabled', true)
+                ->orWhere('cod_requested_amount', '>', 0)
+                ->orWhere('cod_collected_amount', '>', 0)
+                ->orWhereNotNull('cod_capability_id')
+                ->orWhereNotNull('cod_requested_method')
+                ->orWhereNotNull('cod_collection_status');
+        };
+
         $bookings = CourierShipment::with(['sender', 'recipient', 'senderAddress', 'recipientAddress', 'latestPayment'])
             ->orderBy('created_at', 'desc')
             ->get()
@@ -388,6 +397,7 @@ class ReportsController extends Controller
                     'total_amount' => (float)($shipment->actual_cost ?? $shipment->estimated_cost ?? 0),
                     'payment_status' => $resolvedPaymentStatus,
                     'payment_method' => $paymentMethod,
+                    'payment_method_raw' => (string) ($paymentSnapshot['paymentMethodRaw'] ?? ''),
                     'payment_provider' => $paymentProvider,
                     'payment_reference' => (string) ($paymentReference ?? 'N/A'),
                     'gateway_order_id' => (string) ($latestPayment?->gateway_order_id ?? 'N/A'),
@@ -405,6 +415,13 @@ class ReportsController extends Controller
                     'receiver_phone' => $shipment->recipient ? $shipment->recipient->phone : 'N/A',
                     'pickup_address' => $shipment->senderAddress ? $shipment->senderAddress->line1 . ', ' . $shipment->senderAddress->city : 'N/A',
                     'delivery_address' => $shipment->recipientAddress ? $shipment->recipientAddress->line1 . ', ' . $shipment->recipientAddress->city : 'N/A',
+                    'cod_requested_amount' => $paymentSnapshot['codRequestedAmount'] ?? null,
+                    'cod_collected_amount' => $paymentSnapshot['codCollectedAmount'] ?? null,
+                    'cod_collection_status' => $paymentSnapshot['codCollectionStatus'] ?? null,
+                    'cod_handover_status' => $paymentSnapshot['codHandoverStatus'] ?? null,
+                    'cod_handover_recorded_at' => $paymentSnapshot['codHandoverRecordedAt'] ?? null,
+                    'cod_handover_verified_at' => $paymentSnapshot['codHandoverVerifiedAt'] ?? null,
+                    'cod_manual_settlement_ready_at' => $paymentSnapshot['codManualSettlementReadyAt'] ?? null,
                     'created_at' => $shipment->created_at->format('Y-m-d H:i:s'),
                 ];
             });
@@ -435,22 +452,38 @@ class ReportsController extends Controller
                 ])
                 ->count(),
             'codPaymentsTotal' => CourierShipment::query()
-                ->where('is_cod_enabled', true)
+                ->where($codScope)
                 ->count(),
             'codPaymentsPaid' => CourierShipment::query()
-                ->where('is_cod_enabled', true)
+                ->where($codScope)
                 ->whereIn('cod_collection_status', ['collected', 'partially_collected'])
                 ->count(),
             'codPaymentsPending' => CourierShipment::query()
-                ->where('is_cod_enabled', true)
+                ->where($codScope)
                 ->where(function ($query) {
                     $query->whereNull('cod_collection_status')
                         ->orWhereNotIn('cod_collection_status', ['collected', 'partially_collected', 'failed', 'refused']);
                 })
                 ->count(),
             'codPaymentsFailed' => CourierShipment::query()
-                ->where('is_cod_enabled', true)
+                ->where($codScope)
                 ->whereIn('cod_collection_status', ['failed', 'refused'])
+                ->count(),
+            'codHandoverRecorded' => CourierShipment::query()
+                ->where($codScope)
+                ->where('cod_handover_status', CourierShipment::COD_HANDOVER_STATUS_RECORDED)
+                ->count(),
+            'codHandoverVerified' => CourierShipment::query()
+                ->where($codScope)
+                ->where('cod_handover_status', CourierShipment::COD_HANDOVER_STATUS_VERIFIED)
+                ->count(),
+            'codHandoverDisputed' => CourierShipment::query()
+                ->where($codScope)
+                ->where('cod_handover_status', CourierShipment::COD_HANDOVER_STATUS_DISPUTED)
+                ->count(),
+            'codHandoverSettled' => CourierShipment::query()
+                ->where($codScope)
+                ->where('cod_handover_status', CourierShipment::COD_HANDOVER_STATUS_SETTLED)
                 ->count(),
         ];
 

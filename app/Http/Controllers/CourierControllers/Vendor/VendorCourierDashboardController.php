@@ -142,12 +142,38 @@ class VendorCourierDashboardController extends Controller
             'event' => 'cod_collection_refused',
             'nextBookingStatus' => 'confirmed',
         ],
+        'cod_handover_recorded' => [
+            'status' => null,
+            'event' => 'cod_handover_recorded',
+            'nextBookingStatus' => 'confirmed',
+        ],
+        'cod_handover_verified' => [
+            'status' => null,
+            'event' => 'cod_handover_verified',
+            'nextBookingStatus' => 'confirmed',
+        ],
+        'cod_handover_disputed' => [
+            'status' => null,
+            'event' => 'cod_handover_disputed',
+            'nextBookingStatus' => 'confirmed',
+        ],
+        'cod_settlement_ready' => [
+            'status' => null,
+            'event' => 'cod_settlement_ready',
+            'nextBookingStatus' => 'confirmed',
+        ],
     ];
 
     private const COD_COLLECTION_ACTIONS = [
         'cod_collected',
         'cod_failed',
         'cod_refused',
+    ];
+    private const COD_HANDOVER_ACTIONS = [
+        'cod_handover_recorded',
+        'cod_handover_verified',
+        'cod_handover_disputed',
+        'cod_settlement_ready',
     ];
 
     private const BOOKING_ALLOWED_ACTIONS = [
@@ -307,9 +333,23 @@ class VendorCourierDashboardController extends Controller
         $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
         $canViewRates = $this->canActorViewRates($request, $policy);
         $canCodOverride = $this->canActorUseCodOverrideActions($request, $vendorId);
+        $canCodCollectionRecord = $this->canActorRecordCodCollection($request);
+        $canCodHandoverRecord = $this->canActorRecordCodHandover($request);
+        $canCodHandoverVerify = $this->canActorVerifyCodHandover($request);
+        $canCodSettlementManage = $this->canActorManageCodSettlement($request);
 
         return Inertia::render('Web/home/vendors/courierService/Booking', [
-            'courierBookings' => $this->buildBookingsPayload($shipments, $filters, $canViewRates, $canCodOverride, $approvedCategories),
+            'courierBookings' => $this->buildBookingsPayload(
+                $shipments,
+                $filters,
+                $canViewRates,
+                $canCodOverride,
+                $approvedCategories,
+                $canCodCollectionRecord,
+                $canCodHandoverRecord,
+                $canCodHandoverVerify,
+                $canCodSettlementManage
+            ),
         ]);
     }
 
@@ -438,11 +478,29 @@ class VendorCourierDashboardController extends Controller
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
             'codCollectedAmount' => ['nullable', 'numeric', 'min:0.01'],
             'codOverrideReason' => ['nullable', 'string', 'max:500'],
+            'codHandoverNote' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $action = (string) $validated['action'];
+        if (in_array($action, self::COD_COLLECTION_ACTIONS, true) && !$this->canActorRecordCodCollection($request)) {
+            return back()->with('error', 'You do not have permission to record COD collection.');
+        }
+
+        if ($action === 'cod_handover_recorded' && !$this->canActorRecordCodHandover($request)) {
+            return back()->with('error', 'You do not have permission to record COD handover intake.');
+        }
+
+        if (in_array($action, ['cod_handover_verified', 'cod_handover_disputed'], true) && !$this->canActorVerifyCodHandover($request)) {
+            return back()->with('error', 'You do not have permission to verify COD handovers.');
+        }
+
+        if ($action === 'cod_settlement_ready' && !$this->canActorManageCodSettlement($request)) {
+            return back()->with('error', 'You do not have permission to mark COD settlement readiness.');
+        }
 
         $codOverrideContext = $this->resolveCodOverrideContext(
             $shipment,
-            (string) $validated['action'],
+            $action,
             [
                 'codCollectedAmount' => $validated['codCollectedAmount'] ?? null,
             ]
@@ -457,11 +515,11 @@ class VendorCourierDashboardController extends Controller
             $request,
             $policy,
             'bookings',
-            $this->mapBookingLifecycleActionToPermissionAction((string) $validated['action']),
+            $this->mapBookingLifecycleActionToPermissionAction($action),
             $shipment
         );
 
-        $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
+        $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, $action);
         if (!$cancelGuard['ok']) {
             return back()->with('error', $cancelGuard['message']);
         }
@@ -469,15 +527,15 @@ class VendorCourierDashboardController extends Controller
         $approvalGate = $this->ensureSensitiveActionApproval(
             $request,
             $policy,
-            (string) $validated['action'],
+            $action,
             [
                 'resourceType' => 'courier_shipment',
                 'resourceId' => (int) $shipment->id,
                 'subject' => (string) $shipment->reference,
                 'subjectIds' => [(int) $shipment->id],
-                'amount' => (float) ($shipment->estimated_cost ?? 0),
-            ]
-        );
+                    'amount' => (float) ($shipment->estimated_cost ?? 0),
+                ]
+            );
 
         if (!$approvalGate['ok']) {
             return back()->with('error', (string) $approvalGate['message']);
@@ -535,6 +593,8 @@ class VendorCourierDashboardController extends Controller
             DB::transaction(function () use (&$result, $shipment, $validated, $codOverrideContext, $codCapability, $codOverrideReason, $codOverrideApprovalGate, $request) {
                 $result = $this->applyBookingAction($shipment, $validated['action'], [
                     'codCollectedAmount' => $validated['codCollectedAmount'] ?? null,
+                    'codHandoverNote' => $validated['codHandoverNote'] ?? null,
+                    'actorUserId' => (int) optional($request->user())->id ?: null,
                 ]);
 
                 if (!(bool) ($result['ok'] ?? false)) {
@@ -720,13 +780,21 @@ class VendorCourierDashboardController extends Controller
                 (bool) optional($request->user())->can('courier.bookings.manage_lifecycle')
                 && $this->canRolePerformAction($request, $policy, 'bookings', 'update')
             );
+        $canCodCollectionRecord = $this->canActorRecordCodCollection($request);
+        $canCodHandoverRecord = $this->canActorRecordCodHandover($request);
+        $canCodHandoverVerify = $this->canActorVerifyCodHandover($request);
+        $canCodSettlementManage = $this->canActorManageCodSettlement($request);
 
         $trackingPayload = $this->buildTrackingPayload(
             $shipments,
             $filters,
             $approvedCategories,
             $canCodOverride,
-            $canManageBookingLifecycle
+            $canManageBookingLifecycle,
+            $canCodCollectionRecord,
+            $canCodHandoverRecord,
+            $canCodHandoverVerify,
+            $canCodSettlementManage
         );
 
         if ($request->query('export') === 'csv') {
@@ -1252,6 +1320,7 @@ class VendorCourierDashboardController extends Controller
 
         $canRequestCod = (string) (optional($actor)->role ?? '') === 'vendor'
             || (bool) optional($actor)->can('courier.services.cod.request')
+            || (bool) optional($actor)->can('courier.cod.capability.manage')
             || (bool) optional($actor)->can('courier.settings.update');
 
         if (!$canRequestCod) {
@@ -2143,6 +2212,10 @@ class VendorCourierDashboardController extends Controller
                 (bool) optional($request->user())->can('courier.bookings.manage_lifecycle')
                 && $this->canRolePerformAction($request, $policy, 'bookings', 'update')
             );
+        $canCodCollectionRecord = $this->canActorRecordCodCollection($request);
+        $canCodHandoverRecord = $this->canActorRecordCodHandover($request);
+        $canCodHandoverVerify = $this->canActorVerifyCodHandover($request);
+        $canCodSettlementManage = $this->canActorManageCodSettlement($request);
 
         return Inertia::render('Web/home/vendors/courierService/Unit', [
             'courierShipments' => $this->buildShipmentsPayload(
@@ -2150,7 +2223,11 @@ class VendorCourierDashboardController extends Controller
                 $filters,
                 $approvedCategories,
                 $canCodOverride,
-                $canManageBookingLifecycle
+                $canManageBookingLifecycle,
+                $canCodCollectionRecord,
+                $canCodHandoverRecord,
+                $canCodHandoverVerify,
+                $canCodSettlementManage
             ),
         ]);
     }
@@ -2351,10 +2428,21 @@ class VendorCourierDashboardController extends Controller
         array $filters,
         array $approvedCategories,
         bool $canCodOverride = false,
-        bool $canManageBookingLifecycle = false
+        bool $canManageBookingLifecycle = false,
+        bool $canCodCollectionRecord = false,
+        bool $canCodHandoverRecord = false,
+        bool $canCodHandoverVerify = false,
+        bool $canCodSettlementManage = false
     ): array
     {
-        $rows = $shipments->map(function (CourierShipment $shipment) use ($canCodOverride, $canManageBookingLifecycle) {
+        $rows = $shipments->map(function (CourierShipment $shipment) use (
+            $canCodOverride,
+            $canManageBookingLifecycle,
+            $canCodCollectionRecord,
+            $canCodHandoverRecord,
+            $canCodHandoverVerify,
+            $canCodSettlementManage
+        ) {
             $latestEvent = $this->getLatestTrackingEvent($shipment);
             $stage = $this->getShipmentStage($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
@@ -2363,7 +2451,15 @@ class VendorCourierDashboardController extends Controller
             $assignmentHealth = $this->resolveAssignmentHealth($shipment);
             $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
             $codAllowedActions = $assignmentHealth === 'assigned'
-                ? $this->getAllowedCodCollectionActionsForShipment($shipment, $canCodOverride, $canManageBookingLifecycle)
+                ? $this->getAllowedCodCollectionActionsForShipment(
+                    $shipment,
+                    $canCodOverride,
+                    $canManageBookingLifecycle,
+                    $canCodCollectionRecord,
+                    $canCodHandoverRecord,
+                    $canCodHandoverVerify,
+                    $canCodSettlementManage
+                )
                 : [];
 
             return [
@@ -2400,19 +2496,24 @@ class VendorCourierDashboardController extends Controller
                     : [],
                 'canManageBookingLifecycle' => $canManageBookingLifecycle,
                 'canCodOverride' => $canCodOverride,
+                'canCodCollectionRecord' => $canCodCollectionRecord,
+                'canCodHandoverRecord' => $canCodHandoverRecord,
+                'canCodHandoverVerify' => $canCodHandoverVerify,
+                'canCodSettlementManage' => $canCodSettlementManage,
                 'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                'paymentMethodRaw' => (string) ($paymentSnapshot['paymentMethodRaw'] ?? ''),
                 'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
                 'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
                 'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
                 'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
-                'codRequestedAmount' => $shipment->cod_requested_amount !== null
-                    ? (float) $shipment->cod_requested_amount
-                    : null,
-                'codCollectionStatus' => $shipment->cod_collection_status,
-                'codCollectedAmount' => $shipment->cod_collected_amount !== null
-                    ? (float) $shipment->cod_collected_amount
-                    : null,
+                'codRequestedAmount' => $paymentSnapshot['codRequestedAmount'] ?? null,
+                'codCollectionStatus' => $paymentSnapshot['codCollectionStatus'] ?? null,
+                'codCollectedAmount' => $paymentSnapshot['codCollectedAmount'] ?? null,
                 'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
+                'codHandoverStatus' => (string) ($paymentSnapshot['codHandoverStatus'] ?? ''),
+                'codHandoverRecordedAt' => optional($shipment->cod_handover_recorded_at)->format('Y-m-d H:i'),
+                'codHandoverVerifiedAt' => optional($shipment->cod_handover_verified_at)->format('Y-m-d H:i'),
+                'codManualSettlementReadyAt' => optional($shipment->cod_manual_settlement_ready_at)->format('Y-m-d H:i'),
                 'codAllowedActions' => $codAllowedActions,
                 'details' => [
                     'deliveryNotes' => $shipment->delivery_notes,
@@ -2484,10 +2585,21 @@ class VendorCourierDashboardController extends Controller
         array $filters,
         array $approvedCategories,
         bool $canCodOverride = false,
-        bool $canManageBookingLifecycle = false
+        bool $canManageBookingLifecycle = false,
+        bool $canCodCollectionRecord = false,
+        bool $canCodHandoverRecord = false,
+        bool $canCodHandoverVerify = false,
+        bool $canCodSettlementManage = false
     ): array
     {
-        $rows = $shipments->map(function (CourierShipment $shipment) use ($canCodOverride, $canManageBookingLifecycle) {
+        $rows = $shipments->map(function (CourierShipment $shipment) use (
+            $canCodOverride,
+            $canManageBookingLifecycle,
+            $canCodCollectionRecord,
+            $canCodHandoverRecord,
+            $canCodHandoverVerify,
+            $canCodSettlementManage
+        ) {
             $latestEvent = $this->getLatestTrackingEvent($shipment);
             $stage = $this->getShipmentStage($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
@@ -2496,7 +2608,15 @@ class VendorCourierDashboardController extends Controller
             $assignmentHealth = $this->resolveAssignmentHealth($shipment);
             $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
             $codAllowedActions = $assignmentHealth === 'assigned'
-                ? $this->getAllowedCodCollectionActionsForShipment($shipment, $canCodOverride, $canManageBookingLifecycle)
+                ? $this->getAllowedCodCollectionActionsForShipment(
+                    $shipment,
+                    $canCodOverride,
+                    $canManageBookingLifecycle,
+                    $canCodCollectionRecord,
+                    $canCodHandoverRecord,
+                    $canCodHandoverVerify,
+                    $canCodSettlementManage
+                )
                 : [];
 
             $timeline = $shipment->trackingEvents
@@ -2545,19 +2665,24 @@ class VendorCourierDashboardController extends Controller
                     : [],
                 'canManageBookingLifecycle' => $canManageBookingLifecycle,
                 'canCodOverride' => $canCodOverride,
+                'canCodCollectionRecord' => $canCodCollectionRecord,
+                'canCodHandoverRecord' => $canCodHandoverRecord,
+                'canCodHandoverVerify' => $canCodHandoverVerify,
+                'canCodSettlementManage' => $canCodSettlementManage,
                 'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                'paymentMethodRaw' => (string) ($paymentSnapshot['paymentMethodRaw'] ?? ''),
                 'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
                 'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
                 'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
                 'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
-                'codRequestedAmount' => $shipment->cod_requested_amount !== null
-                    ? (float) $shipment->cod_requested_amount
-                    : null,
-                'codCollectionStatus' => $shipment->cod_collection_status,
-                'codCollectedAmount' => $shipment->cod_collected_amount !== null
-                    ? (float) $shipment->cod_collected_amount
-                    : null,
+                'codRequestedAmount' => $paymentSnapshot['codRequestedAmount'] ?? null,
+                'codCollectionStatus' => $paymentSnapshot['codCollectionStatus'] ?? null,
+                'codCollectedAmount' => $paymentSnapshot['codCollectedAmount'] ?? null,
                 'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
+                'codHandoverStatus' => (string) ($paymentSnapshot['codHandoverStatus'] ?? ''),
+                'codHandoverRecordedAt' => optional($shipment->cod_handover_recorded_at)->format('Y-m-d H:i'),
+                'codHandoverVerifiedAt' => optional($shipment->cod_handover_verified_at)->format('Y-m-d H:i'),
+                'codManualSettlementReadyAt' => optional($shipment->cod_manual_settlement_ready_at)->format('Y-m-d H:i'),
                 'codAllowedActions' => $codAllowedActions,
                 'timeline' => $timeline,
             ];
@@ -2679,9 +2804,25 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildBookingsPayload(Collection $shipments, array $filters, bool $canViewRates, bool $canCodOverride, array $approvedCategories): array
+    private function buildBookingsPayload(
+        Collection $shipments,
+        array $filters,
+        bool $canViewRates,
+        bool $canCodOverride,
+        array $approvedCategories,
+        bool $canCodCollectionRecord = false,
+        bool $canCodHandoverRecord = false,
+        bool $canCodHandoverVerify = false,
+        bool $canCodSettlementManage = false
+    ): array
     {
-        $rows = $shipments->map(function (CourierShipment $shipment) use ($canCodOverride) {
+        $rows = $shipments->map(function (CourierShipment $shipment) use (
+            $canCodOverride,
+            $canCodCollectionRecord,
+            $canCodHandoverRecord,
+            $canCodHandoverVerify,
+            $canCodSettlementManage
+        ) {
             $bookingStatus = $this->resolveBookingStatus($shipment);
             $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
             $confirmHours = $this->resolveBookingConfirmHours($shipment);
@@ -2709,25 +2850,38 @@ class VendorCourierDashboardController extends Controller
                 'quoteAmount' => (float) ($shipment->estimated_cost ?? 0),
                 'currency' => (string) ($shipment->currency_code ?? 'LKR'),
                 'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                'paymentMethodRaw' => (string) ($paymentSnapshot['paymentMethodRaw'] ?? ''),
                 'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
                 'paymentProvider' => (string) ($paymentSnapshot['paymentProvider'] ?? ''),
                 'bookingStatus' => $bookingStatus,
                 'bookingStatusLabel' => $this->bookingStatusLabel($bookingStatus),
                 'pickupWindow' => $this->formatPickupWindow($shipment),
                 'eta' => optional($estimatedDelivery)->format('Y-m-d H:i'),
-                'allowedActions' => $this->getAllowedBookingActionsForShipment($shipment, $bookingStatus, $canCodOverride),
+                'allowedActions' => $this->getAllowedBookingActionsForShipment(
+                    $shipment,
+                    $bookingStatus,
+                    $canCodOverride,
+                    $canCodCollectionRecord,
+                    $canCodHandoverRecord,
+                    $canCodHandoverVerify,
+                    $canCodSettlementManage
+                ),
                 'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
                 'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
                 'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
+                'canCodCollectionRecord' => $canCodCollectionRecord,
+                'canCodHandoverRecord' => $canCodHandoverRecord,
+                'canCodHandoverVerify' => $canCodHandoverVerify,
+                'canCodSettlementManage' => $canCodSettlementManage,
                 'canCodOverride' => $canCodOverride,
-                'codRequestedAmount' => $shipment->cod_requested_amount !== null
-                    ? (float) $shipment->cod_requested_amount
-                    : null,
-                'codCollectionStatus' => $shipment->cod_collection_status,
-                'codCollectedAmount' => $shipment->cod_collected_amount !== null
-                    ? (float) $shipment->cod_collected_amount
-                    : null,
+                'codRequestedAmount' => $paymentSnapshot['codRequestedAmount'] ?? null,
+                'codCollectionStatus' => $paymentSnapshot['codCollectionStatus'] ?? null,
+                'codCollectedAmount' => $paymentSnapshot['codCollectedAmount'] ?? null,
                 'codCollectionRecordedAt' => optional($shipment->cod_collection_recorded_at)->format('Y-m-d H:i'),
+                'codHandoverStatus' => (string) ($paymentSnapshot['codHandoverStatus'] ?? ''),
+                'codHandoverRecordedAt' => optional($shipment->cod_handover_recorded_at)->format('Y-m-d H:i'),
+                'codHandoverVerifiedAt' => optional($shipment->cod_handover_verified_at)->format('Y-m-d H:i'),
+                'codManualSettlementReadyAt' => optional($shipment->cod_manual_settlement_ready_at)->format('Y-m-d H:i'),
                 'confirmHours' => $confirmHours,
             ];
         })->values();
@@ -2813,7 +2967,7 @@ class VendorCourierDashboardController extends Controller
                 'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
                 'perPageOptions' => [10, 20, 50],
                 'actionOptions' => collect(array_keys(self::BOOKING_ACTION_META))
-                    ->reject(fn ($action) => in_array((string) $action, self::COD_COLLECTION_ACTIONS, true))
+                    ->reject(fn ($action) => in_array((string) $action, array_merge(self::COD_COLLECTION_ACTIONS, self::COD_HANDOVER_ACTIONS), true))
                     ->map(fn ($action) => [
                         'value' => (string) $action,
                         'label' => Str::title(str_replace('_', ' ', (string) $action)),
@@ -3301,7 +3455,15 @@ class VendorCourierDashboardController extends Controller
         return self::BOOKING_ALLOWED_ACTIONS[$bookingStatus] ?? [];
     }
 
-    private function getAllowedBookingActionsForShipment(CourierShipment $shipment, string $bookingStatus, bool $canCodOverride = false): array
+    private function getAllowedBookingActionsForShipment(
+        CourierShipment $shipment,
+        string $bookingStatus,
+        bool $canCodOverride = false,
+        bool $canCodCollectionRecord = false,
+        bool $canCodHandoverRecord = false,
+        bool $canCodHandoverVerify = false,
+        bool $canCodSettlementManage = false
+    ): array
     {
         if ($shipment->requiresCardPayment() && $shipment->resolvedPaymentStatus() !== CourierShipmentPayment::STATUS_PAID) {
             return [];
@@ -3309,7 +3471,7 @@ class VendorCourierDashboardController extends Controller
 
         $actions = $this->getAllowedBookingActionsForStatus($bookingStatus);
 
-        if ($this->canPerformCodCollectionAction($shipment)) {
+        if ($canCodCollectionRecord && $this->canPerformCodCollectionAction($shipment)) {
             $actions[] = 'cod_collected';
 
             if ($canCodOverride) {
@@ -3318,20 +3480,45 @@ class VendorCourierDashboardController extends Controller
             }
         }
 
+        if ($canCodHandoverRecord && $this->canPerformCodHandoverRecordAction($shipment)) {
+            $actions[] = 'cod_handover_recorded';
+        }
+
+        if ($canCodHandoverVerify && $this->canPerformCodHandoverVerifyAction($shipment)) {
+            $actions[] = 'cod_handover_verified';
+            $actions[] = 'cod_handover_disputed';
+        }
+
+        if (($canCodSettlementManage || $canCodHandoverVerify) && $this->canMarkCodSettlementReadyAction($shipment)) {
+            $actions[] = 'cod_settlement_ready';
+        }
+
         return array_values(array_unique($actions));
     }
 
     private function getAllowedCodCollectionActionsForShipment(
         CourierShipment $shipment,
         bool $canCodOverride = false,
-        bool $canManageBookingLifecycle = false
+        bool $canManageBookingLifecycle = false,
+        bool $canCodCollectionRecord = false,
+        bool $canCodHandoverRecord = false,
+        bool $canCodHandoverVerify = false,
+        bool $canCodSettlementManage = false
     ): array {
-        if (!$canManageBookingLifecycle) {
+        if (!$canManageBookingLifecycle && !$canCodCollectionRecord && !$canCodHandoverRecord && !$canCodHandoverVerify && !$canCodSettlementManage) {
             return [];
         }
 
-        return collect($this->getAllowedBookingActionsForShipment($shipment, $this->resolveBookingStatus($shipment), $canCodOverride))
-            ->filter(fn ($action) => in_array((string) $action, self::COD_COLLECTION_ACTIONS, true))
+        return collect($this->getAllowedBookingActionsForShipment(
+            $shipment,
+            $this->resolveBookingStatus($shipment),
+            $canCodOverride,
+            $canCodCollectionRecord,
+            $canCodHandoverRecord,
+            $canCodHandoverVerify,
+            $canCodSettlementManage
+        ))
+            ->filter(fn ($action) => in_array((string) $action, array_merge(self::COD_COLLECTION_ACTIONS, self::COD_HANDOVER_ACTIONS), true))
             ->values()
             ->all();
     }
@@ -3343,7 +3530,7 @@ class VendorCourierDashboardController extends Controller
 
     private function canPerformCodCollectionAction(CourierShipment $shipment): bool
     {
-        if (!(bool) ($shipment->is_cod_enabled ?? false)) {
+        if (!$shipment->isCodFlowDetectedForDashboard()) {
             return false;
         }
 
@@ -3352,6 +3539,45 @@ class VendorCourierDashboardController extends Controller
         }
 
         return (string) $shipment->status === CourierShipment::STATUS_DELIVERED;
+    }
+
+    private function canPerformCodHandoverRecordAction(CourierShipment $shipment): bool
+    {
+        if (!$shipment->isCodFlowDetectedForDashboard()) {
+            return false;
+        }
+
+        if (!in_array((string) ($shipment->cod_collection_status ?? ''), ['collected', 'partially_collected'], true)) {
+            return false;
+        }
+
+        return !in_array((string) ($shipment->cod_handover_status ?? ''), [CourierShipment::COD_HANDOVER_STATUS_SETTLED], true);
+    }
+
+    private function canPerformCodHandoverVerifyAction(CourierShipment $shipment): bool
+    {
+        if (!$shipment->isCodFlowDetectedForDashboard()) {
+            return false;
+        }
+
+        if ((string) ($shipment->cod_handover_status ?? '') === CourierShipment::COD_HANDOVER_STATUS_SETTLED) {
+            return false;
+        }
+
+        return (string) ($shipment->cod_handover_status ?? '') === CourierShipment::COD_HANDOVER_STATUS_RECORDED;
+    }
+
+    private function canMarkCodSettlementReadyAction(CourierShipment $shipment): bool
+    {
+        if (!$shipment->isCodFlowDetectedForDashboard()) {
+            return false;
+        }
+
+        if ((string) ($shipment->cod_handover_status ?? '') !== CourierShipment::COD_HANDOVER_STATUS_VERIFIED) {
+            return false;
+        }
+
+        return $shipment->cod_manual_settlement_ready_at === null;
     }
 
     private function canActorUseCodOverrideActions(Request $request, int $vendorId): bool
@@ -3370,6 +3596,31 @@ class VendorCourierDashboardController extends Controller
             : $this->defaultCourierServiceSettings();
 
         return (bool) ($services['cod']['allowTeamOverride'] ?? false);
+    }
+
+    private function canActorRecordCodCollection(Request $request): bool
+    {
+        return $this->isVendorOwnerActor($request)
+            || (bool) optional($request->user())->can('courier.cod.collection.record')
+            || (bool) optional($request->user())->can('courier.bookings.manage_lifecycle');
+    }
+
+    private function canActorRecordCodHandover(Request $request): bool
+    {
+        return $this->isVendorOwnerActor($request)
+            || (bool) optional($request->user())->can('courier.cod.handover.record');
+    }
+
+    private function canActorVerifyCodHandover(Request $request): bool
+    {
+        return $this->isVendorOwnerActor($request)
+            || (bool) optional($request->user())->can('courier.cod.handover.verify');
+    }
+
+    private function canActorManageCodSettlement(Request $request): bool
+    {
+        return $this->isVendorOwnerActor($request)
+            || (bool) optional($request->user())->can('courier.cod.settlement.view_export');
     }
 
     private function resolveActiveCodCapabilityForVendor(int $vendorId, ?Request $request = null): ?CourierVendorCodCapability
@@ -3505,8 +3756,8 @@ class VendorCourierDashboardController extends Controller
             ];
         }
 
-        if (in_array($action, self::COD_COLLECTION_ACTIONS, true)) {
-            return $this->applyCodCollectionAction($shipment, $action, $payload);
+        if (in_array($action, array_merge(self::COD_COLLECTION_ACTIONS, self::COD_HANDOVER_ACTIONS), true)) {
+            return $this->applyCodLifecycleAction($shipment, $action, $payload);
         }
 
         $bookingStatus = $this->resolveBookingStatus($shipment);
@@ -3541,9 +3792,9 @@ class VendorCourierDashboardController extends Controller
         return ['ok' => true, 'message' => 'Updated'];
     }
 
-    private function applyCodCollectionAction(CourierShipment $shipment, string $action, array $payload): array
+    private function applyCodLifecycleAction(CourierShipment $shipment, string $action, array $payload): array
     {
-        if (!(bool) ($shipment->is_cod_enabled ?? false)) {
+        if (!$shipment->isCodFlowDetectedForDashboard()) {
             return [
                 'ok' => false,
                 'message' => 'COD collection is not enabled for this booking.',
@@ -3557,6 +3808,7 @@ class VendorCourierDashboardController extends Controller
             ];
         }
 
+        $actorUserId = isset($payload['actorUserId']) ? (int) $payload['actorUserId'] : null;
         $requestedAmount = $shipment->cod_requested_amount !== null
             ? (float) $shipment->cod_requested_amount
             : 0.0;
@@ -3605,6 +3857,116 @@ class VendorCourierDashboardController extends Controller
             $collectionStatus = 'refused';
             $eventStatus = 'cod_collection_refused';
             $description = 'COD collection refused.';
+        } elseif ($action === 'cod_handover_recorded') {
+            if (!in_array((string) ($shipment->cod_collection_status ?? ''), ['collected', 'partially_collected'], true)) {
+                return [
+                    'ok' => false,
+                    'message' => 'Record COD handover only after COD collection is captured.',
+                ];
+            }
+
+            $recordedAt = now();
+            $handoverNote = trim((string) ($payload['codHandoverNote'] ?? ''));
+
+            DB::transaction(function () use ($shipment, $recordedAt, $actorUserId, $handoverNote) {
+                $shipment->update([
+                    'cod_handover_status' => CourierShipment::COD_HANDOVER_STATUS_RECORDED,
+                    'cod_handover_recorded_at' => $recordedAt,
+                    'cod_handover_recorded_by_user_id' => $actorUserId && $actorUserId > 0 ? $actorUserId : null,
+                    'cod_handover_verified_at' => null,
+                    'cod_handover_verified_by_user_id' => null,
+                    'cod_handover_note' => $handoverNote !== '' ? $handoverNote : null,
+                    'cod_manual_settlement_ready_at' => null,
+                ]);
+
+                $shipment->trackingEvents()->create([
+                    'status' => 'cod_handover_recorded',
+                    'description' => 'COD handover recorded from rider to dispatcher.',
+                    'recorded_at' => $recordedAt,
+                    'meta' => [
+                        'handoverStatus' => CourierShipment::COD_HANDOVER_STATUS_RECORDED,
+                        'handoverNote' => $handoverNote !== '' ? $handoverNote : null,
+                    ],
+                ]);
+            });
+
+            return ['ok' => true, 'message' => 'Updated'];
+        } elseif ($action === 'cod_handover_verified' || $action === 'cod_handover_disputed') {
+            if ((string) ($shipment->cod_handover_status ?? '') !== CourierShipment::COD_HANDOVER_STATUS_RECORDED) {
+                return [
+                    'ok' => false,
+                    'message' => 'COD handover verification is available only after a handover record exists.',
+                ];
+            }
+
+            $recordedBy = (int) ($shipment->cod_handover_recorded_by_user_id ?? 0);
+            if ($recordedBy > 0 && $actorUserId !== null && $recordedBy === $actorUserId) {
+                return [
+                    'ok' => false,
+                    'message' => 'Separation of duties violation: the same user cannot record and verify the same COD handover.',
+                ];
+            }
+
+            $verifiedAt = now();
+            $handoverNote = trim((string) ($payload['codHandoverNote'] ?? ''));
+            $isDisputed = $action === 'cod_handover_disputed';
+            $handoverStatus = $isDisputed
+                ? CourierShipment::COD_HANDOVER_STATUS_DISPUTED
+                : CourierShipment::COD_HANDOVER_STATUS_VERIFIED;
+
+            DB::transaction(function () use ($shipment, $verifiedAt, $actorUserId, $handoverNote, $handoverStatus, $isDisputed) {
+                $shipment->update([
+                    'cod_handover_status' => $handoverStatus,
+                    'cod_handover_verified_at' => $verifiedAt,
+                    'cod_handover_verified_by_user_id' => $actorUserId && $actorUserId > 0 ? $actorUserId : null,
+                    'cod_handover_note' => $handoverNote !== '' ? $handoverNote : ($shipment->cod_handover_note ?: null),
+                    'cod_manual_settlement_ready_at' => $isDisputed ? null : $shipment->cod_manual_settlement_ready_at,
+                ]);
+
+                $shipment->trackingEvents()->create([
+                    'status' => $isDisputed ? 'cod_handover_disputed' : 'cod_handover_verified',
+                    'description' => $isDisputed
+                        ? 'COD handover marked as disputed by finance.'
+                        : 'COD handover verified by finance.',
+                    'recorded_at' => $verifiedAt,
+                    'meta' => [
+                        'handoverStatus' => $handoverStatus,
+                        'handoverNote' => $handoverNote !== '' ? $handoverNote : null,
+                    ],
+                ]);
+            });
+
+            return ['ok' => true, 'message' => 'Updated'];
+        } elseif ($action === 'cod_settlement_ready') {
+            if ((string) ($shipment->cod_handover_status ?? '') !== CourierShipment::COD_HANDOVER_STATUS_VERIFIED) {
+                return [
+                    'ok' => false,
+                    'message' => 'COD settlement readiness can be marked only after handover verification.',
+                ];
+            }
+
+            $readyAt = now();
+            $handoverNote = trim((string) ($payload['codHandoverNote'] ?? ''));
+
+            DB::transaction(function () use ($shipment, $readyAt, $handoverNote) {
+                $shipment->update([
+                    'cod_handover_status' => CourierShipment::COD_HANDOVER_STATUS_SETTLED,
+                    'cod_manual_settlement_ready_at' => $readyAt,
+                    'cod_handover_note' => $handoverNote !== '' ? $handoverNote : ($shipment->cod_handover_note ?: null),
+                ]);
+
+                $shipment->trackingEvents()->create([
+                    'status' => 'cod_settlement_ready',
+                    'description' => 'COD line marked ready for settlement reconciliation.',
+                    'recorded_at' => $readyAt,
+                    'meta' => [
+                        'handoverStatus' => CourierShipment::COD_HANDOVER_STATUS_SETTLED,
+                        'manualSettlementReadyAt' => $readyAt->toDateTimeString(),
+                    ],
+                ]);
+            });
+
+            return ['ok' => true, 'message' => 'Updated'];
         } else {
             return [
                 'ok' => false,
@@ -3619,6 +3981,13 @@ class VendorCourierDashboardController extends Controller
                 'cod_collection_status' => $collectionStatus,
                 'cod_collected_amount' => $collectedAmount,
                 'cod_collection_recorded_at' => $recordedAt,
+                'cod_handover_status' => null,
+                'cod_handover_recorded_at' => null,
+                'cod_handover_recorded_by_user_id' => null,
+                'cod_handover_verified_at' => null,
+                'cod_handover_verified_by_user_id' => null,
+                'cod_handover_note' => null,
+                'cod_manual_settlement_ready_at' => null,
             ]);
 
             $shipment->trackingEvents()->create([
@@ -4115,19 +4484,17 @@ class VendorCourierDashboardController extends Controller
                     'labelCreated' => $this->isLabelCreated($shipment),
                     'deliveredAt' => optional($deliveredAt)->format('Y-m-d H:i'),
                     'paymentStatus' => (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                    'paymentMethodRaw' => (string) ($paymentSnapshot['paymentMethodRaw'] ?? ''),
                     'paymentMethod' => (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
                     'paymentMethodLabel' => Str::title(str_replace('_', ' ', (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'))),
                     'paymentProvider' => (string) ($paymentSnapshot['paymentProvider'] ?? ''),
                     'cardRequired' => (bool) ($paymentSnapshot['cardRequired'] ?? false),
                     'lifecycleBlocked' => (bool) ($paymentSnapshot['lifecycleBlocked'] ?? false),
                     'codEnabled' => (bool) ($paymentSnapshot['codEnabled'] ?? $shipment->isCodFlowDetectedForDashboard()),
-                    'codRequestedAmount' => $shipment->cod_requested_amount !== null
-                        ? (float) $shipment->cod_requested_amount
-                        : null,
-                    'codCollectedAmount' => $shipment->cod_collected_amount !== null
-                        ? (float) $shipment->cod_collected_amount
-                        : null,
-                    'codCollectionStatus' => (string) ($shipment->cod_collection_status ?? ''),
+                    'codRequestedAmount' => $paymentSnapshot['codRequestedAmount'] ?? null,
+                    'codCollectedAmount' => $paymentSnapshot['codCollectedAmount'] ?? null,
+                    'codCollectionStatus' => (string) ($paymentSnapshot['codCollectionStatus'] ?? ''),
+                    'codHandoverStatus' => (string) ($paymentSnapshot['codHandoverStatus'] ?? ''),
                 ];
             })
             ->values();
@@ -4282,6 +4649,10 @@ class VendorCourierDashboardController extends Controller
                     'paymentMethod' => (string) ($row['paymentMethod'] ?? 'pending'),
                     'paymentStatus' => (string) ($row['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
                     'codEnabled' => (bool) ($row['codEnabled'] ?? false),
+                    'codRequestedAmount' => $row['codRequestedAmount'] ?? null,
+                    'codCollectedAmount' => $row['codCollectedAmount'] ?? null,
+                    'codCollectionStatus' => (string) ($row['codCollectionStatus'] ?? ''),
+                    'codHandoverStatus' => (string) ($row['codHandoverStatus'] ?? ''),
                 ];
             })
             ->values();
@@ -4444,6 +4815,11 @@ class VendorCourierDashboardController extends Controller
                 'Tracking Number',
                 'Category',
                 'Service',
+                'Payment Method',
+                'Payment Status',
+                'COD Requested',
+                'COD Collected',
+                'COD Collection Status',
                 'Status',
                 'Estimated Delivery',
                 'Delivered At',
@@ -4452,6 +4828,7 @@ class VendorCourierDashboardController extends Controller
             foreach ($shipments as $shipment) {
                 $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
                 $deliveredAt = $this->getDeliveredAt($shipment);
+                $paymentSnapshot = $shipment->resolveDashboardPaymentSnapshot();
 
                 fputcsv($handle, [
                     $shipment->reference,
@@ -4459,6 +4836,11 @@ class VendorCourierDashboardController extends Controller
                     $this->trackingNumber($shipment),
                     $this->resolveCategory($shipment),
                     $this->normalizeServiceLabel($shipment->service_level),
+                    (string) ($paymentSnapshot['paymentMethod'] ?? 'pending'),
+                    (string) ($paymentSnapshot['paymentStatus'] ?? CourierShipmentPayment::STATUS_PENDING),
+                    $paymentSnapshot['codRequestedAmount'] !== null ? (float) $paymentSnapshot['codRequestedAmount'] : '',
+                    $paymentSnapshot['codCollectedAmount'] !== null ? (float) $paymentSnapshot['codCollectedAmount'] : '',
+                    (string) ($paymentSnapshot['codCollectionStatus'] ?? ''),
                     $this->statusLabel($shipment->status),
                     optional($estimatedDelivery)->format('Y-m-d H:i'),
                     optional($deliveredAt)->format('Y-m-d H:i'),
@@ -4487,6 +4869,12 @@ class VendorCourierDashboardController extends Controller
                 'Last Scan At',
                 'ETA',
                 'SLA Status',
+                'Payment Method',
+                'Payment Status',
+                'COD Requested',
+                'COD Collected',
+                'COD Collection Status',
+                'COD Handover Status',
                 'Exception',
             ]);
 
@@ -4502,6 +4890,12 @@ class VendorCourierDashboardController extends Controller
                     $row['lastScanAt'] ?? '',
                     $row['eta'] ?? '',
                     $row['slaStatus'] ?? '',
+                    $row['paymentMethod'] ?? '',
+                    $row['paymentStatus'] ?? '',
+                    $row['codRequestedAmount'] ?? '',
+                    $row['codCollectedAmount'] ?? '',
+                    $row['codCollectionStatus'] ?? '',
+                    $row['codHandoverStatus'] ?? '',
                     !empty($row['exception']) ? 'Yes' : 'No',
                 ]);
             }
@@ -4644,6 +5038,7 @@ class VendorCourierDashboardController extends Controller
                 'allowCodForDomestic' => true,
                 'allowCodForInternational' => false,
                 'allowTeamOverride' => false,
+                'settlementCycleMode' => 'weekly',
             ],
         ];
     }
@@ -4668,6 +5063,10 @@ class VendorCourierDashboardController extends Controller
         $cod['allowCodForDomestic'] = (bool) ($cod['allowCodForDomestic'] ?? false);
         $cod['allowCodForInternational'] = false;
         $cod['allowTeamOverride'] = (bool) ($cod['allowTeamOverride'] ?? false);
+        $cod['settlementCycleMode'] = strtolower(trim((string) ($cod['settlementCycleMode'] ?? $cod['settlementCycle'] ?? 'weekly')));
+        if (!in_array($cod['settlementCycleMode'], ['daily', 'weekly', 'manual'], true)) {
+            $cod['settlementCycleMode'] = 'weekly';
+        }
 
         $normalized['cod'] = $cod;
 
@@ -4688,6 +5087,7 @@ class VendorCourierDashboardController extends Controller
         $isExpired = (bool) ($capability?->expires_at && $capability->expires_at->isPast());
         $canRequestByPermission = (string) (optional($request->user())->role ?? '') === 'vendor'
             || (bool) optional($request->user())->can('courier.services.cod.request')
+            || (bool) optional($request->user())->can('courier.cod.capability.manage')
             || (bool) optional($request->user())->can('courier.settings.update');
         $canRequest = $canRequestByPermission && in_array($status, [
             CourierVendorCodCapability::STATUS_NOT_REQUESTED,
@@ -6215,6 +6615,14 @@ class VendorCourierDashboardController extends Controller
                     'key' => 'assign_permissions_and_approve_access_request',
                     'label' => 'Cannot both assign permissions and approve access requests',
                     'permissions' => ['courier.team.assign_permissions', 'courier.team.access_requests.approve'],
+                    'enforceRoleEdit' => true,
+                    'enforceUserAssignment' => true,
+                    'enabled' => true,
+                ],
+                [
+                    'key' => 'cod_handover_record_and_verify',
+                    'label' => 'Cannot both record COD handover and verify COD handover',
+                    'permissions' => ['courier.cod.handover.record', 'courier.cod.handover.verify'],
                     'enforceRoleEdit' => true,
                     'enforceUserAssignment' => true,
                     'enabled' => true,

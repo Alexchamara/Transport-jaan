@@ -6,6 +6,7 @@ use App\Models\Courier\CourierCodSettlementBatch;
 use App\Models\Courier\CourierCodSettlementLine;
 use App\Models\Courier\CourierCodSettlementSetting;
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\VendorCourierSetting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -15,6 +16,9 @@ use Illuminate\Validation\ValidationException;
 class CourierCodSettlementReconciliationService
 {
     private const ELIGIBLE_COLLECTION_STATUSES = ['collected', 'partially_collected'];
+    private const CYCLE_MODE_DAILY = 'daily';
+    private const CYCLE_MODE_WEEKLY = 'weekly';
+    private const CYCLE_MODE_MANUAL = 'manual';
 
     /**
      * @param  array{fromDate:string,toDate:string,category:string,note?:string|null}  $payload
@@ -83,7 +87,10 @@ class CourierCodSettlementReconciliationService
                 ],
             ]);
 
-            $shipments = $this->eligibleShipmentQuery($fromDate, $toDate, $category)->get();
+            $shipments = $this->eligibleShipmentQuery($fromDate, $toDate, $category)
+                ->get()
+                ->filter(fn (CourierShipment $shipment) => $this->isShipmentEligibleByVendorSettlementCycle($shipment, $toDate))
+                ->values();
 
             $shipmentCount = 0;
             $grossAmount = 0.0;
@@ -124,6 +131,12 @@ class CourierCodSettlementReconciliationService
                     'vendor_user_id' => $shipment->assigned_vendor_user_id,
                     'cod_capability_id' => $shipment->cod_capability_id,
                     'line_status' => $lineStatus,
+                    'handover_status' => $shipment->cod_handover_status ?: null,
+                    'handover_recorded_at' => $shipment->cod_handover_recorded_at,
+                    'handover_recorded_by_user_id' => $shipment->cod_handover_recorded_by_user_id,
+                    'handover_verified_at' => $shipment->cod_handover_verified_at,
+                    'handover_verified_by_user_id' => $shipment->cod_handover_verified_by_user_id,
+                    'settlement_cycle_mode' => $this->resolveVendorCodSettlementCycleMode((int) ($shipment->assigned_vendor_user_id ?? 0)),
                     'currency_code' => $currencyCode,
                     'requested_cod_amount' => $requestedAmount,
                     'collected_cod_amount' => $collectedAmount,
@@ -135,6 +148,8 @@ class CourierCodSettlementReconciliationService
                             'shipment_reference' => (string) ($shipment->reference ?? ''),
                             'collection_status' => (string) ($shipment->cod_collection_status ?? ''),
                             'collection_recorded_at' => optional($shipment->cod_collection_recorded_at)->toDateTimeString(),
+                            'handover_status' => (string) ($shipment->cod_handover_status ?? ''),
+                            'manual_settlement_ready_at' => optional($shipment->cod_manual_settlement_ready_at)->toDateTimeString(),
                         ],
                     ],
                 ]);
@@ -510,10 +525,26 @@ class CourierCodSettlementReconciliationService
     private function eligibleShipmentQuery(Carbon $fromDate, Carbon $toDate, string $category): Builder
     {
         return CourierShipment::query()
-            ->where('is_cod_enabled', true)
+            ->where(function (Builder $builder): void {
+                $builder
+                    ->where('is_cod_enabled', true)
+                    ->orWhere('cod_requested_amount', '>', 0)
+                    ->orWhere('cod_collected_amount', '>', 0)
+                    ->orWhereNotNull('cod_capability_id')
+                    ->orWhereNotNull('cod_requested_method')
+                    ->orWhereNotNull('cod_collection_status');
+            })
             ->where('status', 'delivered')
             ->whereBetween('cod_collection_recorded_at', [$fromDate, $toDate])
             ->whereIn('cod_collection_status', self::ELIGIBLE_COLLECTION_STATUSES)
+            ->where(function (Builder $builder): void {
+                $builder
+                    ->whereNull('cod_handover_status')
+                    ->orWhereIn('cod_handover_status', [
+                        CourierShipment::COD_HANDOVER_STATUS_VERIFIED,
+                        CourierShipment::COD_HANDOVER_STATUS_SETTLED,
+                    ]);
+            })
             ->whereNotExists(function ($subquery): void {
                 $subquery
                     ->selectRaw('1')
@@ -532,6 +563,59 @@ class CourierCodSettlementReconciliationService
             ->when($category === CourierCodSettlementBatch::CATEGORY_INTERNATIONAL, function (Builder $query): void {
                 $query->whereIn('assignment_category', ['international', 'logistic']);
             });
+    }
+
+    private function isShipmentEligibleByVendorSettlementCycle(CourierShipment $shipment, Carbon $toDate): bool
+    {
+        $mode = $this->resolveVendorCodSettlementCycleMode((int) ($shipment->assigned_vendor_user_id ?? 0));
+
+        if ($mode === self::CYCLE_MODE_DAILY) {
+            return true;
+        }
+
+        if ($mode === self::CYCLE_MODE_WEEKLY) {
+            $recordedAt = $shipment->cod_collection_recorded_at;
+            if ($recordedAt === null) {
+                return false;
+            }
+
+            $weekStart = $toDate->copy()->startOfWeek();
+            $weekEnd = $toDate->copy()->endOfWeek();
+
+            return $recordedAt->betweenIncluded($weekStart, $weekEnd);
+        }
+
+        return $shipment->cod_manual_settlement_ready_at !== null
+            || (string) ($shipment->cod_handover_status ?? '') === CourierShipment::COD_HANDOVER_STATUS_SETTLED;
+    }
+
+    private function resolveVendorCodSettlementCycleMode(int $vendorUserId): string
+    {
+        if ($vendorUserId <= 0) {
+            return self::CYCLE_MODE_WEEKLY;
+        }
+
+        static $cache = [];
+        if (array_key_exists($vendorUserId, $cache)) {
+            return (string) $cache[$vendorUserId];
+        }
+
+        $settings = VendorCourierSetting::query()
+            ->where('vendor_user_id', $vendorUserId)
+            ->value('settings');
+
+        $codSettings = is_array($settings) && is_array($settings['services']['cod'] ?? null)
+            ? $settings['services']['cod']
+            : [];
+
+        $normalized = strtolower(trim((string) ($codSettings['settlementCycleMode'] ?? $codSettings['settlementCycle'] ?? self::CYCLE_MODE_WEEKLY)));
+        if (!in_array($normalized, [self::CYCLE_MODE_DAILY, self::CYCLE_MODE_WEEKLY, self::CYCLE_MODE_MANUAL], true)) {
+            $normalized = self::CYCLE_MODE_WEEKLY;
+        }
+
+        $cache[$vendorUserId] = $normalized;
+
+        return $normalized;
     }
 
     /**

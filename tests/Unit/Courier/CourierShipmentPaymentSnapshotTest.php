@@ -27,6 +27,7 @@ class CourierShipmentPaymentSnapshotTest extends TestCase
 
         $this->assertSame(CourierShipmentPayment::STATUS_PENDING, $snapshot['paymentStatus']);
         $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_CARD, $snapshot['paymentMethod']);
+        $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_CARD, $snapshot['paymentMethodRaw']);
         $this->assertSame(CourierShipmentPayment::PROVIDER_PAYHERE, $snapshot['paymentProvider']);
         $this->assertSame('TX-UNIT-SNAPSHOT', $snapshot['paymentReference']);
         $this->assertTrue($snapshot['cardRequired']);
@@ -45,6 +46,7 @@ class CourierShipmentPaymentSnapshotTest extends TestCase
 
         $this->assertSame(CourierShipmentPayment::STATUS_PENDING, $snapshot['paymentStatus']);
         $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_COD, $snapshot['paymentMethod']);
+        $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_COD, $snapshot['paymentMethodRaw']);
         $this->assertFalse($snapshot['cardRequired']);
         $this->assertFalse($snapshot['lifecycleBlocked']);
         $this->assertEqualsWithDelta(1600.0, (float) ($snapshot['codRequestedAmount'] ?? 0), 0.01);
@@ -97,6 +99,31 @@ class CourierShipmentPaymentSnapshotTest extends TestCase
         $this->assertTrue((bool) ($snapshot['codEnabled'] ?? false));
         $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_COD, $snapshot['paymentMethod']);
         $this->assertSame(CourierShipmentPayment::STATUS_PENDING, $snapshot['paymentStatus']);
+    }
+
+    public function test_snapshot_reclassifies_unknown_payment_method_to_cod_when_cod_evidence_exists(): void
+    {
+        $shipment = new CourierShipment();
+        $shipment->status = CourierShipment::STATUS_DELIVERED;
+        $shipment->is_cod_enabled = false;
+        $shipment->cod_requested_amount = 6400;
+        $shipment->cod_requested_method = 'cash';
+        $shipment->cod_collection_status = 'partially_collected';
+
+        $payment = new CourierShipmentPayment();
+        $payment->status = CourierShipmentPayment::STATUS_PENDING;
+        $payment->payment_method = 'other';
+        $payment->provider = CourierShipmentPayment::PROVIDER_PAYHERE;
+        $payment->is_required = false;
+        $shipment->setRelation('latestPayment', $payment);
+
+        $snapshot = $shipment->resolveDashboardPaymentSnapshot();
+
+        $this->assertSame('other', $snapshot['paymentMethodRaw']);
+        $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_COD, $snapshot['paymentMethod']);
+        $this->assertSame(CourierShipmentPayment::STATUS_PAID, $snapshot['paymentStatus']);
+        $this->assertFalse($snapshot['cardRequired']);
+        $this->assertFalse($snapshot['lifecycleBlocked']);
     }
 
     public function test_snapshot_preserves_non_cod_fallback_when_no_payment_exists(): void

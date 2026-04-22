@@ -21,6 +21,10 @@ class CourierShipment extends Model
 
     public const ASSIGNMENT_STATUS_UNASSIGNED = 'unassigned';
     public const ASSIGNMENT_STATUS_ASSIGNED = 'assigned';
+    public const COD_HANDOVER_STATUS_RECORDED = 'recorded';
+    public const COD_HANDOVER_STATUS_VERIFIED = 'verified';
+    public const COD_HANDOVER_STATUS_DISPUTED = 'disputed';
+    public const COD_HANDOVER_STATUS_SETTLED = 'settled';
 
     protected $fillable = [
         'reference',
@@ -49,6 +53,13 @@ class CourierShipment extends Model
         'cod_collection_status',
         'cod_collected_amount',
         'cod_collection_recorded_at',
+        'cod_handover_status',
+        'cod_handover_recorded_at',
+        'cod_handover_recorded_by_user_id',
+        'cod_handover_verified_at',
+        'cod_handover_verified_by_user_id',
+        'cod_handover_note',
+        'cod_manual_settlement_ready_at',
         'currency_code',
         'estimated_cost',
         'actual_cost',
@@ -68,6 +79,9 @@ class CourierShipment extends Model
         'cod_policy_snapshot' => 'array',
         'cod_collected_amount' => 'decimal:2',
         'cod_collection_recorded_at' => 'datetime',
+        'cod_handover_recorded_at' => 'datetime',
+        'cod_handover_verified_at' => 'datetime',
+        'cod_manual_settlement_ready_at' => 'datetime',
         'estimated_cost' => 'decimal:2',
         'actual_cost' => 'decimal:2',
     ];
@@ -191,20 +205,31 @@ class CourierShipment extends Model
             $resolvedPayment = $relation instanceof CourierShipmentPayment ? $relation : null;
         }
 
+        $paymentMethodRaw = null;
         if ($resolvedPayment instanceof CourierShipmentPayment) {
-            $paymentStatus = (string) ($resolvedPayment->status ?: CourierShipmentPayment::STATUS_PENDING);
-            $paymentMethod = (string) ($resolvedPayment->payment_method ?: CourierShipmentPayment::PAYMENT_METHOD_CARD);
-            $paymentProvider = $resolvedPayment->provider ? (string) $resolvedPayment->provider : null;
+            $paymentStatus = strtolower((string) ($resolvedPayment->status ?: CourierShipmentPayment::STATUS_PENDING));
+            $paymentMethodRaw = strtolower(trim((string) ($resolvedPayment->payment_method ?? '')));
+            $paymentMethod = $this->normalizePaymentMethodForDashboard($paymentMethodRaw, $codFlowDetected);
+            $paymentProvider = $resolvedPayment->provider ? strtolower((string) $resolvedPayment->provider) : null;
             $paymentReference = (string) ($resolvedPayment->tx_reference
                 ?: $resolvedPayment->gateway_payment_id
                 ?: $resolvedPayment->gateway_order_id
                 ?: '');
-            $cardRequired = (bool) $resolvedPayment->is_required
-                && $paymentMethod === CourierShipmentPayment::PAYMENT_METHOD_CARD;
+
+            if ($paymentMethod === CourierShipmentPayment::PAYMENT_METHOD_COD) {
+                // COD state is always derived from collection lifecycle, not payment row state.
+                $paymentStatus = $this->mapCodCollectionStatusToPaymentStatus((string) ($this->cod_collection_status ?? ''));
+                $paymentProvider = CourierShipmentPayment::PAYMENT_METHOD_COD;
+                $cardRequired = false;
+            } else {
+                $cardRequired = (bool) $resolvedPayment->is_required
+                    && $paymentMethod === CourierShipmentPayment::PAYMENT_METHOD_CARD;
+            }
         } else {
             $paymentMethod = $codFlowDetected
                 ? CourierShipmentPayment::PAYMENT_METHOD_COD
                 : 'pending';
+            $paymentMethodRaw = $paymentMethod;
             $paymentProvider = $paymentMethod === CourierShipmentPayment::PAYMENT_METHOD_COD ? CourierShipmentPayment::PAYMENT_METHOD_COD : null;
             $paymentReference = '';
             $cardRequired = false;
@@ -222,6 +247,7 @@ class CourierShipment extends Model
 
         return [
             'paymentStatus' => $paymentStatus,
+            'paymentMethodRaw' => $paymentMethodRaw,
             'paymentMethod' => $paymentMethod,
             'paymentProvider' => $paymentProvider,
             'paymentReference' => $paymentReference,
@@ -230,6 +256,13 @@ class CourierShipment extends Model
             'codRequestedAmount' => $this->cod_requested_amount !== null ? (float) $this->cod_requested_amount : null,
             'codCollectedAmount' => $this->cod_collected_amount !== null ? (float) $this->cod_collected_amount : null,
             'codCollectionStatus' => $this->cod_collection_status !== null ? (string) $this->cod_collection_status : null,
+            'codHandoverStatus' => $this->cod_handover_status !== null ? (string) $this->cod_handover_status : null,
+            'codHandoverRecordedAt' => optional($this->cod_handover_recorded_at)->toDateTimeString(),
+            'codHandoverRecordedByUserId' => $this->cod_handover_recorded_by_user_id !== null ? (int) $this->cod_handover_recorded_by_user_id : null,
+            'codHandoverVerifiedAt' => optional($this->cod_handover_verified_at)->toDateTimeString(),
+            'codHandoverVerifiedByUserId' => $this->cod_handover_verified_by_user_id !== null ? (int) $this->cod_handover_verified_by_user_id : null,
+            'codHandoverNote' => $this->cod_handover_note !== null ? (string) $this->cod_handover_note : null,
+            'codManualSettlementReadyAt' => optional($this->cod_manual_settlement_ready_at)->toDateTimeString(),
             'codEnabled' => $codFlowDetected,
         ];
     }
@@ -248,6 +281,28 @@ class CourierShipment extends Model
             return true;
         }
 
+        if ((int) ($this->cod_capability_id ?? 0) > 0) {
+            return true;
+        }
+
+        $policySnapshot = is_array($this->cod_policy_snapshot) ? $this->cod_policy_snapshot : [];
+        if ((bool) ($policySnapshot['enabled'] ?? false)) {
+            return true;
+        }
+
+        if (is_array($policySnapshot) && count($policySnapshot) > 0) {
+            $snapshotRequestedAmount = isset($policySnapshot['requestedAmount'])
+                ? (float) $policySnapshot['requestedAmount']
+                : 0.0;
+            if ($snapshotRequestedAmount > 0) {
+                return true;
+            }
+
+            if (trim((string) ($policySnapshot['requestedMethod'] ?? '')) !== '') {
+                return true;
+            }
+        }
+
         if (is_string($this->cod_requested_method) && trim($this->cod_requested_method) !== '') {
             return true;
         }
@@ -257,6 +312,30 @@ class CourierShipment extends Model
         }
 
         return false;
+    }
+
+    private function normalizePaymentMethodForDashboard(?string $paymentMethod, bool $codFlowDetected): string
+    {
+        $normalized = strtolower(trim((string) $paymentMethod));
+
+        if ($normalized === CourierShipmentPayment::PAYMENT_METHOD_CARD) {
+            return CourierShipmentPayment::PAYMENT_METHOD_CARD;
+        }
+
+        if ($normalized === CourierShipmentPayment::PAYMENT_METHOD_COD) {
+            return CourierShipmentPayment::PAYMENT_METHOD_COD;
+        }
+
+        if ($this->isUnknownPaymentMethodForDashboard($normalized) && $codFlowDetected) {
+            return CourierShipmentPayment::PAYMENT_METHOD_COD;
+        }
+
+        return $normalized !== '' ? $normalized : 'pending';
+    }
+
+    private function isUnknownPaymentMethodForDashboard(string $paymentMethod): bool
+    {
+        return in_array($paymentMethod, ['', 'pending', 'other', 'unknown', 'n/a', 'na'], true);
     }
 
     private function mapCodCollectionStatusToPaymentStatus(string $codCollectionStatus): string

@@ -5049,7 +5049,7 @@ class ClientCourierController extends Controller
 
     /**
      * @param  array<string, mixed>  $settings
-     * @return array<string, bool>
+     * @return array<string, bool|string>
      */
     private function resolveVendorCodServicePolicyFromSettings(array $settings): array
     {
@@ -5057,11 +5057,17 @@ class ClientCourierController extends Controller
             ? $settings['services']['cod']
             : [];
 
+        $settlementCycleMode = strtolower(trim((string) ($cod['settlementCycleMode'] ?? $cod['settlementCycle'] ?? 'weekly')));
+        if (!in_array($settlementCycleMode, ['daily', 'weekly', 'manual'], true)) {
+            $settlementCycleMode = 'weekly';
+        }
+
         return [
             'acceptCodAtCheckout' => (bool) ($cod['acceptCodAtCheckout'] ?? false),
             'allowCodForDomestic' => (bool) ($cod['allowCodForDomestic'] ?? false),
             'allowCodForInternational' => false,
             'allowTeamOverride' => (bool) ($cod['allowTeamOverride'] ?? false),
+            'settlementCycleMode' => $settlementCycleMode,
         ];
     }
 
@@ -5841,6 +5847,5 @@ class ClientCourierController extends Controller
         return app(CourierClientObservabilityService::class);
     }
 }
-
 
 

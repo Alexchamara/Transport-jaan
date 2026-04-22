@@ -77,6 +77,7 @@ const normalizePaymentMethod = (
     codCollectionStatus = null,
 ) => {
     const normalized = String(method || "").toLowerCase().trim();
+    const unknownMethods = ["", "pending", "other", "unknown", "n/a", "na"];
     const inferredCod = Boolean(codEnabled)
         || Number(codRequestedAmount || 0) > 0
         || Number(codCollectedAmount || 0) > 0
@@ -87,10 +88,10 @@ const normalizePaymentMethod = (
     if (normalized === "card") {
         return "card";
     }
-    if ((normalized === "" || normalized === "pending") && inferredCod) {
+    if (inferredCod && unknownMethods.includes(normalized)) {
         return "cod";
     }
-    return normalized === "" || normalized === "pending" ? "other" : normalized;
+    return unknownMethods.includes(normalized) ? "other" : normalized;
 };
 
 const paymentMethodBadgeCls = (method) => {

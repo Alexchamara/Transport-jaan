@@ -52,6 +52,7 @@ const DEFAULT_SETTINGS = {
             allowCodForDomestic: true,
             allowCodForInternational: false,
             allowTeamOverride: false,
+            settlementCycleMode: "weekly",
         },
     },
     labels: {
@@ -1048,6 +1049,11 @@ const Settings = () => {
                         : (hasLegacyInternationalFlag
                             ? incomingServicesCod.allowCodForLogistic
                             : DEFAULT_SETTINGS.services.cod.allowCodForInternational),
+                    settlementCycleMode: ["daily", "weekly", "manual"].includes(
+                        String(incomingServicesCod.settlementCycleMode || incomingServicesCod.settlementCycle || "").toLowerCase()
+                    )
+                        ? String(incomingServicesCod.settlementCycleMode || incomingServicesCod.settlementCycle).toLowerCase()
+                        : DEFAULT_SETTINGS.services.cod.settlementCycleMode,
                 },
             },
             labels: {
@@ -5273,6 +5279,17 @@ const Settings = () => {
                                 onChange={(next) => updateServiceCodValue("allowTeamOverride", next)}
                                 description="Use only with explicit COD override permissions for authorized staff."
                             />
+                            <Field label="Settlement Cycle Mode" help="Controls when verified COD handovers become settlement-batch eligible.">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={String(servicesCodSettings.settlementCycleMode || "weekly")}
+                                    onChange={(event) => updateServiceCodValue("settlementCycleMode", String(event.target.value || "weekly"))}
+                                >
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="manual">Manual</option>
+                                </select>
+                            </Field>
                         </div>
 
                         <div className="mt-4 grid grid-cols-1 gap-3">
@@ -10209,6 +10226,5 @@ const Settings = () => {
 };
 
 export default Settings;
-
 
 

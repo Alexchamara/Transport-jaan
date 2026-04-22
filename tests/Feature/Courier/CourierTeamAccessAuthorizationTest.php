@@ -334,6 +334,47 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         );
     }
 
+    public function test_bookings_payload_reclassifies_unknown_payment_method_to_cod_when_cod_evidence_exists(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.bookings.view',
+        ], 'courier_viewer');
+
+        $shipment = $this->createAssignedShipment($vendor, [
+            'status' => CourierShipment::STATUS_DELIVERED,
+            'is_cod_enabled' => false,
+            'cod_requested_amount' => 3200,
+            'cod_requested_method' => 'cash',
+            'cod_collection_status' => null,
+            'estimated_cost' => 3200,
+        ]);
+
+        CourierShipmentPayment::query()->create([
+            'courier_shipment_id' => $shipment->id,
+            'requested_by_user_id' => null,
+            'provider' => null,
+            'payment_method' => 'other',
+            'is_required' => false,
+            'amount' => 3200,
+            'currency_code' => 'LKR',
+            'status' => CourierShipmentPayment::STATUS_PENDING,
+            'initiated_at' => now()->subMinutes(5),
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.bookings'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('courierBookings.rows.0.id', (int) $shipment->id)
+            ->where('courierBookings.rows.0.codEnabled', true)
+            ->where('courierBookings.rows.0.paymentMethodRaw', 'other')
+            ->where('courierBookings.rows.0.paymentMethod', CourierShipmentPayment::PAYMENT_METHOD_COD)
+            ->where('courierBookings.rows.0.paymentStatus', CourierShipmentPayment::STATUS_PENDING)
+        );
+    }
+
     public function test_dispatcher_cannot_cancel_when_team_policy_disables_dispatcher_cancellation(): void
     {
         [$vendor, $workspace] = $this->createCourierVendorWorkspace();

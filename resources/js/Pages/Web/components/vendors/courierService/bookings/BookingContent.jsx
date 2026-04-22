@@ -54,10 +54,16 @@ const actionLabels = {
     cod_collected: "COD Collected",
     cod_failed: "COD Failed",
     cod_refused: "COD Refused",
+    cod_handover_recorded: "Handover Recorded",
+    cod_handover_verified: "Handover Verified",
+    cod_handover_disputed: "Handover Disputed",
+    cod_settlement_ready: "Settlement Ready",
 };
 
 const DESTRUCTIVE_BOOKING_ACTIONS = ["cancel_booking", "reject_booking", "expire_booking", "cod_failed", "cod_refused"];
 const COD_COLLECTION_ACTIONS = ["cod_collected", "cod_failed", "cod_refused"];
+const COD_HANDOVER_ACTIONS = ["cod_handover_recorded", "cod_handover_verified", "cod_handover_disputed", "cod_settlement_ready"];
+const COD_ACTIONS = [...COD_COLLECTION_ACTIONS, ...COD_HANDOVER_ACTIONS];
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -101,6 +107,7 @@ const normalizePaymentMethod = (
     codCollectionStatus = null,
 ) => {
     const normalized = String(method || "").toLowerCase().trim();
+    const unknownMethods = ["", "pending", "other", "unknown", "n/a", "na"];
     const inferredCod = Boolean(codEnabled)
         || Number(codRequestedAmount || 0) > 0
         || Number(codCollectedAmount || 0) > 0
@@ -112,10 +119,10 @@ const normalizePaymentMethod = (
     if (normalized === "card") {
         return "card";
     }
-    if ((normalized === "" || normalized === "pending") && inferredCod) {
+    if (inferredCod && unknownMethods.includes(normalized)) {
         return "cod";
     }
-    return normalized === "" || normalized === "pending" ? "other" : normalized;
+    return unknownMethods.includes(normalized) ? "other" : normalized;
 };
 
 const paymentMethodBadge = (method) => {
@@ -283,7 +290,7 @@ const BookingContent = () => {
             return;
         }
 
-        if (COD_COLLECTION_ACTIONS.includes(action) && !booking?.codEnabled) {
+        if (COD_ACTIONS.includes(action) && !booking?.codEnabled) {
             setFeedback({ type: "error", message: "COD is not enabled for this booking." });
             return;
         }
@@ -676,6 +683,10 @@ const BookingContent = () => {
                                     <p><span className="font-[700]">COD Collected:</span> {selectedBooking.codCollectedAmount !== null && selectedBooking.codCollectedAmount !== undefined ? `${Number(selectedBooking.codCollectedAmount).toFixed(2)} ${selectedBooking.currency || "LKR"}` : "-"}</p>
                                     <p><span className="font-[700]">COD Status:</span> {selectedBooking.codCollectionStatus ? titleCase(selectedBooking.codCollectionStatus) : "Pending"}</p>
                                     <p><span className="font-[700]">COD Recorded:</span> {selectedBooking.codCollectionRecordedAt || "-"}</p>
+                                    <p><span className="font-[700]">Handover Status:</span> {selectedBooking.codHandoverStatus ? titleCase(selectedBooking.codHandoverStatus) : "-"}</p>
+                                    <p><span className="font-[700]">Handover Recorded:</span> {selectedBooking.codHandoverRecordedAt || "-"}</p>
+                                    <p><span className="font-[700]">Handover Verified:</span> {selectedBooking.codHandoverVerifiedAt || "-"}</p>
+                                    <p><span className="font-[700]">Settlement Ready:</span> {selectedBooking.codManualSettlementReadyAt || "-"}</p>
                                 </>
                             )}
                             <p><span className="font-[700]">Pickup Window:</span> {selectedBooking.pickupWindow || "-"}</p>

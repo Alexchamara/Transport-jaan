@@ -95,6 +95,7 @@ class ClientCourierShipmentTransformerTest extends TestCase
 
         $this->assertSame(CourierShipmentPayment::STATUS_PENDING, $dashboard['paymentStatus']);
         $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_CARD, $dashboard['paymentMethod']);
+        $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_CARD, $dashboard['paymentMethodRaw']);
         $this->assertSame(CourierShipmentPayment::PROVIDER_PAYHERE, $dashboard['paymentProvider']);
         $this->assertSame('TX-UNIT-123', $dashboard['paymentReference']);
         $this->assertSame('PH-ORDER-UNIT', $dashboard['payment_gateway_order_id']);
@@ -105,6 +106,7 @@ class ClientCourierShipmentTransformerTest extends TestCase
 
         $this->assertSame(CourierShipmentPayment::STATUS_PENDING, $detail['payment_status']);
         $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_CARD, $detail['payment_method']);
+        $this->assertSame(CourierShipmentPayment::PAYMENT_METHOD_CARD, $detail['payment_method_raw']);
         $this->assertSame('TX-UNIT-123', $detail['payment_reference']);
         $this->assertSame('PH-ORDER-UNIT', $detail['payment_gateway_order_id']);
         $this->assertSame('PH-PAY-UNIT', $detail['payment_gateway_payment_id']);

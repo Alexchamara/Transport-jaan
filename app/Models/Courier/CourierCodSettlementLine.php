@@ -19,6 +19,10 @@ class CourierCodSettlementLine extends Model
     public const DISPUTE_STATUS_OPEN = 'open';
     public const DISPUTE_STATUS_RESOLVED = 'resolved';
     public const DISPUTE_STATUS_REJECTED = 'rejected';
+    public const HANDOVER_STATUS_RECORDED = 'recorded';
+    public const HANDOVER_STATUS_VERIFIED = 'verified';
+    public const HANDOVER_STATUS_DISPUTED = 'disputed';
+    public const HANDOVER_STATUS_SETTLED = 'settled';
 
     public const STATUS_LABELS = [
         self::STATUS_PENDING_RECONCILIATION => 'Pending Reconciliation',
@@ -39,6 +43,12 @@ class CourierCodSettlementLine extends Model
         'vendor_user_id',
         'cod_capability_id',
         'line_status',
+        'handover_status',
+        'handover_recorded_at',
+        'handover_recorded_by_user_id',
+        'handover_verified_at',
+        'handover_verified_by_user_id',
+        'settlement_cycle_mode',
         'currency_code',
         'requested_cod_amount',
         'collected_cod_amount',
@@ -59,6 +69,8 @@ class CourierCodSettlementLine extends Model
         'reserve_amount' => 'decimal:2',
         'payout_amount' => 'decimal:2',
         'discrepancy_amount' => 'decimal:2',
+        'handover_recorded_at' => 'datetime',
+        'handover_verified_at' => 'datetime',
         'reconciled_at' => 'datetime',
         'metadata' => 'array',
     ];
@@ -86,6 +98,16 @@ class CourierCodSettlementLine extends Model
     public function reconciledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reconciled_by_user_id');
+    }
+
+    public function handoverRecordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handover_recorded_by_user_id');
+    }
+
+    public function handoverVerifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handover_verified_by_user_id');
     }
 
     public function lineStatusLabel(): string

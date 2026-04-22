@@ -40,7 +40,7 @@ class CourierRoleModelService
             ],
             'courier_dispatcher' => [
                 'label' => 'Dispatcher',
-                'description' => 'Day-to-day booking and shipment lifecycle execution role.',
+                'description' => 'Day-to-day booking, COD collection, and rider handover intake operations role.',
                 'template' => 'operations',
             ],
             'courier_tracking_officer' => [
@@ -55,7 +55,7 @@ class CourierRoleModelService
             ],
             'courier_finance' => [
                 'label' => 'Finance Analyst',
-                'description' => 'Finance visibility role for rates and reports.',
+                'description' => 'Finance role for rates, COD handover verification, and settlement controls.',
                 'template' => 'finance',
             ],
             'courier_viewer' => [
@@ -73,7 +73,7 @@ class CourierRoleModelService
         return [
             'operations' => [
                 'label' => 'Operations Template',
-                'description' => 'For dispatch and shipment operations teams.',
+                'description' => 'For dispatch, shipment operations, COD collection, and handover intake teams.',
                 'baseRole' => 'courier_dispatcher',
                 'permissions' => $baseRoleMap['courier_dispatcher'] ?? [],
             ],
@@ -91,7 +91,7 @@ class CourierRoleModelService
             ],
             'finance' => [
                 'label' => 'Finance Template',
-                'description' => 'For rate visibility and financial reporting teams.',
+                'description' => 'For rate visibility, COD handover verification, and settlement reporting teams.',
                 'baseRole' => 'courier_finance',
                 'permissions' => $baseRoleMap['courier_finance'] ?? [],
             ],

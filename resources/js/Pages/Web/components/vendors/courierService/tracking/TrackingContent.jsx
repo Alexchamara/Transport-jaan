@@ -63,6 +63,10 @@ const COD_COLLECTION_ACTION_LABELS = {
     cod_collected: "COD Collected",
     cod_failed: "COD Failed",
     cod_refused: "COD Refused",
+    cod_handover_recorded: "Handover Recorded",
+    cod_handover_verified: "Handover Verified",
+    cod_handover_disputed: "Handover Disputed",
+    cod_settlement_ready: "Settlement Ready",
 };
 
 const actionLabels = {
@@ -71,6 +75,8 @@ const actionLabels = {
 };
 
 const COD_COLLECTION_ACTIONS = ["cod_collected", "cod_failed", "cod_refused"];
+const COD_HANDOVER_ACTIONS = ["cod_handover_recorded", "cod_handover_verified", "cod_handover_disputed", "cod_settlement_ready"];
+const COD_ACTIONS = [...COD_COLLECTION_ACTIONS, ...COD_HANDOVER_ACTIONS];
 const DESTRUCTIVE_ACTIONS = ["cancel_shipment", "cod_failed", "cod_refused"];
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -224,8 +230,8 @@ const TrackingContent = () => {
             return;
         }
 
-        if (!Boolean(codModalShipment?.canManageBookingLifecycle)) {
-            setFeedback({ type: "error", message: "You do not have permission to manage booking lifecycle actions." });
+        if (!Boolean(codModalShipment?.canCodCollectionRecord || codModalShipment?.canManageBookingLifecycle)) {
+            setFeedback({ type: "error", message: "You do not have permission to record COD collection." });
             return;
         }
 
@@ -261,12 +267,7 @@ const TrackingContent = () => {
             return;
         }
 
-        const isCodAction = COD_COLLECTION_ACTIONS.includes(action);
-
-        if (isCodAction && !Boolean(shipment?.canManageBookingLifecycle)) {
-            setFeedback({ type: "error", message: "You do not have permission to manage booking lifecycle actions." });
-            return;
-        }
+        const isCodAction = COD_ACTIONS.includes(action);
 
         if (isCodAction && !shipment?.codEnabled) {
             setFeedback({ type: "error", message: "COD is not enabled for this shipment." });
@@ -527,6 +528,7 @@ const TrackingContent = () => {
                                                     <p>Req: {formatMoney(row.codRequestedAmount, row.currency)}</p>
                                                     <p>Collected: {formatMoney(row.codCollectedAmount, row.currency)}</p>
                                                     <p>Status: {row.codCollectionStatus ? titleCase(row.codCollectionStatus) : "Pending"}</p>
+                                                    <p>Handover: {row.codHandoverStatus ? titleCase(row.codHandoverStatus) : "-"}</p>
                                                 </div>
                                             ) : (
                                                 <span className="text-[11px] text-[#9CA3AF]">No COD</span>
@@ -655,6 +657,10 @@ const TrackingContent = () => {
                                     <p><span className="font-[700]">COD Collected:</span> {formatMoney(selectedShipment.codCollectedAmount, selectedShipment.currency)}</p>
                                     <p><span className="font-[700]">COD Status:</span> {selectedShipment.codCollectionStatus ? titleCase(selectedShipment.codCollectionStatus) : "Pending"}</p>
                                     <p><span className="font-[700]">COD Recorded:</span> {selectedShipment.codCollectionRecordedAt || "-"}</p>
+                                    <p><span className="font-[700]">Handover Status:</span> {selectedShipment.codHandoverStatus ? titleCase(selectedShipment.codHandoverStatus) : "-"}</p>
+                                    <p><span className="font-[700]">Handover Recorded:</span> {selectedShipment.codHandoverRecordedAt || "-"}</p>
+                                    <p><span className="font-[700]">Handover Verified:</span> {selectedShipment.codHandoverVerifiedAt || "-"}</p>
+                                    <p><span className="font-[700]">Settlement Ready:</span> {selectedShipment.codManualSettlementReadyAt || "-"}</p>
                                 </>
                             ) : (
                                 <p><span className="font-[700]">COD:</span> Not enabled</p>

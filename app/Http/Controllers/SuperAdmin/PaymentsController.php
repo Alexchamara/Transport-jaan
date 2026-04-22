@@ -50,7 +50,7 @@ class PaymentsController extends Controller
             ->map(function (CourierShipment $shipment) {
                 $payment = $shipment->latestPayment;
 
-                if (!$payment instanceof CourierShipmentPayment && !(bool) ($shipment->is_cod_enabled ?? false)) {
+                if (!$payment instanceof CourierShipmentPayment && !$shipment->isCodFlowDetectedForDashboard()) {
                     return null;
                 }
 
@@ -70,6 +70,7 @@ class PaymentsController extends Controller
                         : 'cod-' . (int) $shipment->id,
                     'shipment_reference' => (string) ($shipment->reference ?? 'N/A'),
                     'method' => $method,
+                    'payment_method_raw' => (string) ($snapshot['paymentMethodRaw'] ?? ''),
                     'option' => (string) (($snapshot['paymentProvider'] ?? '') ?: ($method === CourierShipmentPayment::PAYMENT_METHOD_COD ? CourierShipmentPayment::PAYMENT_METHOD_COD : CourierShipmentPayment::PROVIDER_PAYHERE)),
                     'amount_paid' => round($amount, 2),
                     'currency_code' => strtoupper((string) (($payment instanceof CourierShipmentPayment ? $payment->currency_code : null) ?: ($shipment->currency_code ?: 'LKR'))),
@@ -87,6 +88,10 @@ class PaymentsController extends Controller
                     'cod_requested_amount' => $snapshot['codRequestedAmount'] ?? null,
                     'cod_collected_amount' => $snapshot['codCollectedAmount'] ?? null,
                     'cod_collection_status' => $snapshot['codCollectionStatus'] ?? null,
+                    'cod_handover_status' => $snapshot['codHandoverStatus'] ?? null,
+                    'cod_handover_recorded_at' => $snapshot['codHandoverRecordedAt'] ?? null,
+                    'cod_handover_verified_at' => $snapshot['codHandoverVerifiedAt'] ?? null,
+                    'cod_manual_settlement_ready_at' => $snapshot['codManualSettlementReadyAt'] ?? null,
                 ];
             })
             ->filter()
@@ -154,6 +159,15 @@ class PaymentsController extends Controller
      */
     public function getPaymentStats()
     {
+        $codScope = function ($query): void {
+            $query->where('is_cod_enabled', true)
+                ->orWhere('cod_requested_amount', '>', 0)
+                ->orWhere('cod_collected_amount', '>', 0)
+                ->orWhereNotNull('cod_capability_id')
+                ->orWhereNotNull('cod_requested_method')
+                ->orWhereNotNull('cod_collection_status');
+        };
+
         $stats = [
             'booking_payments' => [
                 'total' => DB::table('booking_payments')->sum('amount_paid'),
@@ -204,21 +218,21 @@ class PaymentsController extends Controller
             ],
             'courier_cod_payments' => [
                 'count' => CourierShipment::query()
-                    ->where('is_cod_enabled', true)
+                    ->where($codScope)
                     ->count(),
                 'paid' => CourierShipment::query()
-                    ->where('is_cod_enabled', true)
+                    ->where($codScope)
                     ->whereIn('cod_collection_status', ['collected', 'partially_collected'])
                     ->count(),
                 'pending' => CourierShipment::query()
-                    ->where('is_cod_enabled', true)
+                    ->where($codScope)
                     ->where(function ($query) {
                         $query->whereNull('cod_collection_status')
                             ->orWhereNotIn('cod_collection_status', ['collected', 'partially_collected', 'failed', 'refused']);
                     })
                     ->count(),
                 'failed' => CourierShipment::query()
-                    ->where('is_cod_enabled', true)
+                    ->where($codScope)
                     ->whereIn('cod_collection_status', ['failed', 'refused'])
                     ->count(),
             ],
