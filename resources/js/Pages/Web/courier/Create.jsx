@@ -1953,8 +1953,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const paymentFilteredQuoteProviders = useMemo(() => {
         const requiresCod = Boolean(paymentOptions.cod);
         const requiresCard = Boolean(paymentOptions.card);
+        const isAllSelected = Boolean(paymentOptions.all);
 
-        if (!requiresCod && !requiresCard) {
+        // If 'All' is selected, we show everything (OR logic)
+        // If 'All' is NOT selected, but specific ones are, we filter strictly (AND logic)
+        if (!requiresCod && !requiresCard && !isAllSelected) {
             return quoteProviders;
         }
 
@@ -1965,6 +1968,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 ? true
                 : Boolean(providerPaymentOptions.card);
 
+            if (isAllSelected) {
+                // When 'All' is selected, show providers that support EITHER COD or Card
+                return supportsCod || supportsCard;
+            }
+
+            // Strict filtering when specific options are picked
             if (requiresCod && !supportsCod) {
                 return false;
             }
@@ -1975,7 +1984,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
             return true;
         });
-    }, [paymentOptions.card, paymentOptions.cod, quoteProviders]);
+    }, [paymentOptions.card, paymentOptions.cod, paymentOptions.all, quoteProviders]);
 
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, {
@@ -3766,10 +3775,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         {provider.name.slice(0, 2).toUpperCase()}
                                                                                     </div>
                                                                                 )}
-                                                                                <div className="min-w-0">
-                                                                                    <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
-                                                                                    <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
-                                                                                </div>
+                                                                                    <div className="min-w-0">
+                                                                                        <div className="text-xs font-semibold text-[#0B1739] truncate flex items-center gap-1.5">
+                                                                                            {provider.name}
+                                                                                            <div className="flex gap-1">
+                                                                                                {provider.paymentOptions?.cod && (
+                                                                                                    <span className="bg-amber-100 text-amber-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">COD</span>
+                                                                                                )}
+                                                                                                {provider.paymentOptions?.card && (
+                                                                                                    <span className="bg-blue-100 text-blue-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Card</span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                                    </div>
                                                                             </div>
                                                                             {/* Tier rows */}
                                                                             <div className="divide-y divide-[#F7F9FC]">
@@ -3869,7 +3888,17 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                                     </div>
                                                                                                 )}
                                                                                                 <div className="min-w-0">
-                                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
+                                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight flex items-center gap-1.5">
+                                                                                                        {provider.name}
+                                                                                                        <div className="flex gap-1">
+                                                                                                            {provider.paymentOptions?.cod && (
+                                                                                                                <span className="bg-amber-100 text-amber-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">COD</span>
+                                                                                                            )}
+                                                                                                            {provider.paymentOptions?.card && (
+                                                                                                                <span className="bg-blue-100 text-blue-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Card</span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    </div>
                                                                                                     <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
                                                                                                 </div>
                                                                                             </div>
