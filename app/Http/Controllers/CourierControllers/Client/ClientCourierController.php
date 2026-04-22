@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
+use App\Services\Courier\PayHereGatewayService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Http\Request;
@@ -2412,7 +2413,7 @@ class ClientCourierController extends Controller
                 $payload
             );
 
-            CourierShipmentPayment::create([
+            $payment = CourierShipmentPayment::create([
                 'courier_shipment_id' => (int) $shipment->id,
                 'requested_by_user_id' => Auth::id(),
                 'provider' => CourierShipmentPayment::PROVIDER_PAYHERE,
@@ -2435,6 +2436,31 @@ class ClientCourierController extends Controller
             $request->session()->forget('courier_preview');
             $request->session()->flash('courier_pricing_explanation', $pricingExplanation);
             $this->rememberGuestBillAccess($request, (int) $shipment->id);
+
+            $gateway = app(PayHereGatewayService::class);
+            $checkout = $gateway->buildCheckoutPayload($payment, $shipment, Auth::user());
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => true,
+                    'shipment' => [
+                        'id' => (int) $shipment->id,
+                        'reference' => (string) $shipment->reference,
+                        'detailUrl' => route('courier.shipment.show', ['id' => (int) $shipment->id]),
+                    ],
+                    'payment' => [
+                        'id' => (int) $payment->id,
+                        'status' => (string) $payment->status,
+                        'amount' => (float) $payment->amount,
+                        'currency' => (string) $payment->currency_code,
+                        'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                    ],
+                    'checkout' => $checkout,
+                    'fallbackCheckoutUrl' => route('couriers.payments.checkout', ['shipment' => (int) $shipment->id]),
+                    'message' => 'Courier request submitted. Proceed to card checkout.',
+                    'warning' => $currencyNotice,
+                ], 201);
+            }
 
             $response = redirect()
                 ->route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])

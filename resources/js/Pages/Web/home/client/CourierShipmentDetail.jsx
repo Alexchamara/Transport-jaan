@@ -73,6 +73,25 @@ const formatDateTime = (value) => {
     return date.toLocaleString();
 };
 
+const formatAmountWithCurrency = (amount, currencyCode = 'USD') => {
+    const numericAmount = Number(amount);
+    const currency = String(currencyCode || 'USD').toUpperCase();
+
+    if (!Number.isFinite(numericAmount)) {
+        return `0.00 ${currency}`;
+    }
+
+    try {
+        return new Intl.NumberFormat('en-LK', {
+            style: 'currency',
+            currency,
+            minimumFractionDigits: 2,
+        }).format(numericAmount);
+    } catch (error) {
+        return `${numericAmount.toFixed(2)} ${currency}`;
+    }
+};
+
 const CourierShipmentDetail = () => {
     const { shipment } = usePage().props;
     const statusInfo = statusMap[shipment.status] || statusMap.pending;
@@ -135,19 +154,29 @@ const CourierShipmentDetail = () => {
                                     Reference: {shipment.code}
                                 </p>
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${statusInfo.color}`}>
-                                    <StatusIcon className="h-5 w-5" />
-                                    {statusInfo.label}
+                                <div className="flex gap-2 items-center">
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${statusInfo.color}`}>
+                                        <StatusIcon className="h-5 w-5" />
+                                        {statusInfo.label}
+                                    </div>
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${
+                                        paymentStatusRaw === 'paid'
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            : paymentStatusRaw === 'failed' || paymentStatusRaw === 'cancelled'
+                                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}>
+                                        <CreditCard className="h-4 w-4" />
+                                        Payment: {paymentStatusLabel}
+                                    </div>
+                                    <button
+                                        onClick={handleDownloadBill}
+                                        className="inline-flex items-center h-10 px-6 rounded-2xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
+                                    >
+                                        <Download className="mr-2 h-5 w-5" />
+                                        Bill
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={handleDownloadBill}
-                                    className="inline-flex items-center h-10 px-6 rounded-2xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
-                                >
-                                    <Download className="mr-2 h-5 w-5" />
-                                    Bill
-                                </button>
-                            </div>
                         </div>
                     </div>
 
@@ -365,7 +394,7 @@ const CourierShipmentDetail = () => {
                                         <div className="flex justify-between">
                                             <span className="text-slate-600">Estimated Cost</span>
                                             <span className="font-semibold">
-                                                ${shipment.estimatedCost} {shipment.currencyCode}
+                                                {formatAmountWithCurrency(shipment.estimatedCost, shipment.displayCurrency || shipment.currencyCode || 'USD')}
                                             </span>
                                         </div>
                                     )}
@@ -373,7 +402,7 @@ const CourierShipmentDetail = () => {
                                         <div className="flex justify-between">
                                             <span className="text-slate-600">Actual Cost</span>
                                             <span className="font-semibold">
-                                                ${shipment.actualCost} {shipment.currencyCode}
+                                                {formatAmountWithCurrency(shipment.actualCost, shipment.displayCurrency || shipment.currencyCode || 'USD')}
                                             </span>
                                         </div>
                                     )}
@@ -387,7 +416,7 @@ const CourierShipmentDetail = () => {
                                         <div className="flex justify-between pt-3 border-t">
                                             <span className="text-slate-600">Declared Value</span>
                                             <span className="font-semibold">
-                                                ${shipment.declaredValue} {shipment.currencyCode}
+                                                {formatAmountWithCurrency(shipment.declaredValue, shipment.currencyCode || 'LKR')}
                                             </span>
                                         </div>
                                     )}
@@ -403,7 +432,7 @@ const CourierShipmentDetail = () => {
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-600">COD Amount</span>
                                                     <span className="font-semibold">
-                                                        {codAmount !== null ? `$${codAmount.toFixed(2)} ${shipment.currencyCode || 'USD'}` : '—'}
+                                                        {codAmount !== null ? formatAmountWithCurrency(codAmount, shipment.currencyCode || 'LKR') : '—'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">

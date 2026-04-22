@@ -18,6 +18,10 @@ class ClientCourierShipmentTransformer
         $paymentData = $this->mapPaymentData($shipment, $latestPayment);
         $totalCost = (float) $packages->sum(fn ($package) => (float) ($package->quoted_price_usd ?? 0));
         $totalWeight = (float) $packages->sum(fn ($package) => (float) ($package->weight_kg ?? 0));
+        $displayAmount = $latestPayment?->amount !== null
+            ? (float) $latestPayment->amount
+            : ($shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : $totalCost);
+        $displayCurrency = strtoupper((string) ($latestPayment?->currency_code ?: 'USD'));
         $latestTracking = $trackingEvents
             ->sortByDesc(fn ($event) => $event->recorded_at ?? null)
             ->first();
@@ -54,7 +58,9 @@ class ClientCourierShipmentTransformer
             'totalWeight' => $totalWeight,
             'totalCost' => $totalCost,
             'estimatedCost' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
-            'currencyCode' => $shipment->currency_code ?? 'USD',
+            'currencyCode' => strtoupper((string) ($shipment->currency_code ?: 'LKR')),
+            'displayAmount' => $displayAmount,
+            'displayCurrency' => $displayCurrency,
             ...$paymentData,
             'insuranceRequired' => (bool) $shipment->insurance_required,
             'declaredValue' => $shipment->declared_value,
@@ -74,6 +80,11 @@ class ClientCourierShipmentTransformer
         $trackingEvents = $this->toCollection($shipment->trackingEvents ?? []);
         $latestPayment = $this->resolveLatestPayment($shipment);
         $paymentData = $this->mapPaymentData($shipment, $latestPayment);
+        $totalCost = (float) $packages->sum(fn ($package) => (float) ($package->quoted_price_usd ?? 0));
+        $displayAmount = $latestPayment?->amount !== null
+            ? (float) $latestPayment->amount
+            : ($shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : $totalCost);
+        $displayCurrency = strtoupper((string) ($latestPayment?->currency_code ?: 'USD'));
 
         return [
             'id' => $shipment->id,
@@ -99,7 +110,9 @@ class ClientCourierShipmentTransformer
             'codAmount' => $shipment->cod_requested_amount !== null ? (float) $shipment->cod_requested_amount : null,
             'codPaymentMethod' => $shipment->cod_requested_method,
             'codPolicySnapshot' => is_array($shipment->cod_policy_snapshot) ? $shipment->cod_policy_snapshot : null,
-            'currencyCode' => $shipment->currency_code ?? 'USD',
+            'currencyCode' => strtoupper((string) ($shipment->currency_code ?: 'LKR')),
+            'displayAmount' => $displayAmount,
+            'displayCurrency' => $displayCurrency,
             ...$paymentData,
             'estimatedCost' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
             'actualCost' => $shipment->actual_cost !== null ? (float) $shipment->actual_cost : null,
@@ -322,6 +335,8 @@ class ClientCourierShipmentTransformer
         $paymentProvider = $latestPayment?->provider ? (string) $latestPayment->provider : null;
         $paymentReference = $latestPayment?->tx_reference ?? $latestPayment?->gateway_payment_id ?? $latestPayment?->gateway_order_id;
         $paymentRequired = (bool) ($latestPayment?->is_required ?? false);
+        $paymentNeedsAction = $shipment->requiresCardPayment()
+            && $paymentStatus !== CourierShipmentPayment::STATUS_PAID;
 
         $gatewayOrderId = $latestPayment?->gateway_order_id;
         $gatewayPaymentId = $latestPayment?->gateway_payment_id;
@@ -348,6 +363,15 @@ class ClientCourierShipmentTransformer
             'paymentFailedAt' => $failedAt,
             'paymentLastNotifiedAt' => $lastNotifiedAt,
             'requiresCardPayment' => $shipment->requiresCardPayment(),
+            'paymentCheckoutUrl' => $paymentNeedsAction
+                ? route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])
+                : null,
+            'paymentStatusUrl' => $paymentNeedsAction
+                ? route('couriers.payments.status', ['shipment' => (int) $shipment->id])
+                : null,
+            'paymentRetryUrl' => $paymentNeedsAction
+                ? route('couriers.payments.retry', ['shipment' => (int) $shipment->id])
+                : null,
             'payment_status' => $paymentStatus,
             'payment_method' => $paymentMethod,
             'payment_provider' => $paymentProvider,
@@ -361,6 +385,15 @@ class ClientCourierShipmentTransformer
             'payment_failed_at' => $failedAt,
             'payment_last_notified_at' => $lastNotifiedAt,
             'requires_card_payment' => $shipment->requiresCardPayment(),
+            'payment_checkout_url' => $paymentNeedsAction
+                ? route('couriers.payments.checkout', ['shipment' => (int) $shipment->id])
+                : null,
+            'payment_status_url' => $paymentNeedsAction
+                ? route('couriers.payments.status', ['shipment' => (int) $shipment->id])
+                : null,
+            'payment_retry_url' => $paymentNeedsAction
+                ? route('couriers.payments.retry', ['shipment' => (int) $shipment->id])
+                : null,
         ];
     }
 

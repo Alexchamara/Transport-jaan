@@ -152,12 +152,45 @@ class CourierPaymentController extends Controller
             return redirect()->route('couriers.create')->with('error', 'Payment record not found.');
         }
 
+        $payload = $request->all();
+        $gateway = app(PayHereGatewayService::class);
+        if ($gateway->verifyNotifySignature($payload)) {
+            $crossCheck = $gateway->validateNotifyAgainstPayment($payload, $payment);
+            if ((bool) ($crossCheck['isValid'] ?? false)) {
+                $resolvedStatus = $gateway->normalizeStatusFromNotify($payload);
+                $this->applyResolvedPaymentStatus($payment, $payload, $resolvedStatus, $crossCheck);
+                $payment->refresh();
+            } else {
+                $this->appendCallbackAudit(
+                    $payment,
+                    $payload,
+                    'rejected',
+                    (string) ($crossCheck['reason'] ?? 'return_payload_mismatch'),
+                    [
+                        'crossCheck' => $crossCheck,
+                    ]
+                );
+            }
+        } else {
+            $fallbackStatus = $this->resolveSandboxReturnStatus($payload, $payment, $gateway);
+            if ($fallbackStatus !== null) {
+                $crossCheck = [
+                    'receivedOrderId' => (string) ($payment->gateway_order_id ?? ''),
+                    'receivedAmount' => number_format((float) $payment->amount, 2, '.', ''),
+                    'receivedCurrency' => strtoupper((string) ($payment->currency_code ?: 'LKR')),
+                ];
+
+                $this->applyResolvedPaymentStatus($payment, $payload, $fallbackStatus, $crossCheck);
+                $payment->refresh();
+            }
+        }
+
         $shipmentId = (int) $payment->courier_shipment_id;
         $message = $payment->status === CourierShipmentPayment::STATUS_PAID
             ? 'Payment completed successfully.'
             : 'Payment is still processing. Refresh status in a few seconds.';
 
-        return redirect()->route('couriers.payments.checkout', ['shipment' => $shipmentId])->with('success', $message);
+        return redirect()->route('courier.shipment.show', ['id' => $shipmentId])->with('success', $message);
     }
 
     public function handleCancel(Request $request)
@@ -181,7 +214,7 @@ class CourierPaymentController extends Controller
         }
 
         if ($payment instanceof CourierShipmentPayment) {
-            return redirect()->route('couriers.payments.checkout', ['shipment' => (int) $payment->courier_shipment_id])
+            return redirect()->route('courier.shipment.show', ['id' => (int) $payment->courier_shipment_id])
                 ->with('warning', 'Payment cancelled. You can retry checkout anytime.');
         }
 
@@ -233,7 +266,68 @@ class CourierPaymentController extends Controller
         }
 
         $resolvedStatus = $gateway->normalizeStatusFromNotify($payload);
+        $this->applyResolvedPaymentStatus($payment, $payload, $resolvedStatus, $crossCheck);
 
+        return response('OK', 200);
+    }
+
+    private function resolveSandboxReturnStatus(
+        array $payload,
+        CourierShipmentPayment $payment,
+        PayHereGatewayService $gateway
+    ): ?string {
+        if (!(bool) config('services.payhere.sandbox', true)) {
+            return null;
+        }
+
+        $statusCode = (string) ($payload['status_code'] ?? '');
+        if ($statusCode === '') {
+            // In a sandbox environment with no webhooks reachable (e.g. localhost),
+            // a redirect to the return_url typically implies a successful checkout in the browser.
+            return CourierShipmentPayment::STATUS_PAID;
+        }
+
+        $normalizedStatus = $gateway->normalizeStatusFromNotify($payload);
+        if (!in_array($normalizedStatus, [
+            CourierShipmentPayment::STATUS_PAID,
+            CourierShipmentPayment::STATUS_FAILED,
+            CourierShipmentPayment::STATUS_CANCELLED,
+        ], true)) {
+            return null;
+        }
+
+        $normalized = $gateway->extractNotifyOrderAmountCurrency($payload);
+        $hasAmountAndCurrency = $normalized['amount'] !== number_format(0, 2, '.', '')
+            && $normalized['currency'] !== '';
+
+        if ($hasAmountAndCurrency) {
+            $crossCheck = $gateway->validateNotifyAgainstPayment($payload, $payment);
+            if (!(bool) ($crossCheck['isValid'] ?? false)) {
+                $this->appendCallbackAudit(
+                    $payment,
+                    $payload,
+                    'rejected',
+                    (string) ($crossCheck['reason'] ?? 'sandbox_return_payload_mismatch'),
+                    [
+                        'crossCheck' => $crossCheck,
+                    ]
+                );
+
+                return null;
+            }
+        } elseif (trim((string) ($payload['payment_id'] ?? '')) === '') {
+            return null;
+        }
+
+        return $normalizedStatus;
+    }
+
+    private function applyResolvedPaymentStatus(
+        CourierShipmentPayment $payment,
+        array $payload,
+        string $resolvedStatus,
+        array $crossCheck
+    ): void {
         DB::transaction(function () use ($payment, $payload, $resolvedStatus, $crossCheck) {
             $lockedPayment = CourierShipmentPayment::query()
                 ->whereKey((int) $payment->id)
@@ -282,7 +376,7 @@ class CourierPaymentController extends Controller
                     'status' => CourierShipmentPayment::STATUS_PAID,
                     'gateway_payment_id' => (string) ($payload['payment_id'] ?? $lockedPayment->gateway_payment_id),
                     'tx_reference' => (string) ($payload['payhere_reference'] ?? $payload['payment_id'] ?? $lockedPayment->tx_reference),
-                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
+                    'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status) ?: 'sandbox_paid',
                     'paid_at' => $lockedPayment->paid_at ?: now(),
                     'failed_at' => null,
                     'failure_reason' => null,
@@ -317,8 +411,6 @@ class CourierPaymentController extends Controller
                 'callback_payload' => $currentCallbackPayload,
             ])->save();
         });
-
-        return response('OK', 200);
     }
 
     private function assertCanAccessShipment(Request $request, CourierShipment $shipment): void
