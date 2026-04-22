@@ -2397,14 +2397,20 @@ class ClientCourierController extends Controller
         ]);
 
         if ($requiresCardPayment) {
-            $checkoutAmount = (float) ($finalPayableAmountUsd ?? 0);
-            if ($checkoutAmount <= 0) {
+            $checkoutAmountUsd = (float) ($finalPayableAmountUsd ?? 0);
+            if ($checkoutAmountUsd <= 0) {
                 throw ValidationException::withMessages([
                     'shipment.paymentOptions.card' => 'Card payment cannot be initialized because the shipment amount is not available.',
                 ]);
             }
 
             [$paymentCurrency, $currencyNotice, $fallbackApplied] = $this->resolveCourierCheckoutCurrency($payload);
+            $checkoutAmount = $this->resolveCourierCheckoutAmount(
+                $checkoutAmountUsd,
+                $paymentCurrency,
+                $shipment,
+                $payload
+            );
 
             CourierShipmentPayment::create([
                 'courier_shipment_id' => (int) $shipment->id,
@@ -2422,6 +2428,7 @@ class ClientCourierController extends Controller
                     'selectedCurrency' => strtoupper((string) ($payload['shipment']['currency'] ?? '')),
                     'fallbackApplied' => $fallbackApplied,
                     'payableAmountSource' => 'enforced_estimate',
+                    'baseAmountUsd' => round($checkoutAmountUsd, 2),
                 ],
             ]);
 
@@ -3124,6 +3131,58 @@ class ClientCourierController extends Controller
             : "No supported international checkout currency was selected. Checkout will continue in {$fallbackCurrency}.";
 
         return [$fallbackCurrency, $warning, true];
+    }
+
+    private function resolveCourierCheckoutAmount(
+        float $amountUsd,
+        string $paymentCurrency,
+        CourierShipment $shipment,
+        array $payload
+    ): float
+    {
+        $paymentCurrency = strtoupper(trim($paymentCurrency));
+        if ($paymentCurrency === '' || $paymentCurrency === 'USD') {
+            return $amountUsd;
+        }
+
+        $vendorId = (int) ($shipment->assigned_vendor_user_id ?? 0);
+        $category = (string) ($shipment->assignment_category ?: $this->resolvePayloadCategory($payload));
+        $pricingConfig = $this->resolveCategoryPricingConfigForVendor($vendorId, $category);
+        $localization = is_array($pricingConfig['localization'] ?? null) ? $pricingConfig['localization'] : [];
+        $baseCurrency = strtoupper(trim((string) ($localization['baseCurrency'] ?? 'USD')));
+        $baseCurrency = $baseCurrency !== '' ? $baseCurrency : 'USD';
+
+        $manualRatesRaw = is_array($localization['manualRates'] ?? null) ? $localization['manualRates'] : [];
+        $manualRates = [];
+        foreach ($manualRatesRaw as $currency => $rate) {
+            $code = strtoupper(trim((string) $currency));
+            if ($code !== '') {
+                $manualRates[$code] = (float) $rate;
+            }
+        }
+
+        $rateBaseToUsd = 1.0;
+        if ($baseCurrency !== 'USD') {
+            $rateBaseToUsd = (float) ($manualRates['USD'] ?? 0);
+            if ($rateBaseToUsd <= 0) {
+                return $amountUsd;
+            }
+        }
+
+        $amountInBase = $baseCurrency === 'USD'
+            ? $amountUsd
+            : $amountUsd / $rateBaseToUsd;
+
+        if ($paymentCurrency === $baseCurrency) {
+            return $amountInBase;
+        }
+
+        $rateBaseToTarget = (float) ($manualRates[$paymentCurrency] ?? 0);
+        if ($rateBaseToTarget <= 0) {
+            return $amountUsd;
+        }
+
+        return $amountInBase * $rateBaseToTarget;
     }
 
     private function generateCourierPaymentOrderReference(CourierShipment $shipment): string
