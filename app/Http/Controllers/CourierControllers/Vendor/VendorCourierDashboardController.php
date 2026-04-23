@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -616,7 +617,11 @@ class VendorCourierDashboardController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
 
-            return back()->with('error', 'Unable to complete COD override workflow. Please try again.');
+            $errorMessage = (bool) ($codOverrideContext['isOverride'] ?? false)
+                ? 'Unable to complete COD override workflow. Please try again.'
+                : 'Unable to complete booking lifecycle update. Please try again.';
+
+            return back()->with('error', $errorMessage);
         }
 
         if (!$result['ok']) {
@@ -3869,7 +3874,7 @@ class VendorCourierDashboardController extends Controller
             $handoverNote = trim((string) ($payload['codHandoverNote'] ?? ''));
 
             DB::transaction(function () use ($shipment, $recordedAt, $actorUserId, $handoverNote) {
-                $shipment->update([
+                $shipment->update($this->sanitizeCourierShipmentUpdatePayload([
                     'cod_handover_status' => CourierShipment::COD_HANDOVER_STATUS_RECORDED,
                     'cod_handover_recorded_at' => $recordedAt,
                     'cod_handover_recorded_by_user_id' => $actorUserId && $actorUserId > 0 ? $actorUserId : null,
@@ -3877,7 +3882,7 @@ class VendorCourierDashboardController extends Controller
                     'cod_handover_verified_by_user_id' => null,
                     'cod_handover_note' => $handoverNote !== '' ? $handoverNote : null,
                     'cod_manual_settlement_ready_at' => null,
-                ]);
+                ]));
 
                 $shipment->trackingEvents()->create([
                     'status' => 'cod_handover_recorded',
@@ -3915,13 +3920,13 @@ class VendorCourierDashboardController extends Controller
                 : CourierShipment::COD_HANDOVER_STATUS_VERIFIED;
 
             DB::transaction(function () use ($shipment, $verifiedAt, $actorUserId, $handoverNote, $handoverStatus, $isDisputed) {
-                $shipment->update([
+                $shipment->update($this->sanitizeCourierShipmentUpdatePayload([
                     'cod_handover_status' => $handoverStatus,
                     'cod_handover_verified_at' => $verifiedAt,
                     'cod_handover_verified_by_user_id' => $actorUserId && $actorUserId > 0 ? $actorUserId : null,
                     'cod_handover_note' => $handoverNote !== '' ? $handoverNote : ($shipment->cod_handover_note ?: null),
                     'cod_manual_settlement_ready_at' => $isDisputed ? null : $shipment->cod_manual_settlement_ready_at,
-                ]);
+                ]));
 
                 $shipment->trackingEvents()->create([
                     'status' => $isDisputed ? 'cod_handover_disputed' : 'cod_handover_verified',
@@ -3949,11 +3954,11 @@ class VendorCourierDashboardController extends Controller
             $handoverNote = trim((string) ($payload['codHandoverNote'] ?? ''));
 
             DB::transaction(function () use ($shipment, $readyAt, $handoverNote) {
-                $shipment->update([
+                $shipment->update($this->sanitizeCourierShipmentUpdatePayload([
                     'cod_handover_status' => CourierShipment::COD_HANDOVER_STATUS_SETTLED,
                     'cod_manual_settlement_ready_at' => $readyAt,
                     'cod_handover_note' => $handoverNote !== '' ? $handoverNote : ($shipment->cod_handover_note ?: null),
-                ]);
+                ]));
 
                 $shipment->trackingEvents()->create([
                     'status' => 'cod_settlement_ready',
@@ -3977,7 +3982,7 @@ class VendorCourierDashboardController extends Controller
         $recordedAt = now();
 
         DB::transaction(function () use ($shipment, $collectedAmount, $collectionStatus, $recordedAt, $eventStatus, $description, $requestedAmount) {
-            $shipment->update([
+            $shipment->update($this->sanitizeCourierShipmentUpdatePayload([
                 'cod_collection_status' => $collectionStatus,
                 'cod_collected_amount' => $collectedAmount,
                 'cod_collection_recorded_at' => $recordedAt,
@@ -3988,7 +3993,7 @@ class VendorCourierDashboardController extends Controller
                 'cod_handover_verified_by_user_id' => null,
                 'cod_handover_note' => null,
                 'cod_manual_settlement_ready_at' => null,
-            ]);
+            ]));
 
             $shipment->trackingEvents()->create([
                 'status' => $eventStatus,
@@ -4003,6 +4008,37 @@ class VendorCourierDashboardController extends Controller
         });
 
         return ['ok' => true, 'message' => 'Updated'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function sanitizeCourierShipmentUpdatePayload(array $attributes): array
+    {
+        return collect($attributes)
+            ->filter(function ($value, $column) {
+                return $this->courierShipmentColumnExists((string) $column);
+            })
+            ->all();
+    }
+
+    private function courierShipmentColumnExists(string $column): bool
+    {
+        static $columnCache = [];
+
+        if (array_key_exists($column, $columnCache)) {
+            return (bool) $columnCache[$column];
+        }
+
+        try {
+            $columnCache[$column] = Schema::hasColumn('courier_shipments', $column);
+        } catch (\Throwable $exception) {
+            // Fall back to default behavior if schema metadata cannot be resolved.
+            $columnCache[$column] = true;
+        }
+
+        return (bool) $columnCache[$column];
     }
 
     private function buildClientsPayload(Request $request): array
