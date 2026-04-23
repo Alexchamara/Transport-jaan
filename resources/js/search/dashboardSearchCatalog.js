@@ -94,6 +94,13 @@ const COURIER_PERMISSION_BY_NAV_KEY = {
     profile: "courier.profile.view",
 };
 
+const wordsFromKey = (value) =>
+    String(value || "")
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
 const VENDOR_NAV_KEYS = [
     "dashboard",
     "bookings",
@@ -226,7 +233,17 @@ export const buildVendorDashboardSearchEntries = ({
                     manualPath: `${serviceName} > Settings > ${moduleItem.label}`,
                     group: serviceName,
                     description: "Open a focused settings module.",
-                    keywords: [serviceName, "settings", moduleItem.label, "configuration"],
+                    keywords: [
+                        serviceName,
+                        "settings",
+                        moduleItem.label,
+                        "configuration",
+                        wordsFromKey(moduleItem.key || ""),
+                        ...path
+                            .split("/")
+                            .filter(Boolean)
+                            .map((segment) => wordsFromKey(segment)),
+                    ],
                 })
             );
         });

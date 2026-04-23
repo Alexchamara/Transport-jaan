@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\BusBooking;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierVendorCodCapability;
+use App\Models\Courier\VendorCourierSetting;
 use App\Models\FlightBooking;
 use App\Models\SeaVehicleBookings;
 use App\Models\ServiceWorkspace;
@@ -44,7 +45,7 @@ class GlobalDashboardSearchController extends Controller
         $query = trim((string) ($validated['q'] ?? ''));
         $limit = (int) ($validated['limit'] ?? 20);
 
-        if ($query === '' || Str::length($query) < 2) {
+        if ($query === '' || Str::length($query) < 1) {
             return response()->json([
                 'data' => [],
                 'meta' => [
@@ -167,6 +168,12 @@ class GlobalDashboardSearchController extends Controller
         $staticEntries
             ->filter(fn (array $entry) => $this->entryMatchesQuery($entry, $query))
             ->each(fn (array $entry) => $entries->push($entry));
+
+        if ($canVendorViewCourierSettings && $vendorUserId) {
+            $this->buildVendorCourierSettingsFieldEntries($vendorUserId)
+                ->filter(fn (array $entry) => $this->entryMatchesQuery($entry, $query))
+                ->each(fn (array $entry) => $entries->push($entry));
+        }
 
         // Courier shipments
         if ($isClient || $canViewCourierOperations || $canVendorViewCourierBookings) {
@@ -323,6 +330,7 @@ class GlobalDashboardSearchController extends Controller
         $normalized = $entries
             ->filter(fn ($entry) => is_array($entry) && !empty($entry['title']) && !empty($entry['path']))
             ->unique(fn ($entry) => ($entry['id'] ?? '') . '::' . ($entry['path'] ?? ''))
+            ->sortByDesc(fn (array $entry) => $this->scoreEntryForQuery($entry, $query))
             ->values()
             ->take($limit * 4);
 
@@ -597,6 +605,231 @@ class GlobalDashboardSearchController extends Controller
         }
 
         return true;
+    }
+
+    private function scoreEntryForQuery(array $entry, string $query): int
+    {
+        $normalizedQuery = Str::lower(trim($query));
+        if ($normalizedQuery === '') {
+            return 0;
+        }
+
+        $title = Str::lower((string) ($entry['title'] ?? ''));
+        $manualPath = Str::lower((string) ($entry['manualPath'] ?? ''));
+        $path = Str::lower((string) ($entry['path'] ?? ''));
+        $keywords = collect($entry['keywords'] ?? [])
+            ->map(fn ($keyword) => Str::lower((string) $keyword))
+            ->filter()
+            ->values();
+
+        $score = 0;
+
+        if (Str::startsWith($title, $normalizedQuery)) {
+            $score += 140;
+        } elseif (str_contains($title, $normalizedQuery)) {
+            $score += 100;
+        }
+
+        if (str_contains($manualPath, $normalizedQuery)) {
+            $score += 40;
+        }
+
+        if (str_contains($path, $normalizedQuery)) {
+            $score += 20;
+        }
+
+        foreach ($keywords as $keyword) {
+            if (Str::startsWith($keyword, $normalizedQuery)) {
+                $score += 14;
+                continue;
+            }
+
+            if (str_contains($keyword, $normalizedQuery)) {
+                $score += 8;
+            }
+        }
+
+        $score += max(0, 30 - (int) floor(Str::length($title) / 4));
+
+        return $score;
+    }
+
+    private function buildVendorCourierSettingsFieldEntries(int $vendorUserId): Collection
+    {
+        $record = VendorCourierSetting::query()
+            ->select(['vendor_user_id', 'settings'])
+            ->where('vendor_user_id', $vendorUserId)
+            ->first();
+
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        if ($settings === []) {
+            return collect();
+        }
+
+        $modulePathMap = [
+            'business' => '/courierService/settingsPage/business',
+            'operations' => '/courierService/settingsPage/operations',
+            'sla' => '/courierService/settingsPage/sla',
+            'tracking' => '/courierService/settingsPage/tracking',
+            'notifications' => '/courierService/settingsPage/notifications',
+            'integrations' => '/courierService/settingsPage/integrations',
+            'services' => '/courierService/settingsPage/services',
+            'labels' => '/courierService/settingsPage/labels',
+            'pricing' => '/courierService/settingsPage/pricing',
+            'team' => '/courierService/settingsPage/team/policy-controls',
+        ];
+
+        $entries = collect();
+        $dedupe = [];
+
+        foreach ($settings as $moduleKey => $moduleSettings) {
+            if (!is_array($moduleSettings)) {
+                continue;
+            }
+
+            $moduleKeyString = (string) $moduleKey;
+            $moduleLabel = $this->humanizeSettingToken($moduleKeyString);
+            $modulePath = $modulePathMap[$moduleKeyString]
+                ?? '/courierService/settingsPage/' . Str::kebab($moduleKeyString);
+            $moduleEntries = collect();
+
+            $leafPaths = $this->flattenCourierSettingFieldPaths($moduleSettings);
+
+            foreach ($leafPaths as $leafPath) {
+                $leafKey = (string) end($leafPath);
+                if ($leafKey === '') {
+                    continue;
+                }
+
+                $leafLabel = $this->humanizeSettingToken($leafKey);
+                if ($leafLabel === '') {
+                    continue;
+                }
+
+                $pathSegments = collect($leafPath)
+                    ->slice(0, -1)
+                    ->filter(fn ($segment) => !is_numeric((string) $segment))
+                    ->map(fn ($segment) => $this->humanizeSettingToken((string) $segment))
+                    ->filter(fn ($segment) => $segment !== '')
+                    ->values()
+                    ->all();
+
+                $manualPath = 'Courier Service > Settings > ' . $moduleLabel;
+                if ($pathSegments !== []) {
+                    $manualPath .= ' > ' . implode(' > ', $pathSegments);
+                }
+                $manualPath .= ' > ' . $leafLabel;
+
+                $entryKey = Str::lower($modulePath . '::' . $manualPath);
+                if (isset($dedupe[$entryKey])) {
+                    continue;
+                }
+
+                $dedupe[$entryKey] = true;
+
+                $keywords = array_values(array_unique(array_filter([
+                    'courier',
+                    'settings',
+                    $moduleLabel,
+                    $leafLabel,
+                    implode(' ', array_map('strval', $leafPath)),
+                    implode(' ', $pathSegments),
+                ])));
+
+                $moduleEntries->push([
+                    'id' => 'dynamic-vendor-settings-' . md5($entryKey),
+                    'title' => 'Courier Service ' . $leafLabel,
+                    'path' => $modulePath,
+                    'manualPath' => $manualPath,
+                    'group' => 'Courier Service',
+                    'description' => 'Setting field in ' . $moduleLabel . ' module.',
+                    'keywords' => $keywords,
+                    'searchText' => $leafLabel,
+                ]);
+            }
+
+            $entries = $entries->merge(
+                $moduleEntries
+                    ->sortBy(fn (array $entry) => substr_count((string) ($entry['manualPath'] ?? ''), ' > '))
+                    ->take(64)
+                    ->values()
+            );
+        }
+
+        return $entries->take(640)->values();
+    }
+
+    private function flattenCourierSettingFieldPaths(array $value, array $prefix = [], int $depth = 0): array
+    {
+        if ($depth >= 6) {
+            return [];
+        }
+
+        $paths = [];
+
+        foreach ($value as $key => $child) {
+            $segment = (string) $key;
+            if ($segment === '' || is_numeric($segment)) {
+                continue;
+            }
+
+            $nextPath = [...$prefix, $segment];
+
+            if (is_array($child)) {
+                if (!$this->isAssocArray($child)) {
+                    continue;
+                }
+
+                $paths = [...$paths, ...$this->flattenCourierSettingFieldPaths($child, $nextPath, $depth + 1)];
+                continue;
+            }
+
+            $paths[] = $nextPath;
+        }
+
+        return $paths;
+    }
+
+    private function isAssocArray(array $value): bool
+    {
+        if ($value === []) {
+            return false;
+        }
+
+        return array_keys($value) !== range(0, count($value) - 1);
+    }
+
+    private function humanizeSettingToken(string $token): string
+    {
+        $normalized = preg_replace('/([a-z])([A-Z])/', '$1 $2', $token) ?? '';
+        $normalized = preg_replace('/[_-]+/', ' ', $normalized) ?? '';
+        $normalized = preg_replace('/\s+/', ' ', trim($normalized)) ?? '';
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        $acronyms = [
+            'api' => 'API',
+            'url' => 'URL',
+            'sla' => 'SLA',
+            'cod' => 'COD',
+            'pod' => 'POD',
+            'id' => 'ID',
+            '2fa' => '2FA',
+            'otp' => 'OTP',
+        ];
+
+        $words = array_map(function (string $word) use ($acronyms): string {
+            $lower = Str::lower($word);
+            if (isset($acronyms[$lower])) {
+                return $acronyms[$lower];
+            }
+
+            return Str::title($lower);
+        }, preg_split('/\s+/', $normalized) ?: []);
+
+        return trim(implode(' ', $words));
     }
 
     private function runFallbackSearch(string $modelClass, string $query, int $limit, ?Closure $queryCallback = null): Collection

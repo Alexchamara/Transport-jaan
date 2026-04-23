@@ -1,13 +1,38 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
 import { ArrowRight, Search, X } from "lucide-react";
 
 const DEFAULT_MAX_RESULTS = 10;
-const MAX_CONTEXT_ENTRIES = 120;
-const BACKEND_MIN_QUERY_LENGTH = 2;
+const MAX_CONTEXT_ENTRIES = 600;
+const BACKEND_MIN_QUERY_LENGTH = 1;
 const BACKEND_DEBOUNCE_MS = 220;
 const BACKEND_FETCH_LIMIT = 24;
 const REF_PATTERN = /\b[A-Z]{1,5}-[A-Z0-9]{4,}\b/g;
+const SEARCH_HIGHLIGHT_CLASS = "dashboard-search-target-highlight";
+const SEARCH_HIGHLIGHT_STYLE_ID = "dashboard-search-target-highlight-style";
+const SEARCH_PENDING_TARGET_STORAGE_KEY = "dashboard-search-pending-target";
+const SEARCH_HIGHLIGHT_DURATION_MS = 2200;
+const SEARCH_REVEAL_RETRY_MS = 120;
+const SEARCH_REVEAL_MAX_ATTEMPTS = 18;
+const SEARCH_TEXT_MATCH_SELECTORS = [
+    "main h1",
+    "main h2",
+    "main h3",
+    "main h4",
+    "main h5",
+    "main h6",
+    "main [data-search-title]",
+    "main [role='tab']",
+    "main [role='heading']",
+    "main th",
+    "main td",
+    "main label",
+    "main button",
+    "main a[href]",
+    "main p",
+    "main li",
+    "main span",
+];
 
 const STATIC_SKIP_TERMS = new Set([
     "save",
@@ -26,6 +51,123 @@ const STATIC_SKIP_TERMS = new Set([
 let contextAnchorCounter = 0;
 
 const normalizeSearchValue = (value) => String(value || "").toLowerCase().trim();
+const normalizeHashId = (hash) => String(hash || "").replace(/^#/, "").trim();
+
+const splitPathAndHash = (pathValue) => {
+    const rawValue = String(pathValue || "");
+    const hashIndex = rawValue.indexOf("#");
+
+    if (hashIndex === -1) {
+        return [rawValue, ""];
+    }
+
+    return [rawValue.slice(0, hashIndex), rawValue.slice(hashIndex + 1)];
+};
+
+const normalizePathOnly = (pathValue) => String(pathValue || "").split("?")[0] || "";
+
+const ensureHighlightStyles = () => {
+    if (typeof document === "undefined") {
+        return;
+    }
+
+    if (document.getElementById(SEARCH_HIGHLIGHT_STYLE_ID)) {
+        return;
+    }
+
+    const styleTag = document.createElement("style");
+    styleTag.id = SEARCH_HIGHLIGHT_STYLE_ID;
+    styleTag.textContent = `
+        @keyframes dashboard-search-target-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(9, 85, 172, 0.30); }
+            70% { box-shadow: 0 0 0 8px rgba(9, 85, 172, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(9, 85, 172, 0); }
+        }
+
+        .${SEARCH_HIGHLIGHT_CLASS} {
+            scroll-margin-top: 120px;
+            outline: 2px solid #0955AC !important;
+            outline-offset: 4px;
+            background: rgba(9, 85, 172, 0.08) !important;
+            border-radius: 10px;
+            animation: dashboard-search-target-pulse 900ms ease-out 2;
+            transition: background 220ms ease-out, outline-color 220ms ease-out;
+        }
+    `;
+
+    document.head.appendChild(styleTag);
+};
+
+const savePendingTarget = ({ path, hash = "", searchText = "" }) => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    const normalizedHash = normalizeHashId(hash);
+    const normalizedSearchText = String(searchText || "").trim();
+    const normalizedPath = String(path || "");
+
+    if (!normalizedPath || (!normalizedHash && !normalizedSearchText)) {
+        return;
+    }
+
+    try {
+        window.sessionStorage.setItem(
+            SEARCH_PENDING_TARGET_STORAGE_KEY,
+            JSON.stringify({
+                path: normalizedPath,
+                hash: normalizedHash,
+                searchText: normalizedSearchText,
+                createdAt: Date.now(),
+            })
+        );
+    } catch (_error) {
+        // Ignore storage exceptions (private mode / blocked storage).
+    }
+};
+
+const readPendingTarget = () => {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    try {
+        const rawValue = window.sessionStorage.getItem(SEARCH_PENDING_TARGET_STORAGE_KEY);
+        if (!rawValue) {
+            return null;
+        }
+
+        const parsed = JSON.parse(rawValue);
+        if (!parsed || typeof parsed !== "object") {
+            return null;
+        }
+
+        const path = String(parsed.path || "");
+        const hash = normalizeHashId(parsed.hash);
+        const searchText = String(parsed.searchText || "").trim();
+        const createdAt = Number(parsed.createdAt || 0);
+
+        if (!path || (!hash && !searchText) || !Number.isFinite(createdAt)) {
+            return null;
+        }
+
+        return { path, hash, searchText, createdAt };
+    } catch (_error) {
+        return null;
+    }
+};
+
+const clearPendingTarget = () => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    try {
+        window.sessionStorage.removeItem(SEARCH_PENDING_TARGET_STORAGE_KEY);
+    } catch (_error) {
+        // Ignore storage exceptions.
+    }
+};
 
 const toTitleCase = (value) =>
     String(value || "")
@@ -132,6 +274,10 @@ const buildCurrentPageContextItems = () => {
         "h6",
         "label",
         "th",
+        "td",
+        "li",
+        "p",
+        "span",
         "[role='tab']",
         "[role='heading']",
         "[data-search-title]",
@@ -151,6 +297,10 @@ const buildCurrentPageContextItems = () => {
         const normalized = normalizeSearchValue(title);
 
         if (title.length < 3 || title.length > 90) {
+            return;
+        }
+
+        if (!/[a-zA-Z]/.test(title)) {
             return;
         }
 
@@ -278,6 +428,228 @@ const DashboardSearchModal = ({
     const [backendError, setBackendError] = useState("");
     const inputRef = useRef(null);
     const backendAbortRef = useRef(null);
+    const highlightTimeoutRef = useRef(null);
+    const revealAttemptTimeoutRef = useRef(null);
+    const highlightedElementRef = useRef(null);
+    const revealRequestRef = useRef(0);
+
+    const clearCurrentHighlight = useCallback(() => {
+        if (highlightTimeoutRef.current) {
+            window.clearTimeout(highlightTimeoutRef.current);
+            highlightTimeoutRef.current = null;
+        }
+
+        if (highlightedElementRef.current) {
+            highlightedElementRef.current.classList.remove(SEARCH_HIGHLIGHT_CLASS);
+            highlightedElementRef.current = null;
+        }
+    }, []);
+
+    const revealHashTarget = useCallback(
+        (hash, { smooth = true, replaceHistory = true } = {}) => {
+            if (typeof window === "undefined" || typeof document === "undefined") {
+                return false;
+            }
+
+            const normalizedHash = normalizeHashId(hash);
+            if (!normalizedHash) {
+                return false;
+            }
+
+            const targetElement = document.getElementById(normalizedHash);
+            if (!targetElement) {
+                return false;
+            }
+
+            clearCurrentHighlight();
+
+            targetElement.scrollIntoView({
+                behavior: smooth ? "smooth" : "auto",
+                block: "center",
+                inline: "nearest",
+            });
+
+            if (replaceHistory) {
+                window.history.replaceState(
+                    {},
+                    "",
+                    `${window.location.pathname}${window.location.search}#${normalizedHash}`
+                );
+            }
+
+            targetElement.classList.add(SEARCH_HIGHLIGHT_CLASS);
+            highlightedElementRef.current = targetElement;
+
+            highlightTimeoutRef.current = window.setTimeout(() => {
+                if (highlightedElementRef.current) {
+                    highlightedElementRef.current.classList.remove(SEARCH_HIGHLIGHT_CLASS);
+                    highlightedElementRef.current = null;
+                }
+                highlightTimeoutRef.current = null;
+            }, SEARCH_HIGHLIGHT_DURATION_MS);
+
+            return true;
+        },
+        [clearCurrentHighlight]
+    );
+
+    const revealHashTargetWithRetry = useCallback(
+        (hash, options = {}) => {
+            if (typeof window === "undefined") {
+                return;
+            }
+
+            const normalizedHash = normalizeHashId(hash);
+            if (!normalizedHash) {
+                return;
+            }
+
+            if (revealAttemptTimeoutRef.current) {
+                window.clearTimeout(revealAttemptTimeoutRef.current);
+                revealAttemptTimeoutRef.current = null;
+            }
+
+            revealRequestRef.current += 1;
+            const requestId = revealRequestRef.current;
+            const maxAttempts = Number(options.maxAttempts || SEARCH_REVEAL_MAX_ATTEMPTS);
+
+            const attemptReveal = (attemptIndex) => {
+                if (revealRequestRef.current !== requestId) {
+                    return;
+                }
+
+                const didReveal = revealHashTarget(normalizedHash, options);
+                if (didReveal || attemptIndex >= maxAttempts) {
+                    return;
+                }
+
+                revealAttemptTimeoutRef.current = window.setTimeout(() => {
+                    attemptReveal(attemptIndex + 1);
+                }, SEARCH_REVEAL_RETRY_MS);
+            };
+
+            attemptReveal(1);
+        },
+        [revealHashTarget]
+    );
+
+    const revealTextTarget = useCallback(
+        (searchText, options = {}) => {
+            if (typeof document === "undefined") {
+                return false;
+            }
+
+            const normalizedText = normalizeSearchValue(searchText);
+            if (!normalizedText) {
+                return false;
+            }
+
+            const tokens = buildSearchTokens(normalizedText);
+            if (tokens.length === 0) {
+                return false;
+            }
+
+            const candidates = Array.from(
+                document.querySelectorAll(SEARCH_TEXT_MATCH_SELECTORS.join(","))
+            );
+
+            let bestElement = null;
+            let bestScore = -1;
+
+            candidates.forEach((element) => {
+                if (!elementIsVisible(element)) {
+                    return;
+                }
+
+                const rawText = String(element.textContent || "").replace(/\s+/g, " ").trim();
+                if (rawText.length < 2 || rawText.length > 140) {
+                    return;
+                }
+
+                const haystack = normalizeSearchValue(rawText);
+                if (!tokens.every((token) => haystack.includes(token))) {
+                    return;
+                }
+
+                let score = 0;
+
+                if (haystack === normalizedText) {
+                    score += 260;
+                } else if (haystack.startsWith(normalizedText)) {
+                    score += 190;
+                } else if (haystack.includes(normalizedText)) {
+                    score += 120;
+                }
+
+                if (/^h[1-6]$/i.test(element.tagName)) {
+                    score += 40;
+                }
+
+                if (element.tagName === "TH" || element.tagName === "LABEL") {
+                    score += 24;
+                }
+
+                score += Math.max(0, 40 - Math.floor(rawText.length / 2));
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestElement = element;
+                }
+            });
+
+            if (!bestElement) {
+                return false;
+            }
+
+            const anchorId = ensureElementAnchor(bestElement, normalizedText);
+            if (!anchorId) {
+                return false;
+            }
+
+            return revealHashTarget(anchorId, options);
+        },
+        [revealHashTarget]
+    );
+
+    const revealTextTargetWithRetry = useCallback(
+        (searchText, options = {}) => {
+            if (typeof window === "undefined") {
+                return;
+            }
+
+            const normalizedSearchText = String(searchText || "").trim();
+            if (!normalizedSearchText) {
+                return;
+            }
+
+            if (revealAttemptTimeoutRef.current) {
+                window.clearTimeout(revealAttemptTimeoutRef.current);
+                revealAttemptTimeoutRef.current = null;
+            }
+
+            revealRequestRef.current += 1;
+            const requestId = revealRequestRef.current;
+            const maxAttempts = Number(options.maxAttempts || SEARCH_REVEAL_MAX_ATTEMPTS);
+
+            const attemptReveal = (attemptIndex) => {
+                if (revealRequestRef.current !== requestId) {
+                    return;
+                }
+
+                const didReveal = revealTextTarget(normalizedSearchText, options);
+                if (didReveal || attemptIndex >= maxAttempts) {
+                    return;
+                }
+
+                revealAttemptTimeoutRef.current = window.setTimeout(() => {
+                    attemptReveal(attemptIndex + 1);
+                }, SEARCH_REVEAL_RETRY_MS);
+            };
+
+            attemptReveal(1);
+        },
+        [revealTextTarget]
+    );
 
     const baseItems = useMemo(() => {
         const dedupe = new Set();
@@ -494,30 +866,112 @@ const DashboardSearchModal = ({
         };
     }, [isOpen, query]);
 
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return undefined;
+        }
+
+        ensureHighlightStyles();
+
+        const pendingTarget = readPendingTarget();
+        const currentPath = normalizePathOnly(window.location.pathname);
+        const currentHash = normalizeHashId(window.location.hash);
+
+        if (pendingTarget) {
+            const isExpired = Date.now() - pendingTarget.createdAt > 120000;
+
+            if (isExpired) {
+                clearPendingTarget();
+            } else if (normalizePathOnly(pendingTarget.path) === currentPath) {
+                clearPendingTarget();
+                if (pendingTarget.hash) {
+                    revealHashTargetWithRetry(pendingTarget.hash, {
+                        smooth: true,
+                        replaceHistory: true,
+                        maxAttempts: SEARCH_REVEAL_MAX_ATTEMPTS,
+                    });
+                } else if (pendingTarget.searchText) {
+                    revealTextTargetWithRetry(pendingTarget.searchText, {
+                        smooth: true,
+                        replaceHistory: false,
+                        maxAttempts: SEARCH_REVEAL_MAX_ATTEMPTS,
+                    });
+                }
+                return undefined;
+            }
+        }
+
+        if (currentHash && currentHash.startsWith("search-target-")) {
+            revealHashTargetWithRetry(currentHash, {
+                smooth: true,
+                replaceHistory: true,
+                maxAttempts: SEARCH_REVEAL_MAX_ATTEMPTS,
+            });
+        }
+
+        return undefined;
+    }, [revealHashTargetWithRetry, revealTextTargetWithRetry]);
+
+    useEffect(() => {
+        return () => {
+            if (revealAttemptTimeoutRef.current) {
+                window.clearTimeout(revealAttemptTimeoutRef.current);
+                revealAttemptTimeoutRef.current = null;
+            }
+
+            clearCurrentHighlight();
+        };
+    }, [clearCurrentHighlight]);
+
     const handleSelect = (item) => {
         if (!item?.path) {
             return;
         }
 
-        const [targetPath, targetHash] = item.path.split("#");
-        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+        const typedQuery = String(query || "").trim();
+        const highlightSearchText = typedQuery || String(item.searchText || item.title || "").trim();
+        const [targetPath, targetHash] = splitPathAndHash(item.path);
+        const currentPath = typeof window !== "undefined" ? normalizePathOnly(window.location.pathname) : "";
+        const targetPathOnly = normalizePathOnly(targetPath);
 
-        onClose?.();
-
-        if (targetPath === currentPath && targetHash) {
-            const targetElement = document.getElementById(targetHash);
-            if (targetElement) {
-                targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                window.history.replaceState({}, "", item.path);
-                return;
-            }
-        }
-
-        if (targetPath === currentPath && !targetHash) {
-            window.scrollTo({ top: 0, behavior: "smooth" });
+        if (targetPathOnly === currentPath && targetHash) {
+            revealHashTargetWithRetry(targetHash, {
+                smooth: true,
+                replaceHistory: true,
+                maxAttempts: SEARCH_REVEAL_MAX_ATTEMPTS,
+            });
+            onClose?.();
             return;
         }
 
+        if (targetPathOnly === currentPath && !targetHash) {
+            const didRevealByText = revealTextTarget(highlightSearchText, {
+                smooth: true,
+                replaceHistory: false,
+            });
+
+            if (!didRevealByText) {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            onClose?.();
+            return;
+        }
+
+        if (targetHash) {
+            savePendingTarget({
+                path: targetPathOnly,
+                hash: targetHash,
+                searchText: highlightSearchText,
+            });
+        } else {
+            savePendingTarget({
+                path: targetPathOnly,
+                searchText: highlightSearchText,
+            });
+        }
+
+        onClose?.();
         router.visit(item.path);
     };
 
