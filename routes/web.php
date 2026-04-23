@@ -44,6 +44,7 @@ use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayControll
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierLabelController;
 use App\Http\Controllers\CourierControllers\Vendor\CourierTeamController;
+use App\Http\Controllers\Search\GlobalDashboardSearchController;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 
 /*
@@ -364,6 +365,7 @@ Route::prefix('api')->name('api.')->group(function () {
     // Warehouse like toggle (requires auth)
     Route::middleware(['auth'])->group(function () {
         Route::post('/warehouse/like-toggle', [WarehouseBookingController::class, 'toggleLike'])->name('client.warehouse.like.toggle');
+        Route::get('/dashboard/global-search', GlobalDashboardSearchController::class)->name('dashboard.global-search');
     });
 });
 
@@ -2367,5 +2369,4 @@ Route::get('/storage/download/{path}', function ($path) {
 |--------------------------------------------------------------------------
 */
 require __DIR__ . '/auth.php';
-
 

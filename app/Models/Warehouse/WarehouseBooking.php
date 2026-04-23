@@ -5,10 +5,12 @@ namespace App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use Laravel\Scout\Searchable;
 
 class WarehouseBooking extends Model
 {
     use HasFactory;
+    use Searchable;
 
     protected $fillable = [
         'user_id',
@@ -150,5 +152,25 @@ class WarehouseBooking extends Model
         
         // Can cancel if status is pending, confirmed, or active
         return in_array($this->status, ['pending', 'confirmed', 'active']);
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'user_id' => (int) ($this->user_id ?? 0),
+            'warehouse_unit_id' => (int) ($this->warehouse_unit_id ?? 0),
+            'booking_reference' => (string) ($this->booking_reference ?? ''),
+            'company_name' => (string) ($this->company_name ?? ''),
+            'contact_person' => (string) ($this->contact_person ?? ''),
+            'email' => (string) ($this->email ?? ''),
+            'phone' => (string) ($this->phone ?? ''),
+            'status' => (string) ($this->status ?? ''),
+            'payment_status' => (string) ($this->payment_status ?? ''),
+            'goods_type' => (string) ($this->goods_type ?? ''),
+            'storage_type' => (string) ($this->storage_type ?? ''),
+            'final_amount' => (string) ($this->final_amount ?? ''),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
     }
 }

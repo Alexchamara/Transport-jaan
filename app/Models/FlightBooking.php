@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 
 
 
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 class FlightBooking extends Model
 {
     use HasFactory;
+    use Searchable;
 
     protected $fillable = [
         'user_id',
@@ -46,5 +48,22 @@ class FlightBooking extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'user_id' => (int) ($this->user_id ?? 0),
+            'booking_reference' => (string) ($this->booking_reference ?? ''),
+            'name' => (string) ($this->name ?? ''),
+            'email' => (string) ($this->email ?? ''),
+            'phone' => (string) ($this->phone ?? ''),
+            'trip_type' => (string) ($this->trip_type ?? ''),
+            'departure_airport' => (string) ($this->departure_airport ?? ''),
+            'arriving_airport' => (string) ($this->arriving_airport ?? ''),
+            'status' => (string) ($this->status ?? ''),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
     }
 }

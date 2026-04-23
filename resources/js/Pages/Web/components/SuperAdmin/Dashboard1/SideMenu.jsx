@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Search } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import CompanyLogo from "../../CompanyLogo";
 import ActionModalTemplate from "../Common/ActionModalTemplate";
+import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
+import { buildSuperAdminDashboardSearchEntries } from "@/search/dashboardSearchCatalog";
 import homepng from "../../../assets/superAdmin/HomeB.svg";
 import homepngW from "../../../assets/superAdmin/HomeW.svg";
 import drop from "../../../assets/superAdmin/Chevron Down.png";
@@ -38,6 +40,7 @@ const SideMenu = () => {
     const [isAccountOpen, setIsAccountOpen] = useState(initialSidebarState.isAccountOpen);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
     const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null });
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     const authUser = props?.auth?.user ?? null;
     const superAdminCourierPermissions = Array.isArray(authUser?.superadmin_courier_permissions)
@@ -58,6 +61,24 @@ const SideMenu = () => {
     const canViewCourierOperations = hasSuperAdminCourierPermission("superadmin.courier.operations.view");
     const canViewPricingGovernance = hasSuperAdminCourierPermission("superadmin.courier.pricing.governance.view");
     const canViewCourierManagement = canViewReports || canViewCodSettlement || canViewPayments || canViewCourierOperations || canViewPricingGovernance;
+
+    const superAdminSearchItems = useMemo(
+        () =>
+            buildSuperAdminDashboardSearchEntries({
+                canViewReports,
+                canViewCodSettlement,
+                canViewPayments,
+                canViewCourierOperations,
+                canViewPricingGovernance,
+            }),
+        [
+            canViewReports,
+            canViewCodSettlement,
+            canViewPayments,
+            canViewCourierOperations,
+            canViewPricingGovernance,
+        ]
+    );
 
     function normalizeLegacySuperadminPath(pathname) {
         if (!pathname) {
@@ -265,6 +286,21 @@ const SideMenu = () => {
         updateSidebarState(url);
     }, [url]);
 
+    useEffect(() => {
+        const onKeyDown = (event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                setIsSearchOpen(true);
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, []);
+
     const handleMenuClick = (menu) => {
         setActiveSubsection(menu);
 
@@ -391,6 +427,17 @@ const SideMenu = () => {
                 >
                     <CompanyLogo enableLink={false} className='pb-[20px] h-[120px] object-contain' fallbackClassName='text-white text-[25px] font-bold poppins sm:text-[20px] md:text-[25px] lg:text-[25px]' />
                 </Link>
+
+                <button
+                    onClick={() => setIsSearchOpen(true)}
+                    className="w-[244px] h-[44px] rounded-md px-4 mb-4 bg-[#101A3A] hover:bg-[#182650] transition flex items-center gap-3 sm:w-[200px] md:w-[244px] lg:w-[244px]"
+                    title="Search dashboard (Cmd+K)"
+                    aria-label="Search super admin dashboard"
+                >
+                    <Search size={16} className="text-[#6EA8FF]" />
+                    <span className="text-[14px] font-[600] text-white">Search Dashboard</span>
+                    <span className="ml-auto text-[10px] font-[600] text-[#7D92C6]">Cmd+K</span>
+                </button>
 
                 {/* Main Menu */}
                 <div className="w-[244px] flex flex-col gap-2 mt-2 sm:w-[200px] md:w-[244px] lg:w-[244px]">
@@ -1351,6 +1398,15 @@ const SideMenu = () => {
                     </div>
                 </div>
             </div>
+
+            <DashboardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                items={superAdminSearchItems}
+                title="Search Super Admin Dashboard"
+                placeholder="Search reports, finance, services, users, and settings"
+                emptyStateMessage="No super admin dashboard destination matched your query."
+            />
 
             {/* Action Modal Template */}
             <AnimatePresence>

@@ -5,10 +5,12 @@ namespace App\Models\Courier;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 
 class CourierVendorCodCapability extends Model
 {
     use HasFactory;
+    use Searchable;
 
     public const CATEGORY_DOMESTIC = 'domestic';
     public const CATEGORY_INTERNATIONAL = 'international';
@@ -103,5 +105,22 @@ class CourierVendorCodCapability extends Model
     public function statusLabel(): string
     {
         return self::STATUS_LABELS[$this->status] ?? 'Unknown';
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'vendor_user_id' => (int) ($this->vendor_user_id ?? 0),
+            'service_workspace_id' => (int) ($this->service_workspace_id ?? 0),
+            'category' => (string) ($this->category ?? ''),
+            'status' => (string) ($this->status ?? ''),
+            'requested_note' => (string) ($this->requested_note ?? ''),
+            'decision_reason' => (string) ($this->decision_reason ?? ''),
+            'requested_at' => optional($this->requested_at)->toIso8601String(),
+            'reviewed_at' => optional($this->reviewed_at)->toIso8601String(),
+            'approved_at' => optional($this->approved_at)->toIso8601String(),
+            'expires_at' => optional($this->expires_at)->toIso8601String(),
+        ];
     }
 }

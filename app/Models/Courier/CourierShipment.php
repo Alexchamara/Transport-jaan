@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 class CourierShipment extends Model
 {
     use HasFactory;
+    use Searchable;
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_CONFIRMED = 'confirmed';
@@ -203,5 +205,24 @@ class CourierShipment extends Model
     public function isOperationsFrozen(): bool
     {
         return SuperAdminCourierActionAudit::isShipmentOperationsFrozen((int) $this->id);
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'reference' => (string) ($this->reference ?? ''),
+            'status' => (string) ($this->status ?? ''),
+            'service_level' => (string) ($this->service_level ?? ''),
+            'assignment_status' => (string) ($this->assignment_status ?? ''),
+            'requested_by_user_id' => (int) ($this->requested_by_user_id ?? 0),
+            'assigned_vendor_user_id' => (int) ($this->assigned_vendor_user_id ?? 0),
+            'currency_code' => (string) ($this->currency_code ?? ''),
+            'estimated_cost' => (string) ($this->estimated_cost ?? ''),
+            'actual_cost' => (string) ($this->actual_cost ?? ''),
+            'delivery_notes' => (string) ($this->delivery_notes ?? ''),
+            'internal_notes' => (string) ($this->internal_notes ?? ''),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
     }
 }

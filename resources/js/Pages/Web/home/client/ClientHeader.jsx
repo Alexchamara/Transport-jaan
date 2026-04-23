@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { router, usePage, Link } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
 import ActionModalTemplate from "../../components/SuperAdmin/Common/ActionModalTemplate";
@@ -8,18 +8,23 @@ import bell from "../../assets/header/bell.svg";
 import search from "../../assets/header/search.svg";
 import { ArrowLeft } from "lucide-react";
 import CompanyLogo from "../../components/CompanyLogo";
+import DashboardSearchModal from "@/Components/search/DashboardSearchModal";
+import { buildClientDashboardSearchEntries } from "@/search/dashboardSearchCatalog";
 
 const ClientHeader = () => {
     const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [actionModalState, setActionModalState] = useState({ isOpen: false });
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     const [openDropdown, setOpenDropdown] = useState({
         vehicle: false,
         ticket: false,
         courier: false,
     });
+
+    const clientSearchItems = useMemo(() => buildClientDashboardSearchEntries(), []);
 
     const toggleDropdown = (key) => {
         setOpenDropdown((prev) => ({
@@ -130,6 +135,21 @@ const ClientHeader = () => {
         }
     }, []);
 
+    useEffect(() => {
+        const onKeyDown = (event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                setIsSearchOpen(true);
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, []);
+
     return (
         <header className="relative z-50 w-full h-auto py-[5px]">
             <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 py-2 sm:py-4 flex items-center justify-between relative">
@@ -168,6 +188,18 @@ const ClientHeader = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex justify-center items-center"
+                        title="Search dashboard (Cmd+K)"
+                        aria-label="Search client dashboard"
+                    >
+                        <img
+                            src={search}
+                            className="size-[18px] md:w-[24px] md:h-[23px]"
+                            alt="Search"
+                        />
+                    </button>
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={bell}
@@ -269,6 +301,18 @@ const ClientHeader = () => {
                                 </svg>
                             </button>
                         </div>
+
+                        <button
+                            onClick={() => {
+                                setIsSearchOpen(true);
+                                setIsMenuOpen(false);
+                            }}
+                            className="mb-6 h-[44px] w-full rounded-[12px] bg-[#E8EBEF] hover:bg-[#DDE2E8] transition px-4 flex items-center gap-3 text-[#0955AC] font-[600]"
+                        >
+                            <img src={search} className="w-[18px] h-[18px]" alt="Search" />
+                            Search Dashboard
+                            <span className="ml-auto text-[11px] text-[#5B6B83]">Cmd+K</span>
+                        </button>
 
                         {/* Navigation */}
                         <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
@@ -555,6 +599,15 @@ const ClientHeader = () => {
             )}
 
             {/* Logout Confirmation Modal */}
+            <DashboardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                items={clientSearchItems}
+                title="Search Client Dashboard"
+                placeholder="Search bookings, services, and settings"
+                emptyStateMessage="No client dashboard matches were found for this query."
+            />
+
             <AnimatePresence>
                 {actionModalState.isOpen && (
                     <ActionModalTemplate

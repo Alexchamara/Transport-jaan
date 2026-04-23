@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Laravel\Scout\Searchable;
 
 class Booking extends Model
 {
+    use Searchable;
+
     public const VEHICLE_OWNER_KEY = 'provider_id';
 
     protected $fillable = [
@@ -117,5 +120,21 @@ class Booking extends Model
             return null;
         }
         return Carbon::now()->diffInHours($this->start_date, false);
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'client_id' => (int) ($this->client_id ?? 0),
+            'vehicle_id' => (int) ($this->vehicle_id ?? 0),
+            'status' => (string) ($this->status ?? ''),
+            'currency' => (string) ($this->currency ?? ''),
+            'total_amount' => (string) ($this->total_amount ?? ''),
+            'notes' => (string) ($this->notes ?? ''),
+            'vehicle_snapshot' => json_encode($this->vehicle_snapshot ?? []),
+            'addons_snapshot' => json_encode($this->addons_snapshot ?? []),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
     }
 }

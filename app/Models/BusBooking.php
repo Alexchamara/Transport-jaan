@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\BookingReferenceGenerator;
+use Laravel\Scout\Searchable;
 
 class BusBooking extends Model
 {
     use HasFactory;
+    use Searchable;
 
     protected $fillable = [
         'user_id',
@@ -104,5 +106,22 @@ class BusBooking extends Model
               ->orWhere('status', '!=', 'pending')
               ->orWhere('payment_status', 'paid');
         });
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'user_id' => (int) ($this->user_id ?? 0),
+            'booking_reference' => (string) ($this->booking_reference ?? ''),
+            'passenger_name' => (string) ($this->passenger_name ?? ''),
+            'passenger_email' => (string) ($this->passenger_email ?? ''),
+            'passenger_phone' => (string) ($this->passenger_phone ?? ''),
+            'status' => (string) ($this->status ?? ''),
+            'payment_status' => (string) ($this->payment_status ?? ''),
+            'total_price' => (string) ($this->total_price ?? ''),
+            'seat_numbers' => json_encode($this->seat_numbers ?? []),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
     }
 }

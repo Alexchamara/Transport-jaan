@@ -6,12 +6,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Scout\Searchable;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, Searchable;
 
     /**
      * The attributes that are mass assignable.
@@ -138,4 +139,17 @@ class User extends Authenticatable
         return $this->avatar ? asset('storage/' . $this->avatar) : null;
     }
 
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'name' => (string) ($this->name ?? ''),
+            'email' => (string) ($this->email ?? ''),
+            'phone' => (string) ($this->phone ?? ''),
+            'role' => (string) ($this->role ?? ''),
+            'vendor_type' => (string) ($this->vendor_type ?? ''),
+            'status' => (string) ($this->status ?? ''),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
+    }
 }

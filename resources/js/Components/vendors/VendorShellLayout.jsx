@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { ArrowLeft, MapPin, Menu, UserCircle, Users } from "lucide-react";
+import { ArrowLeft, MapPin, Menu, Search, UserCircle, Users } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
 import { installGlobalVendorButtonTracking, logVendorButtonClick } from "../../utils/vendorActivityLogger";
+import DashboardSearchModal from "../search/DashboardSearchModal";
+import { buildVendorDashboardSearchEntries } from "../../search/dashboardSearchCatalog";
 
 import dashLogo from "../../Pages/Web/assets/vendors/dashboard/dashLogo.svg";
 import bookLogo from "../../Pages/Web/assets/vendors/dashboard/bookLogo.svg";
@@ -161,6 +163,7 @@ const VendorShellLayout = ({
     const [showModal, setShowModal] = useState(false);
     const [blockedService, setBlockedService] = useState("");
     const [isUnverifiedModal, setIsUnverifiedModal] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     useEffect(() => {
         const cleanup = installGlobalVendorButtonTracking({
@@ -168,6 +171,21 @@ const VendorShellLayout = ({
         });
 
         return cleanup;
+    }, []);
+
+    useEffect(() => {
+        const onKeyDown = (event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                setIsSearchOpen(true);
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+        };
     }, []);
 
     useEffect(() => {
@@ -230,6 +248,8 @@ const VendorShellLayout = ({
 
     const approvedSlugs = user?.approved_service_slugs || [];
     const courierPermissions = Array.isArray(user?.courier_permissions) ? user.courier_permissions : [];
+    const approvedSlugsSignature = approvedSlugs.join("|");
+    const courierPermissionsSignature = courierPermissions.join("|");
 
     const hasCourierPermission = (permission) => {
         if (activeService !== "Courier Service") {
@@ -340,6 +360,25 @@ const VendorShellLayout = ({
             handleNavbarClick(serviceName, false);
         }
     };
+
+    const vendorSearchItems = useMemo(
+        () =>
+            buildVendorDashboardSearchEntries({
+                serviceTabs: SERVICE_TABS,
+                serviceConfig: SERVICE_CONFIG,
+                isVerified,
+                canAccessService,
+                hasCourierPermission,
+                routePathResolver: routePath,
+            }),
+        [
+            activeService,
+            isVerified,
+            approvedSlugsSignature,
+            courierPermissionsSignature,
+            user?.role,
+        ]
+    );
 
     const navigate = (routeFn) => {
         const p = routePath(routeFn);
@@ -616,6 +655,14 @@ const VendorShellLayout = ({
                             </button>
                             <span className="flex-1 font-[600] text-[15px] text-gray-800 truncate">{activeService}</span>
                             <div className="flex items-center gap-1 flex-shrink-0">
+                                <button
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="h-9 w-9 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center justify-center"
+                                    aria-label="Search vendor dashboard"
+                                    title="Search (Cmd+K)"
+                                >
+                                    <Search size={16} className="text-[#0955AC]" />
+                                </button>
                                 <NotificationDropdown bellIcon={bellIcon} />
                                 {settingsRoute && <UserDropdown settingsRoute={settingsRoute} />}
                             </div>
@@ -673,6 +720,14 @@ const VendorShellLayout = ({
                             )}
                         </div>
                         <div className="flex-shrink-0 flex items-center gap-2 ml-3 border-l border-gray-200 pl-3">
+                            <button
+                                onClick={() => setIsSearchOpen(true)}
+                                className="h-10 w-10 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center justify-center"
+                                aria-label="Search vendor dashboard"
+                                title="Search (Cmd+K)"
+                            >
+                                <Search size={18} className="text-[#0955AC]" />
+                            </button>
                             <NotificationDropdown bellIcon={bellIcon} />
                             {settingsRoute && <UserDropdown settingsRoute={settingsRoute} />}
                         </div>
@@ -684,6 +739,15 @@ const VendorShellLayout = ({
                     </div>
                 </div>
             </div>
+
+            <DashboardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                items={vendorSearchItems}
+                title="Search Vendor Dashboard"
+                placeholder="Search services, pages, settings, bookings, and tools"
+                emptyStateMessage="No matching vendor pages were found for your available services."
+            />
 
             {/* Access Denied Modal */}
             {showModal && (
