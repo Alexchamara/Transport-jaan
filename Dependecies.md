@@ -13,6 +13,11 @@ Pricing import adapter depencency:
     composer require phpoffice/phpspreadsheet smalot/pdfparser --no-interaction
 
 Global dashboard search (Scout + Meilisearch):
+
+    composer require spatie/laravel-permission:^7.2 --no-interaction
+    composer require spatie/laravel-permission:^6.25 --no-interaction
+    php artisan vendor:publish --provider="Laravel\Scout\ScoutServiceProvider" --force
+
     composer require laravel/scout
     php artisan vendor:publish --provider="Laravel\Scout\ScoutServiceProvider"
 
