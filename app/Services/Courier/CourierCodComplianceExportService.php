@@ -33,11 +33,7 @@ class CourierCodComplianceExportService
         }
 
         if ($categoryFilter !== 'all') {
-            $capabilitiesQuery->whereIn('category', [
-                CourierVendorCodCapability::CATEGORY_DOMESTIC,
-                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
-                'logistic',
-            ]);
+            $this->applyCapabilityCategoryFilter($capabilitiesQuery, $categoryFilter);
         }
 
         if ($search !== '') {
@@ -145,6 +141,7 @@ class CourierCodComplianceExportService
                         'issueCount' => 0,
                         'verifiedEvents' => 0,
                     ];
+                    $normalizedCategory = CourierVendorCodCapability::normalizeCategory((string) $capability->category);
 
                     return [
                         'capabilityId' => $capabilityId,
@@ -153,8 +150,8 @@ class CourierCodComplianceExportService
                         'vendorEmail' => (string) ($capability->vendor->email ?? ''),
                         'status' => (string) $capability->status,
                         'statusLabel' => $capability->statusLabel(),
-                        'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
-                        'categoryLabel' => 'Domestic (policy scope)',
+                        'category' => $normalizedCategory,
+                        'categoryLabel' => CourierVendorCodCapability::CATEGORY_LABELS[$normalizedCategory] ?? 'Domestic',
                         'requestedAt' => optional($capability->requested_at)->toIso8601String(),
                         'requestedBy' => (string) ($capability->requester->name ?? ''),
                         'requestedNote' => (string) ($capability->requested_note ?? ''),
@@ -171,11 +168,13 @@ class CourierCodComplianceExportService
                 ->all(),
             'auditEvents' => $audits
                 ->map(function (CourierVendorCodCapabilityAudit $audit) {
+                    $normalizedCategory = CourierVendorCodCapability::normalizeCategory((string) $audit->category);
+
                     return [
                         'auditId' => (int) $audit->id,
                         'capabilityId' => (int) $audit->courier_vendor_cod_capability_id,
                         'vendorUserId' => (int) $audit->vendor_user_id,
-                        'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                        'category' => $normalizedCategory,
                         'eventType' => (string) $audit->event_type,
                         'fromStatus' => (string) ($audit->from_status ?? ''),
                         'toStatus' => (string) ($audit->to_status ?? ''),
@@ -193,11 +192,13 @@ class CourierCodComplianceExportService
                 ->all(),
             'incidents' => $incidents
                 ->map(function (CourierVendorCodIntegrityIncident $incident) {
+                    $normalizedCategory = CourierVendorCodCapability::normalizeCategory((string) $incident->category);
+
                     return [
                         'incidentId' => (int) $incident->id,
                         'capabilityId' => (int) $incident->courier_vendor_cod_capability_id,
                         'vendorUserId' => (int) $incident->vendor_user_id,
-                        'category' => CourierVendorCodCapability::CATEGORY_DOMESTIC,
+                        'category' => $normalizedCategory,
                         'status' => CourierVendorCodIntegrityIncident::normalizeStatus((string) $incident->status),
                         'statusLabel' => $incident->statusLabel(),
                         'severity' => CourierVendorCodIntegrityIncident::normalizeSeverity((string) $incident->severity),
@@ -250,9 +251,7 @@ class CourierCodComplianceExportService
             $categoryFilterRaw = 'all';
         }
 
-        $categoryFilter = $categoryFilterRaw === 'all'
-            ? 'all'
-            : CourierVendorCodCapability::CATEGORY_DOMESTIC;
+        $categoryFilter = $this->normalizeCapabilityCategoryFilter($categoryFilterRaw);
 
         $search = trim((string) ($filters['search'] ?? ''));
 
@@ -263,6 +262,35 @@ class CourierCodComplianceExportService
             'from' => $this->resolveBoundaryDate($filters['from'] ?? null, true),
             'to' => $this->resolveBoundaryDate($filters['to'] ?? null, false),
         ];
+    }
+
+    private function normalizeCapabilityCategoryFilter(string $category): string
+    {
+        $normalized = strtolower(trim($category));
+        if ($normalized === 'logistic') {
+            $normalized = CourierVendorCodCapability::CATEGORY_INTERNATIONAL;
+        }
+
+        if (!in_array($normalized, ['all', CourierVendorCodCapability::CATEGORY_DOMESTIC, CourierVendorCodCapability::CATEGORY_INTERNATIONAL], true)) {
+            return 'all';
+        }
+
+        return $normalized;
+    }
+
+    private function applyCapabilityCategoryFilter($query, string $categoryFilter): void
+    {
+        if ($categoryFilter === CourierVendorCodCapability::CATEGORY_DOMESTIC) {
+            $query->where('category', CourierVendorCodCapability::CATEGORY_DOMESTIC);
+            return;
+        }
+
+        if ($categoryFilter === CourierVendorCodCapability::CATEGORY_INTERNATIONAL) {
+            $query->whereIn('category', [
+                CourierVendorCodCapability::CATEGORY_INTERNATIONAL,
+                'logistic',
+            ]);
+        }
     }
 
     private function resolveBoundaryDate(mixed $value, bool $isStart): ?Carbon

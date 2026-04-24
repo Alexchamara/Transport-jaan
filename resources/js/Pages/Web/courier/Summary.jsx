@@ -81,6 +81,7 @@ const Summary = ({
     const showHeroSection = showHero ?? !inline;
     const hasErrors = Object.keys(errors).length > 0;
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
 
     const initialData = useMemo(() => {
         if (formStateOverride) {
@@ -276,11 +277,42 @@ const Summary = ({
         return String(candidate || "LKR").toUpperCase();
     };
 
-    const handleConfirm = () => {
+    const getCsrfToken = () => {
+        if (typeof document === "undefined") {
+            return "";
+        }
+
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+    };
+
+    const launchPayHereCheckout = (checkout) => {
+        if (!checkout?.checkoutUrl || !checkout?.fields) {
+            throw new Error("Checkout session is unavailable.");
+        }
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = String(checkout.checkoutUrl);
+
+        Object.entries(checkout.fields || {}).forEach(([key, value]) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = value === null || value === undefined ? "" : String(value);
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    const handleConfirm = async () => {
         if (!formState || isSubmitting) {
+            console.debug('[CourierSummary] handleConfirm blocked — formState:', !!formState, '| isSubmitting:', isSubmitting);
             return;
         }
 
+        setSubmitError("");
         const payload = JSON.parse(JSON.stringify(formState));
         payload.shipment = payload.shipment || {};
         payload.reviewContext = payload.reviewContext || {};
@@ -292,14 +324,90 @@ const Summary = ({
             payload.shipment.codPaymentMethod = null;
         }
         payload.reviewContext.displayCurrency = payload.reviewContext.displayCurrency || payload.shipment.currency;
+        const requiresCardPayment = Boolean(
+            payload.shipment?.requiresCardPayment
+            || payload.shipment?.paymentOptions?.card
+        );
+
+        console.group('[CourierSummary] handleConfirm — Confirm & Submit clicked');
+        console.log('► storeRoute:', storeRoute);
+        console.log('► inline:', inline);
+        console.log('► preserveState:', !inline);
+        console.log('► requiresCardPayment:', payload.shipment?.requiresCardPayment);
+        console.log('► paymentOptions (expanded):', JSON.stringify(payload.shipment?.paymentOptions));
+        console.log('► shipment (full):', JSON.stringify(payload.shipment));
+        console.log('► payload (full):', JSON.parse(JSON.stringify(payload)));
+        console.groupEnd();
+
+        if (requiresCardPayment) {
+            setIsSubmitting(true);
+
+            try {
+                const response = await fetch(storeRoute, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRF-TOKEN": getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                if (response.status === 422) {
+                    const validationPayload = await response.json();
+                    const firstError = Object.values(validationPayload?.errors || {})
+                        .flat()
+                        .find((message) => typeof message === "string");
+
+                    setSubmitError(firstError || "Unable to proceed to checkout. Please review your booking details.");
+                    scrollToTop();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error("Unable to initialize checkout right now.");
+                }
+
+                const result = await response.json();
+                if (!result?.checkout?.isReady) {
+                    setSubmitError(result?.checkout?.reason || "Checkout is not ready. Please try again.");
+                    scrollToTop();
+                    return;
+                }
+
+                launchPayHereCheckout(result.checkout);
+                return;
+            } catch (error) {
+                console.error("[CourierSummary] Checkout initialization failed", error);
+                setSubmitError("Unable to initialize PayHere checkout right now. Please try again.");
+                scrollToTop();
+                return;
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
 
         router.post(storeRoute, payload, {
             preserveScroll: false,
             preserveState: !inline,
-            onStart: () => setIsSubmitting(true),
-            onSuccess: scrollToTop,
-            onError: scrollToTop,
-            onFinish: () => setIsSubmitting(false),
+            onStart: () => {
+                console.log('[CourierSummary] onStart — POST to', storeRoute, '| current URL:', window.location.href);
+                setIsSubmitting(true);
+            },
+            onSuccess: (page) => {
+                console.log('[CourierSummary] onSuccess — redirected to:', window.location.href, '| page component:', page?.component);
+                scrollToTop();
+            },
+            onError: (errors) => {
+                console.warn('[CourierSummary] onError — validation/server errors:', JSON.stringify(errors, null, 2), '| current URL:', window.location.href);
+                scrollToTop();
+            },
+            onFinish: () => {
+                console.log('[CourierSummary] onFinish — done. URL:', window.location.href);
+                setIsSubmitting(false);
+            },
         });
     };
 
@@ -351,6 +459,13 @@ const Summary = ({
                                         </p>
                                     ))}
                             </div>
+                        </div>
+                    )}
+
+                    {submitError && (
+                        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                            <p className="font-semibold">Unable to start payment checkout.</p>
+                            <p className="mt-1">{submitError}</p>
                         </div>
                     )}
 
@@ -626,7 +741,13 @@ const Summary = ({
                             className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${isSubmitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
                                 }`}
                         >
-                            {isSubmitting ? 'Submitting courier request...' : 'Confirm & Submit'}
+                            {isSubmitting
+                                ? (Boolean(formState?.shipment?.requiresCardPayment || formState?.shipment?.paymentOptions?.card)
+                                    ? 'Preparing checkout...'
+                                    : 'Submitting courier request...')
+                                : (Boolean(formState?.shipment?.requiresCardPayment || formState?.shipment?.paymentOptions?.card)
+                                    ? 'Proceed to Checkout'
+                                    : 'Confirm & Submit')}
                         </button>
                         <p className="text-xs text-[#5B6887]">
                             Need changes? Use the Modify details link above to adjust the form before submitting.

@@ -15,7 +15,7 @@ const VehicleReports = ({ bookings = [], stats = {} }) => {
 
   // Fetch filter options from database
   useEffect(() => {
-    fetch('/SuperAdmin/reports/filter-options')
+    fetch('/superadmin/reports/filter-options')
       .then(res => res.json())
       .then(data => {
         setStatusOptions(data.statuses || []);

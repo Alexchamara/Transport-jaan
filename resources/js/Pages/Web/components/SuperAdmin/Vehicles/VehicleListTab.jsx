@@ -112,7 +112,7 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
         if (status) params.status = status;
         if (approval) params.approval_status = approval;
 
-        router.get("/superadmin/Vehicles", params, { preserveState: true, preserveScroll: true });
+        router.get("/superadmin/vehicles", params, { preserveState: true, preserveScroll: true });
     };
 
     const handleTypeFilterChange = (e) => {
@@ -145,7 +145,7 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
         setSelectedType("all");
         setSelectedStatus("all");
         setSelectedApproval("all");
-        router.get("/superadmin/Vehicles", {}, { preserveState: true, preserveScroll: true });
+        router.get("/superadmin/vehicles", {}, { preserveState: true, preserveScroll: true });
     };
 
     const handlePagination = (url) => {

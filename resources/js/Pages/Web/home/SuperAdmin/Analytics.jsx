@@ -8,7 +8,7 @@ const Analytics = () => {
             <div className="sm:w-full md:w-auto lg:w-auto">
                 <SideMenu />
             </div>
-            <div className="sm:w-full md:w-auto lg:w-auto">
+            <div className="flex-1 overflow-x-hidden">
                 <RightSide />
             </div>
         </div>

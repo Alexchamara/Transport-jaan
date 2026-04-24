@@ -82,8 +82,8 @@ const CustomerTypeChart = () => {
     };
 
     return (
-        <div className="bg-[#0B1739] p-5 shadow-lg h-[460px] min-w-[689px] pb-[120px] rounded-[10px] poppins">
-            <div className="flex flex-row justify-center items-center w-full ">
+        <div className="bg-[#0B1739] p-5 shadow-lg h-[460px] w-[745px] min-w-0 pb-[120px] rounded-[10px] poppins">
+            <div className="flex flex-row items-center w-full">
                 <div className="flex flex-col w-full gap-2">
                     <div className="flex flex-row items-center gap-2.5">
                         <h2 className="text-[#AEB9E1] text-[12px] flex flex-row justify-between items-center">
@@ -91,12 +91,12 @@ const CustomerTypeChart = () => {
                         </h2>
                     </div>
 
-                    <div className="flex flex-row justify-between items-center">
+                    <div className="flex flex-wrap justify-between items-center gap-3">
                         <h1 className="text-white text-[24px] font-600">
                             $240K
                         </h1>
                         <div className="w-[50px] h-[20px] flex justify-center items-center border border-[#05C16833] bg-[#05C16833] rounded-[5px] ">
-                            <h1 className="flex items-baseline text-green-400 text-[9px] text-[14px] font-medium">
+                            <h1 className="flex items-baseline text-green-400 text-[14px] font-medium">
                                 34.8%
                             </h1>
                             <img
@@ -105,8 +105,8 @@ const CustomerTypeChart = () => {
                                 alt="external link"
                             />
                         </div>
-                        <div className="flex flex-row w-[430px] gap-1">
-                            <div className="flex flex-row gap-2.5">
+                        <div className="flex flex-wrap items-center gap-2 xl:ml-auto">
+                            <div className="flex flex-wrap gap-2.5">
                                 <div className="flex flex-row items-center gap-1 ">
                                     <img src={dotW} alt="dot" />
                                     <h1 className="text-[#AEB9E1] text-[10px]">

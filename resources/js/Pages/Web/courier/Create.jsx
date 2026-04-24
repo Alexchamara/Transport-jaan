@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { createPortal } from "react-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
@@ -223,9 +225,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     const [isPlacing, setIsPlacing] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [quoteOnlyMessage, setQuoteOnlyMessage] = useState("");
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
     const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
     const [quoteFilters, setQuoteFilters] = useState(() => buildDefaultQuoteFilters());
+    const [appliedQuoteFilters, setAppliedQuoteFilters] = useState(() => buildDefaultQuoteFilters());
     const [showDetails, setShowDetails] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -1848,19 +1852,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const resetQuoteFilters = () => {
-        setQuoteFilters(buildDefaultQuoteFilters());
+        const defaults = buildDefaultQuoteFilters();
+        setQuoteFilters(defaults);
+        setAppliedQuoteFilters(defaults);
     };
 
     const hasActiveQuoteFilters = useMemo(() => {
-        const tiers = quoteFilters.tiers || {};
+        const tiers = appliedQuoteFilters.tiers || {};
         const allTiersEnabled = QUOTE_TIER_OPTIONS.every((tier) => tiers[tier.id]);
         return Boolean(
-            quoteFilters.providerSearch
-            || quoteFilters.minPrice
-            || quoteFilters.maxPrice
+            appliedQuoteFilters.providerSearch
+            || appliedQuoteFilters.minPrice
+            || appliedQuoteFilters.maxPrice
             || !allTiersEnabled
         );
-    }, [quoteFilters]);
+    }, [appliedQuoteFilters]);
 
     const openServiceDetailsModal = (provider, tier, options = {}) => {
         if (!provider || !tier) {
@@ -1950,12 +1956,48 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
     };
 
+    const paymentFilteredQuoteProviders = useMemo(() => {
+        const requiresCod = Boolean(paymentOptions.cod);
+        const requiresCard = Boolean(paymentOptions.card);
+        const isAllSelected = Boolean(paymentOptions.all);
+
+        // If 'All' is selected, we show everything (OR logic)
+        // If 'All' is NOT selected, but specific ones are, we filter strictly (AND logic)
+        if (!requiresCod && !requiresCard && !isAllSelected) {
+            return quoteProviders;
+        }
+
+        return quoteProviders.filter((provider) => {
+            const providerPaymentOptions = provider?.paymentOptions || {};
+            const supportsCod = Boolean(providerPaymentOptions.cod);
+            const supportsCard = providerPaymentOptions.card === undefined
+                ? true
+                : Boolean(providerPaymentOptions.card);
+
+            if (isAllSelected) {
+                // When 'All' is selected, show providers that support EITHER COD or Card
+                return supportsCod || supportsCard;
+            }
+
+            // Strict filtering when specific options are picked
+            if (requiresCod && !supportsCod) {
+                return false;
+            }
+
+            if (requiresCard && !supportsCard) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [paymentOptions.card, paymentOptions.cod, paymentOptions.all, quoteProviders]);
+
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, {
             metrics: packageMetrics,
-            services: quoteProviders,
+            services: paymentFilteredQuoteProviders,
         }),
-        [data.packages, packageMetrics, quoteProviders]
+        [data.packages, packageMetrics, paymentFilteredQuoteProviders]
     );
 
     const selectedQuotes = useMemo(
@@ -2019,6 +2061,50 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         data.shipment,
         selectedRouteType,
         hasPaymentOption,
+    ]);
+
+    const hasRequiredDetailsForQuoteOnly = useMemo(() => {
+        if (!Array.isArray(data.packages) || data.packages.length === 0) {
+            return false;
+        }
+
+        const senderAddress = data.sender?.address || {};
+        const recipientAddress = data.recipient?.address || {};
+        const hasRouteLocations = selectedRouteType === "domestic"
+            ? Boolean(senderAddress.city && recipientAddress.city)
+            : Boolean(
+                senderAddress.country
+                && senderAddress.city
+                && senderAddress.postalCode
+                && recipientAddress.country
+                && recipientAddress.city
+                && recipientAddress.postalCode
+            );
+
+        const hasShipmentType = Boolean(data.shipment?.shipmentType);
+        const needsShipmentDescription = data.shipment?.shipmentType === "other";
+        const hasShipmentDescription = !needsShipmentDescription
+            || Boolean(String(data.shipment?.shipmentTypeDescription || "").trim());
+
+        const packagesHaveNumbers = data.packages.every((pkg) => {
+            const quantity = Number(pkg.quantity) || 0;
+            const weight = Number(pkg.weightKg) || 0;
+            const length = Number(pkg.lengthCm) || 0;
+            const width = Number(pkg.widthCm) || 0;
+            const height = Number(pkg.heightCm) || 0;
+            return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
+        });
+
+        return hasRouteLocations
+            && hasShipmentType
+            && hasShipmentDescription
+            && packagesHaveNumbers;
+    }, [
+        data.packages,
+        data.sender,
+        data.recipient,
+        data.shipment,
+        selectedRouteType,
     ]);
 
     const hasSelectedServices = useMemo(() => {
@@ -2234,12 +2320,175 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return hasRequiredDetails && hasSelectedServices;
     }, [hasRequiredDetails, hasSelectedServices]);
 
+    const isReadyForQuoteOnly = useMemo(() => {
+        return hasRequiredDetailsForQuoteOnly && hasSelectedServices;
+    }, [hasRequiredDetailsForQuoteOnly, hasSelectedServices]);
+
+    const handleGetQuoteOnly = () => {
+        if (!isReadyForQuoteOnly || isPlacing) {
+            setSubmitError(
+                hasRequiredDetailsForQuoteOnly
+                    ? "Select a courier service for each package to get a quote."
+                    : "Complete all required fields before getting a quote.",
+            );
+            return;
+        }
+
+        const reviewContext = buildReviewContext(selectedQuotes, displayCurrency);
+        setData((previous) => ({
+            ...previous,
+            reviewContext,
+        }));
+
+        setSubmitError("");
+        setQuoteOnlyMessage(
+            `Quotation ready. Estimated total: ${formatCurrency(reviewContext.totalPriceUSD || 0)} for ${reviewContext.selectedQuotes?.length || 0} package(s).`,
+        );
+        handleDownloadQuotation();
+    };
+
+    const getBase64ImageFromUrl = async (imageUrl) => {
+        try {
+            const res = await fetch(imageUrl);
+            const blob = await res.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const handleDownloadQuotation = async () => {
+        if (!selectedQuotes.length || typeof window === "undefined") {
+            setSubmitError("Select at least one quoted service before downloading the quotation.");
+            return;
+        }
+
+        const doc = new jsPDF();
+        const totalUsd = selectedQuotes.reduce((sum, quote) => sum + (Number(quote?.tier?.price) || 0), 0);
+        const totalDisplay = formatCurrency(totalUsd);
+        const generatedAt = new Date();
+        const generatedAtLabel = generatedAt.toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+        const senderCity = data?.sender?.address?.city || "-";
+        const senderCountry = data?.sender?.address?.country || "-";
+        const recipientCity = data?.recipient?.address?.city || "-";
+        const recipientCountry = data?.recipient?.address?.country || "-";
+
+        const cachedLogoUrl = localStorage.getItem('cachedCompanyLogoUrl');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const rightMargin = 14;
+
+        if (cachedLogoUrl) {
+            const base64Logo = await getBase64ImageFromUrl(cachedLogoUrl);
+            if (base64Logo) {
+                try {
+                    const logoWidth = 40;
+                    const logoHeight = 15;
+                    doc.addImage(base64Logo, 'PNG', pageWidth - rightMargin - logoWidth, 10, logoWidth, logoHeight);
+                } catch (e) {
+                    console.error("Error adding app logo", e);
+                    doc.setFontSize(20);
+                    doc.text("Company Logo", pageWidth - rightMargin, 20, { align: "right" });
+                }
+            } else {
+                doc.setFontSize(20);
+                doc.text("Company Logo", pageWidth - rightMargin, 20, { align: "right" });
+            }
+        } else {
+            doc.setFontSize(20);
+            doc.text("Company Logo", pageWidth - rightMargin, 20, { align: "right" });
+        }
+
+        const uniqueProviderLogos = [];
+        const seenLogos = new Set();
+        for (const quote of selectedQuotes) {
+            const logo = quote?.provider?.logo;
+            if (logo && !seenLogos.has(logo)) {
+                seenLogos.add(logo);
+                uniqueProviderLogos.push(logo);
+            }
+        }
+        
+        const topProviderLogosBase64 = await Promise.all(
+            uniqueProviderLogos.map(logoUrl => getBase64ImageFromUrl(logoUrl))
+        );
+
+        let currentVendorX = 14;
+        topProviderLogosBase64.forEach(base64 => {
+            if (base64) {
+                try {
+                    const format = base64.startsWith('data:image/jpeg') || base64.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
+                    doc.addImage(base64, format, currentVendorX, 10, 20, 15);
+                    currentVendorX += 25;
+                } catch (e) {
+                    console.error("Error adding vendor logo", e);
+                }
+            }
+        });
+
+        doc.setFontSize(16);
+        doc.text("Courier Quotation", 14, 35);
+        
+        doc.setFontSize(10);
+        doc.text(`Generated at: ${generatedAtLabel}`, 14, 45);
+        doc.text(`Route type: ${selectedRouteType}`, 14, 50);
+        doc.text(`From: ${senderCity}, ${senderCountry}`, 14, 55);
+        doc.text(`To: ${recipientCity}, ${recipientCountry}`, 14, 60);
+        doc.text(`Currency view: ${displayCurrency}`, 14, 65);
+
+        const tableBody = [];
+        for (let index = 0; index < selectedQuotes.length; index++) {
+            const quote = selectedQuotes[index];
+            const packageLabel = quote?.packageInfo?.label || `Package ${index + 1}`;
+            const providerName = quote?.provider?.name || "Unknown provider";
+            const tierLabel = quote?.tier?.label || "Unknown tier";
+            const eta = quote?.tier?.eta || "-";
+            const priceLabel = formatCurrency(Number(quote?.tier?.price) || 0);
+            
+            tableBody.push([
+                index + 1,
+                packageLabel,
+                providerName,
+                tierLabel,
+                eta,
+                priceLabel
+            ]);
+        }
+
+        autoTable(doc, {
+            startY: 75,
+            head: [['#', 'Package', 'Provider', 'Service', 'ETA', 'Price']],
+            body: tableBody,
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [41, 128, 185] }
+        });
+
+        const finalY = doc.lastAutoTable.finalY || 75;
+        doc.setFontSize(12);
+        doc.text(`Total shipping cost: ${totalDisplay}`, 14, finalY + 10);
+
+        const datePart = generatedAt.toISOString().slice(0, 10);
+        doc.save(`courier-quotation-${datePart}.pdf`);
+        setSubmitError("");
+    };
+
     const handleContinueToDetails = async () => {
         if (!isReadyToPlace || isPlacing) {
             return;
         }
 
         setSubmitError("");
+        setQuoteOnlyMessage("");
         setIsPlacing(true);
 
         const basePayload = JSON.parse(JSON.stringify(data));
@@ -2527,23 +2776,23 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 <input
                                                                                     value={locationSearch.senderCity}
                                                                                     onChange={(event) => {
-                                                                                    setActiveLocationField(`sender-city-${index}`);
-                                                                                    handleCitySearchChange("sender", "senderCity", event.target.value);
-                                                                                }}
+                                                                                        setActiveLocationField(`sender-city-${index}`);
+                                                                                        handleCitySearchChange("sender", "senderCity", event.target.value);
+                                                                                    }}
                                                                                     onFocus={() => {
-                                                                                    setActiveLocationField(`sender-city-${index}`);
-                                                                                    if (locationSearch.senderCity.length >= 1) {
-                                                                                        fetchDomesticCitySuggestions("sender", locationSearch.senderCity);
-                                                                                    }
-                                                                                }}
+                                                                                        setActiveLocationField(`sender-city-${index}`);
+                                                                                        if (locationSearch.senderCity.length >= 1) {
+                                                                                            fetchDomesticCitySuggestions("sender", locationSearch.senderCity);
+                                                                                        }
+                                                                                    }}
                                                                                     onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
                                                                                     className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.sender && (
-                                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
-                                                                            )}
-                                                                            {activeLocationField === `sender-city-${index}` && domesticCitySuggestions.sender.length > 0 && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {activeLocationField === `sender-city-${index}` && domesticCitySuggestions.sender.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
                                                                                         {domesticCitySuggestions.sender.map((option) => (
                                                                                             <button
@@ -2553,7 +2802,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                                     event.preventDefault();
                                                                                                     handleLocationSelect("sender", "senderCity", option, "city");
                                                                                                     setDomesticCitySuggestions((prev) => ({ ...prev, sender: [] }));
-                                                                                            }}
+                                                                                                }}
                                                                                                 className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
                                                                                             >
                                                                                                 {option.label}
@@ -2569,23 +2818,23 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 <input
                                                                                     value={locationSearch.recipientCity}
                                                                                     onChange={(event) => {
-                                                                                    setActiveLocationField(`recipient-city-${index}`);
-                                                                                    handleCitySearchChange("recipient", "recipientCity", event.target.value);
-                                                                                }}
+                                                                                        setActiveLocationField(`recipient-city-${index}`);
+                                                                                        handleCitySearchChange("recipient", "recipientCity", event.target.value);
+                                                                                    }}
                                                                                     onFocus={() => {
-                                                                                    setActiveLocationField(`recipient-city-${index}`);
-                                                                                    if (locationSearch.recipientCity.length >= 1) {
-                                                                                        fetchDomesticCitySuggestions("recipient", locationSearch.recipientCity);
-                                                                                    }
-                                                                                }}
+                                                                                        setActiveLocationField(`recipient-city-${index}`);
+                                                                                        if (locationSearch.recipientCity.length >= 1) {
+                                                                                            fetchDomesticCitySuggestions("recipient", locationSearch.recipientCity);
+                                                                                        }
+                                                                                    }}
                                                                                     onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
                                                                                     className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.recipient && (
-                                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
-                                                                            )}
-                                                                            {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
                                                                                         {domesticCitySuggestions.recipient.map((option) => (
                                                                                             <button
@@ -2595,7 +2844,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                                     event.preventDefault();
                                                                                                     handleLocationSelect("recipient", "recipientCity", option, "city");
                                                                                                     setDomesticCitySuggestions((prev) => ({ ...prev, recipient: [] }));
-                                                                                            }}
+                                                                                                }}
                                                                                                 className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
                                                                                             >
                                                                                                 {option.label}
@@ -3549,32 +3798,37 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     </div>
 
                                                     <div>
-                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Price range ({displayCurrency})</label>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                value={quoteFilters.minPrice}
-                                                                onChange={(event) => setQuoteFilters((previous) => ({
-                                                                    ...previous,
-                                                                    minPrice: event.target.value,
-                                                                }))}
-                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Min"
-                                                            />
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                value={quoteFilters.maxPrice}
-                                                                onChange={(event) => setQuoteFilters((previous) => ({
-                                                                    ...previous,
-                                                                    maxPrice: event.target.value,
-                                                                }))}
-                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Max"
-                                                            />
+                                                        <div className="mb-2 flex items-center justify-between">
+                                                            <label className="text-xs font-medium text-[#0B1739]">Max price ({displayCurrency})</label>
+                                                            <span className="text-xs font-bold text-[#0955AC]">
+                                                                {quoteFilters.maxPrice ? currencyFormatter.format(Number(quoteFilters.maxPrice)) : 'Any'}
+                                                            </span>
+                                                        </div>
+                                                        {(() => {
+                                                            const activePackageQuotesForSlider = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
+                                                            const maxAvailablePrice = activePackageQuotesForSlider ? Math.ceil(Math.max(10, 0, ...activePackageQuotesForSlider.providers.flatMap(p => p.tiers.map(t => getDisplayAmount(Number(t.price) || 0))))) : 1000;
+                                                            return (
+                                                                <input
+                                                                    type="range"
+                                                                    min="0"
+                                                                    max={maxAvailablePrice}
+                                                                    step="1"
+                                                                    value={quoteFilters.maxPrice || maxAvailablePrice}
+                                                                    onChange={(event) => {
+                                                                        const val = Number(event.target.value);
+                                                                        setQuoteFilters((previous) => ({
+                                                                            ...previous,
+                                                                            minPrice: "0",
+                                                                            maxPrice: val >= maxAvailablePrice ? "" : String(val),
+                                                                        }));
+                                                                    }}
+                                                                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-[#E3EAF5] accent-[#0955AC]"
+                                                                />
+                                                            );
+                                                        })()}
+                                                        <div className="mt-1 flex justify-between text-[10px] text-[#6B7893]">
+                                                            <span>0</span>
+                                                            <span>Max</span>
                                                         </div>
                                                     </div>
 
@@ -3608,14 +3862,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 flex items-center justify-between border-t border-[#E3EAF5] pt-3">
-                                                    <span className="text-[11px] text-[#6B7893]">Filters apply instantly.</span>
+                                                <div className="mt-4 flex items-center justify-end gap-3 border-t border-[#E3EAF5] pt-3">
                                                     <button
                                                         type="button"
                                                         onClick={resetQuoteFilters}
                                                         className="rounded-lg border border-[#D6DEEB] px-3 py-1.5 text-[11px] font-semibold text-[#5B6887] transition hover:border-[#0955AC] hover:text-[#0955AC]"
                                                     >
                                                         Reset
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAppliedQuoteFilters(quoteFilters)}
+                                                        className="rounded-lg bg-[#0955AC] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#07468f]"
+                                                    >
+                                                        Filter
                                                     </button>
                                                 </div>
                                             </aside>
@@ -3646,12 +3906,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                         if (!providers.length) return null;
 
                                                         const selectedTierIds = QUOTE_TIER_OPTIONS
-                                                            .filter((tier) => quoteFilters.tiers?.[tier.id])
+                                                            .filter((tier) => appliedQuoteFilters.tiers?.[tier.id])
                                                             .map((tier) => tier.id);
                                                         const visibleTierIds = selectedTierIds.length ? selectedTierIds : TIER_IDS;
-                                                        const searchValue = String(quoteFilters.providerSearch || "").trim().toLowerCase();
-                                                        const minPriceValue = quoteFilters.minPrice !== "" ? Number(quoteFilters.minPrice) : null;
-                                                        const maxPriceValue = quoteFilters.maxPrice !== "" ? Number(quoteFilters.maxPrice) : null;
+                                                        const searchValue = String(appliedQuoteFilters.providerSearch || "").trim().toLowerCase();
+                                                        const minPriceValue = appliedQuoteFilters.minPrice !== "" ? Number(appliedQuoteFilters.minPrice) : null;
+                                                        const maxPriceValue = appliedQuoteFilters.maxPrice !== "" ? Number(appliedQuoteFilters.maxPrice) : null;
 
                                                         const handleSelectService = (providerId, tierId) => {
                                                             const updatedPackages = [...data.packages];
@@ -3744,7 +4004,17 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     </div>
                                                                                 )}
                                                                                 <div className="min-w-0">
-                                                                                    <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
+                                                                                    <div className="text-xs font-semibold text-[#0B1739] truncate flex items-center gap-1.5">
+                                                                                        {provider.name}
+                                                                                        <div className="flex gap-1">
+                                                                                            {provider.paymentOptions?.cod && (
+                                                                                                <span className="bg-amber-100 text-amber-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">COD</span>
+                                                                                            )}
+                                                                                            {provider.paymentOptions?.card && (
+                                                                                                <span className="bg-blue-100 text-blue-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Card</span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
                                                                                     <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
                                                                                 </div>
                                                                             </div>
@@ -3846,7 +4116,17 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                                     </div>
                                                                                                 )}
                                                                                                 <div className="min-w-0">
-                                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
+                                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight flex items-center gap-1.5">
+                                                                                                        {provider.name}
+                                                                                                        <div className="flex gap-1">
+                                                                                                            {provider.paymentOptions?.cod && (
+                                                                                                                <span className="bg-amber-100 text-amber-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">COD</span>
+                                                                                                            )}
+                                                                                                            {provider.paymentOptions?.card && (
+                                                                                                                <span className="bg-blue-100 text-blue-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Card</span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    </div>
                                                                                                     <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
                                                                                                 </div>
                                                                                             </div>
@@ -3985,6 +4265,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     {formatCurrency(selectedQuotes.reduce((total, quote) => total + quote.tier.price, 0))}
                                                 </span>
                                             </div>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            {showDetails && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleGetQuoteOnly}
+                                                    disabled={!isReadyForQuoteOnly || isPlacing}
+                                                    className={`rounded-lg border border-[#0955AC] bg-white px-4 py-2 text-sm font-semibold text-[#0955AC] transition ${!isReadyForQuoteOnly || isPlacing ? "cursor-not-allowed opacity-50" : "hover:bg-[#EEF5FF]"}`}
+                                                >
+                                                    Get a quote
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -4226,15 +4518,26 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     </>
                                 ) : (
                                     <>
-                                        <button
-                                            type="button"
-                                            onClick={handleContinueToDetails}
-                                            disabled={!isReadyToPlace || isPlacing}
-                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                                                }`}
-                                        >
-                                            {isPlacing ? 'Preparing details...' : 'Continue'}
-                                        </button>
+                                        <div className="grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleGetQuoteOnly}
+                                                disabled={!isReadyForQuoteOnly || isPlacing}
+                                                className={`rounded-lg border border-[#0955AC] bg-white px-6 py-3 text-center text-sm font-semibold text-[#0955AC] shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyForQuoteOnly || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#EEF5FF]'
+                                                    }`}
+                                            >
+                                                Get a quote
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleContinueToDetails}
+                                                disabled={!isReadyToPlace || isPlacing}
+                                                className={`rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                                    }`}
+                                            >
+                                                {isPlacing ? 'Preparing details...' : 'Continue'}
+                                            </button>
+                                        </div>
                                         {!isReadyToPlace && (
                                             <p className="text-xs text-[#D14343]">
                                                 {hasRequiredDetails
@@ -4242,6 +4545,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     : selectedRouteType === 'domestic' && !hasPaymentOption
                                                         ? 'Select at least one payment option to continue.'
                                                         : 'Complete all required fields before continuing.'}
+                                            </p>
+                                        )}
+                                        {quoteOnlyMessage && (
+                                            <p className="text-xs text-[#0B7A44]">
+                                                {quoteOnlyMessage}
                                             </p>
                                         )}
                                     </>

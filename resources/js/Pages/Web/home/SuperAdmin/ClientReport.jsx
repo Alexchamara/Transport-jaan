@@ -6,7 +6,7 @@ const ClientReport = ({ stats = {}, data = [] }) => {
   const [statusFilter, setStatusFilter] = useState('All');
 
   return (
-    <div className="flex bg-[#070B1D] min-h-screen text-white">
+    <div className="flex bg-[#070B1D] min-h-screen text-white poppins">
       {/* Sidebar */}
       <SideMenu />
 

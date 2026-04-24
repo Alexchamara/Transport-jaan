@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'logout-alt',
             'csrf-token',
+            'couriers/payments/payhere/notify',
         ]);
 
         // Add CORS middleware to API routes
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'superadmin.courier.permission' => \App\Http\Middleware\EnsureSuperAdminCourierPermission::class,
             'vendor.verified' => \App\Http\Middleware\VendorVerificationCheck::class,
             'vendor.service.approved' => \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
             'service.workspace' => \App\Http\Middleware\SetServiceWorkspaceContext::class,

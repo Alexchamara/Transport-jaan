@@ -7,8 +7,11 @@ use App\Models\AirVehicleBookingSchedule;
 use App\Models\AirVehicleBookingPayment;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Laravel\Scout\Searchable;
 class AirVehicleBookings extends Model
 {
+    use Searchable;
+
     public const VEHICLE_OWNER_KEY = 'provider_id';
 
     protected $fillable = [
@@ -102,5 +105,19 @@ class AirVehicleBookings extends Model
         });
     }
 
-    
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'client_id' => (int) ($this->client_id ?? 0),
+            'vehicle_id' => (int) ($this->vehicle_id ?? 0),
+            'status' => (string) ($this->status ?? ''),
+            'currency' => (string) ($this->currency ?? ''),
+            'total_amount' => (string) ($this->total_amount ?? ''),
+            'notes' => (string) ($this->notes ?? ''),
+            'vehicle_snapshot' => json_encode($this->vehicle_snapshot ?? []),
+            'addons_snapshot' => json_encode($this->addons_snapshot ?? []),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+        ];
+    }
 }

@@ -31,7 +31,7 @@ const Users = ({ users, counts, filters, pagination }) => {
         if ((!users || users.length === 0) && (!counts || Object.keys(counts).length === 0)) {
             console.log('Users component: Auto-refreshing due to missing initial data');
             const currentFilters = filters || {};
-            router.get('/superadmin/Users', {
+            router.get('/superadmin/users', {
                 search: currentFilters.search || '',
                 role: currentFilters.role || 'all',
                 status: currentFilters.status || 'all',

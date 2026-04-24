@@ -85,6 +85,25 @@ const formatCodAmount = (amount, currencyCode = "USD") => {
     return `${numericAmount.toFixed(2)} ${currencyCode}`;
 };
 
+const formatAmountWithCurrency = (amount, currencyCode = "USD") => {
+    const numericAmount = Number(amount);
+    const currency = String(currencyCode || "USD").toUpperCase();
+
+    if (!Number.isFinite(numericAmount)) {
+        return `0.00 ${currency}`;
+    }
+
+    try {
+        return new Intl.NumberFormat("en-LK", {
+            style: "currency",
+            currency,
+            minimumFractionDigits: 2,
+        }).format(numericAmount);
+    } catch (error) {
+        return `${numericAmount.toFixed(2)} ${currency}`;
+    }
+};
+
 const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlot = null }) => {
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -317,11 +336,11 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
             Pickup: formatExportDate(shipment.pickupDate),
             Packages: shipment.packages?.length ?? 0,
             Weight: Number(shipment.totalWeight || 0).toFixed(2),
-            Cost: Number(shipment.totalCost || 0).toFixed(2),
-            Currency: shipment.currencyCode || "USD",
+            Cost: Number(shipment.displayAmount ?? shipment.totalCost ?? 0).toFixed(2),
+            Currency: String(shipment.displayCurrency || shipment.currencyCode || "USD").toUpperCase(),
             CodEnabled: shipment.codEnabled ? "Yes" : "No",
             CodAmount: shipment.codEnabled
-                ? formatCodAmount(shipment.codAmount, shipment.currencyCode || "USD")
+                ? formatCodAmount(shipment.codAmount, shipment.currencyCode || "LKR")
                 : "",
             CodMethod: shipment.codEnabled ? formatCodMethod(shipment.codPaymentMethod) : "",
         }));
@@ -611,7 +630,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                                     </div>
                                                     <div className="flex items-center gap-2 text-slate-700 font-medium">
                                                         <CreditCard className="h-4 w-4" />
-                                                        <span>${Number(shipment.totalCost || 0).toFixed(2)}</span>
+                                                        <span>{formatAmountWithCurrency(shipment.displayAmount ?? shipment.totalCost, shipment.displayCurrency || shipment.currencyCode || 'USD')}</span>
                                                     </div>
                                                 </div>
 
@@ -621,11 +640,21 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                                     </div>
                                                 )}
 
+                                                {shipment.paymentStatus && (
+                                                    <div className="mb-4 text-[12px] text-slate-600">
+                                                        Payment status: <span className={`font-semibold capitalize ${
+                                                            shipment.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-amber-600'
+                                                        }`}>
+                                                            {shipment.paymentStatusLabel || shipment.paymentStatus || 'pending'}
+                                                        </span>
+                                                    </div>
+                                                )}
+
                                                 {shipment.codEnabled && (
                                                     <div className="mb-4 inline-flex flex-wrap items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
                                                         <span>COD enabled</span>
                                                         {shipment.codAmount !== null && shipment.codAmount !== undefined && (
-                                                            <span>• {formatCodAmount(shipment.codAmount, shipment.currencyCode || 'USD')}</span>
+                                                            <span>• {formatCodAmount(shipment.codAmount, shipment.currencyCode || 'LKR')}</span>
                                                         )}
                                                         {shipment.codPaymentMethod && (
                                                             <span className="capitalize">• {formatCodMethod(shipment.codPaymentMethod)}</span>
@@ -638,13 +667,26 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                                 <div className="text-[12px] text-slate-500">
                                                     Created: {new Date(shipment.createdAt).toLocaleDateString()}
                                                 </div>
-                                                <button
-                                                    onClick={() => handleViewShipment(shipment.id)}
-                                                    className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#074a94] inline-flex items-center gap-2"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                    View Details
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    {shipment.requiresCardPayment
+                                                        && shipment.paymentStatus !== 'paid'
+                                                        && shipment.paymentCheckoutUrl && (
+                                                            <Link
+                                                                href={shipment.paymentCheckoutUrl}
+                                                                className="h-10 px-4 rounded-xl border border-[#0955AC] text-[#0955AC] text-[14px] font-medium hover:bg-[#EAF2FD] inline-flex items-center gap-2"
+                                                            >
+                                                                <CreditCard className="h-4 w-4" />
+                                                                {shipment.paymentStatus === 'pending' ? 'Continue Payment' : 'Pay Now'}
+                                                            </Link>
+                                                        )}
+                                                    <button
+                                                        onClick={() => handleViewShipment(shipment.id)}
+                                                        className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#074a94] inline-flex items-center gap-2"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                        View Details
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -711,21 +753,36 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [], leftColumnSlo
                                         <div className="mt-1 text-sm text-slate-500">
                                             {shipment.packages?.length || 0} package(s)
                                         </div>
+                                        <div className="mt-1 text-[12px] font-medium text-slate-700">
+                                            {formatAmountWithCurrency(shipment.displayAmount ?? shipment.totalCost, shipment.displayCurrency || shipment.currencyCode || 'USD')}
+                                        </div>
                                         {shipment.codEnabled && (
                                             <div className="mt-1 text-[11px] font-medium text-emerald-700">
                                                 COD: {shipment.codAmount !== null && shipment.codAmount !== undefined
-                                                    ? formatCodAmount(shipment.codAmount, shipment.currencyCode || 'USD')
+                                                    ? formatCodAmount(shipment.codAmount, shipment.currencyCode || 'LKR')
                                                     : 'Enabled'}
                                             </div>
                                         )}
                                         <div className="mt-2 flex items-center justify-between text-[12px]">
                                             <span className="text-slate-500">Ref: {shipment.code}</span>
-                                            <button
-                                                onClick={() => handleViewShipment(shipment.id)}
-                                                className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm"
-                                            >
-                                                View
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {shipment.requiresCardPayment
+                                                    && shipment.paymentStatus !== 'paid'
+                                                    && shipment.paymentCheckoutUrl && (
+                                                        <Link
+                                                            href={shipment.paymentCheckoutUrl}
+                                                            className="h-8 px-3 rounded-xl border border-[#0955AC] text-[#0955AC] hover:bg-[#EAF2FD] text-sm"
+                                                        >
+                                                            Pay
+                                                        </Link>
+                                                    )}
+                                                <button
+                                                    onClick={() => handleViewShipment(shipment.id)}
+                                                    className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm"
+                                                >
+                                                    View
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 )) : (

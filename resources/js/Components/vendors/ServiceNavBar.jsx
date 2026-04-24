@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
+import { Search } from "lucide-react";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
 import { installGlobalVendorButtonTracking, logVendorButtonClick } from "../../utils/vendorActivityLogger";
+import DashboardSearchModal from "../search/DashboardSearchModal";
 
 
 const ServiceNavBar = ({ 
@@ -17,6 +19,8 @@ const ServiceNavBar = ({
     const [showModal, setShowModal] = useState(false);
     const [blockedService, setBlockedService] = useState('');
     const [isUnverified, setIsUnverified] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const approvedSlugsSignature = approvedSlugs.join('|');
 
     useEffect(() => {
         const cleanup = installGlobalVendorButtonTracking({
@@ -24,6 +28,21 @@ const ServiceNavBar = ({
         });
 
         return cleanup;
+    }, []);
+
+    useEffect(() => {
+        const onKeyDown = (event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                setIsSearchOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+        };
     }, []);
 
     // All available services (centralized definition)
@@ -58,6 +77,18 @@ const ServiceNavBar = ({
     };
 
     const currentActiveService = getActiveService();
+
+    const resolvePath = (rawPath) => {
+        if (!rawPath) {
+            return null;
+        }
+
+        try {
+            return new URL(rawPath).pathname;
+        } catch (_error) {
+            return typeof rawPath === 'string' ? rawPath : null;
+        }
+    };
 
     const canAccessService = (serviceName) => {
         switch (serviceName) {
@@ -95,6 +126,29 @@ const ServiceNavBar = ({
             onUnverifiedClick();
         }
     };
+
+    const vendorSearchItems = useMemo(() => {
+        return allServices
+            .filter((service) => isVerified && canAccessService(service.name))
+            .map((service) => {
+                const path = resolvePath(service.route);
+
+                if (!path) {
+                    return null;
+                }
+
+                return {
+                    id: `service-nav-${service.name.replace(/\s+/g, '-').toLowerCase()}`,
+                    title: `${service.name} Dashboard`,
+                    path,
+                    manualPath: `${service.name} > Dashboard`,
+                    group: service.name,
+                    description: `Open ${service.name} dashboard section.`,
+                    keywords: [service.name, 'dashboard', 'service'],
+                };
+            })
+            .filter(Boolean);
+    }, [isVerified, approvedSlugsSignature]);
 
     const getServiceSlug = (serviceName) => {
         const serviceMap = {
@@ -177,12 +231,29 @@ const ServiceNavBar = ({
 
                 {/* Notifications + User Dropdown on the right */}
                 <div className="flex-shrink-0 flex items-center gap-2 ml-3 border-l border-gray-200 pl-3">
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="h-10 w-10 rounded-full bg-[#E8EBEF] hover:bg-[#DDE2E8] transition flex items-center justify-center"
+                        aria-label="Search vendor dashboard"
+                        title="Search (Cmd+K)"
+                    >
+                        <Search size={18} className="text-[#0955AC]" />
+                    </button>
                     <NotificationDropdown bellIcon={bellIcon} />
                     {settingsRoute && (
                         <UserDropdown settingsRoute={settingsRoute} />
                     )}
                 </div>
             </div>
+
+            <DashboardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                items={vendorSearchItems}
+                title="Search Vendor Dashboard"
+                placeholder="Search available vendor services"
+                emptyStateMessage="No available vendor services are searchable right now."
+            />
 
             {/* Access Denied Modal */}
             {showModal && (

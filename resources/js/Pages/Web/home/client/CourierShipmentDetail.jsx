@@ -50,6 +50,48 @@ const statusMap = {
     },
 };
 
+const toTitleLabel = (value, fallback = 'N/A') => {
+    if (value === null || value === undefined || value === '') {
+        return fallback;
+    }
+
+    return String(value)
+        .replaceAll('_', ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatDateTime = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return date.toLocaleString();
+};
+
+const formatAmountWithCurrency = (amount, currencyCode = 'USD') => {
+    const numericAmount = Number(amount);
+    const currency = String(currencyCode || 'USD').toUpperCase();
+
+    if (!Number.isFinite(numericAmount)) {
+        return `0.00 ${currency}`;
+    }
+
+    try {
+        return new Intl.NumberFormat('en-LK', {
+            style: 'currency',
+            currency,
+            minimumFractionDigits: 2,
+        }).format(numericAmount);
+    } catch (error) {
+        return `${numericAmount.toFixed(2)} ${currency}`;
+    }
+};
+
 const CourierShipmentDetail = () => {
     const { shipment } = usePage().props;
     const statusInfo = statusMap[shipment.status] || statusMap.pending;
@@ -62,6 +104,23 @@ const CourierShipmentDetail = () => {
         ? String(shipment.codPaymentMethod).replaceAll('_', ' ')
         : null;
     const codPolicySnapshot = shipment.codPolicySnapshot || null;
+    const paymentStatusRaw = shipment.payment_status || shipment.paymentStatus || null;
+    const paymentMethodRaw = shipment.payment_method || shipment.paymentMethod || null;
+    const paymentReference = shipment.payment_reference
+        || shipment.paymentReference
+        || shipment.payment_tx_reference
+        || shipment.paymentTxReference
+        || shipment.payment_gateway_payment_id
+        || shipment.paymentGatewayPaymentId
+        || shipment.payment_gateway_order_id
+        || shipment.paymentGatewayOrderId
+        || null;
+    const paymentProvider = shipment.payment_provider || shipment.paymentProvider || null;
+    const paymentStatusLabel = toTitleLabel(paymentStatusRaw, 'Pending');
+    const paymentMethodLabel = toTitleLabel(paymentMethodRaw, 'Not Available');
+    const paymentPaidAt = formatDateTime(shipment.payment_paid_at || shipment.paymentPaidAt);
+    const paymentInitiatedAt = formatDateTime(shipment.payment_initiated_at || shipment.paymentInitiatedAt);
+    const paymentFailedAt = formatDateTime(shipment.payment_failed_at || shipment.paymentFailedAt);
 
     const handleDownloadBill = () => {
         window.open(`/couriers/${shipment.id}/bill`, '_blank');
@@ -95,19 +154,29 @@ const CourierShipmentDetail = () => {
                                     Reference: {shipment.code}
                                 </p>
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${statusInfo.color}`}>
-                                    <StatusIcon className="h-5 w-5" />
-                                    {statusInfo.label}
+                                <div className="flex gap-2 items-center">
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${statusInfo.color}`}>
+                                        <StatusIcon className="h-5 w-5" />
+                                        {statusInfo.label}
+                                    </div>
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${
+                                        paymentStatusRaw === 'paid'
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            : paymentStatusRaw === 'failed' || paymentStatusRaw === 'cancelled'
+                                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}>
+                                        <CreditCard className="h-4 w-4" />
+                                        Payment: {paymentStatusLabel}
+                                    </div>
+                                    <button
+                                        onClick={handleDownloadBill}
+                                        className="inline-flex items-center h-10 px-6 rounded-2xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
+                                    >
+                                        <Download className="mr-2 h-5 w-5" />
+                                        Bill
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={handleDownloadBill}
-                                    className="inline-flex items-center h-10 px-6 rounded-2xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
-                                >
-                                    <Download className="mr-2 h-5 w-5" />
-                                    Bill
-                                </button>
-                            </div>
                         </div>
                     </div>
 
@@ -325,7 +394,7 @@ const CourierShipmentDetail = () => {
                                         <div className="flex justify-between">
                                             <span className="text-slate-600">Estimated Cost</span>
                                             <span className="font-semibold">
-                                                ${shipment.estimatedCost} {shipment.currencyCode}
+                                                {formatAmountWithCurrency(shipment.estimatedCost, shipment.displayCurrency || shipment.currencyCode || 'USD')}
                                             </span>
                                         </div>
                                     )}
@@ -333,7 +402,7 @@ const CourierShipmentDetail = () => {
                                         <div className="flex justify-between">
                                             <span className="text-slate-600">Actual Cost</span>
                                             <span className="font-semibold">
-                                                ${shipment.actualCost} {shipment.currencyCode}
+                                                {formatAmountWithCurrency(shipment.actualCost, shipment.displayCurrency || shipment.currencyCode || 'USD')}
                                             </span>
                                         </div>
                                     )}
@@ -347,7 +416,7 @@ const CourierShipmentDetail = () => {
                                         <div className="flex justify-between pt-3 border-t">
                                             <span className="text-slate-600">Declared Value</span>
                                             <span className="font-semibold">
-                                                ${shipment.declaredValue} {shipment.currencyCode}
+                                                {formatAmountWithCurrency(shipment.declaredValue, shipment.currencyCode || 'LKR')}
                                             </span>
                                         </div>
                                     )}
@@ -363,7 +432,7 @@ const CourierShipmentDetail = () => {
                                                 <div className="flex justify-between">
                                                     <span className="text-slate-600">COD Amount</span>
                                                     <span className="font-semibold">
-                                                        {codAmount !== null ? `$${codAmount.toFixed(2)} ${shipment.currencyCode || 'USD'}` : '—'}
+                                                        {codAmount !== null ? formatAmountWithCurrency(codAmount, shipment.currencyCode || 'LKR') : '—'}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
@@ -376,6 +445,44 @@ const CourierShipmentDetail = () => {
                                                     </div>
                                                 )}
                                             </>
+                                        )}
+                                    </div>
+                                    <div className="pt-3 border-t space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Payment Status</span>
+                                            <span className="font-semibold text-slate-900">{paymentStatusLabel}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Payment Method</span>
+                                            <span className="font-semibold text-slate-900">{paymentMethodLabel}</span>
+                                        </div>
+                                        <div className="flex justify-between gap-2">
+                                            <span className="text-slate-600">Payment Reference</span>
+                                            <span className="font-semibold text-slate-900 text-right break-all">{paymentReference || 'N/A'}</span>
+                                        </div>
+                                        {paymentProvider && (
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Payment Provider</span>
+                                                <span className="font-semibold text-slate-900">{toTitleLabel(paymentProvider)}</span>
+                                            </div>
+                                        )}
+                                        {paymentInitiatedAt && (
+                                            <div className="flex justify-between gap-2">
+                                                <span className="text-slate-600">Initiated At</span>
+                                                <span className="font-semibold text-slate-900 text-right">{paymentInitiatedAt}</span>
+                                            </div>
+                                        )}
+                                        {paymentPaidAt && (
+                                            <div className="flex justify-between gap-2">
+                                                <span className="text-slate-600">Paid At</span>
+                                                <span className="font-semibold text-slate-900 text-right">{paymentPaidAt}</span>
+                                            </div>
+                                        )}
+                                        {paymentFailedAt && (
+                                            <div className="flex justify-between gap-2">
+                                                <span className="text-slate-600">Failed At</span>
+                                                <span className="font-semibold text-slate-900 text-right">{paymentFailedAt}</span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
