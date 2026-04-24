@@ -2385,24 +2385,56 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         const recipientCountry = data?.recipient?.address?.country || "-";
 
         const cachedLogoUrl = localStorage.getItem('cachedCompanyLogoUrl');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const rightMargin = 14;
+
         if (cachedLogoUrl) {
             const base64Logo = await getBase64ImageFromUrl(cachedLogoUrl);
             if (base64Logo) {
                 try {
-                    doc.addImage(base64Logo, 'PNG', 14, 10, 40, 15);
+                    const logoWidth = 40;
+                    const logoHeight = 15;
+                    doc.addImage(base64Logo, 'PNG', pageWidth - rightMargin - logoWidth, 10, logoWidth, logoHeight);
                 } catch (e) {
                     console.error("Error adding app logo", e);
                     doc.setFontSize(20);
-                    doc.text("Company Logo", 14, 20);
+                    doc.text("Company Logo", pageWidth - rightMargin, 20, { align: "right" });
                 }
             } else {
                 doc.setFontSize(20);
-                doc.text("Company Logo", 14, 20);
+                doc.text("Company Logo", pageWidth - rightMargin, 20, { align: "right" });
             }
         } else {
             doc.setFontSize(20);
-            doc.text("Company Logo", 14, 20);
+            doc.text("Company Logo", pageWidth - rightMargin, 20, { align: "right" });
         }
+
+        const uniqueProviderLogos = [];
+        const seenLogos = new Set();
+        for (const quote of selectedQuotes) {
+            const logo = quote?.provider?.logo;
+            if (logo && !seenLogos.has(logo)) {
+                seenLogos.add(logo);
+                uniqueProviderLogos.push(logo);
+            }
+        }
+        
+        const topProviderLogosBase64 = await Promise.all(
+            uniqueProviderLogos.map(logoUrl => getBase64ImageFromUrl(logoUrl))
+        );
+
+        let currentVendorX = 14;
+        topProviderLogosBase64.forEach(base64 => {
+            if (base64) {
+                try {
+                    const format = base64.startsWith('data:image/jpeg') || base64.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
+                    doc.addImage(base64, format, currentVendorX, 10, 20, 15);
+                    currentVendorX += 25;
+                } catch (e) {
+                    console.error("Error adding vendor logo", e);
+                }
+            }
+        });
 
         doc.setFontSize(16);
         doc.text("Courier Quotation", 14, 35);
@@ -2432,29 +2464,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 priceLabel
             ]);
         }
-        
-        const providerLogos = await Promise.all(
-            selectedQuotes.map(q => q?.provider?.logo ? getBase64ImageFromUrl(q.provider.logo) : Promise.resolve(null))
-        );
 
         autoTable(doc, {
             startY: 75,
             head: [['#', 'Package', 'Provider', 'Service', 'ETA', 'Price']],
             body: tableBody,
-            didDrawCell: (data) => {
-                if (data.column.index === 2 && data.cell.section === 'body') {
-                    const logoBase64 = providerLogos[data.row.index];
-                    if (logoBase64) {
-                        try {
-                            const dim = data.cell.height - 4;
-                            const format = logoBase64.startsWith('data:image/jpeg') || logoBase64.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
-                            doc.addImage(logoBase64, format, data.cell.x + 2, data.cell.y + 2, dim, dim);
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    }
-                }
-            },
             styles: { fontSize: 10 },
             headStyles: { fillColor: [41, 128, 185] }
         });
