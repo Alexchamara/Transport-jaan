@@ -223,6 +223,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     const [isPlacing, setIsPlacing] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [quoteOnlyMessage, setQuoteOnlyMessage] = useState("");
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
     const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
     const [quoteFilters, setQuoteFilters] = useState(() => buildDefaultQuoteFilters());
@@ -2057,6 +2058,50 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         hasPaymentOption,
     ]);
 
+    const hasRequiredDetailsForQuoteOnly = useMemo(() => {
+        if (!Array.isArray(data.packages) || data.packages.length === 0) {
+            return false;
+        }
+
+        const senderAddress = data.sender?.address || {};
+        const recipientAddress = data.recipient?.address || {};
+        const hasRouteLocations = selectedRouteType === "domestic"
+            ? Boolean(senderAddress.city && recipientAddress.city)
+            : Boolean(
+                senderAddress.country
+                && senderAddress.city
+                && senderAddress.postalCode
+                && recipientAddress.country
+                && recipientAddress.city
+                && recipientAddress.postalCode
+            );
+
+        const hasShipmentType = Boolean(data.shipment?.shipmentType);
+        const needsShipmentDescription = data.shipment?.shipmentType === "other";
+        const hasShipmentDescription = !needsShipmentDescription
+            || Boolean(String(data.shipment?.shipmentTypeDescription || "").trim());
+
+        const packagesHaveNumbers = data.packages.every((pkg) => {
+            const quantity = Number(pkg.quantity) || 0;
+            const weight = Number(pkg.weightKg) || 0;
+            const length = Number(pkg.lengthCm) || 0;
+            const width = Number(pkg.widthCm) || 0;
+            const height = Number(pkg.heightCm) || 0;
+            return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
+        });
+
+        return hasRouteLocations
+            && hasShipmentType
+            && hasShipmentDescription
+            && packagesHaveNumbers;
+    }, [
+        data.packages,
+        data.sender,
+        data.recipient,
+        data.shipment,
+        selectedRouteType,
+    ]);
+
     const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
             return false;
@@ -2270,12 +2315,99 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         return hasRequiredDetails && hasSelectedServices;
     }, [hasRequiredDetails, hasSelectedServices]);
 
+    const isReadyForQuoteOnly = useMemo(() => {
+        return hasRequiredDetailsForQuoteOnly && hasSelectedServices;
+    }, [hasRequiredDetailsForQuoteOnly, hasSelectedServices]);
+
+    const handleGetQuoteOnly = () => {
+        if (!isReadyForQuoteOnly || isPlacing) {
+            setSubmitError(
+                hasRequiredDetailsForQuoteOnly
+                    ? "Select a courier service for each package to get a quote."
+                    : "Complete all required fields before getting a quote.",
+            );
+            return;
+        }
+
+        const reviewContext = buildReviewContext(selectedQuotes, displayCurrency);
+        setData((previous) => ({
+            ...previous,
+            reviewContext,
+        }));
+
+        setSubmitError("");
+        setQuoteOnlyMessage(
+            `Quotation ready. Estimated total: ${formatCurrency(reviewContext.totalPriceUSD || 0)} for ${reviewContext.selectedQuotes?.length || 0} package(s).`,
+        );
+        handleDownloadQuotation();
+    };
+
+    const handleDownloadQuotation = () => {
+        if (!selectedQuotes.length || typeof window === "undefined") {
+            setSubmitError("Select at least one quoted service before downloading the quotation.");
+            return;
+        }
+
+        const totalUsd = selectedQuotes.reduce((sum, quote) => sum + (Number(quote?.tier?.price) || 0), 0);
+        const totalDisplay = formatCurrency(totalUsd);
+        const generatedAt = new Date();
+        const generatedAtLabel = generatedAt.toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+        const senderCity = data?.sender?.address?.city || "-";
+        const senderCountry = data?.sender?.address?.country || "-";
+        const recipientCity = data?.recipient?.address?.city || "-";
+        const recipientCountry = data?.recipient?.address?.country || "-";
+
+        const lines = [
+            "COURIER QUOTATION",
+            "=================",
+            `Generated at: ${generatedAtLabel}`,
+            `Route type: ${selectedRouteType}`,
+            `From: ${senderCity}, ${senderCountry}`,
+            `To: ${recipientCity}, ${recipientCountry}`,
+            `Currency view: ${displayCurrency}`,
+            "",
+            "Selected services",
+            "-----------------",
+            ...selectedQuotes.map((quote, index) => {
+                const packageLabel = quote?.packageInfo?.label || `Package ${index + 1}`;
+                const providerName = quote?.provider?.name || "Unknown provider";
+                const tierLabel = quote?.tier?.label || "Unknown tier";
+                const eta = quote?.tier?.eta || "-";
+                const priceLabel = formatCurrency(Number(quote?.tier?.price) || 0);
+                return `${index + 1}. ${packageLabel} | ${providerName} | ${tierLabel} | ETA: ${eta} | ${priceLabel}`;
+            }),
+            "",
+            `Total shipping cost: ${totalDisplay}`,
+        ];
+
+        const fileContent = `${lines.join("\n")}\n`;
+        const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const datePart = generatedAt.toISOString().slice(0, 10);
+
+        link.href = url;
+        link.download = `courier-quotation-${datePart}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        setSubmitError("");
+    };
+
     const handleContinueToDetails = async () => {
         if (!isReadyToPlace || isPlacing) {
             return;
         }
 
         setSubmitError("");
+        setQuoteOnlyMessage("");
         setIsPlacing(true);
 
         const basePayload = JSON.parse(JSON.stringify(data));
@@ -2563,23 +2695,23 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 <input
                                                                                     value={locationSearch.senderCity}
                                                                                     onChange={(event) => {
-                                                                                    setActiveLocationField(`sender-city-${index}`);
-                                                                                    handleCitySearchChange("sender", "senderCity", event.target.value);
-                                                                                }}
+                                                                                        setActiveLocationField(`sender-city-${index}`);
+                                                                                        handleCitySearchChange("sender", "senderCity", event.target.value);
+                                                                                    }}
                                                                                     onFocus={() => {
-                                                                                    setActiveLocationField(`sender-city-${index}`);
-                                                                                    if (locationSearch.senderCity.length >= 1) {
-                                                                                        fetchDomesticCitySuggestions("sender", locationSearch.senderCity);
-                                                                                    }
-                                                                                }}
+                                                                                        setActiveLocationField(`sender-city-${index}`);
+                                                                                        if (locationSearch.senderCity.length >= 1) {
+                                                                                            fetchDomesticCitySuggestions("sender", locationSearch.senderCity);
+                                                                                        }
+                                                                                    }}
                                                                                     onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
                                                                                     className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.sender && (
-                                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
-                                                                            )}
-                                                                            {activeLocationField === `sender-city-${index}` && domesticCitySuggestions.sender.length > 0 && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {activeLocationField === `sender-city-${index}` && domesticCitySuggestions.sender.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
                                                                                         {domesticCitySuggestions.sender.map((option) => (
                                                                                             <button
@@ -2589,7 +2721,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                                     event.preventDefault();
                                                                                                     handleLocationSelect("sender", "senderCity", option, "city");
                                                                                                     setDomesticCitySuggestions((prev) => ({ ...prev, sender: [] }));
-                                                                                            }}
+                                                                                                }}
                                                                                                 className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
                                                                                             >
                                                                                                 {option.label}
@@ -2605,23 +2737,23 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                 <input
                                                                                     value={locationSearch.recipientCity}
                                                                                     onChange={(event) => {
-                                                                                    setActiveLocationField(`recipient-city-${index}`);
-                                                                                    handleCitySearchChange("recipient", "recipientCity", event.target.value);
-                                                                                }}
+                                                                                        setActiveLocationField(`recipient-city-${index}`);
+                                                                                        handleCitySearchChange("recipient", "recipientCity", event.target.value);
+                                                                                    }}
                                                                                     onFocus={() => {
-                                                                                    setActiveLocationField(`recipient-city-${index}`);
-                                                                                    if (locationSearch.recipientCity.length >= 1) {
-                                                                                        fetchDomesticCitySuggestions("recipient", locationSearch.recipientCity);
-                                                                                    }
-                                                                                }}
+                                                                                        setActiveLocationField(`recipient-city-${index}`);
+                                                                                        if (locationSearch.recipientCity.length >= 1) {
+                                                                                            fetchDomesticCitySuggestions("recipient", locationSearch.recipientCity);
+                                                                                        }
+                                                                                    }}
                                                                                     onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
                                                                                     className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.recipient && (
-                                                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
-                                                                            )}
-                                                                            {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
                                                                                         {domesticCitySuggestions.recipient.map((option) => (
                                                                                             <button
@@ -2631,7 +2763,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                                     event.preventDefault();
                                                                                                     handleLocationSelect("recipient", "recipientCity", option, "city");
                                                                                                     setDomesticCitySuggestions((prev) => ({ ...prev, recipient: [] }));
-                                                                                            }}
+                                                                                                }}
                                                                                                 className="block w-full px-3 py-2 text-left text-sm text-[#0B1739] hover:bg-[#F0F7FF]"
                                                                                             >
                                                                                                 {option.label}
@@ -3775,20 +3907,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         {provider.name.slice(0, 2).toUpperCase()}
                                                                                     </div>
                                                                                 )}
-                                                                                    <div className="min-w-0">
-                                                                                        <div className="text-xs font-semibold text-[#0B1739] truncate flex items-center gap-1.5">
-                                                                                            {provider.name}
-                                                                                            <div className="flex gap-1">
-                                                                                                {provider.paymentOptions?.cod && (
-                                                                                                    <span className="bg-amber-100 text-amber-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">COD</span>
-                                                                                                )}
-                                                                                                {provider.paymentOptions?.card && (
-                                                                                                    <span className="bg-blue-100 text-blue-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Card</span>
-                                                                                                )}
-                                                                                            </div>
+                                                                                <div className="min-w-0">
+                                                                                    <div className="text-xs font-semibold text-[#0B1739] truncate flex items-center gap-1.5">
+                                                                                        {provider.name}
+                                                                                        <div className="flex gap-1">
+                                                                                            {provider.paymentOptions?.cod && (
+                                                                                                <span className="bg-amber-100 text-amber-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">COD</span>
+                                                                                            )}
+                                                                                            {provider.paymentOptions?.card && (
+                                                                                                <span className="bg-blue-100 text-blue-700 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Card</span>
+                                                                                            )}
                                                                                         </div>
-                                                                                        <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
                                                                                     </div>
+                                                                                    <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                                </div>
                                                                             </div>
                                                                             {/* Tier rows */}
                                                                             <div className="divide-y divide-[#F7F9FC]">
@@ -4038,6 +4170,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                 </span>
                                             </div>
                                         </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            {showDetails && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleGetQuoteOnly}
+                                                    disabled={!isReadyForQuoteOnly || isPlacing}
+                                                    className={`rounded-lg border border-[#0955AC] bg-white px-4 py-2 text-sm font-semibold text-[#0955AC] transition ${!isReadyForQuoteOnly || isPlacing ? "cursor-not-allowed opacity-50" : "hover:bg-[#EEF5FF]"}`}
+                                                >
+                                                    Get a quote
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </section>
@@ -4278,15 +4422,26 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     </>
                                 ) : (
                                     <>
-                                        <button
-                                            type="button"
-                                            onClick={handleContinueToDetails}
-                                            disabled={!isReadyToPlace || isPlacing}
-                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                                                }`}
-                                        >
-                                            {isPlacing ? 'Preparing details...' : 'Continue'}
-                                        </button>
+                                        <div className="grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+                                            <button
+                                                type="button"
+                                                onClick={handleGetQuoteOnly}
+                                                disabled={!isReadyForQuoteOnly || isPlacing}
+                                                className={`rounded-lg border border-[#0955AC] bg-white px-6 py-3 text-center text-sm font-semibold text-[#0955AC] shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyForQuoteOnly || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#EEF5FF]'
+                                                    }`}
+                                            >
+                                                Get a quote
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleContinueToDetails}
+                                                disabled={!isReadyToPlace || isPlacing}
+                                                className={`rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                                    }`}
+                                            >
+                                                {isPlacing ? 'Preparing details...' : 'Continue'}
+                                            </button>
+                                        </div>
                                         {!isReadyToPlace && (
                                             <p className="text-xs text-[#D14343]">
                                                 {hasRequiredDetails
@@ -4294,6 +4449,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     : selectedRouteType === 'domestic' && !hasPaymentOption
                                                         ? 'Select at least one payment option to continue.'
                                                         : 'Complete all required fields before continuing.'}
+                                            </p>
+                                        )}
+                                        {quoteOnlyMessage && (
+                                            <p className="text-xs text-[#0B7A44]">
+                                                {quoteOnlyMessage}
                                             </p>
                                         )}
                                     </>
