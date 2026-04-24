@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { createPortal } from "react-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
 import bg from "../assets/courierService/bg.png";
@@ -227,6 +229,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const [serviceDetailsModal, setServiceDetailsModal] = useState(null);
     const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
     const [quoteFilters, setQuoteFilters] = useState(() => buildDefaultQuoteFilters());
+    const [appliedQuoteFilters, setAppliedQuoteFilters] = useState(() => buildDefaultQuoteFilters());
     const [showDetails, setShowDetails] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -1849,19 +1852,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const resetQuoteFilters = () => {
-        setQuoteFilters(buildDefaultQuoteFilters());
+        const defaults = buildDefaultQuoteFilters();
+        setQuoteFilters(defaults);
+        setAppliedQuoteFilters(defaults);
     };
 
     const hasActiveQuoteFilters = useMemo(() => {
-        const tiers = quoteFilters.tiers || {};
+        const tiers = appliedQuoteFilters.tiers || {};
         const allTiersEnabled = QUOTE_TIER_OPTIONS.every((tier) => tiers[tier.id]);
         return Boolean(
-            quoteFilters.providerSearch
-            || quoteFilters.minPrice
-            || quoteFilters.maxPrice
+            appliedQuoteFilters.providerSearch
+            || appliedQuoteFilters.minPrice
+            || appliedQuoteFilters.maxPrice
             || !allTiersEnabled
         );
-    }, [quoteFilters]);
+    }, [appliedQuoteFilters]);
 
     const openServiceDetailsModal = (provider, tier, options = {}) => {
         if (!provider || !tier) {
@@ -2342,12 +2347,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         handleDownloadQuotation();
     };
 
-    const handleDownloadQuotation = () => {
+    const getBase64ImageFromUrl = async (imageUrl) => {
+        try {
+            const res = await fetch(imageUrl);
+            const blob = await res.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const handleDownloadQuotation = async () => {
         if (!selectedQuotes.length || typeof window === "undefined") {
             setSubmitError("Select at least one quoted service before downloading the quotation.");
             return;
         }
 
+        const doc = new jsPDF();
         const totalUsd = selectedQuotes.reduce((sum, quote) => sum + (Number(quote?.tier?.price) || 0), 0);
         const totalDisplay = formatCurrency(totalUsd);
         const generatedAt = new Date();
@@ -2363,41 +2384,87 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         const recipientCity = data?.recipient?.address?.city || "-";
         const recipientCountry = data?.recipient?.address?.country || "-";
 
-        const lines = [
-            "COURIER QUOTATION",
-            "=================",
-            `Generated at: ${generatedAtLabel}`,
-            `Route type: ${selectedRouteType}`,
-            `From: ${senderCity}, ${senderCountry}`,
-            `To: ${recipientCity}, ${recipientCountry}`,
-            `Currency view: ${displayCurrency}`,
-            "",
-            "Selected services",
-            "-----------------",
-            ...selectedQuotes.map((quote, index) => {
-                const packageLabel = quote?.packageInfo?.label || `Package ${index + 1}`;
-                const providerName = quote?.provider?.name || "Unknown provider";
-                const tierLabel = quote?.tier?.label || "Unknown tier";
-                const eta = quote?.tier?.eta || "-";
-                const priceLabel = formatCurrency(Number(quote?.tier?.price) || 0);
-                return `${index + 1}. ${packageLabel} | ${providerName} | ${tierLabel} | ETA: ${eta} | ${priceLabel}`;
-            }),
-            "",
-            `Total shipping cost: ${totalDisplay}`,
-        ];
+        const cachedLogoUrl = localStorage.getItem('cachedCompanyLogoUrl');
+        if (cachedLogoUrl) {
+            const base64Logo = await getBase64ImageFromUrl(cachedLogoUrl);
+            if (base64Logo) {
+                try {
+                    doc.addImage(base64Logo, 'PNG', 14, 10, 40, 15);
+                } catch (e) {
+                    console.error("Error adding app logo", e);
+                    doc.setFontSize(20);
+                    doc.text("Company Logo", 14, 20);
+                }
+            } else {
+                doc.setFontSize(20);
+                doc.text("Company Logo", 14, 20);
+            }
+        } else {
+            doc.setFontSize(20);
+            doc.text("Company Logo", 14, 20);
+        }
 
-        const fileContent = `${lines.join("\n")}\n`;
-        const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
+        doc.setFontSize(16);
+        doc.text("Courier Quotation", 14, 35);
+        
+        doc.setFontSize(10);
+        doc.text(`Generated at: ${generatedAtLabel}`, 14, 45);
+        doc.text(`Route type: ${selectedRouteType}`, 14, 50);
+        doc.text(`From: ${senderCity}, ${senderCountry}`, 14, 55);
+        doc.text(`To: ${recipientCity}, ${recipientCountry}`, 14, 60);
+        doc.text(`Currency view: ${displayCurrency}`, 14, 65);
+
+        const tableBody = [];
+        for (let index = 0; index < selectedQuotes.length; index++) {
+            const quote = selectedQuotes[index];
+            const packageLabel = quote?.packageInfo?.label || `Package ${index + 1}`;
+            const providerName = quote?.provider?.name || "Unknown provider";
+            const tierLabel = quote?.tier?.label || "Unknown tier";
+            const eta = quote?.tier?.eta || "-";
+            const priceLabel = formatCurrency(Number(quote?.tier?.price) || 0);
+            
+            tableBody.push([
+                index + 1,
+                packageLabel,
+                providerName,
+                tierLabel,
+                eta,
+                priceLabel
+            ]);
+        }
+        
+        const providerLogos = await Promise.all(
+            selectedQuotes.map(q => q?.provider?.logo ? getBase64ImageFromUrl(q.provider.logo) : Promise.resolve(null))
+        );
+
+        autoTable(doc, {
+            startY: 75,
+            head: [['#', 'Package', 'Provider', 'Service', 'ETA', 'Price']],
+            body: tableBody,
+            didDrawCell: (data) => {
+                if (data.column.index === 2 && data.cell.section === 'body') {
+                    const logoBase64 = providerLogos[data.row.index];
+                    if (logoBase64) {
+                        try {
+                            const dim = data.cell.height - 4;
+                            const format = logoBase64.startsWith('data:image/jpeg') || logoBase64.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
+                            doc.addImage(logoBase64, format, data.cell.x + 2, data.cell.y + 2, dim, dim);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            },
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [41, 128, 185] }
+        });
+
+        const finalY = doc.lastAutoTable.finalY || 75;
+        doc.setFontSize(12);
+        doc.text(`Total shipping cost: ${totalDisplay}`, 14, finalY + 10);
+
         const datePart = generatedAt.toISOString().slice(0, 10);
-
-        link.href = url;
-        link.download = `courier-quotation-${datePart}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        doc.save(`courier-quotation-${datePart}.pdf`);
         setSubmitError("");
     };
 
@@ -3713,32 +3780,37 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     </div>
 
                                                     <div>
-                                                        <label className="mb-2 block text-xs font-medium text-[#0B1739]">Price range ({displayCurrency})</label>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                value={quoteFilters.minPrice}
-                                                                onChange={(event) => setQuoteFilters((previous) => ({
-                                                                    ...previous,
-                                                                    minPrice: event.target.value,
-                                                                }))}
-                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Min"
-                                                            />
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                step="0.01"
-                                                                value={quoteFilters.maxPrice}
-                                                                onChange={(event) => setQuoteFilters((previous) => ({
-                                                                    ...previous,
-                                                                    maxPrice: event.target.value,
-                                                                }))}
-                                                                className="h-[44px] w-full rounded-lg border border-[#D6DEEB] bg-white px-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
-                                                                placeholder="Max"
-                                                            />
+                                                        <div className="mb-2 flex items-center justify-between">
+                                                            <label className="text-xs font-medium text-[#0B1739]">Max price ({displayCurrency})</label>
+                                                            <span className="text-xs font-bold text-[#0955AC]">
+                                                                {quoteFilters.maxPrice ? currencyFormatter.format(Number(quoteFilters.maxPrice)) : 'Any'}
+                                                            </span>
+                                                        </div>
+                                                        {(() => {
+                                                            const activePackageQuotesForSlider = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
+                                                            const maxAvailablePrice = activePackageQuotesForSlider ? Math.ceil(Math.max(10, 0, ...activePackageQuotesForSlider.providers.flatMap(p => p.tiers.map(t => getDisplayAmount(Number(t.price) || 0))))) : 1000;
+                                                            return (
+                                                                <input
+                                                                    type="range"
+                                                                    min="0"
+                                                                    max={maxAvailablePrice}
+                                                                    step="1"
+                                                                    value={quoteFilters.maxPrice || maxAvailablePrice}
+                                                                    onChange={(event) => {
+                                                                        const val = Number(event.target.value);
+                                                                        setQuoteFilters((previous) => ({
+                                                                            ...previous,
+                                                                            minPrice: "0",
+                                                                            maxPrice: val >= maxAvailablePrice ? "" : String(val),
+                                                                        }));
+                                                                    }}
+                                                                    className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-[#E3EAF5] accent-[#0955AC]"
+                                                                />
+                                                            );
+                                                        })()}
+                                                        <div className="mt-1 flex justify-between text-[10px] text-[#6B7893]">
+                                                            <span>0</span>
+                                                            <span>Max</span>
                                                         </div>
                                                     </div>
 
@@ -3772,14 +3844,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 flex items-center justify-between border-t border-[#E3EAF5] pt-3">
-                                                    <span className="text-[11px] text-[#6B7893]">Filters apply instantly.</span>
+                                                <div className="mt-4 flex items-center justify-end gap-3 border-t border-[#E3EAF5] pt-3">
                                                     <button
                                                         type="button"
                                                         onClick={resetQuoteFilters}
                                                         className="rounded-lg border border-[#D6DEEB] px-3 py-1.5 text-[11px] font-semibold text-[#5B6887] transition hover:border-[#0955AC] hover:text-[#0955AC]"
                                                     >
                                                         Reset
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAppliedQuoteFilters(quoteFilters)}
+                                                        className="rounded-lg bg-[#0955AC] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#07468f]"
+                                                    >
+                                                        Filter
                                                     </button>
                                                 </div>
                                             </aside>
@@ -3810,12 +3888,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                         if (!providers.length) return null;
 
                                                         const selectedTierIds = QUOTE_TIER_OPTIONS
-                                                            .filter((tier) => quoteFilters.tiers?.[tier.id])
+                                                            .filter((tier) => appliedQuoteFilters.tiers?.[tier.id])
                                                             .map((tier) => tier.id);
                                                         const visibleTierIds = selectedTierIds.length ? selectedTierIds : TIER_IDS;
-                                                        const searchValue = String(quoteFilters.providerSearch || "").trim().toLowerCase();
-                                                        const minPriceValue = quoteFilters.minPrice !== "" ? Number(quoteFilters.minPrice) : null;
-                                                        const maxPriceValue = quoteFilters.maxPrice !== "" ? Number(quoteFilters.maxPrice) : null;
+                                                        const searchValue = String(appliedQuoteFilters.providerSearch || "").trim().toLowerCase();
+                                                        const minPriceValue = appliedQuoteFilters.minPrice !== "" ? Number(appliedQuoteFilters.minPrice) : null;
+                                                        const maxPriceValue = appliedQuoteFilters.maxPrice !== "" ? Number(appliedQuoteFilters.maxPrice) : null;
 
                                                         const handleSelectService = (providerId, tierId) => {
                                                             const updatedPackages = [...data.packages];
