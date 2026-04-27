@@ -4284,12 +4284,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 ref={detailsSectionRef}
                                 className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
                             >
-                                <div className="mb-4">
-                                    <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
-                                    <p className="mt-1 text-sm text-[#5B6887]">
-                                        Add pickup, delivery, and shipment preferences to complete the request.
-                                    </p>
-                                </div>
+                                
                                 <DetailsForm
                                     inline
                                     renderAsForm={false}
