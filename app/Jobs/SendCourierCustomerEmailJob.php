@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\CourierCustomerLifecycleMail;
 use App\Models\Courier\CourierCustomerEmailDispatch;
+use App\Models\Courier\CourierEmailSuppression;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -57,7 +58,44 @@ class SendCourierCustomerEmailJob implements ShouldQueue
         if ($recipient === '' || !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
             $dispatch->forceFill([
                 'status' => CourierCustomerEmailDispatch::STATUS_SKIPPED,
+                'failed_reason_code' => 'invalid_recipient',
                 'last_error' => 'Recipient email is missing or invalid.',
+            ])->save();
+
+            return;
+        }
+
+        if ((string) $dispatch->channel !== 'email') {
+            $dispatch->forceFill([
+                'status' => CourierCustomerEmailDispatch::STATUS_SKIPPED,
+                'failed_reason_code' => 'unsupported_channel',
+                'last_error' => 'Dispatch is not configured for email sending.',
+            ])->save();
+
+            return;
+        }
+
+        $isSuppressed = CourierEmailSuppression::query()
+            ->where('email', mb_strtolower($recipient))
+            ->where(function ($query) use ($dispatch) {
+                if ((int) ($dispatch->vendor_user_id ?? 0) > 0) {
+                    $query->where('vendor_user_id', (int) $dispatch->vendor_user_id)
+                        ->orWhereNull('vendor_user_id');
+                } else {
+                    $query->whereNull('vendor_user_id');
+                }
+            })
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+
+        if ($isSuppressed) {
+            $dispatch->forceFill([
+                'status' => CourierCustomerEmailDispatch::STATUS_SKIPPED,
+                'failed_reason_code' => 'suppressed',
+                'last_error' => 'Recipient is suppressed due to provider feedback.',
             ])->save();
 
             return;
@@ -103,7 +141,9 @@ class SendCourierCustomerEmailJob implements ShouldQueue
         }
 
         try {
-            Mail::to($recipient)->send(new CourierCustomerLifecycleMail(
+            Mail::mailer((string) config('courier.notifications_v2.transactional_mailer', config('mail.default')))
+                ->to($recipient)
+                ->send(new CourierCustomerLifecycleMail(
                 $dispatch,
                 $shipment,
                 $dispatch->payment,
@@ -112,12 +152,17 @@ class SendCourierCustomerEmailJob implements ShouldQueue
 
             $dispatch->forceFill([
                 'status' => CourierCustomerEmailDispatch::STATUS_SENT,
+                'provider_event' => 'sent',
+                'provider_event_at' => now(),
                 'last_error' => null,
                 'sent_at' => now(),
             ])->save();
         } catch (Throwable $exception) {
             $dispatch->forceFill([
                 'status' => CourierCustomerEmailDispatch::STATUS_FAILED,
+                'provider_event' => 'failed',
+                'provider_event_at' => now(),
+                'failed_reason_code' => 'send_exception',
                 'last_error' => mb_substr($exception->getMessage(), 0, 1500),
             ])->save();
 

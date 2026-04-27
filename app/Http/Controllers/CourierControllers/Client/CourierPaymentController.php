@@ -429,8 +429,13 @@ class CourierPaymentController extends Controller
                 ],
             ];
 
-            // Idempotent guard: do not regress a terminal payment status once reached.
-            if (in_array($currentStatus, $terminalStatuses, true) && $currentStatus !== $resolvedStatus) {
+            // Idempotent guard: once PAID, never regress to non-paid statuses.
+            // Allow late successful callbacks to upgrade a previously cancelled/failed/expired payment.
+            if (
+                $resolvedStatus !== CourierShipmentPayment::STATUS_PAID
+                && in_array($currentStatus, $terminalStatuses, true)
+                && $currentStatus !== $resolvedStatus
+            ) {
                 $lockedPayment->forceFill([
                     'last_notified_at' => now(),
                     'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),

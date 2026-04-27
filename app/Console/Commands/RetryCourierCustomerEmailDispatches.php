@@ -18,6 +18,7 @@ class RetryCourierCustomerEmailDispatches extends Command
         $limit = max(1, (int) $this->option('limit'));
 
         $dispatches = CourierCustomerEmailDispatch::query()
+            ->where('channel', 'email')
             ->where('status', CourierCustomerEmailDispatch::STATUS_FAILED)
             ->orderBy('updated_at')
             ->limit($limit)

@@ -4,6 +4,104 @@ import { BadgeDollarSign, BellRing, ChevronDown, Clock3, KeyRound, MapPinned, Pr
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
 import useCourierActionModal from "./common/useCourierActionModal";
 
+const NOTIFICATION_EVENT_MATRIX_DEFAULT = {
+    shipment_placed: { client: { email: true, inApp: false }, internal: { email: false, inApp: false } },
+    booking_confirmed: { client: { email: true, inApp: false }, internal: { email: false, inApp: false } },
+    booking_cancelled: { client: { email: true, inApp: true }, internal: { email: true, inApp: true } },
+    tracking_picked_up: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
+    tracking_out_for_delivery: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
+    tracking_delivered: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
+    payment_paid: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
+    payment_failed: { client: { email: true, inApp: true }, internal: { email: true, inApp: true } },
+    payment_cancelled: { client: { email: true, inApp: true }, internal: { email: true, inApp: true } },
+    internal_exception: { internal: { email: true, inApp: true } },
+    internal_sla_risk: { internal: { email: true, inApp: true } },
+};
+
+const LEGACY_NOTIFICATION_MAP = {
+    notifyClientShipmentPlaced: { event: "shipment_placed", audience: "client" },
+    notifyClientBookingConfirmed: { event: "booking_confirmed", audience: "client" },
+    notifyClientBookingCancelled: { event: "booking_cancelled", audience: "client" },
+    notifyClientPickup: { event: "tracking_picked_up", audience: "client" },
+    notifyClientOutForDelivery: { event: "tracking_out_for_delivery", audience: "client" },
+    notifyClientDelivered: { event: "tracking_delivered", audience: "client" },
+    notifyClientPaymentPaid: { event: "payment_paid", audience: "client" },
+    notifyClientPaymentFailed: { event: "payment_failed", audience: "client" },
+    notifyClientPaymentCancelled: { event: "payment_cancelled", audience: "client" },
+    notifyInternalException: { event: "internal_exception", audience: "internal" },
+    notifyInternalSlaRisk: { event: "internal_sla_risk", audience: "internal" },
+};
+
+const NOTIFICATION_EVENT_LABELS = {
+    shipment_placed: "Shipment Placed",
+    booking_confirmed: "Booking Confirmed",
+    booking_cancelled: "Booking Cancelled",
+    tracking_picked_up: "Tracking Picked Up",
+    tracking_out_for_delivery: "Out For Delivery",
+    tracking_delivered: "Delivered",
+    payment_paid: "Payment Paid",
+    payment_failed: "Payment Failed",
+    payment_cancelled: "Payment Cancelled",
+    internal_exception: "Internal Exception",
+    internal_sla_risk: "Internal SLA Risk",
+};
+
+const buildLegacyNotificationFlags = (eventMatrix) => {
+    const matrix = eventMatrix && typeof eventMatrix === "object" ? eventMatrix : {};
+    return Object.entries(LEGACY_NOTIFICATION_MAP).reduce((acc, [legacyKey, mapping]) => {
+        const fallback = Boolean(NOTIFICATION_EVENT_MATRIX_DEFAULT?.[mapping.event]?.[mapping.audience]?.email);
+        const rawValue = matrix?.[mapping.event]?.[mapping.audience]?.email;
+        acc[legacyKey] = typeof rawValue === "boolean" ? rawValue : fallback;
+        return acc;
+    }, {});
+};
+
+const buildDefaultNotificationSettings = () => {
+    const eventMatrix = JSON.parse(JSON.stringify(NOTIFICATION_EVENT_MATRIX_DEFAULT));
+    return {
+        ...buildLegacyNotificationFlags(eventMatrix),
+        version: 2,
+        channels: {
+            email: { enabled: true },
+            inApp: { enabled: true },
+        },
+        clientRecipients: {
+            requester: true,
+            sender: true,
+            recipient: true,
+            extraEmails: [],
+        },
+        internalRecipients: {
+            roleNames: ["ops_lead"],
+            userIds: [],
+            extraEmails: [],
+        },
+        eventMatrix,
+        delivery: {
+            quietHours: {
+                enabled: false,
+                start: "22:00",
+                end: "06:00",
+                timezone: "Asia/Colombo",
+            },
+            digest: {
+                enabled: false,
+                frequency: "daily",
+                time: "09:00",
+                timezone: "Asia/Colombo",
+            },
+        },
+        deliverability: {
+            fromName: "Transport Jaan Courier",
+            fromEmail: "",
+            replyTo: "",
+            respectSuppression: true,
+        },
+    };
+};
+
+const DEFAULT_NOTIFICATION_SETTINGS = buildDefaultNotificationSettings();
+
 const DEFAULT_SETTINGS = {
     business: {
         companyName: "Sonnac Lanka Enterprises",
@@ -34,17 +132,7 @@ const DEFAULT_SETTINGS = {
         allowManualScanCorrection: true,
     },
     notifications: {
-        notifyClientShipmentPlaced: true,
-        notifyClientBookingConfirmed: true,
-        notifyClientBookingCancelled: true,
-        notifyClientPickup: true,
-        notifyClientOutForDelivery: true,
-        notifyClientDelivered: true,
-        notifyClientPaymentPaid: true,
-        notifyClientPaymentFailed: true,
-        notifyClientPaymentCancelled: true,
-        notifyInternalException: true,
-        notifyInternalSlaRisk: true,
+        ...DEFAULT_NOTIFICATION_SETTINGS,
     },
     integrations: {
         webhookUrl: "",
@@ -982,6 +1070,16 @@ const Settings = () => {
     const incomingCodCapability = props.courierCodCapability && typeof props.courierCodCapability === "object"
         ? props.courierCodCapability
         : {};
+    const notificationMeta = props.notificationMeta && typeof props.notificationMeta === "object"
+        ? props.notificationMeta
+        : {};
+    const notificationMetrics = props.notificationMetrics && typeof props.notificationMetrics === "object"
+        ? props.notificationMetrics
+        : {};
+    const notificationRollout = notificationMeta.rollout && typeof notificationMeta.rollout === "object"
+        ? notificationMeta.rollout
+        : {};
+    const notificationV2EnabledForVendor = Boolean(notificationRollout.v2EnabledForVendor);
     const teamCapabilities = props.teamCapabilities || {};
     const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
     const canAssignRole = Boolean(teamCapabilities.assignRole);
@@ -1015,6 +1113,53 @@ const Settings = () => {
         const incomingServices = incoming.services && typeof incoming.services === "object" ? incoming.services : {};
         const incomingServicesCod = incomingServices.cod && typeof incomingServices.cod === "object" ? incomingServices.cod : {};
         const incomingNotifications = incoming.notifications && typeof incoming.notifications === "object" ? incoming.notifications : {};
+        const incomingNotificationChannels = incomingNotifications.channels && typeof incomingNotifications.channels === "object"
+            ? incomingNotifications.channels
+            : {};
+        const incomingNotificationClientRecipients = incomingNotifications.clientRecipients && typeof incomingNotifications.clientRecipients === "object"
+            ? incomingNotifications.clientRecipients
+            : {};
+        const incomingNotificationInternalRecipients = incomingNotifications.internalRecipients && typeof incomingNotifications.internalRecipients === "object"
+            ? incomingNotifications.internalRecipients
+            : {};
+        const incomingNotificationEventMatrix = incomingNotifications.eventMatrix && typeof incomingNotifications.eventMatrix === "object"
+            ? incomingNotifications.eventMatrix
+            : {};
+        const mergedNotificationEventMatrix = Object.entries(NOTIFICATION_EVENT_MATRIX_DEFAULT).reduce((acc, [eventKey, audienceMap]) => {
+            const incomingAudienceMap = incomingNotificationEventMatrix[eventKey] && typeof incomingNotificationEventMatrix[eventKey] === "object"
+                ? incomingNotificationEventMatrix[eventKey]
+                : {};
+            const nextAudienceMap = Object.entries(audienceMap || {}).reduce((audAcc, [audienceKey, channelMap]) => {
+                const incomingChannelMap = incomingAudienceMap[audienceKey] && typeof incomingAudienceMap[audienceKey] === "object"
+                    ? incomingAudienceMap[audienceKey]
+                    : {};
+                audAcc[audienceKey] = {
+                    ...channelMap,
+                    ...incomingChannelMap,
+                };
+                return audAcc;
+            }, {});
+
+            acc[eventKey] = nextAudienceMap;
+            return acc;
+        }, {});
+        Object.entries(LEGACY_NOTIFICATION_MAP).forEach(([legacyKey, mapping]) => {
+            if (typeof incomingNotifications?.[legacyKey] !== "boolean") {
+                return;
+            }
+
+            if (!mergedNotificationEventMatrix?.[mapping.event]?.[mapping.audience]) {
+                return;
+            }
+
+            mergedNotificationEventMatrix[mapping.event][mapping.audience] = {
+                ...mergedNotificationEventMatrix[mapping.event][mapping.audience],
+                email: incomingNotifications[legacyKey],
+            };
+        });
+        const mergedLegacyNotificationFlags = {
+            ...buildLegacyNotificationFlags(mergedNotificationEventMatrix),
+        };
         const hasLegacyInternationalFlag = typeof incomingServicesCod.allowCodForLogistic === "boolean";
         const incomingLabels = incoming.labels && typeof incoming.labels === "object" ? incoming.labels : {};
         const incomingLabelDefaults = incomingLabels.defaults && typeof incomingLabels.defaults === "object" ? incomingLabels.defaults : {};
@@ -1045,8 +1190,65 @@ const Settings = () => {
             ...DEFAULT_SETTINGS,
             ...incoming,
             notifications: {
-                ...DEFAULT_SETTINGS.notifications,
+                ...DEFAULT_NOTIFICATION_SETTINGS,
                 ...incomingNotifications,
+                ...mergedLegacyNotificationFlags,
+                version: typeof incomingNotifications.version === "number" ? incomingNotifications.version : DEFAULT_NOTIFICATION_SETTINGS.version,
+                channels: {
+                    ...DEFAULT_NOTIFICATION_SETTINGS.channels,
+                    ...incomingNotificationChannels,
+                    email: {
+                        ...DEFAULT_NOTIFICATION_SETTINGS.channels.email,
+                        ...(incomingNotificationChannels.email && typeof incomingNotificationChannels.email === "object" ? incomingNotificationChannels.email : {}),
+                    },
+                    inApp: {
+                        ...DEFAULT_NOTIFICATION_SETTINGS.channels.inApp,
+                        ...(incomingNotificationChannels.inApp && typeof incomingNotificationChannels.inApp === "object" ? incomingNotificationChannels.inApp : {}),
+                    },
+                },
+                clientRecipients: {
+                    ...DEFAULT_NOTIFICATION_SETTINGS.clientRecipients,
+                    ...incomingNotificationClientRecipients,
+                    extraEmails: Array.isArray(incomingNotificationClientRecipients.extraEmails)
+                        ? incomingNotificationClientRecipients.extraEmails
+                        : DEFAULT_NOTIFICATION_SETTINGS.clientRecipients.extraEmails,
+                },
+                internalRecipients: {
+                    ...DEFAULT_NOTIFICATION_SETTINGS.internalRecipients,
+                    ...incomingNotificationInternalRecipients,
+                    roleNames: Array.isArray(incomingNotificationInternalRecipients.roleNames)
+                        ? incomingNotificationInternalRecipients.roleNames
+                        : DEFAULT_NOTIFICATION_SETTINGS.internalRecipients.roleNames,
+                    userIds: Array.isArray(incomingNotificationInternalRecipients.userIds)
+                        ? incomingNotificationInternalRecipients.userIds
+                        : DEFAULT_NOTIFICATION_SETTINGS.internalRecipients.userIds,
+                    extraEmails: Array.isArray(incomingNotificationInternalRecipients.extraEmails)
+                        ? incomingNotificationInternalRecipients.extraEmails
+                        : DEFAULT_NOTIFICATION_SETTINGS.internalRecipients.extraEmails,
+                },
+                eventMatrix: mergedNotificationEventMatrix,
+                delivery: {
+                    ...DEFAULT_NOTIFICATION_SETTINGS.delivery,
+                    ...(incomingNotifications.delivery && typeof incomingNotifications.delivery === "object" ? incomingNotifications.delivery : {}),
+                    quietHours: {
+                        ...DEFAULT_NOTIFICATION_SETTINGS.delivery.quietHours,
+                        ...(incomingNotifications?.delivery?.quietHours && typeof incomingNotifications.delivery.quietHours === "object"
+                            ? incomingNotifications.delivery.quietHours
+                            : {}),
+                    },
+                    digest: {
+                        ...DEFAULT_NOTIFICATION_SETTINGS.delivery.digest,
+                        ...(incomingNotifications?.delivery?.digest && typeof incomingNotifications.delivery.digest === "object"
+                            ? incomingNotifications.delivery.digest
+                            : {}),
+                    },
+                },
+                deliverability: {
+                    ...DEFAULT_NOTIFICATION_SETTINGS.deliverability,
+                    ...(incomingNotifications.deliverability && typeof incomingNotifications.deliverability === "object"
+                        ? incomingNotifications.deliverability
+                        : {}),
+                },
             },
             services: {
                 ...DEFAULT_SETTINGS.services,
@@ -1591,6 +1793,9 @@ const Settings = () => {
     const [labelTemplateUploadBusy, setLabelTemplateUploadBusy] = useState(false);
     const [codRequestBusy, setCodRequestBusy] = useState(false);
     const [codRequestNote, setCodRequestNote] = useState(String(incomingCodCapability.requestedNote || ""));
+    const [notificationBasicView, setNotificationBasicView] = useState(true);
+    const [notificationTestEmailBusy, setNotificationTestEmailBusy] = useState(false);
+    const [notificationTestEmailTo, setNotificationTestEmailTo] = useState(String(authUser?.email || ""));
 
     useEffect(() => {
         if (!approvedPricingCategories.includes(activePricingCategory)) {
@@ -1700,6 +1905,113 @@ const Settings = () => {
                 [key]: value,
             },
         }));
+    };
+
+    const syncLegacyNotificationFlags = (notificationSettings) => {
+        const eventMatrix = notificationSettings?.eventMatrix && typeof notificationSettings.eventMatrix === "object"
+            ? notificationSettings.eventMatrix
+            : DEFAULT_NOTIFICATION_SETTINGS.eventMatrix;
+        return {
+            ...notificationSettings,
+            ...buildLegacyNotificationFlags(eventMatrix),
+        };
+    };
+
+    const updateNotificationState = (mutator) => {
+        setSettings((prev) => {
+            const currentNotifications = prev.notifications && typeof prev.notifications === "object"
+                ? prev.notifications
+                : DEFAULT_NOTIFICATION_SETTINGS;
+            const nextNotifications = mutator(currentNotifications);
+            return {
+                ...prev,
+                notifications: syncLegacyNotificationFlags(nextNotifications),
+            };
+        });
+    };
+
+    const updateNotificationChannelEnabled = (channelKey, enabled) => {
+        updateNotificationState((current) => ({
+            ...current,
+            channels: {
+                ...(current.channels || DEFAULT_NOTIFICATION_SETTINGS.channels),
+                [channelKey]: {
+                    ...(((current.channels && current.channels[channelKey]) || DEFAULT_NOTIFICATION_SETTINGS.channels[channelKey]) || {}),
+                    enabled,
+                },
+            },
+        }));
+    };
+
+    const updateNotificationEventMatrix = (eventKey, audienceKey, channelKey, enabled) => {
+        updateNotificationState((current) => ({
+            ...current,
+            eventMatrix: {
+                ...(current.eventMatrix || DEFAULT_NOTIFICATION_SETTINGS.eventMatrix),
+                [eventKey]: {
+                    ...(((current.eventMatrix && current.eventMatrix[eventKey]) || DEFAULT_NOTIFICATION_SETTINGS.eventMatrix[eventKey]) || {}),
+                    [audienceKey]: {
+                        ...((((current.eventMatrix && current.eventMatrix[eventKey] && current.eventMatrix[eventKey][audienceKey]) || DEFAULT_NOTIFICATION_SETTINGS.eventMatrix?.[eventKey]?.[audienceKey]) || {})),
+                        [channelKey]: enabled,
+                    },
+                },
+            },
+        }));
+    };
+
+    const updateNotificationLegacyToggle = (legacyKey, enabled) => {
+        const mapping = LEGACY_NOTIFICATION_MAP[legacyKey];
+        if (!mapping) {
+            return;
+        }
+        updateNotificationEventMatrix(mapping.event, mapping.audience, "email", enabled);
+    };
+
+    const updateNotificationRecipients = (groupKey, fieldKey, value) => {
+        updateNotificationState((current) => ({
+            ...current,
+            [groupKey]: {
+                ...(current[groupKey] || DEFAULT_NOTIFICATION_SETTINGS[groupKey]),
+                [fieldKey]: value,
+            },
+        }));
+    };
+
+    const updateNotificationDelivery = (groupKey, fieldKey, value) => {
+        updateNotificationState((current) => ({
+            ...current,
+            delivery: {
+                ...(current.delivery || DEFAULT_NOTIFICATION_SETTINGS.delivery),
+                [groupKey]: {
+                    ...(((current.delivery && current.delivery[groupKey]) || DEFAULT_NOTIFICATION_SETTINGS.delivery[groupKey]) || {}),
+                    [fieldKey]: value,
+                },
+            },
+        }));
+    };
+
+    const updateNotificationDeliverability = (fieldKey, value) => {
+        updateNotificationState((current) => ({
+            ...current,
+            deliverability: {
+                ...(current.deliverability || DEFAULT_NOTIFICATION_SETTINGS.deliverability),
+                [fieldKey]: value,
+            },
+        }));
+    };
+
+    const sendNotificationTestEmail = async () => {
+        setNotificationTestEmailBusy(true);
+        try {
+            const payload = await requestJson("POST", route("courierService.settings.notifications.test-email"), {
+                to: notificationTestEmailTo || null,
+            });
+            setFeedback({ type: "success", message: payload?.message || "Notification test email sent." });
+        } catch (error) {
+            setFeedback({ type: "error", message: error?.message || "Failed to send notification test email." });
+        } finally {
+            setNotificationTestEmailBusy(false);
+        }
     };
 
     const updateServiceCodValue = (key, value) => {
@@ -5204,22 +5516,229 @@ const Settings = () => {
         }
 
         if (activeTab === "notifications") {
+            const notificationSettings = settings.notifications && typeof settings.notifications === "object"
+                ? settings.notifications
+                : DEFAULT_NOTIFICATION_SETTINGS;
+            const notificationChannels = notificationSettings.channels && typeof notificationSettings.channels === "object"
+                ? notificationSettings.channels
+                : DEFAULT_NOTIFICATION_SETTINGS.channels;
+            const notificationClientRecipients = notificationSettings.clientRecipients && typeof notificationSettings.clientRecipients === "object"
+                ? notificationSettings.clientRecipients
+                : DEFAULT_NOTIFICATION_SETTINGS.clientRecipients;
+            const notificationInternalRecipients = notificationSettings.internalRecipients && typeof notificationSettings.internalRecipients === "object"
+                ? notificationSettings.internalRecipients
+                : DEFAULT_NOTIFICATION_SETTINGS.internalRecipients;
+            const notificationEventMatrix = notificationSettings.eventMatrix && typeof notificationSettings.eventMatrix === "object"
+                ? notificationSettings.eventMatrix
+                : DEFAULT_NOTIFICATION_SETTINGS.eventMatrix;
+            const notificationDelivery = notificationSettings.delivery && typeof notificationSettings.delivery === "object"
+                ? notificationSettings.delivery
+                : DEFAULT_NOTIFICATION_SETTINGS.delivery;
+            const notificationDeliverability = notificationSettings.deliverability && typeof notificationSettings.deliverability === "object"
+                ? notificationSettings.deliverability
+                : DEFAULT_NOTIFICATION_SETTINGS.deliverability;
+            const metricTotals = notificationMetrics.totals && typeof notificationMetrics.totals === "object"
+                ? notificationMetrics.totals
+                : {};
+            const lookbackDays = Number(notificationMetrics.lookbackDays || 30);
+
             return (
-                <SectionCard title="Notification Preferences" description="Choose what gets sent to clients and internal operations teams.">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Toggle label="Client: Shipment Placed" checked={settings.notifications.notifyClientShipmentPlaced} onChange={(next) => updateValue("notifications", "notifyClientShipmentPlaced", next)} />
-                        <Toggle label="Client: Booking Confirmed" checked={settings.notifications.notifyClientBookingConfirmed} onChange={(next) => updateValue("notifications", "notifyClientBookingConfirmed", next)} />
-                        <Toggle label="Client: Booking Cancelled" checked={settings.notifications.notifyClientBookingCancelled} onChange={(next) => updateValue("notifications", "notifyClientBookingCancelled", next)} />
-                        <Toggle label="Client: Pickup Update" checked={settings.notifications.notifyClientPickup} onChange={(next) => updateValue("notifications", "notifyClientPickup", next)} />
-                        <Toggle label="Client: Out For Delivery" checked={settings.notifications.notifyClientOutForDelivery} onChange={(next) => updateValue("notifications", "notifyClientOutForDelivery", next)} />
-                        <Toggle label="Client: Delivered" checked={settings.notifications.notifyClientDelivered} onChange={(next) => updateValue("notifications", "notifyClientDelivered", next)} />
-                        <Toggle label="Client: Payment Paid" checked={settings.notifications.notifyClientPaymentPaid} onChange={(next) => updateValue("notifications", "notifyClientPaymentPaid", next)} />
-                        <Toggle label="Client: Payment Failed" checked={settings.notifications.notifyClientPaymentFailed} onChange={(next) => updateValue("notifications", "notifyClientPaymentFailed", next)} />
-                        <Toggle label="Client: Payment Cancelled" checked={settings.notifications.notifyClientPaymentCancelled} onChange={(next) => updateValue("notifications", "notifyClientPaymentCancelled", next)} />
-                        <Toggle label="Internal: Exception Alerts" checked={settings.notifications.notifyInternalException} onChange={(next) => updateValue("notifications", "notifyInternalException", next)} />
-                        <Toggle label="Internal: SLA Risk Alerts" checked={settings.notifications.notifyInternalSlaRisk} onChange={(next) => updateValue("notifications", "notifyInternalSlaRisk", next)} />
-                    </div>
-                </SectionCard>
+                <div className="space-y-4">
+                    <SectionCard title="Notification Preferences v2" description="Advanced courier notifications with event/channel matrix, recipients, and deliverability controls.">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <div className="rounded-[8px] border border-[#D1D5DB] p-3">
+                                <p className="text-[11px] text-[#6B7280]">Email Sent ({lookbackDays}d)</p>
+                                <p className="text-[18px] font-[700]">{Number(metricTotals.email_sent || 0)}</p>
+                            </div>
+                            <div className="rounded-[8px] border border-[#D1D5DB] p-3">
+                                <p className="text-[11px] text-[#6B7280]">Email Failed</p>
+                                <p className="text-[18px] font-[700]">{Number(metricTotals.email_failed || 0)}</p>
+                            </div>
+                            <div className="rounded-[8px] border border-[#D1D5DB] p-3">
+                                <p className="text-[11px] text-[#6B7280]">Suppressed</p>
+                                <p className="text-[18px] font-[700]">{Number(metricTotals.suppressed || 0)}</p>
+                            </div>
+                            <div className="rounded-[8px] border border-[#D1D5DB] p-3">
+                                <p className="text-[11px] text-[#6B7280]">In-App Sent</p>
+                                <p className="text-[18px] font-[700]">{Number(metricTotals.in_app_sent || 0)}</p>
+                            </div>
+                            <div className="rounded-[8px] border border-[#D1D5DB] p-3">
+                                <p className="text-[11px] text-[#6B7280]">Rollout</p>
+                                <p className="text-[14px] font-[700]">{notificationV2EnabledForVendor ? "v2 Active" : "Legacy Fallback"}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <Toggle
+                                label="Channel: Email"
+                                checked={Boolean(notificationChannels?.email?.enabled)}
+                                onChange={(next) => updateNotificationChannelEnabled("email", next)}
+                            />
+                            <Toggle
+                                label="Channel: In-App"
+                                checked={Boolean(notificationChannels?.inApp?.enabled)}
+                                onChange={(next) => updateNotificationChannelEnabled("inApp", next)}
+                            />
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between">
+                            <p className="text-[12px] text-[#6B7280]">Basic mode manages legacy email toggles. Advanced mode edits full event × channel matrix.</p>
+                            <button
+                                type="button"
+                                onClick={() => setNotificationBasicView((prev) => !prev)}
+                                className="h-[34px] px-4 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700]"
+                            >
+                                {notificationBasicView ? "Switch to Advanced Matrix" : "Switch to Basic Toggles"}
+                            </button>
+                        </div>
+
+                        {notificationBasicView ? (
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {Object.keys(LEGACY_NOTIFICATION_MAP).map((legacyKey) => (
+                                    <Toggle
+                                        key={legacyKey}
+                                        label={legacyKey.replace("notify", "").replace(/([A-Z])/g, " $1").trim()}
+                                        checked={Boolean(notificationSettings[legacyKey])}
+                                        onChange={(next) => updateNotificationLegacyToggle(legacyKey, next)}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="mt-4 rounded-[10px] border border-[#D1D5DB] overflow-hidden">
+                                <div className="grid grid-cols-[1.7fr_repeat(4,minmax(0,1fr))] bg-[#F8FAFC] border-b border-[#E5E7EB]">
+                                    <div className="px-3 py-2 text-[12px] font-[700]">Event</div>
+                                    <div className="px-3 py-2 text-[12px] font-[700]">Client Email</div>
+                                    <div className="px-3 py-2 text-[12px] font-[700]">Client In-App</div>
+                                    <div className="px-3 py-2 text-[12px] font-[700]">Internal Email</div>
+                                    <div className="px-3 py-2 text-[12px] font-[700]">Internal In-App</div>
+                                </div>
+                                {Object.entries(notificationEventMatrix).map(([eventKey, audienceMap]) => {
+                                    const supportsClient = Boolean(audienceMap && typeof audienceMap === "object" && audienceMap.client && typeof audienceMap.client === "object");
+                                    const supportsInternal = Boolean(audienceMap && typeof audienceMap === "object" && audienceMap.internal && typeof audienceMap.internal === "object");
+                                    return (
+                                        <div key={eventKey} className="grid grid-cols-[1.7fr_repeat(4,minmax(0,1fr))] border-b border-[#F1F5F9] last:border-b-0">
+                                            <div className="px-3 py-2 text-[12px] font-[600]">{NOTIFICATION_EVENT_LABELS[eventKey] || eventKey}</div>
+                                            <div className="px-3 py-2">
+                                                {supportsClient ? <input type="checkbox" checked={Boolean(notificationEventMatrix?.[eventKey]?.client?.email)} onChange={(e) => updateNotificationEventMatrix(eventKey, "client", "email", e.target.checked)} /> : <span className="text-[12px] text-[#94A3B8]">-</span>}
+                                            </div>
+                                            <div className="px-3 py-2">
+                                                {supportsClient ? <input type="checkbox" checked={Boolean(notificationEventMatrix?.[eventKey]?.client?.inApp)} onChange={(e) => updateNotificationEventMatrix(eventKey, "client", "inApp", e.target.checked)} /> : <span className="text-[12px] text-[#94A3B8]">-</span>}
+                                            </div>
+                                            <div className="px-3 py-2">
+                                                {supportsInternal ? <input type="checkbox" checked={Boolean(notificationEventMatrix?.[eventKey]?.internal?.email)} onChange={(e) => updateNotificationEventMatrix(eventKey, "internal", "email", e.target.checked)} /> : <span className="text-[12px] text-[#94A3B8]">-</span>}
+                                            </div>
+                                            <div className="px-3 py-2">
+                                                {supportsInternal ? <input type="checkbox" checked={Boolean(notificationEventMatrix?.[eventKey]?.internal?.inApp)} onChange={(e) => updateNotificationEventMatrix(eventKey, "internal", "inApp", e.target.checked)} /> : <span className="text-[12px] text-[#94A3B8]">-</span>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    <SectionCard title="Recipients" description="Control who receives client and internal notifications.">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                                <p className="text-[13px] font-[700]">Client Recipients</p>
+                                <Toggle label="Requester" checked={Boolean(notificationClientRecipients.requester)} onChange={(next) => updateNotificationRecipients("clientRecipients", "requester", next)} />
+                                <Toggle label="Sender" checked={Boolean(notificationClientRecipients.sender)} onChange={(next) => updateNotificationRecipients("clientRecipients", "sender", next)} />
+                                <Toggle label="Recipient" checked={Boolean(notificationClientRecipients.recipient)} onChange={(next) => updateNotificationRecipients("clientRecipients", "recipient", next)} />
+                                <Field label="Client Extra Emails (comma separated)">
+                                    <textarea
+                                        rows={2}
+                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                        value={Array.isArray(notificationClientRecipients.extraEmails) ? notificationClientRecipients.extraEmails.join(", ") : ""}
+                                        onChange={(event) => updateNotificationRecipients("clientRecipients", "extraEmails", event.target.value.split(",").map((item) => String(item || "").trim()).filter(Boolean))}
+                                    />
+                                </Field>
+                            </div>
+                            <div className="space-y-3">
+                                <p className="text-[13px] font-[700]">Internal Recipients</p>
+                                <Field label="Role Names (comma separated)">
+                                    <input
+                                        className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                        value={Array.isArray(notificationInternalRecipients.roleNames) ? notificationInternalRecipients.roleNames.join(", ") : ""}
+                                        onChange={(event) => updateNotificationRecipients("internalRecipients", "roleNames", event.target.value.split(",").map((item) => String(item || "").trim()).filter(Boolean))}
+                                    />
+                                </Field>
+                                <Field label="Internal User IDs (comma separated)">
+                                    <input
+                                        className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                        value={Array.isArray(notificationInternalRecipients.userIds) ? notificationInternalRecipients.userIds.join(", ") : ""}
+                                        onChange={(event) => updateNotificationRecipients("internalRecipients", "userIds", event.target.value.split(",").map((item) => Number(item)).filter((item) => Number.isFinite(item) && item > 0))}
+                                    />
+                                </Field>
+                                <Field label="Internal Extra Emails (comma separated)">
+                                    <textarea
+                                        rows={2}
+                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                        value={Array.isArray(notificationInternalRecipients.extraEmails) ? notificationInternalRecipients.extraEmails.join(", ") : ""}
+                                        onChange={(event) => updateNotificationRecipients("internalRecipients", "extraEmails", event.target.value.split(",").map((item) => String(item || "").trim()).filter(Boolean))}
+                                    />
+                                </Field>
+                            </div>
+                        </div>
+                    </SectionCard>
+
+                    <SectionCard title="Delivery & Deliverability" description="Quiet hours, digest, sender identity, suppression policy, and test email.">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Toggle
+                                label="Quiet Hours Enabled"
+                                checked={Boolean(notificationDelivery?.quietHours?.enabled)}
+                                onChange={(next) => updateNotificationDelivery("quietHours", "enabled", next)}
+                            />
+                            <Toggle
+                                label="Digest Enabled"
+                                checked={Boolean(notificationDelivery?.digest?.enabled)}
+                                onChange={(next) => updateNotificationDelivery("digest", "enabled", next)}
+                            />
+                            <Field label="Quiet Hours Start">
+                                <input type="time" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDelivery?.quietHours?.start || "22:00")} onChange={(e) => updateNotificationDelivery("quietHours", "start", e.target.value)} />
+                            </Field>
+                            <Field label="Quiet Hours End">
+                                <input type="time" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDelivery?.quietHours?.end || "06:00")} onChange={(e) => updateNotificationDelivery("quietHours", "end", e.target.value)} />
+                            </Field>
+                            <Field label="Digest Time">
+                                <input type="time" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDelivery?.digest?.time || "09:00")} onChange={(e) => updateNotificationDelivery("digest", "time", e.target.value)} />
+                            </Field>
+                            <Field label="Digest Frequency">
+                                <select className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDelivery?.digest?.frequency || "daily")} onChange={(e) => updateNotificationDelivery("digest", "frequency", e.target.value)}>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </Field>
+                            <Field label="From Name">
+                                <input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDeliverability?.fromName || "")} onChange={(e) => updateNotificationDeliverability("fromName", e.target.value)} />
+                            </Field>
+                            <Field label="From Email">
+                                <input type="email" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDeliverability?.fromEmail || "")} onChange={(e) => updateNotificationDeliverability("fromEmail", e.target.value)} />
+                            </Field>
+                            <Field label="Reply-To Email">
+                                <input type="email" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={String(notificationDeliverability?.replyTo || "")} onChange={(e) => updateNotificationDeliverability("replyTo", e.target.value)} />
+                            </Field>
+                            <Toggle
+                                label="Respect Suppression List"
+                                checked={Boolean(notificationDeliverability?.respectSuppression)}
+                                onChange={(next) => updateNotificationDeliverability("respectSuppression", next)}
+                            />
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+                            <Field label="Send Test Email To">
+                                <input type="email" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={notificationTestEmailTo} onChange={(event) => setNotificationTestEmailTo(event.target.value)} />
+                            </Field>
+                            <button
+                                type="button"
+                                className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
+                                disabled={notificationTestEmailBusy}
+                                onClick={sendNotificationTestEmail}
+                            >
+                                {notificationTestEmailBusy ? "Sending..." : "Send Test Email"}
+                            </button>
+                        </div>
+                    </SectionCard>
+                </div>
             );
         }
 

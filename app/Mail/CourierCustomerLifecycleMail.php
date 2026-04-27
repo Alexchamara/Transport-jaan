@@ -8,6 +8,7 @@ use App\Models\Courier\CourierShipmentPayment;
 use App\Models\Courier\CourierTrackingEvent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -26,8 +27,21 @@ class CourierCustomerLifecycleMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $payload = is_array($this->dispatch->payload) ? $this->dispatch->payload : [];
+        $deliverability = is_array($payload['deliverability'] ?? null) ? $payload['deliverability'] : [];
+        $fromEmail = trim((string) ($deliverability['fromEmail'] ?? ''));
+        $fromName = trim((string) ($deliverability['fromName'] ?? ''));
+        $replyTo = trim((string) ($deliverability['replyTo'] ?? ''));
+        $allowCustomFrom = (bool) config('courier.notifications_v2.allow_custom_from', false);
+
         return new Envelope(
             subject: $this->subjectForEvent((string) $this->dispatch->event_type),
+            from: $allowCustomFrom && filter_var($fromEmail, FILTER_VALIDATE_EMAIL)
+                ? new Address($fromEmail, $fromName !== '' ? $fromName : null)
+                : null,
+            replyTo: filter_var($replyTo, FILTER_VALIDATE_EMAIL)
+                ? [new Address($replyTo)]
+                : [],
         );
     }
 

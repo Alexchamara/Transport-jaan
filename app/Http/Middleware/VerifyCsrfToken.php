@@ -14,5 +14,6 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         'logout-alt',
         'csrf-token',
+        'webhooks/email/delivery',
     ];
 }

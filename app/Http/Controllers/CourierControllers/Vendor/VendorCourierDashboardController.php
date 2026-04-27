@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\CourierControllers\Vendor;
 
+use App\Mail\CourierNotificationTestMail;
 use App\Http\Middleware\CourierTemporaryAccessLifecycle;
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Courier\CourierContact;
+use App\Models\Courier\CourierCustomerEmailDispatch;
 use App\Models\Courier\CourierSensitiveActionApproval;
 use App\Models\Courier\CourierTeamSecurityAudit;
 use App\Models\Courier\CourierTemporaryAccessGrant;
@@ -25,6 +28,7 @@ use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierApiServiceAccessService;
 use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\CourierExchangeRateService;
+use App\Services\Courier\CourierNotificationPreferenceService;
 use App\Services\Courier\CourierPricingImportService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTeamSecurityAuditService;
@@ -37,6 +41,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -70,7 +75,7 @@ class VendorCourierDashboardController extends Controller
         $this->middleware('service.permission:courier.calendar.view')->only(['calendar']);
 
         $this->middleware('service.permission:courier.settings.view')->only(['settings']);
-        $this->middleware('service.permission:courier.settings.update')->only(['updateSettings', 'pricingImportPreview', 'pricingImportApply', 'requestCodCapability']);
+        $this->middleware('service.permission:courier.settings.update')->only(['updateSettings', 'pricingImportPreview', 'pricingImportApply', 'requestCodCapability', 'sendNotificationTestEmail']);
 
         $this->middleware('service.permission:courier.profile.view')->only(['profile']);
         $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'updateOwnerProfile', 'removeOwnerProfileImage', 'removeProfileLogo']);
@@ -830,6 +835,11 @@ class VendorCourierDashboardController extends Controller
         if (is_array($mergedSettings['services'] ?? null)) {
             $mergedSettings['services'] = $this->normalizeCourierServiceSettings($mergedSettings['services']);
         }
+        if (is_array($mergedSettings['notifications'] ?? null)) {
+            $mergedSettings['notifications'] = $this->normalizeNotificationSettings($mergedSettings['notifications']);
+        } else {
+            $mergedSettings['notifications'] = $this->normalizeNotificationSettings([]);
+        }
         $approvedPricingCategories = $this->resolveApprovedCourierPricingCategories($vendorId);
 
         $selectedPricingCategory = in_array('domestic', $approvedPricingCategories, true)
@@ -954,6 +964,14 @@ class VendorCourierDashboardController extends Controller
             'teamApiCredentials' => app(CourierApiServiceAccessService::class)->listCredentials($vendorId, $workspaceId),
             'teamApiScopeOptions' => app(CourierApiServiceAccessService::class)->apiScopeCatalog(),
             'teamWebhookScopeOptions' => app(CourierApiServiceAccessService::class)->resolvePolicyForVendor($vendorId)['webhookScopesCatalog'] ?? [],
+            'notificationMeta' => [
+                'eventTypes' => app(CourierNotificationPreferenceService::class)->eventTypes(),
+                'rollout' => [
+                    'v2EnabledForVendor' => app(CourierNotificationPreferenceService::class)->isV2EnabledForVendor($vendorId),
+                    'mode' => (string) config('courier.notifications_v2.rollout.mode', 'canary'),
+                ],
+            ],
+            'notificationMetrics' => $this->buildNotificationMetrics($vendorId),
         ]);
     }
 
@@ -1197,6 +1215,10 @@ class VendorCourierDashboardController extends Controller
                 $incomingSection = $this->normalizeCourierServiceSettings(array_replace_recursive($current['services'] ?? [], $incomingSection));
             }
 
+            if ($section === 'notifications') {
+                $incomingSection = $this->normalizeNotificationSettings(array_replace_recursive($current['notifications'] ?? [], $incomingSection));
+            }
+
             $current[$section] = array_replace($current[$section], $incomingSection);
             $record->update(['settings' => $current]);
 
@@ -1241,6 +1263,10 @@ class VendorCourierDashboardController extends Controller
             $next['services'] = $this->normalizeCourierServiceSettings($next['services']);
         }
 
+        if (is_array($next['notifications'] ?? null)) {
+            $next['notifications'] = $this->normalizeNotificationSettings($next['notifications']);
+        }
+
         $record->update(['settings' => $next]);
 
         if (array_key_exists('team', $incomingAll)) {
@@ -1250,6 +1276,69 @@ class VendorCourierDashboardController extends Controller
         }
 
         return back()->with('success', 'All courier settings saved successfully.');
+    }
+
+    public function sendNotificationTestEmail(Request $request)
+    {
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to send notification test email.');
+        }
+
+        $this->assertStaffSecurityPolicy($request, $policy);
+
+        $validated = $request->validate([
+            'to' => ['nullable', 'email:rfc,dns'],
+        ]);
+
+        $record = VendorCourierSetting::query()->firstOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $this->defaultCourierSettings()]
+        );
+        $current = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array($record->settings) ? $record->settings : []
+        );
+        $notifications = $this->normalizeNotificationSettings(is_array($current['notifications'] ?? null) ? $current['notifications'] : []);
+        $deliverability = is_array($notifications['deliverability'] ?? null) ? $notifications['deliverability'] : [];
+
+        $to = trim((string) ($validated['to'] ?? optional($request->user())->email));
+        if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'message' => 'A valid recipient email address is required for the test email.',
+            ], 422);
+        }
+
+        try {
+            Mail::mailer((string) config('courier.notifications_v2.transactional_mailer', config('mail.default')))
+                ->to($to)
+                ->send(new CourierNotificationTestMail($vendorId, [
+                    'fromName' => (string) ($deliverability['fromName'] ?? ''),
+                    'fromEmail' => (string) ($deliverability['fromEmail'] ?? ''),
+                    'replyTo' => (string) ($deliverability['replyTo'] ?? ''),
+                ]));
+        } catch (\Throwable $exception) {
+            $message = mb_substr((string) $exception->getMessage(), 0, 500);
+            $normalized = mb_strtolower($message);
+
+            if (str_contains($normalized, 'sender is not allowed to relay')) {
+                return response()->json([
+                    'message' => 'Email sender is not authorized by your SMTP/provider. Use the configured MAIL_FROM_ADDRESS or verify domain sender settings.',
+                    'code' => 'sender_not_authorized',
+                ], 422);
+            }
+
+            return response()->json([
+                'message' => $message !== '' ? $message : 'Failed to send notification test email.',
+                'code' => 'notification_test_email_failed',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Notification test email sent to ' . $to . '.',
+        ]);
     }
 
     public function requestCodCapability(Request $request)
@@ -4520,19 +4609,7 @@ class VendorCourierDashboardController extends Controller
                 'requirePodSignature' => false,
                 'allowManualScanCorrection' => true,
             ],
-            'notifications' => [
-                'notifyClientShipmentPlaced' => true,
-                'notifyClientBookingConfirmed' => true,
-                'notifyClientBookingCancelled' => true,
-                'notifyClientPickup' => true,
-                'notifyClientOutForDelivery' => true,
-                'notifyClientDelivered' => true,
-                'notifyClientPaymentPaid' => true,
-                'notifyClientPaymentFailed' => true,
-                'notifyClientPaymentCancelled' => true,
-                'notifyInternalException' => true,
-                'notifyInternalSlaRisk' => true,
-            ],
+            'notifications' => $this->normalizeNotificationSettings([]),
             'integrations' => [
                 'webhookUrl' => '',
                 'apiKeyAlias' => '',
@@ -4599,6 +4676,93 @@ class VendorCourierDashboardController extends Controller
         $normalized['cod'] = $cod;
 
         return $normalized;
+    }
+
+    private function normalizeNotificationSettings(array $settings): array
+    {
+        return app(CourierNotificationPreferenceService::class)->normalize($settings);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildNotificationMetrics(int $vendorId): array
+    {
+        $lookbackDays = max(1, (int) config('courier.notifications_v2.metrics_lookback_days', 30));
+        $from = now()->subDays($lookbackDays);
+
+        $rows = CourierCustomerEmailDispatch::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where('created_at', '>=', $from)
+            ->selectRaw('channel, status, count(*) as aggregate_count')
+            ->groupBy('channel', 'status')
+            ->get();
+
+        $totals = [
+            'email_sent' => 0,
+            'email_failed' => 0,
+            'email_pending' => 0,
+            'email_skipped' => 0,
+            'in_app_sent' => 0,
+            'in_app_failed' => 0,
+            'suppressed' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $channel = (string) ($row->channel ?? 'email');
+            $status = (string) ($row->status ?? '');
+            $count = (int) ($row->aggregate_count ?? 0);
+
+            if ($channel === 'in_app' && $status === CourierCustomerEmailDispatch::STATUS_SENT) {
+                $totals['in_app_sent'] += $count;
+            }
+
+            if ($channel === 'in_app' && $status === CourierCustomerEmailDispatch::STATUS_FAILED) {
+                $totals['in_app_failed'] += $count;
+            }
+
+            if ($channel === 'email' && $status === CourierCustomerEmailDispatch::STATUS_SENT) {
+                $totals['email_sent'] += $count;
+            }
+
+            if ($channel === 'email' && $status === CourierCustomerEmailDispatch::STATUS_FAILED) {
+                $totals['email_failed'] += $count;
+            }
+
+            if ($channel === 'email' && $status === CourierCustomerEmailDispatch::STATUS_PENDING) {
+                $totals['email_pending'] += $count;
+            }
+
+            if ($channel === 'email' && $status === CourierCustomerEmailDispatch::STATUS_SKIPPED) {
+                $totals['email_skipped'] += $count;
+            }
+        }
+
+        $totals['suppressed'] = CourierCustomerEmailDispatch::query()
+            ->where('vendor_user_id', $vendorId)
+            ->where('created_at', '>=', $from)
+            ->where('status', CourierCustomerEmailDispatch::STATUS_SKIPPED)
+            ->where(function (Builder $query) {
+                $query->where('failed_reason_code', 'suppressed')
+                    ->orWhere('last_error', 'like', '%suppressed%');
+            })
+            ->count();
+
+        $inAppCreated = Notification::query()
+            ->where('type', 'courier_event')
+            ->where('created_at', '>=', $from)
+            ->get(['data'])
+            ->filter(function (Notification $notification) use ($vendorId) {
+                $data = is_array($notification->data) ? $notification->data : [];
+                return (int) ($data['vendor_user_id'] ?? 0) === $vendorId;
+            })
+            ->count();
+
+        return [
+            'lookbackDays' => $lookbackDays,
+            'totals' => $totals,
+            'inAppCreated' => $inAppCreated,
+        ];
     }
 
     private function buildCodCapabilityPayload(Request $request, int $vendorId, int $workspaceId, ?string $category = null): array

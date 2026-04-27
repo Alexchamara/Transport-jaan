@@ -5,11 +5,14 @@ namespace Tests\Unit\Courier;
 use App\Models\Courier\CourierAddress;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierCustomerEmailDispatch;
+use App\Models\Courier\CourierEmailSuppression;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierTrackingEvent;
 use App\Models\Courier\VendorCourierSetting;
+use App\Models\Notification;
 use App\Models\User;
 use App\Services\Courier\CourierCustomerEmailDispatchService;
+use App\Services\Courier\CourierNotificationPreferenceService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -118,10 +121,129 @@ class CourierCustomerEmailDispatchServiceTest extends TestCase
         ]);
     }
 
+    public function test_v2_dispatch_creates_email_and_in_app_records_for_client_recipients(): void
+    {
+        config()->set('courier.notifications_v2.enabled', true);
+        config()->set('courier.notifications_v2.rollout.mode', 'all');
+
+        $service = app(CourierCustomerEmailDispatchService::class);
+        $preferences = app(CourierNotificationPreferenceService::class);
+
+        $vendor = User::factory()->create([
+            'email' => 'vendor+' . Str::lower(Str::random(6)) . '@example.com',
+        ]);
+        $requester = User::factory()->create([
+            'email' => 'requester+' . Str::lower(Str::random(6)) . '@example.com',
+        ]);
+        $recipientUser = User::factory()->create([
+            'email' => 'recipient+' . Str::lower(Str::random(6)) . '@example.com',
+        ]);
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => (int) $vendor->id],
+            ['settings' => [
+                'notifications' => $preferences->defaultSettings(),
+            ]]
+        );
+
+        $shipment = $this->createShipment(
+            requesterId: (int) $requester->id,
+            senderEmail: 'sender+' . Str::lower(Str::random(6)) . '@example.com',
+            vendorId: (int) $vendor->id,
+            recipientUserId: (int) $recipientUser->id,
+        );
+
+        $trackingEvent = CourierTrackingEvent::query()->create([
+            'shipment_id' => (int) $shipment->id,
+            'status' => 'delivered',
+            'description' => 'Delivered',
+            'recorded_at' => now(),
+        ]);
+
+        $created = $service->queueTrackingDelivered($shipment, $trackingEvent);
+
+        $this->assertSame(5, $created);
+
+        $this->assertSame(3, CourierCustomerEmailDispatch::query()
+            ->where('shipment_id', (int) $shipment->id)
+            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_TRACKING_DELIVERED)
+            ->where('channel', 'email')
+            ->count());
+
+        $this->assertSame(2, CourierCustomerEmailDispatch::query()
+            ->where('shipment_id', (int) $shipment->id)
+            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_TRACKING_DELIVERED)
+            ->where('channel', 'in_app')
+            ->count());
+
+        $this->assertSame(2, Notification::query()
+            ->where('type', 'courier_event')
+            ->count());
+    }
+
+    public function test_v2_suppression_marks_email_dispatch_as_skipped(): void
+    {
+        config()->set('courier.notifications_v2.enabled', true);
+        config()->set('courier.notifications_v2.rollout.mode', 'all');
+
+        $service = app(CourierCustomerEmailDispatchService::class);
+        $preferences = app(CourierNotificationPreferenceService::class);
+
+        $vendor = User::factory()->create([
+            'email' => 'vendor+' . Str::lower(Str::random(6)) . '@example.com',
+        ]);
+        $requester = User::factory()->create([
+            'email' => 'requester+' . Str::lower(Str::random(6)) . '@example.com',
+        ]);
+
+        $notificationSettings = $preferences->defaultSettings();
+        $notificationSettings['clientRecipients'] = [
+            'requester' => true,
+            'sender' => false,
+            'recipient' => false,
+            'extraEmails' => [],
+        ];
+        $notificationSettings['channels']['inApp']['enabled'] = false;
+
+        VendorCourierSetting::query()->updateOrCreate(
+            ['vendor_user_id' => (int) $vendor->id],
+            ['settings' => [
+                'notifications' => $notificationSettings,
+            ]]
+        );
+
+        CourierEmailSuppression::query()->create([
+            'vendor_user_id' => (int) $vendor->id,
+            'email' => mb_strtolower((string) $requester->email),
+            'reason' => 'hard_bounce',
+            'source' => 'provider_webhook',
+            'suppressed_at' => now(),
+        ]);
+
+        $shipment = $this->createShipment(
+            requesterId: (int) $requester->id,
+            senderEmail: 'sender+' . Str::lower(Str::random(6)) . '@example.com',
+            vendorId: (int) $vendor->id,
+        );
+
+        $created = $service->queueShipmentPlaced($shipment);
+        $this->assertSame(1, $created);
+
+        $dispatch = CourierCustomerEmailDispatch::query()
+            ->where('shipment_id', (int) $shipment->id)
+            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_SHIPMENT_PLACED)
+            ->first();
+
+        $this->assertNotNull($dispatch);
+        $this->assertSame(CourierCustomerEmailDispatch::STATUS_SKIPPED, (string) $dispatch->status);
+        $this->assertSame('suppressed', (string) $dispatch->failed_reason_code);
+    }
+
     private function createShipment(
         ?int $requesterId,
         string $senderEmail,
-        ?int $vendorId = null
+        ?int $vendorId = null,
+        ?int $recipientUserId = null,
     ): CourierShipment {
         $sender = CourierContact::query()->create([
             'user_id' => $requesterId,
@@ -132,7 +254,7 @@ class CourierCustomerEmailDispatchServiceTest extends TestCase
         ]);
 
         $recipient = CourierContact::query()->create([
-            'user_id' => $requesterId,
+            'user_id' => $recipientUserId ?: $requesterId,
             'role' => CourierContact::ROLE_RECIPIENT,
             'name' => 'Recipient ' . Str::random(5),
             'email' => 'recipient+' . Str::lower(Str::random(6)) . '@example.com',

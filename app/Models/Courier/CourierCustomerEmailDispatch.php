@@ -20,9 +20,12 @@ class CourierCustomerEmailDispatch extends Model
         'shipment_id',
         'payment_id',
         'tracking_event_id',
+        'vendor_user_id',
         'event_type',
+        'channel',
         'recipient_email',
         'recipient_kind',
+        'recipient_user_id',
         'status',
         'attempts',
         'dedupe_key',
@@ -30,12 +33,19 @@ class CourierCustomerEmailDispatch extends Model
         'last_error',
         'queued_at',
         'sent_at',
+        'provider_message_id',
+        'provider_event',
+        'failed_reason_code',
+        'provider_event_at',
+        'delivery_meta',
     ];
 
     protected $casts = [
         'payload' => 'array',
+        'delivery_meta' => 'array',
         'queued_at' => 'datetime',
         'sent_at' => 'datetime',
+        'provider_event_at' => 'datetime',
         'attempts' => 'integer',
     ];
 
@@ -52,5 +62,10 @@ class CourierCustomerEmailDispatch extends Model
     public function trackingEvent(): BelongsTo
     {
         return $this->belongsTo(CourierTrackingEvent::class, 'tracking_event_id');
+    }
+
+    public function recipientUser(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'recipient_user_id');
     }
 }

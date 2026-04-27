@@ -153,6 +153,45 @@ class CourierPaymentLifecycleTest extends TestCase
             ->count());
     }
 
+    public function test_payhere_notify_paid_can_upgrade_previously_cancelled_payment(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        $shipment = $this->createShipmentForUser($user);
+        $payment = $this->createCardPayment($shipment, [
+            'status' => CourierShipmentPayment::STATUS_PENDING,
+            'gateway_order_id' => 'CPH-' . $shipment->id . '-UPGRADE01',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('couriers.payments.payhere.cancel', [
+                'order_id' => (string) $payment->gateway_order_id,
+            ]))
+            ->assertRedirect(route('courier.shipment.show', ['id' => (int) $shipment->id]));
+
+        $payment->refresh();
+        $this->assertSame(CourierShipmentPayment::STATUS_CANCELLED, (string) $payment->status);
+
+        $paidNotify = $this->buildPayHereNotifyPayload($payment, 2, [
+            'status_message' => 'Paid',
+            'payment_id' => 'PH-PMT-UPGRADE-1',
+            'payhere_reference' => 'TX-UPGRADE-PAID',
+        ]);
+
+        $this->post(route('couriers.payments.payhere.notify'), $paidNotify)
+            ->assertOk()
+            ->assertSeeText('OK');
+
+        $payment->refresh();
+
+        $this->assertSame(CourierShipmentPayment::STATUS_PAID, (string) $payment->status);
+        $this->assertSame('PH-PMT-UPGRADE-1', (string) $payment->gateway_payment_id);
+        $this->assertSame('TX-UPGRADE-PAID', (string) $payment->tx_reference);
+    }
+
     public function test_payhere_notify_is_idempotent_and_does_not_regress_terminal_paid_status(): void
     {
         $user = User::factory()->create([
