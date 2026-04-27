@@ -31,6 +31,38 @@ class CourierPaymentController extends Controller
         $gateway = app(PayHereGatewayService::class);
         $checkout = $gateway->buildCheckoutPayload($payment, $shipmentModel, Auth::user());
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'shipment' => [
+                    'id' => (int) $shipmentModel->id,
+                    'reference' => (string) $shipmentModel->reference,
+                    'status' => (string) $shipmentModel->status,
+                ],
+                'payment' => [
+                    'id' => (int) $payment->id,
+                    'status' => (string) $payment->status,
+                    'method' => (string) $payment->payment_method,
+                    'provider' => (string) $payment->provider,
+                    'amount' => (float) $payment->amount,
+                    'currency' => (string) $payment->currency_code,
+                    'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                    'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+                    'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                    'txReference' => (string) ($payment->tx_reference ?? ''),
+                    'failureReason' => (string) ($payment->failure_reason ?? ''),
+                    'paidAt' => optional($payment->paid_at)->toIso8601String(),
+                    'failedAt' => optional($payment->failed_at)->toIso8601String(),
+                    'lastNotifiedAt' => optional($payment->last_notified_at)->toIso8601String(),
+                ],
+                'checkout' => $checkout,
+                'pollingUrl' => route('couriers.payments.status', ['shipment' => (int) $shipmentModel->id]),
+                'retryUrl' => route('couriers.payments.retry', ['shipment' => (int) $shipmentModel->id]),
+                'returnToCreateUrl' => route('couriers.flow.create', ['flow' => $this->resolveFlow($shipmentModel)]),
+                'shipmentDetailUrl' => route('courier.shipment.show', ['id' => (int) $shipmentModel->id]),
+                'dashboardUrl' => route('courierBookingDashboard'),
+            ]);
+        }
+
         return Inertia::render('Web/courier/PaymentCheckout', [
             'shipment' => [
                 'id' => (int) $shipmentModel->id,

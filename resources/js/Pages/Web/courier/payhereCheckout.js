@@ -1,7 +1,72 @@
 const PAYHERE_SDK_SRC = "https://www.payhere.lk/lib/payhere.js";
 const PAYHERE_SDK_SELECTOR = 'script[data-payhere-sdk="true"]';
+const PAYHERE_UI_STYLE_ID = "payhere-onsite-ui-style";
+const PAYHERE_BODY_ACTIVE_CLASS = "payhere-onsite-active";
+const PAYHERE_BLUR_TARGET_CLASS = "payhere-onsite-blur-target";
 
 let payHereSdkPromise = null;
+let payHereUiLockCount = 0;
+
+const ensurePayHereUiStyles = () => {
+    if (typeof document === "undefined") {
+        return;
+    }
+
+    if (document.getElementById(PAYHERE_UI_STYLE_ID)) {
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.id = PAYHERE_UI_STYLE_ID;
+    style.textContent = `
+        body.${PAYHERE_BODY_ACTIVE_CLASS} {
+            overflow: hidden !important;
+        }
+
+        body.${PAYHERE_BODY_ACTIVE_CLASS} .${PAYHERE_BLUR_TARGET_CLASS} {
+            filter: blur(6px);
+            pointer-events: none;
+            user-select: none;
+            transition: filter 0.18s ease;
+        }
+    `;
+
+    document.head.appendChild(style);
+};
+
+const lockBackgroundForOnsiteCheckout = () => {
+    if (typeof document === "undefined") {
+        return;
+    }
+
+    ensurePayHereUiStyles();
+    payHereUiLockCount += 1;
+
+    const appRoot = document.getElementById("app");
+    if (appRoot) {
+        appRoot.classList.add(PAYHERE_BLUR_TARGET_CLASS);
+    }
+
+    document.body.classList.add(PAYHERE_BODY_ACTIVE_CLASS);
+};
+
+const unlockBackgroundForOnsiteCheckout = () => {
+    if (typeof document === "undefined") {
+        return;
+    }
+
+    payHereUiLockCount = Math.max(0, payHereUiLockCount - 1);
+    if (payHereUiLockCount > 0) {
+        return;
+    }
+
+    const appRoot = document.getElementById("app");
+    if (appRoot) {
+        appRoot.classList.remove(PAYHERE_BLUR_TARGET_CLASS);
+    }
+
+    document.body.classList.remove(PAYHERE_BODY_ACTIVE_CLASS);
+};
 
 const normalizeCheckoutPayload = (checkout) => {
     const fields = checkout?.fields && typeof checkout.fields === "object" ? checkout.fields : null;
@@ -117,24 +182,44 @@ export const preloadPayHereOnsiteSdk = () => {
 export const launchPayHereOnsiteCheckout = async (checkout, callbacks = {}) => {
     const paymentPayload = normalizeCheckoutPayload(checkout);
     const payhere = await preloadPayHereOnsiteSdk();
+    let released = false;
+
+    const releaseUiLock = () => {
+        if (released) {
+            return;
+        }
+
+        released = true;
+        unlockBackgroundForOnsiteCheckout();
+    };
 
     payhere.onCompleted = (orderId) => {
+        releaseUiLock();
         if (typeof callbacks.onCompleted === "function") {
             callbacks.onCompleted(orderId);
         }
     };
 
     payhere.onDismissed = () => {
+        releaseUiLock();
         if (typeof callbacks.onDismissed === "function") {
             callbacks.onDismissed();
         }
     };
 
     payhere.onError = (error) => {
+        releaseUiLock();
         if (typeof callbacks.onError === "function") {
             callbacks.onError(error);
         }
     };
 
-    payhere.startPayment(paymentPayload);
+    lockBackgroundForOnsiteCheckout();
+
+    try {
+        payhere.startPayment(paymentPayload);
+    } catch (error) {
+        releaseUiLock();
+        throw error;
+    }
 };
