@@ -1144,6 +1144,12 @@ const Details = ({
 
                         
 
+                        <div className="mb-4">
+                            <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
+                            <p className="mt-1 text-sm text-[#5B6887]">
+                                Add pickup, delivery, and shipment preferences to complete the request.
+                            </p>
+                        </div>
                         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                             <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
