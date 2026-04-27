@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { Star } from "lucide-react";
 import Header from "../layouts/Header";
@@ -12,6 +12,7 @@ import {
 
 const USD_TO_LKR_RATE = 325;
 const DEFAULT_CURRENCY = "LKR";
+const DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS = 300;
 
 const normalizeCountryCode = (value) => String(value || "").trim().toUpperCase();
 const normalizeFavoriteValue = (value) => String(value || "").trim().toLowerCase();
@@ -96,6 +97,7 @@ const Details = ({
         || resolvedFlowRoutes.detailsStore
         || resolvedFlowRoutes.details
         || "/couriers/details";
+    const resolvedDomesticCitySearchRoute = resolvedFlowRoutes.domesticCitySearch || "/couriers/cities/search";
 
     const initialForm = useMemo(() => {
         if (!formData) {
@@ -265,6 +267,12 @@ const Details = ({
     });
     const [favoriteActionRole, setFavoriteActionRole] = useState("");
     const [favoriteActionError, setFavoriteActionError] = useState("");
+    const cityLookupAbortRef = useRef({ sender: null, recipient: null });
+    const cityLookupTimerRef = useRef({ sender: null, recipient: null });
+    const citySuggestionAbortRef = useRef({ sender: null, recipient: null });
+    const citySuggestionTimerRef = useRef({ sender: null, recipient: null });
+    const [citySuggestions, setCitySuggestions] = useState({ sender: [], recipient: [] });
+    const [activeAddressField, setActiveAddressField] = useState(null);
     const hasFavoriteRecipients = savedRecipients.length > 0;
     const hasFavoriteSenders = savedSenders.length > 0;
 
@@ -367,6 +375,36 @@ const Details = ({
 
         setSavedSenders(readLocalFavorites(LOCAL_SENDER_FAVORITES_KEY));
     }, [favoriteSenders]);
+
+    useEffect(() => {
+        return () => {
+            ["sender", "recipient"].forEach((party) => {
+                const timer = cityLookupTimerRef.current[party];
+                if (timer) {
+                    clearTimeout(timer);
+                    cityLookupTimerRef.current[party] = null;
+                }
+
+                const controller = cityLookupAbortRef.current[party];
+                if (controller) {
+                    controller.abort();
+                    cityLookupAbortRef.current[party] = null;
+                }
+
+                const suggestionTimer = citySuggestionTimerRef.current[party];
+                if (suggestionTimer) {
+                    clearTimeout(suggestionTimer);
+                    citySuggestionTimerRef.current[party] = null;
+                }
+
+                const suggestionController = citySuggestionAbortRef.current[party];
+                if (suggestionController) {
+                    suggestionController.abort();
+                    citySuggestionAbortRef.current[party] = null;
+                }
+            });
+        };
+    }, []);
 
 
     const applyRecipientSelection = (recipient) => {
@@ -548,6 +586,332 @@ const Details = ({
             };
         });
     };
+
+    const handleAddressInputBlur = (fieldKey) => {
+        window.setTimeout(() => {
+            setActiveAddressField((current) => (current === fieldKey ? null : current));
+        }, 120);
+    };
+
+    const getProvinceSuggestions = (party, query = "") => {
+        const normalized = String(query || "").trim().toLowerCase();
+        const pool = Array.isArray(citySuggestions[party]) ? citySuggestions[party] : [];
+        const unique = new Set();
+
+        return pool
+            .map((option) => String(option?.provinceName || option?.districtName || "").trim())
+            .filter(Boolean)
+            .filter((value) => {
+                if (unique.has(value.toLowerCase())) {
+                    return false;
+                }
+                unique.add(value.toLowerCase());
+                return true;
+            })
+            .filter((value) => !normalized || value.toLowerCase().includes(normalized));
+    };
+
+    const getPostalSuggestions = (party, postalQuery = "", provinceQuery = "") => {
+        const normalizedPostal = String(postalQuery || "").trim().toLowerCase();
+        const normalizedProvince = String(provinceQuery || "").trim().toLowerCase();
+        const pool = Array.isArray(citySuggestions[party]) ? citySuggestions[party] : [];
+
+        return pool.filter((option) => {
+            const postcode = String(option?.postcode || "").trim();
+            const province = String(option?.provinceName || option?.districtName || "").trim();
+            if (!postcode) {
+                return false;
+            }
+
+            const postalMatches = !normalizedPostal || postcode.toLowerCase().includes(normalizedPostal);
+            const provinceMatches = !normalizedProvince || province.toLowerCase().includes(normalizedProvince);
+            return postalMatches && provinceMatches;
+        });
+    };
+
+    const fetchCitySuggestions = useCallback((party, city, country) => {
+        const normalizedCity = String(city || "").trim();
+        const normalizedCountry = normalizeCountryCode(country);
+
+        const activeTimer = citySuggestionTimerRef.current[party];
+        if (activeTimer) {
+            clearTimeout(activeTimer);
+            citySuggestionTimerRef.current[party] = null;
+        }
+
+        const activeController = citySuggestionAbortRef.current[party];
+        if (activeController) {
+            activeController.abort();
+            citySuggestionAbortRef.current[party] = null;
+        }
+
+        if (!normalizedCity || normalizedCountry !== "LK") {
+            setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+            return;
+        }
+
+        citySuggestionTimerRef.current[party] = setTimeout(async () => {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            if (controller) {
+                citySuggestionAbortRef.current[party] = controller;
+            }
+
+            try {
+                const params = new URLSearchParams({ q: normalizedCity, limit: "20" });
+                const response = await fetch(`${resolvedDomesticCitySearchRoute}?${params.toString()}`, {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                    signal: controller?.signal,
+                });
+
+                if (!response.ok) {
+                    setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                const cities = Array.isArray(payload?.cities)
+                    ? payload.cities.map((entry) => ({
+                        value: String(entry?.nameEn || "").trim(),
+                        label: String(entry?.displayName || entry?.nameEn || "").trim(),
+                        postcode: String(entry?.postcode || "").trim(),
+                        provinceName: String(entry?.provinceName || "").trim(),
+                        districtName: String(entry?.districtName || "").trim(),
+                    })).filter((entry) => entry.value)
+                    : [];
+
+                setCitySuggestions((previous) => ({ ...previous, [party]: cities }));
+            } catch (error) {
+                if (error?.name !== "AbortError") {
+                    setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+                }
+            } finally {
+                if (citySuggestionAbortRef.current[party] === controller) {
+                    citySuggestionAbortRef.current[party] = null;
+                }
+            }
+        }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    }, [resolvedDomesticCitySearchRoute]);
+
+    const applyCitySuggestion = (party, option) => {
+        if (!option || !option.value) {
+            return;
+        }
+
+        const resolvedState = String(option.provinceName || option.districtName || "").trim();
+        const resolvedPostalCode = String(option.postcode || "").trim();
+
+        setData((previous) => {
+            const contact = previous?.[party] || {};
+            const address = contact.address || {};
+
+            return {
+                ...previous,
+                [party]: {
+                    ...contact,
+                    address: {
+                        ...address,
+                        city: option.value,
+                        state: resolvedState || address.state || "",
+                        postalCode: resolvedPostalCode || address.postalCode || "",
+                    },
+                },
+            };
+        });
+
+        setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+        setActiveAddressField(null);
+    };
+
+    const applyProvinceSuggestion = (party, provinceName) => {
+        const normalizedProvince = String(provinceName || "").trim();
+        if (!normalizedProvince) {
+            return;
+        }
+
+        const postalOptions = getPostalSuggestions(
+            party,
+            "",
+            normalizedProvince,
+        );
+
+        setData((previous) => {
+            const contact = previous?.[party] || {};
+            const address = contact.address || {};
+            const nextPostal = postalOptions.length === 1
+                ? String(postalOptions[0]?.postcode || "").trim()
+                : String(address.postalCode || "");
+
+            return {
+                ...previous,
+                [party]: {
+                    ...contact,
+                    address: {
+                        ...address,
+                        state: normalizedProvince,
+                        postalCode: nextPostal,
+                    },
+                },
+            };
+        });
+
+        setActiveAddressField(null);
+    };
+
+    const applyPostalSuggestion = (party, option) => {
+        const postalCode = String(option?.postcode || "").trim();
+        if (!postalCode) {
+            return;
+        }
+
+        const resolvedState = String(option?.provinceName || option?.districtName || "").trim();
+
+        setData((previous) => {
+            const contact = previous?.[party] || {};
+            const address = contact.address || {};
+
+            return {
+                ...previous,
+                [party]: {
+                    ...contact,
+                    address: {
+                        ...address,
+                        postalCode,
+                        state: resolvedState || address.state || "",
+                    },
+                },
+            };
+        });
+
+        setActiveAddressField(null);
+    };
+
+    const lookupAndApplyCityAddress = useCallback((party, city, country) => {
+        const normalizedCity = String(city || "").trim();
+        const normalizedCountry = normalizeCountryCode(country);
+
+        const activeTimer = cityLookupTimerRef.current[party];
+        if (activeTimer) {
+            clearTimeout(activeTimer);
+            cityLookupTimerRef.current[party] = null;
+        }
+
+        const activeController = cityLookupAbortRef.current[party];
+        if (activeController) {
+            activeController.abort();
+            cityLookupAbortRef.current[party] = null;
+        }
+
+        if (!normalizedCity || normalizedCountry !== "LK") {
+            return;
+        }
+
+        cityLookupTimerRef.current[party] = setTimeout(async () => {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            if (controller) {
+                cityLookupAbortRef.current[party] = controller;
+            }
+
+            try {
+                const params = new URLSearchParams({ q: normalizedCity, limit: "20" });
+                const response = await fetch(`${resolvedDomesticCitySearchRoute}?${params.toString()}`, {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                    signal: controller?.signal,
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                const cities = Array.isArray(payload?.cities) ? payload.cities : [];
+                if (cities.length === 0) {
+                    return;
+                }
+
+                const queryKey = normalizedCity.toLowerCase();
+                const exactMatch = cities.find((entry) => String(entry?.nameEn || "").trim().toLowerCase() === queryKey);
+                const prefixMatch = cities.find((entry) => String(entry?.nameEn || "").trim().toLowerCase().startsWith(queryKey));
+                const selected = exactMatch || prefixMatch || cities[0];
+
+                const resolvedState = String(selected?.provinceName || selected?.districtName || "").trim();
+                const resolvedPostalCode = String(selected?.postcode || "").trim();
+
+                if (!resolvedState && !resolvedPostalCode) {
+                    return;
+                }
+
+                setData((previous) => {
+                    const contact = previous?.[party] || {};
+                    const address = contact.address || {};
+                    const currentCity = String(address.city || "").trim().toLowerCase();
+                    const currentCountry = normalizeCountryCode(address.country);
+
+                    if (currentCity !== queryKey || currentCountry !== "LK") {
+                        return previous;
+                    }
+
+                    const nextState = resolvedState || String(address.state || "").trim();
+                    const nextPostalCode = resolvedPostalCode || String(address.postalCode || "").trim();
+
+                    if (nextState === String(address.state || "") && nextPostalCode === String(address.postalCode || "")) {
+                        return previous;
+                    }
+
+                    return {
+                        ...previous,
+                        [party]: {
+                            ...contact,
+                            address: {
+                                ...address,
+                                state: nextState,
+                                postalCode: nextPostalCode,
+                            },
+                        },
+                    };
+                });
+            } catch (error) {
+                if (error?.name !== "AbortError") {
+                    // Best-effort autofill only.
+                }
+            } finally {
+                if (cityLookupAbortRef.current[party] === controller) {
+                    cityLookupAbortRef.current[party] = null;
+                }
+            }
+        }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    }, [resolvedDomesticCitySearchRoute, setData]);
+
+    useEffect(() => {
+        lookupAndApplyCityAddress("sender", data?.sender?.address?.city, data?.sender?.address?.country);
+    }, [data?.sender?.address?.city, data?.sender?.address?.country, lookupAndApplyCityAddress]);
+
+    useEffect(() => {
+        lookupAndApplyCityAddress("recipient", data?.recipient?.address?.city, data?.recipient?.address?.country);
+    }, [data?.recipient?.address?.city, data?.recipient?.address?.country, lookupAndApplyCityAddress]);
+
+    useEffect(() => {
+        if (normalizeCountryCode(data?.sender?.address?.country) !== "LK") {
+            setCitySuggestions((previous) => ({ ...previous, sender: [] }));
+            setActiveAddressField((current) => (String(current || "").startsWith("sender-") ? null : current));
+        }
+    }, [data?.sender?.address?.country]);
+
+    useEffect(() => {
+        if (normalizeCountryCode(data?.recipient?.address?.country) !== "LK") {
+            setCitySuggestions((previous) => ({ ...previous, recipient: [] }));
+            setActiveAddressField((current) => (String(current || "").startsWith("recipient-") ? null : current));
+        }
+    }, [data?.recipient?.address?.country]);
 
     const handleSubmit = (event) => {
         if (event?.preventDefault) {
@@ -1142,7 +1506,7 @@ const Details = ({
                             </section>
                         )}
 
-                        
+
 
                         <div className="mb-4">
                             <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
@@ -1290,14 +1654,33 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">City *</label>
-                                            <input
-                                                type="text"
-                                                value={data.sender.address.city}
-                                                onChange={(event) => updateNestedField("sender.address.city", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Colombo"
-                                                required
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.sender.address.city}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="Colombo"
+                                                    required
+                                                />
+                                                {activeAddressField === "sender-city" && citySuggestions.sender.length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {citySuggestions.sender.map((option) => (
+                                                            <button
+                                                                key={`sender-city-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyCitySuggestion("sender", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.label}{option.postcode ? `, ${option.postcode}` : ""}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["sender.address.city"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.city"]}</p>
                                             )}
@@ -1306,8 +1689,8 @@ const Details = ({
                                             <label className="mb-1 block text-xs font-medium">Country *</label>
                                             <select
                                                 value={data.sender.address.country}
-                                                onChange={(event) => updateNestedField("sender.address.country", event.target.value.toUpperCase())}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                disabled
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
                                                 required
                                             >
                                                 {countries.map((countryCode) => (
@@ -1325,25 +1708,63 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">State / Province</label>
-                                            <input
-                                                type="text"
-                                                value={data.sender.address.state}
-                                                onChange={(event) => updateNestedField("sender.address.state", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Western"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.sender.address.state}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="Western"
+                                                />
+                                                {activeAddressField === "sender-state" && getProvinceSuggestions("sender", data.sender.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getProvinceSuggestions("sender", data.sender.address.state).map((province) => (
+                                                            <button
+                                                                key={`sender-province-suggestion-${province}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyProvinceSuggestion("sender", province);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {province}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["sender.address.state"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.state"]}</p>
                                             )}
                                         </div>
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">Postal code</label>
-                                            <input
-                                                type="text"
-                                                value={data.sender.address.postalCode}
-                                                onChange={(event) => updateNestedField("sender.address.postalCode", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.sender.address.postalCode}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                />
+                                                {activeAddressField === "sender-postal" && getPostalSuggestions("sender", data.sender.address.postalCode, data.sender.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getPostalSuggestions("sender", data.sender.address.postalCode, data.sender.address.state).map((option) => (
+                                                            <button
+                                                                key={`sender-postal-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyPostalSuggestion("sender", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.postcode} - {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["sender.address.postalCode"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.postalCode"]}</p>
                                             )}
@@ -1495,14 +1916,33 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">City *</label>
-                                            <input
-                                                type="text"
-                                                value={data.recipient.address.city}
-                                                onChange={(event) => updateNestedField("recipient.address.city", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="London"
-                                                required
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.recipient.address.city}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="London"
+                                                    required
+                                                />
+                                                {activeAddressField === "recipient-city" && citySuggestions.recipient.length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {citySuggestions.recipient.map((option) => (
+                                                            <button
+                                                                key={`recipient-city-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyCitySuggestion("recipient", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.label}{option.postcode ? `, ${option.postcode}` : ""}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["recipient.address.city"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.city"]}</p>
                                             )}
@@ -1511,8 +1951,8 @@ const Details = ({
                                             <label className="mb-1 block text-xs font-medium">Country *</label>
                                             <select
                                                 value={data.recipient.address.country}
-                                                onChange={(event) => updateNestedField("recipient.address.country", event.target.value.toUpperCase())}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                disabled
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
                                                 required
                                             >
                                                 {countries.map((countryCode) => (
@@ -1530,25 +1970,63 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">State / Province</label>
-                                            <input
-                                                type="text"
-                                                value={data.recipient.address.state}
-                                                onChange={(event) => updateNestedField("recipient.address.state", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Greater London"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.recipient.address.state}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="Greater London"
+                                                />
+                                                {activeAddressField === "recipient-state" && getProvinceSuggestions("recipient", data.recipient.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getProvinceSuggestions("recipient", data.recipient.address.state).map((province) => (
+                                                            <button
+                                                                key={`recipient-province-suggestion-${province}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyProvinceSuggestion("recipient", province);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {province}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["recipient.address.state"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.state"]}</p>
                                             )}
                                         </div>
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">Postal code</label>
-                                            <input
-                                                type="text"
-                                                value={data.recipient.address.postalCode}
-                                                onChange={(event) => updateNestedField("recipient.address.postalCode", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.recipient.address.postalCode}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                />
+                                                {activeAddressField === "recipient-postal" && getPostalSuggestions("recipient", data.recipient.address.postalCode, data.recipient.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getPostalSuggestions("recipient", data.recipient.address.postalCode, data.recipient.address.state).map((option) => (
+                                                            <button
+                                                                key={`recipient-postal-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyPostalSuggestion("recipient", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.postcode} - {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["recipient.address.postalCode"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.postalCode"]}</p>
                                             )}

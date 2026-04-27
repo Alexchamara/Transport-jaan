@@ -1641,14 +1641,24 @@ class ClientCourierController extends Controller
         }
 
         $rows = \Illuminate\Support\Facades\DB::table('location_cities')
-            ->select(['id', 'name_en', 'sub_name_en', 'postcode', 'district_id'])
+            ->join('location_districts', 'location_districts.id', '=', 'location_cities.district_id')
+            ->join('location_provinces', 'location_provinces.id', '=', 'location_districts.province_id')
+            ->select([
+                'location_cities.id',
+                'location_cities.name_en',
+                'location_cities.sub_name_en',
+                'location_cities.postcode',
+                'location_cities.district_id',
+                'location_districts.name_en as district_name_en',
+                'location_provinces.name_en as province_name_en',
+            ])
             ->where(function ($builder) use ($query) {
-                $builder->where('name_en', 'like', $query . '%')
-                        ->orWhere('name_en', 'like', '% ' . $query . '%')
-                        ->orWhere('sub_name_en', 'like', $query . '%');
+                $builder->where('location_cities.name_en', 'like', $query . '%')
+                    ->orWhere('location_cities.name_en', 'like', '% ' . $query . '%')
+                    ->orWhere('location_cities.sub_name_en', 'like', $query . '%');
             })
-            ->orderByRaw("CASE WHEN LOWER(name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
-            ->orderBy('name_en')
+                ->orderByRaw("CASE WHEN LOWER(location_cities.name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
+                ->orderBy('location_cities.name_en')
             ->limit($limit)
             ->get();
 
@@ -1665,6 +1675,8 @@ class ClientCourierController extends Controller
                 'displayName' => $displayName,
                 'postcode'    => $row->postcode,
                 'districtId'  => (int) $row->district_id,
+                'districtName' => (string) ($row->district_name_en ?? ''),
+                'provinceName' => (string) ($row->province_name_en ?? ''),
             ];
         })->values()->all();
 
