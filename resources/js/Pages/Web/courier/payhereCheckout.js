@@ -87,6 +87,48 @@ const normalizeCheckoutPayload = (checkout) => {
     return payload;
 };
 
+const isSandboxCheckout = (checkout, paymentPayload = null) => {
+    const checkoutUrl = String(checkout?.checkoutUrl || "").toLowerCase();
+    if (checkoutUrl.includes("sandbox.payhere.lk")) {
+        return true;
+    }
+
+    if (paymentPayload && typeof paymentPayload.sandbox === "boolean") {
+        return paymentPayload.sandbox;
+    }
+
+    return false;
+};
+
+const finalizeOnsiteSandboxPayment = async (checkout, paymentPayload, orderIdFromCallback) => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    if (!isSandboxCheckout(checkout, paymentPayload)) {
+        return;
+    }
+
+    const returnUrlRaw = paymentPayload?.return_url || checkout?.fields?.return_url;
+    if (!returnUrlRaw) {
+        return;
+    }
+
+    const returnUrl = new URL(String(returnUrlRaw), window.location.origin);
+    if (orderIdFromCallback && !returnUrl.searchParams.get("order_id")) {
+        returnUrl.searchParams.set("order_id", String(orderIdFromCallback));
+    }
+
+    await fetch(returnUrl.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+    });
+};
+
 export const launchPayHereRedirectCheckout = (checkout) => {
     if (!checkout?.checkoutUrl || !checkout?.fields) {
         throw new Error("Checkout session is unavailable.");
@@ -195,9 +237,15 @@ export const launchPayHereOnsiteCheckout = async (checkout, callbacks = {}) => {
 
     payhere.onCompleted = (orderId) => {
         releaseUiLock();
-        if (typeof callbacks.onCompleted === "function") {
-            callbacks.onCompleted(orderId);
-        }
+        Promise.resolve(finalizeOnsiteSandboxPayment(checkout, paymentPayload, orderId))
+            .catch((error) => {
+                console.warn("[PayHereCheckout] Sandbox completion reconciliation failed.", error);
+            })
+            .finally(() => {
+                if (typeof callbacks.onCompleted === "function") {
+                    callbacks.onCompleted(orderId);
+                }
+            });
     };
 
     payhere.onDismissed = () => {

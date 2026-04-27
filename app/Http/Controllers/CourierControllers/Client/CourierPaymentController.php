@@ -172,6 +172,13 @@ class CourierPaymentController extends Controller
     {
         $orderId = trim((string) $request->query('order_id', ''));
         if ($orderId === '') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Missing payment order reference.',
+                ], 422);
+            }
+
             return redirect()->route('couriers.create')->with('error', 'Missing payment order reference.');
         }
 
@@ -181,6 +188,13 @@ class CourierPaymentController extends Controller
             ->first();
 
         if (!$payment instanceof CourierShipmentPayment) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Payment record not found.',
+                ], 404);
+            }
+
             return redirect()->route('couriers.create')->with('error', 'Payment record not found.');
         }
 
@@ -221,6 +235,19 @@ class CourierPaymentController extends Controller
         $message = $payment->status === CourierShipmentPayment::STATUS_PAID
             ? 'Payment completed successfully.'
             : 'Payment is still processing. Refresh status in a few seconds.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+                'shipmentId' => $shipmentId,
+                'paymentStatus' => (string) $payment->status,
+                'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                'txReference' => (string) ($payment->tx_reference ?? ''),
+                'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+            ]);
+        }
 
         return redirect()->route('courier.shipment.show', ['id' => $shipmentId])->with('success', $message);
     }
