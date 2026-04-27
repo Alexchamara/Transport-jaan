@@ -50,9 +50,3 @@ Schedule::command('courier:cod-compliance-archive')
     ->when(static fn () => (bool) config('courier.cod_compliance_export.archive.enabled', true))
     ->withoutOverlapping()
     ->runInBackground();
-
-// Retry failed courier client lifecycle email dispatches.
-Schedule::command('courier:customer-email-retry --limit=150')
-    ->everyTenMinutes()
-    ->withoutOverlapping()
-    ->runInBackground();

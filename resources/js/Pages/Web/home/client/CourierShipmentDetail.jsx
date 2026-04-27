@@ -1,10 +1,5 @@
 import React from 'react';
-import { usePage, router } from '@inertiajs/react';
-import {
-    launchPayHereOnsiteCheckout,
-    launchPayHereRedirectCheckout,
-    preloadPayHereOnsiteSdk,
-} from '../../courier/payhereCheckout';
+import { usePage, Link, router } from '@inertiajs/react';
 import {
     Package,
     MapPin,
@@ -121,17 +116,11 @@ const CourierShipmentDetail = () => {
         || shipment.paymentGatewayOrderId
         || null;
     const paymentProvider = shipment.payment_provider || shipment.paymentProvider || null;
-    const paymentCheckoutUrl = shipment.payment_checkout_url || shipment.paymentCheckoutUrl || null;
-    const requiresCardPayment = Boolean(shipment.requires_card_payment || shipment.requiresCardPayment);
-    const canTakePayment = requiresCardPayment && paymentStatusRaw !== 'paid' && Boolean(paymentCheckoutUrl);
     const paymentStatusLabel = toTitleLabel(paymentStatusRaw, 'Pending');
     const paymentMethodLabel = toTitleLabel(paymentMethodRaw, 'Not Available');
     const paymentPaidAt = formatDateTime(shipment.payment_paid_at || shipment.paymentPaidAt);
     const paymentInitiatedAt = formatDateTime(shipment.payment_initiated_at || shipment.paymentInitiatedAt);
     const paymentFailedAt = formatDateTime(shipment.payment_failed_at || shipment.paymentFailedAt);
-    const [paymentCheckoutSession, setPaymentCheckoutSession] = React.useState(null);
-    const [isLaunchingPayment, setIsLaunchingPayment] = React.useState(false);
-    const [paymentActionError, setPaymentActionError] = React.useState('');
 
     const handleDownloadBill = () => {
         window.open(`/couriers/${shipment.id}/bill`, '_blank');
@@ -139,76 +128,6 @@ const CourierShipmentDetail = () => {
 
     const handleBack = () => {
         router.visit('/courierBookingDashboard');
-    };
-
-    const handleContinuePayment = async () => {
-        if (!canTakePayment || !paymentCheckoutUrl || isLaunchingPayment) {
-            return;
-        }
-
-        setPaymentActionError('');
-        setIsLaunchingPayment(true);
-
-        try {
-            preloadPayHereOnsiteSdk().catch(() => {});
-
-            let checkoutSession = paymentCheckoutSession;
-            if (!checkoutSession?.checkout?.isReady) {
-                const response = await fetch(paymentCheckoutUrl, {
-                    method: 'GET',
-                    credentials: 'same-origin',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Unable to load checkout session.');
-                }
-
-                const result = await response.json();
-                if (!result?.checkout?.isReady) {
-                    setPaymentActionError(result?.checkout?.reason || 'Checkout is not ready right now. Please try again.');
-                    return;
-                }
-
-                checkoutSession = result;
-                setPaymentCheckoutSession(result);
-            }
-
-            await launchPayHereOnsiteCheckout(checkoutSession.checkout, {
-                onCompleted: () => {
-                    router.reload({
-                        only: ['shipment'],
-                        preserveScroll: true,
-                    });
-                },
-                onDismissed: () => {
-                    setPaymentActionError('Checkout was closed before completion. You can continue payment anytime.');
-                },
-                onError: () => {
-                    setPaymentActionError('PayHere reported an issue while starting onsite checkout.');
-                },
-            });
-        } catch (error) {
-            console.warn('[CourierShipmentDetail] Onsite checkout unavailable. Falling back to checkout page.', error);
-            try {
-                if (paymentCheckoutSession?.checkout?.isReady) {
-                    launchPayHereRedirectCheckout(paymentCheckoutSession.checkout);
-                    return;
-                }
-
-                router.visit(paymentCheckoutUrl, {
-                    method: 'get',
-                    preserveScroll: true,
-                });
-            } catch (fallbackError) {
-                setPaymentActionError('Unable to start checkout right now. Please try again.');
-            }
-        } finally {
-            setIsLaunchingPayment(false);
-        }
     };
 
     return (
@@ -235,7 +154,7 @@ const CourierShipmentDetail = () => {
                                     Reference: {shipment.code}
                                 </p>
                             </div>
-                                <div className="flex gap-2 items-center flex-wrap">
+                                <div className="flex gap-2 items-center">
                                     <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold ${statusInfo.color}`}>
                                         <StatusIcon className="h-5 w-5" />
                                         {statusInfo.label}
@@ -250,19 +169,6 @@ const CourierShipmentDetail = () => {
                                         <CreditCard className="h-4 w-4" />
                                         Payment: {paymentStatusLabel}
                                     </div>
-                                    {canTakePayment && (
-                                        <button
-                                            type="button"
-                                            onClick={handleContinuePayment}
-                                            disabled={isLaunchingPayment}
-                                            className="inline-flex items-center h-10 px-6 rounded-2xl border border-[#0955AC] text-[#0955AC] text-[14px] font-medium hover:bg-[#EAF2FD] disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            <CreditCard className="mr-2 h-5 w-5" />
-                                            {isLaunchingPayment
-                                                ? 'Opening Checkout...'
-                                                : (paymentStatusRaw === 'pending' ? 'Continue Payment' : 'Pay Now')}
-                                        </button>
-                                    )}
                                     <button
                                         onClick={handleDownloadBill}
                                         className="inline-flex items-center h-10 px-6 rounded-2xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
@@ -271,9 +177,6 @@ const CourierShipmentDetail = () => {
                                         Bill
                                     </button>
                                 </div>
-                                {paymentActionError && (
-                                    <p className="text-[12px] font-medium text-rose-600">{paymentActionError}</p>
-                                )}
                         </div>
                     </div>
 

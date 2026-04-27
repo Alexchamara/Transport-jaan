@@ -4,11 +4,9 @@ namespace Tests\Feature\Courier;
 
 use App\Models\Courier\CourierAddress;
 use App\Models\Courier\CourierContact;
-use App\Models\Courier\CourierCustomerEmailDispatch;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierShipmentPayment;
 use App\Models\User;
-use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\PayHereGatewayService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
@@ -126,72 +124,6 @@ class CourierPaymentLifecycleTest extends TestCase
         $this->assertStringStartsWith('CPH-' . $shipment->id . '-', (string) $payment->gateway_order_id);
     }
 
-    public function test_payhere_cancel_marks_pending_payment_cancelled_and_dispatches_email_events(): void
-    {
-        $user = User::factory()->create([
-            'role' => 'client',
-            'status' => 'verified',
-        ]);
-
-        $shipment = $this->createShipmentForUser($user);
-        $payment = $this->createCardPayment($shipment, [
-            'status' => CourierShipmentPayment::STATUS_PENDING,
-            'gateway_order_id' => 'CPH-' . $shipment->id . '-CANCEL01',
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('couriers.payments.payhere.cancel', [
-                'order_id' => (string) $payment->gateway_order_id,
-            ]))
-            ->assertRedirect(route('courier.shipment.show', ['id' => (int) $shipment->id]));
-
-        $payment->refresh();
-        $this->assertSame(CourierShipmentPayment::STATUS_CANCELLED, (string) $payment->status);
-        $this->assertSame(2, CourierCustomerEmailDispatch::query()
-            ->where('payment_id', (int) $payment->id)
-            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_PAYMENT_CANCELLED)
-            ->count());
-    }
-
-    public function test_payhere_notify_paid_can_upgrade_previously_cancelled_payment(): void
-    {
-        $user = User::factory()->create([
-            'role' => 'client',
-            'status' => 'verified',
-        ]);
-
-        $shipment = $this->createShipmentForUser($user);
-        $payment = $this->createCardPayment($shipment, [
-            'status' => CourierShipmentPayment::STATUS_PENDING,
-            'gateway_order_id' => 'CPH-' . $shipment->id . '-UPGRADE01',
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('couriers.payments.payhere.cancel', [
-                'order_id' => (string) $payment->gateway_order_id,
-            ]))
-            ->assertRedirect(route('courier.shipment.show', ['id' => (int) $shipment->id]));
-
-        $payment->refresh();
-        $this->assertSame(CourierShipmentPayment::STATUS_CANCELLED, (string) $payment->status);
-
-        $paidNotify = $this->buildPayHereNotifyPayload($payment, 2, [
-            'status_message' => 'Paid',
-            'payment_id' => 'PH-PMT-UPGRADE-1',
-            'payhere_reference' => 'TX-UPGRADE-PAID',
-        ]);
-
-        $this->post(route('couriers.payments.payhere.notify'), $paidNotify)
-            ->assertOk()
-            ->assertSeeText('OK');
-
-        $payment->refresh();
-
-        $this->assertSame(CourierShipmentPayment::STATUS_PAID, (string) $payment->status);
-        $this->assertSame('PH-PMT-UPGRADE-1', (string) $payment->gateway_payment_id);
-        $this->assertSame('TX-UPGRADE-PAID', (string) $payment->tx_reference);
-    }
-
     public function test_payhere_notify_is_idempotent_and_does_not_regress_terminal_paid_status(): void
     {
         $user = User::factory()->create([
@@ -223,10 +155,6 @@ class CourierPaymentLifecycleTest extends TestCase
         $this->assertSame('PH-PMT-IDEMP-1', (string) $payment->gateway_payment_id);
         $this->assertSame('TX-IDEMP-PAID', (string) $payment->tx_reference);
         $this->assertNotNull($payment->paid_at);
-        $this->assertSame(2, CourierCustomerEmailDispatch::query()
-            ->where('payment_id', (int) $payment->id)
-            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_PAYMENT_PAID)
-            ->count());
 
         $paidAtAfterFirstNotify = $payment->paid_at?->toIso8601String();
 
@@ -238,10 +166,6 @@ class CourierPaymentLifecycleTest extends TestCase
 
         $this->assertSame(CourierShipmentPayment::STATUS_PAID, (string) $payment->status);
         $this->assertSame($paidAtAfterFirstNotify, $payment->paid_at?->toIso8601String());
-        $this->assertSame(2, CourierCustomerEmailDispatch::query()
-            ->where('payment_id', (int) $payment->id)
-            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_PAYMENT_PAID)
-            ->count());
 
         $failedNotify = $this->buildPayHereNotifyPayload($payment, -2, [
             'status_message' => 'Card declined',
@@ -257,48 +181,11 @@ class CourierPaymentLifecycleTest extends TestCase
 
         $this->assertSame(CourierShipmentPayment::STATUS_PAID, (string) $payment->status);
         $this->assertNull($payment->failure_reason);
-        $this->assertSame(0, CourierCustomerEmailDispatch::query()
-            ->where('payment_id', (int) $payment->id)
-            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_PAYMENT_FAILED)
-            ->count());
 
         $callbackPayload = is_array($payment->callback_payload) ? $payment->callback_payload : [];
         $this->assertCount(3, $callbackPayload);
         $this->assertSame('accepted', (string) ($callbackPayload[2]['outcome'] ?? ''));
         $this->assertSame(CourierShipmentPayment::STATUS_FAILED, (string) ($callbackPayload[2]['resolved_status'] ?? ''));
-    }
-
-    public function test_payhere_return_endpoint_can_finalize_sandbox_payment_via_json_without_signature(): void
-    {
-        config()->set('services.payhere.sandbox', true);
-
-        $user = User::factory()->create([
-            'role' => 'client',
-            'status' => 'verified',
-        ]);
-
-        $shipment = $this->createShipmentForUser($user);
-        $payment = $this->createCardPayment($shipment, [
-            'status' => CourierShipmentPayment::STATUS_PENDING,
-            'gateway_order_id' => 'CPH-' . $shipment->id . '-RETJSON1',
-            'tx_reference' => null,
-            'gateway_payment_id' => null,
-        ]);
-
-        $this->actingAs($user)
-            ->getJson(route('couriers.payments.payhere.return', [
-                'order_id' => (string) $payment->gateway_order_id,
-            ]))
-            ->assertOk()
-            ->assertJson([
-                'ok' => true,
-                'paymentStatus' => CourierShipmentPayment::STATUS_PAID,
-                'orderId' => (string) $payment->gateway_order_id,
-            ]);
-
-        $payment->refresh();
-        $this->assertSame(CourierShipmentPayment::STATUS_PAID, (string) $payment->status);
-        $this->assertNotNull($payment->paid_at);
     }
 
     private function createShipmentForUser(User $user, string $senderCountry = 'LK', string $recipientCountry = 'LK'): CourierShipment

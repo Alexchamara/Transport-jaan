@@ -51,6 +51,22 @@ const useCourierActionModal = (flash = {}, autoDismissMs = 3200) => {
         }
     }, [flash.success, flash.error, flash.password_change_required, flash.password_change_target]);
 
+    useEffect(() => {
+        if (!feedback) {
+            return;
+        }
+
+        if (feedback.passwordChangeRequired) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setFeedback(null);
+        }, autoDismissMs);
+
+        return () => clearTimeout(timer);
+    }, [feedback, autoDismissMs]);
+
     const closeFeedback = () => setFeedback(null);
 
     const openConfirm = ({

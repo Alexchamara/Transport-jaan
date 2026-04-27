@@ -44,7 +44,6 @@ use App\Http\Controllers\CourierControllers\Api\CourierServiceApiGatewayControll
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierLabelController;
 use App\Http\Controllers\CourierControllers\Vendor\CourierTeamController;
-use App\Http\Controllers\CourierControllers\Webhooks\CourierEmailDeliveryWebhookController;
 use App\Http\Controllers\Search\GlobalDashboardSearchController;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 
@@ -1301,10 +1300,6 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.settings.update')
         ->name('courierService.settings.services.cod.request');
 
-    Route::post('/courierService/settingsPage/notifications/test-email', [VendorCourierDashboardController::class, 'sendNotificationTestEmail'])
-        ->middleware(['service.permission:courier.settings.update', 'throttle:20,1'])
-        ->name('courierService.settings.notifications.test-email');
-
     Route::get('/courierService/labels/sizes', [VendorCourierLabelController::class, 'listSizes'])
         ->middleware('service.permission:courier.labels.view')
         ->name('courierService.labels.sizes.index');
@@ -1535,10 +1530,6 @@ Route::prefix('/api/courier/service')->middleware(['throttle:120,1'])->group(fun
         ->middleware('courier.api.key:webhook.events.write,webhook.events.write')
         ->name('courier.api.webhooks.shipments.status');
 });
-
-Route::post('/webhooks/email/delivery', [CourierEmailDeliveryWebhookController::class, 'ingest'])
-    ->middleware('throttle:120,1')
-    ->name('courier.webhooks.email.delivery');
 
 
 
@@ -2378,3 +2369,4 @@ Route::get('/storage/download/{path}', function ($path) {
 |--------------------------------------------------------------------------
 */
 require __DIR__ . '/auth.php';
+
