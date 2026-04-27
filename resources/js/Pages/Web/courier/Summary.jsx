@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, usePage, router } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
+import {
+    launchPayHereOnsiteCheckout,
+    launchPayHereRedirectCheckout,
+    preloadPayHereOnsiteSdk,
+} from "./payhereCheckout";
 
 const PROGRESS_STEPS = [
     {
@@ -82,6 +87,7 @@ const Summary = ({
     const hasErrors = Object.keys(errors).length > 0;
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [activeCheckoutSession, setActiveCheckoutSession] = useState(null);
 
     const initialData = useMemo(() => {
         if (formStateOverride) {
@@ -94,6 +100,10 @@ const Summary = ({
 
     useEffect(() => {
         setFormState(initialData);
+    }, [initialData]);
+
+    useEffect(() => {
+        setActiveCheckoutSession(null);
     }, [initialData]);
 
     const scrollToTop = useCallback(() => {
@@ -109,6 +119,14 @@ const Summary = ({
             setDisplayCurrency(initialData.reviewContext?.displayCurrency || "LKR");
         }
     }, [initialData]);
+
+    useEffect(() => {
+        if (!Boolean(formState?.shipment?.requiresCardPayment || formState?.shipment?.paymentOptions?.card)) {
+            return;
+        }
+
+        preloadPayHereOnsiteSdk().catch(() => {});
+    }, [formState?.shipment?.paymentOptions?.card, formState?.shipment?.requiresCardPayment]);
 
     if (!formState) {
         if (inline) {
@@ -285,25 +303,17 @@ const Summary = ({
         return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
     };
 
-    const launchPayHereCheckout = (checkout) => {
+    const launchPayHereCheckout = async (checkout, callbacks = {}) => {
         if (!checkout?.checkoutUrl || !checkout?.fields) {
             throw new Error("Checkout session is unavailable.");
         }
 
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = String(checkout.checkoutUrl);
-
-        Object.entries(checkout.fields || {}).forEach(([key, value]) => {
-            const input = document.createElement("input");
-            input.type = "hidden";
-            input.name = key;
-            input.value = value === null || value === undefined ? "" : String(value);
-            form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
+        try {
+            await launchPayHereOnsiteCheckout(checkout, callbacks);
+        } catch (error) {
+            console.warn("[CourierSummary] Onsite checkout unavailable. Falling back to redirect checkout.", error);
+            launchPayHereRedirectCheckout(checkout);
+        }
     };
 
     const handleConfirm = async () => {
@@ -343,41 +353,72 @@ const Summary = ({
             setIsSubmitting(true);
 
             try {
-                const response = await fetch(storeRoute, {
-                    method: "POST",
-                    credentials: "same-origin",
-                    headers: {
-                        Accept: "application/json",
-                        "Content-Type": "application/json",
-                        "X-Requested-With": "XMLHttpRequest",
-                        "X-CSRF-TOKEN": getCsrfToken(),
+                let checkoutSession = activeCheckoutSession;
+
+                if (!checkoutSession?.checkout?.isReady) {
+                    const response = await fetch(storeRoute, {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                            "X-Requested-With": "XMLHttpRequest",
+                            "X-CSRF-TOKEN": getCsrfToken(),
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (response.status === 422) {
+                        const validationPayload = await response.json();
+                        const firstError = Object.values(validationPayload?.errors || {})
+                            .flat()
+                            .find((message) => typeof message === "string");
+
+                        setSubmitError(firstError || "Unable to proceed to checkout. Please review your booking details.");
+                        scrollToTop();
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error("Unable to initialize checkout right now.");
+                    }
+
+                    const result = await response.json();
+                    if (!result?.checkout?.isReady) {
+                        setSubmitError(result?.checkout?.reason || "Checkout is not ready. Please try again.");
+                        scrollToTop();
+                        return;
+                    }
+
+                    checkoutSession = result;
+                    setActiveCheckoutSession(result);
+                }
+
+                if (!checkoutSession?.checkout?.isReady) {
+                    setSubmitError("Checkout is not ready. Please try again.");
+                    scrollToTop();
+                    return;
+                }
+
+                await launchPayHereCheckout(checkoutSession.checkout, {
+                    onCompleted: () => {
+                        const nextUrl = checkoutSession?.fallbackCheckoutUrl || checkoutSession?.shipment?.detailUrl;
+                        if (nextUrl) {
+                            router.visit(nextUrl, {
+                                method: "get",
+                                preserveScroll: true,
+                            });
+                        }
                     },
-                    body: JSON.stringify(payload),
+                    onDismissed: () => {
+                        setSubmitError("Checkout was closed before completion. Your shipment is saved, and you can resume payment anytime.");
+                        scrollToTop();
+                    },
+                    onError: () => {
+                        setSubmitError("PayHere reported an issue while starting onsite checkout.");
+                        scrollToTop();
+                    },
                 });
-
-                if (response.status === 422) {
-                    const validationPayload = await response.json();
-                    const firstError = Object.values(validationPayload?.errors || {})
-                        .flat()
-                        .find((message) => typeof message === "string");
-
-                    setSubmitError(firstError || "Unable to proceed to checkout. Please review your booking details.");
-                    scrollToTop();
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error("Unable to initialize checkout right now.");
-                }
-
-                const result = await response.json();
-                if (!result?.checkout?.isReady) {
-                    setSubmitError(result?.checkout?.reason || "Checkout is not ready. Please try again.");
-                    scrollToTop();
-                    return;
-                }
-
-                launchPayHereCheckout(result.checkout);
                 return;
             } catch (error) {
                 console.error("[CourierSummary] Checkout initialization failed", error);
@@ -762,6 +803,4 @@ const Summary = ({
 };
 
 export default Summary;
-
-
 

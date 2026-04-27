@@ -31,6 +31,38 @@ class CourierPaymentController extends Controller
         $gateway = app(PayHereGatewayService::class);
         $checkout = $gateway->buildCheckoutPayload($payment, $shipmentModel, Auth::user());
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'shipment' => [
+                    'id' => (int) $shipmentModel->id,
+                    'reference' => (string) $shipmentModel->reference,
+                    'status' => (string) $shipmentModel->status,
+                ],
+                'payment' => [
+                    'id' => (int) $payment->id,
+                    'status' => (string) $payment->status,
+                    'method' => (string) $payment->payment_method,
+                    'provider' => (string) $payment->provider,
+                    'amount' => (float) $payment->amount,
+                    'currency' => (string) $payment->currency_code,
+                    'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                    'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+                    'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                    'txReference' => (string) ($payment->tx_reference ?? ''),
+                    'failureReason' => (string) ($payment->failure_reason ?? ''),
+                    'paidAt' => optional($payment->paid_at)->toIso8601String(),
+                    'failedAt' => optional($payment->failed_at)->toIso8601String(),
+                    'lastNotifiedAt' => optional($payment->last_notified_at)->toIso8601String(),
+                ],
+                'checkout' => $checkout,
+                'pollingUrl' => route('couriers.payments.status', ['shipment' => (int) $shipmentModel->id]),
+                'retryUrl' => route('couriers.payments.retry', ['shipment' => (int) $shipmentModel->id]),
+                'returnToCreateUrl' => route('couriers.flow.create', ['flow' => $this->resolveFlow($shipmentModel)]),
+                'shipmentDetailUrl' => route('courier.shipment.show', ['id' => (int) $shipmentModel->id]),
+                'dashboardUrl' => route('courierBookingDashboard'),
+            ]);
+        }
+
         return Inertia::render('Web/courier/PaymentCheckout', [
             'shipment' => [
                 'id' => (int) $shipmentModel->id,
@@ -140,6 +172,13 @@ class CourierPaymentController extends Controller
     {
         $orderId = trim((string) $request->query('order_id', ''));
         if ($orderId === '') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Missing payment order reference.',
+                ], 422);
+            }
+
             return redirect()->route('couriers.create')->with('error', 'Missing payment order reference.');
         }
 
@@ -149,6 +188,13 @@ class CourierPaymentController extends Controller
             ->first();
 
         if (!$payment instanceof CourierShipmentPayment) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Payment record not found.',
+                ], 404);
+            }
+
             return redirect()->route('couriers.create')->with('error', 'Payment record not found.');
         }
 
@@ -189,6 +235,19 @@ class CourierPaymentController extends Controller
         $message = $payment->status === CourierShipmentPayment::STATUS_PAID
             ? 'Payment completed successfully.'
             : 'Payment is still processing. Refresh status in a few seconds.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+                'shipmentId' => $shipmentId,
+                'paymentStatus' => (string) $payment->status,
+                'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                'txReference' => (string) ($payment->tx_reference ?? ''),
+                'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+            ]);
+        }
 
         return redirect()->route('courier.shipment.show', ['id' => $shipmentId])->with('success', $message);
     }

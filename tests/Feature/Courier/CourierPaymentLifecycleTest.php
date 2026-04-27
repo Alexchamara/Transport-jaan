@@ -188,6 +188,39 @@ class CourierPaymentLifecycleTest extends TestCase
         $this->assertSame(CourierShipmentPayment::STATUS_FAILED, (string) ($callbackPayload[2]['resolved_status'] ?? ''));
     }
 
+    public function test_payhere_return_endpoint_can_finalize_sandbox_payment_via_json_without_signature(): void
+    {
+        config()->set('services.payhere.sandbox', true);
+
+        $user = User::factory()->create([
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        $shipment = $this->createShipmentForUser($user);
+        $payment = $this->createCardPayment($shipment, [
+            'status' => CourierShipmentPayment::STATUS_PENDING,
+            'gateway_order_id' => 'CPH-' . $shipment->id . '-RETJSON1',
+            'tx_reference' => null,
+            'gateway_payment_id' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson(route('couriers.payments.payhere.return', [
+                'order_id' => (string) $payment->gateway_order_id,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'paymentStatus' => CourierShipmentPayment::STATUS_PAID,
+                'orderId' => (string) $payment->gateway_order_id,
+            ]);
+
+        $payment->refresh();
+        $this->assertSame(CourierShipmentPayment::STATUS_PAID, (string) $payment->status);
+        $this->assertNotNull($payment->paid_at);
+    }
+
     private function createShipmentForUser(User $user, string $senderCountry = 'LK', string $recipientCountry = 'LK'): CourierShipment
     {
         $suffix = Str::lower(Str::random(8));
