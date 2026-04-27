@@ -1632,8 +1632,8 @@ const Details = ({
                                         step="0.01"
                                         value={data.shipment.estimatedValue}
                                         onChange={(event) => updateNestedField("shipment.estimatedValue", event.target.value)}
-                                        disabled={!data.shipment.insurance}
-                                        className={`w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none ${data.shipment.insurance ? "bg-white" : "cursor-not-allowed bg-[#F3F6FB] opacity-60"}`}
+                                        disabled={!data.shipment.insurance && !data.shipment.codEnabled}
+                                        className={`w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none ${data.shipment.insurance || data.shipment.codEnabled ? "bg-white" : "cursor-not-allowed bg-[#F3F6FB] opacity-60"}`}
                                         placeholder="0"
                                     />
                                     {combinedErrors["shipment.estimatedValue"] && (

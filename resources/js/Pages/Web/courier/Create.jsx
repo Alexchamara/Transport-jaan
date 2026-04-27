@@ -2049,10 +2049,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
+        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled) || Boolean(String(data.shipment?.estimatedValue || "").trim());
+
         return hasRouteLocations
             && hasShipmentType
             && hasShipmentDescription
             && packagesHaveNumbers
+            && hasEstimatedValueIfRequired
             && (selectedRouteType !== "domestic" || hasPaymentOption);
     }, [
         data.packages,
@@ -2095,10 +2098,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
+        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled) || Boolean(String(data.shipment?.estimatedValue || "").trim());
+
         return hasRouteLocations
             && hasShipmentType
             && hasShipmentDescription
-            && packagesHaveNumbers;
+            && packagesHaveNumbers
+            && hasEstimatedValueIfRequired;
     }, [
         data.packages,
         data.sender,
