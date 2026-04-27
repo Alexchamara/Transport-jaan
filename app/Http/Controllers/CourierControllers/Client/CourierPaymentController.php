@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CourierControllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierShipmentPayment;
+use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\PayHereGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,38 @@ class CourierPaymentController extends Controller
 
         $gateway = app(PayHereGatewayService::class);
         $checkout = $gateway->buildCheckoutPayload($payment, $shipmentModel, Auth::user());
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'shipment' => [
+                    'id' => (int) $shipmentModel->id,
+                    'reference' => (string) $shipmentModel->reference,
+                    'status' => (string) $shipmentModel->status,
+                ],
+                'payment' => [
+                    'id' => (int) $payment->id,
+                    'status' => (string) $payment->status,
+                    'method' => (string) $payment->payment_method,
+                    'provider' => (string) $payment->provider,
+                    'amount' => (float) $payment->amount,
+                    'currency' => (string) $payment->currency_code,
+                    'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                    'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+                    'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                    'txReference' => (string) ($payment->tx_reference ?? ''),
+                    'failureReason' => (string) ($payment->failure_reason ?? ''),
+                    'paidAt' => optional($payment->paid_at)->toIso8601String(),
+                    'failedAt' => optional($payment->failed_at)->toIso8601String(),
+                    'lastNotifiedAt' => optional($payment->last_notified_at)->toIso8601String(),
+                ],
+                'checkout' => $checkout,
+                'pollingUrl' => route('couriers.payments.status', ['shipment' => (int) $shipmentModel->id]),
+                'retryUrl' => route('couriers.payments.retry', ['shipment' => (int) $shipmentModel->id]),
+                'returnToCreateUrl' => route('couriers.flow.create', ['flow' => $this->resolveFlow($shipmentModel)]),
+                'shipmentDetailUrl' => route('courier.shipment.show', ['id' => (int) $shipmentModel->id]),
+                'dashboardUrl' => route('courierBookingDashboard'),
+            ]);
+        }
 
         return Inertia::render('Web/courier/PaymentCheckout', [
             'shipment' => [
@@ -140,6 +173,13 @@ class CourierPaymentController extends Controller
     {
         $orderId = trim((string) $request->query('order_id', ''));
         if ($orderId === '') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Missing payment order reference.',
+                ], 422);
+            }
+
             return redirect()->route('couriers.create')->with('error', 'Missing payment order reference.');
         }
 
@@ -149,6 +189,13 @@ class CourierPaymentController extends Controller
             ->first();
 
         if (!$payment instanceof CourierShipmentPayment) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Payment record not found.',
+                ], 404);
+            }
+
             return redirect()->route('couriers.create')->with('error', 'Payment record not found.');
         }
 
@@ -190,6 +237,19 @@ class CourierPaymentController extends Controller
             ? 'Payment completed successfully.'
             : 'Payment is still processing. Refresh status in a few seconds.';
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+                'shipmentId' => $shipmentId,
+                'paymentStatus' => (string) $payment->status,
+                'orderId' => (string) ($payment->gateway_order_id ?? ''),
+                'gatewayPaymentId' => (string) ($payment->gateway_payment_id ?? ''),
+                'txReference' => (string) ($payment->tx_reference ?? ''),
+                'gatewayStatus' => (string) ($payment->gateway_status ?? ''),
+            ]);
+        }
+
         return redirect()->route('courier.shipment.show', ['id' => $shipmentId])->with('success', $message);
     }
 
@@ -205,12 +265,19 @@ class CourierPaymentController extends Controller
             ->latest('id')
             ->first();
 
+        $shouldDispatchCancellationEmail = false;
         if ($payment instanceof CourierShipmentPayment && $payment->status === CourierShipmentPayment::STATUS_PENDING) {
             $payment->forceFill([
                 'status' => CourierShipmentPayment::STATUS_CANCELLED,
                 'failed_at' => now(),
                 'failure_reason' => 'Cancelled by customer at gateway.',
             ])->save();
+
+            $shouldDispatchCancellationEmail = true;
+        }
+
+        if ($shouldDispatchCancellationEmail && $payment instanceof CourierShipmentPayment) {
+            app(CourierCustomerEmailDispatchService::class)->queuePaymentCancelled($payment);
         }
 
         if ($payment instanceof CourierShipmentPayment) {
@@ -328,7 +395,9 @@ class CourierPaymentController extends Controller
         string $resolvedStatus,
         array $crossCheck
     ): void {
-        DB::transaction(function () use ($payment, $payload, $resolvedStatus, $crossCheck) {
+        $emailEventToDispatch = null;
+
+        DB::transaction(function () use ($payment, $payload, $resolvedStatus, $crossCheck, &$emailEventToDispatch) {
             $lockedPayment = CourierShipmentPayment::query()
                 ->whereKey((int) $payment->id)
                 ->lockForUpdate()
@@ -360,8 +429,13 @@ class CourierPaymentController extends Controller
                 ],
             ];
 
-            // Idempotent guard: do not regress a terminal payment status once reached.
-            if (in_array($currentStatus, $terminalStatuses, true) && $currentStatus !== $resolvedStatus) {
+            // Idempotent guard: once PAID, never regress to non-paid statuses.
+            // Allow late successful callbacks to upgrade a previously cancelled/failed/expired payment.
+            if (
+                $resolvedStatus !== CourierShipmentPayment::STATUS_PAID
+                && in_array($currentStatus, $terminalStatuses, true)
+                && $currentStatus !== $resolvedStatus
+            ) {
                 $lockedPayment->forceFill([
                     'last_notified_at' => now(),
                     'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
@@ -372,6 +446,8 @@ class CourierPaymentController extends Controller
             }
 
             if ($resolvedStatus === CourierShipmentPayment::STATUS_PAID) {
+                $wasAlreadyPaid = $currentStatus === CourierShipmentPayment::STATUS_PAID;
+
                 $lockedPayment->forceFill([
                     'status' => CourierShipmentPayment::STATUS_PAID,
                     'gateway_payment_id' => (string) ($payload['payment_id'] ?? $lockedPayment->gateway_payment_id),
@@ -384,6 +460,10 @@ class CourierPaymentController extends Controller
                     'callback_payload' => $currentCallbackPayload,
                 ])->save();
 
+                if (!$wasAlreadyPaid) {
+                    $emailEventToDispatch = CourierCustomerEmailDispatchService::EVENT_PAYMENT_PAID;
+                }
+
                 return;
             }
 
@@ -392,6 +472,8 @@ class CourierPaymentController extends Controller
                 CourierShipmentPayment::STATUS_CANCELLED,
                 CourierShipmentPayment::STATUS_EXPIRED,
             ], true)) {
+                $wasAlreadyResolved = $currentStatus === $resolvedStatus;
+
                 $lockedPayment->forceFill([
                     'status' => $resolvedStatus,
                     'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
@@ -400,6 +482,12 @@ class CourierPaymentController extends Controller
                     'last_notified_at' => now(),
                     'callback_payload' => $currentCallbackPayload,
                 ])->save();
+
+                if (!$wasAlreadyResolved) {
+                    $emailEventToDispatch = $resolvedStatus === CourierShipmentPayment::STATUS_CANCELLED
+                        ? CourierCustomerEmailDispatchService::EVENT_PAYMENT_CANCELLED
+                        : CourierCustomerEmailDispatchService::EVENT_PAYMENT_FAILED;
+                }
 
                 return;
             }
@@ -411,6 +499,19 @@ class CourierPaymentController extends Controller
                 'callback_payload' => $currentCallbackPayload,
             ])->save();
         });
+
+        if ($emailEventToDispatch !== null) {
+            $payment->refresh();
+            $emailDispatch = app(CourierCustomerEmailDispatchService::class);
+
+            if ($emailEventToDispatch === CourierCustomerEmailDispatchService::EVENT_PAYMENT_PAID) {
+                $emailDispatch->queuePaymentPaid($payment);
+            } elseif ($emailEventToDispatch === CourierCustomerEmailDispatchService::EVENT_PAYMENT_CANCELLED) {
+                $emailDispatch->queuePaymentCancelled($payment);
+            } else {
+                $emailDispatch->queuePaymentFailed($payment);
+            }
+        }
     }
 
     private function assertCanAccessShipment(Request $request, CourierShipment $shipment): void

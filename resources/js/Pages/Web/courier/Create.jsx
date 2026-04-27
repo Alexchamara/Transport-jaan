@@ -2049,10 +2049,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
+        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled) || Boolean(String(data.shipment?.estimatedValue || "").trim());
+
         return hasRouteLocations
             && hasShipmentType
             && hasShipmentDescription
             && packagesHaveNumbers
+            && hasEstimatedValueIfRequired
             && (selectedRouteType !== "domestic" || hasPaymentOption);
     }, [
         data.packages,
@@ -2095,10 +2098,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return quantity > 0 && weight > 0 && length > 0 && width > 0 && height > 0;
         });
 
+        const hasEstimatedValueIfRequired = (!data.shipment?.insurance && !data.shipment?.codEnabled) || Boolean(String(data.shipment?.estimatedValue || "").trim());
+
         return hasRouteLocations
             && hasShipmentType
             && hasShipmentDescription
-            && packagesHaveNumbers;
+            && packagesHaveNumbers
+            && hasEstimatedValueIfRequired;
     }, [
         data.packages,
         data.sender,
@@ -4288,12 +4294,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 ref={detailsSectionRef}
                                 className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
                             >
-                                <div className="mb-4">
-                                    <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
-                                    <p className="mt-1 text-sm text-[#5B6887]">
-                                        Add pickup, delivery, and shipment preferences to complete the request.
-                                    </p>
-                                </div>
+                                
                                 <DetailsForm
                                     inline
                                     renderAsForm={false}

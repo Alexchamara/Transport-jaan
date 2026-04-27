@@ -47,7 +47,14 @@ class StoreCourierShipmentRequest extends FormRequest
             'shipment.currency' => ['nullable', 'string', 'size:3'],
             'shipment.insurance' => ['nullable', 'boolean'],
             'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
-            'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
+            'shipment.estimatedValue' => [
+                \Illuminate\Validation\Rule::requiredIf(function () {
+                    return request()->input('shipment.insurance') || request()->input('shipment.codEnabled');
+                }),
+                'nullable',
+                'numeric',
+                'min:0'
+            ],
             'shipment.paymentOptions' => ['nullable', 'array'],
             'shipment.paymentOptions.all' => ['nullable', 'boolean'],
             'shipment.paymentOptions.cod' => ['nullable', 'boolean'],

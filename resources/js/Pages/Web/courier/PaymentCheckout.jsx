@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import Footer from "../layouts/Footer";
+import {
+    launchPayHereOnsiteCheckout,
+    launchPayHereRedirectCheckout,
+    preloadPayHereOnsiteSdk,
+} from "./payhereCheckout";
 
 const TERMINAL_STATUSES = new Set(["paid", "failed", "cancelled", "expired"]);
 const RETRYABLE_STATUSES = new Set(["failed", "cancelled", "expired"]);
@@ -62,11 +67,20 @@ const PaymentCheckout = ({
     const [checkError, setCheckError] = useState("");
     const [isChecking, setIsChecking] = useState(false);
     const [isRetrying, setIsRetrying] = useState(false);
+    const [isLaunchingCheckout, setIsLaunchingCheckout] = useState(false);
     const [lastCheckedAt, setLastCheckedAt] = useState(null);
 
     useEffect(() => {
         setLivePayment(buildLivePaymentState(payment));
     }, [payment]);
+
+    useEffect(() => {
+        if (!Boolean(checkout?.isReady)) {
+            return;
+        }
+
+        preloadPayHereOnsiteSdk().catch(() => {});
+    }, [checkout?.isReady]);
 
     const liveStatus = livePayment.status;
     const isTerminal = TERMINAL_STATUSES.has(liveStatus);
@@ -196,6 +210,38 @@ const PaymentCheckout = ({
         });
     };
 
+    const proceedToCheckout = useCallback(async () => {
+        if (!canProceed || isLaunchingCheckout) {
+            return;
+        }
+
+        setCheckError("");
+        setIsLaunchingCheckout(true);
+
+        try {
+            await launchPayHereOnsiteCheckout(checkout, {
+                onCompleted: () => {
+                    checkStatus(true);
+                },
+                onDismissed: () => {
+                    setCheckError("Checkout was closed before completion. You can continue from this page.");
+                },
+                onError: () => {
+                    setCheckError("PayHere reported an issue while starting onsite checkout.");
+                },
+            });
+        } catch (error) {
+            console.warn("[CourierPaymentCheckout] Onsite checkout unavailable. Falling back to redirect checkout.", error);
+            try {
+                launchPayHereRedirectCheckout(checkout);
+            } catch (fallbackError) {
+                setCheckError("Unable to start checkout right now. Please try again.");
+            }
+        } finally {
+            setIsLaunchingCheckout(false);
+        }
+    }, [canProceed, checkStatus, checkout, isLaunchingCheckout]);
+
     const bannerToneClass = {
         success: "border-green-200 bg-green-50 text-green-700",
         warning: "border-amber-200 bg-amber-50 text-amber-700",
@@ -300,23 +346,16 @@ const PaymentCheckout = ({
                     )}
 
                     {canProceed && (
-                        <form method="POST" action={checkout.checkoutUrl} className="mt-6">
-                            {Object.entries(checkout.fields || {}).map(([key, value]) => (
-                                <input
-                                    key={key}
-                                    type="hidden"
-                                    name={key}
-                                    value={value === null || value === undefined ? "" : String(value)}
-                                />
-                            ))}
-
+                        <div className="mt-6">
                             <button
-                                type="submit"
-                                className="inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
+                                type="button"
+                                onClick={proceedToCheckout}
+                                disabled={isLaunchingCheckout}
+                                className="inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Proceed to PayHere
+                                {isLaunchingCheckout ? "Opening checkout..." : "Proceed to PayHere"}
                             </button>
-                        </form>
+                        </div>
                     )}
 
                     <div className="mt-6 flex flex-wrap items-center gap-3">

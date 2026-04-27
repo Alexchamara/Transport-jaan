@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
+use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\PayHereGatewayService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 use App\Services\Courier\CourierVendorAssignmentService;
@@ -561,11 +562,13 @@ class ClientCourierController extends Controller
         ]);
 
         // Create tracking event
-        $shipment->trackingEvents()->create([
+        $trackingEvent = $shipment->trackingEvents()->create([
             'status' => CourierShipment::STATUS_CANCELLED,
             'description' => 'Shipment cancelled by customer',
             'recorded_at' => now(),
         ]);
+
+        app(CourierCustomerEmailDispatchService::class)->queueBookingCancelled($shipment, $trackingEvent);
 
         return back()->with('success', 'Shipment cancelled successfully.');
     }
@@ -1641,14 +1644,24 @@ class ClientCourierController extends Controller
         }
 
         $rows = \Illuminate\Support\Facades\DB::table('location_cities')
-            ->select(['id', 'name_en', 'sub_name_en', 'postcode', 'district_id'])
+            ->join('location_districts', 'location_districts.id', '=', 'location_cities.district_id')
+            ->join('location_provinces', 'location_provinces.id', '=', 'location_districts.province_id')
+            ->select([
+                'location_cities.id',
+                'location_cities.name_en',
+                'location_cities.sub_name_en',
+                'location_cities.postcode',
+                'location_cities.district_id',
+                'location_districts.name_en as district_name_en',
+                'location_provinces.name_en as province_name_en',
+            ])
             ->where(function ($builder) use ($query) {
-                $builder->where('name_en', 'like', $query . '%')
-                        ->orWhere('name_en', 'like', '% ' . $query . '%')
-                        ->orWhere('sub_name_en', 'like', $query . '%');
+                $builder->where('location_cities.name_en', 'like', $query . '%')
+                    ->orWhere('location_cities.name_en', 'like', '% ' . $query . '%')
+                    ->orWhere('location_cities.sub_name_en', 'like', $query . '%');
             })
-            ->orderByRaw("CASE WHEN LOWER(name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
-            ->orderBy('name_en')
+                ->orderByRaw("CASE WHEN LOWER(location_cities.name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
+                ->orderBy('location_cities.name_en')
             ->limit($limit)
             ->get();
 
@@ -1665,6 +1678,8 @@ class ClientCourierController extends Controller
                 'displayName' => $displayName,
                 'postcode'    => $row->postcode,
                 'districtId'  => (int) $row->district_id,
+                'districtName' => (string) ($row->district_name_en ?? ''),
+                'provinceName' => (string) ($row->province_name_en ?? ''),
             ];
         })->values()->all();
 
@@ -2059,7 +2074,14 @@ class ClientCourierController extends Controller
                 'shipment.currency' => ['nullable', 'string', 'size:3'],
                 'shipment.insurance' => ['nullable', 'boolean'],
                 'shipment.deliveryNotes' => ['nullable', 'string', 'max:1000'],
-                'shipment.estimatedValue' => ['nullable', 'numeric', 'min:0'],
+                'shipment.estimatedValue' => [
+                    \Illuminate\Validation\Rule::requiredIf(function () {
+                        return request()->input('shipment.insurance') || request()->input('shipment.codEnabled');
+                    }),
+                    'nullable',
+                    'numeric',
+                    'min:0'
+                ],
                 'shipment.paymentOptions' => ['nullable', 'array'],
                 'shipment.paymentOptions.all' => ['nullable', 'boolean'],
                 'shipment.paymentOptions.cod' => ['nullable', 'boolean'],
@@ -2529,6 +2551,8 @@ class ClientCourierController extends Controller
             'assigned_vendor_user_id' => (int) ($shipment->assigned_vendor_user_id ?? 0),
             'estimated_cost_usd' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
         ]);
+
+        app(CourierCustomerEmailDispatchService::class)->queueShipmentPlaced($shipment);
 
         if ($requiresCardPayment) {
             $checkoutAmountUsd = (float) ($finalPayableAmountUsd ?? 0);
@@ -5841,6 +5865,3 @@ class ClientCourierController extends Controller
         return app(CourierClientObservabilityService::class);
     }
 }
-
-
-

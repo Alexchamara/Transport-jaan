@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { Star } from "lucide-react";
 import Header from "../layouts/Header";
@@ -12,6 +12,7 @@ import {
 
 const USD_TO_LKR_RATE = 325;
 const DEFAULT_CURRENCY = "LKR";
+const DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS = 300;
 
 const normalizeCountryCode = (value) => String(value || "").trim().toUpperCase();
 const normalizeFavoriteValue = (value) => String(value || "").trim().toLowerCase();
@@ -96,6 +97,7 @@ const Details = ({
         || resolvedFlowRoutes.detailsStore
         || resolvedFlowRoutes.details
         || "/couriers/details";
+    const resolvedDomesticCitySearchRoute = resolvedFlowRoutes.domesticCitySearch || "/couriers/cities/search";
 
     const initialForm = useMemo(() => {
         if (!formData) {
@@ -265,6 +267,12 @@ const Details = ({
     });
     const [favoriteActionRole, setFavoriteActionRole] = useState("");
     const [favoriteActionError, setFavoriteActionError] = useState("");
+    const cityLookupAbortRef = useRef({ sender: null, recipient: null });
+    const cityLookupTimerRef = useRef({ sender: null, recipient: null });
+    const citySuggestionAbortRef = useRef({ sender: null, recipient: null });
+    const citySuggestionTimerRef = useRef({ sender: null, recipient: null });
+    const [citySuggestions, setCitySuggestions] = useState({ sender: [], recipient: [] });
+    const [activeAddressField, setActiveAddressField] = useState(null);
     const hasFavoriteRecipients = savedRecipients.length > 0;
     const hasFavoriteSenders = savedSenders.length > 0;
 
@@ -367,6 +375,36 @@ const Details = ({
 
         setSavedSenders(readLocalFavorites(LOCAL_SENDER_FAVORITES_KEY));
     }, [favoriteSenders]);
+
+    useEffect(() => {
+        return () => {
+            ["sender", "recipient"].forEach((party) => {
+                const timer = cityLookupTimerRef.current[party];
+                if (timer) {
+                    clearTimeout(timer);
+                    cityLookupTimerRef.current[party] = null;
+                }
+
+                const controller = cityLookupAbortRef.current[party];
+                if (controller) {
+                    controller.abort();
+                    cityLookupAbortRef.current[party] = null;
+                }
+
+                const suggestionTimer = citySuggestionTimerRef.current[party];
+                if (suggestionTimer) {
+                    clearTimeout(suggestionTimer);
+                    citySuggestionTimerRef.current[party] = null;
+                }
+
+                const suggestionController = citySuggestionAbortRef.current[party];
+                if (suggestionController) {
+                    suggestionController.abort();
+                    citySuggestionAbortRef.current[party] = null;
+                }
+            });
+        };
+    }, []);
 
 
     const applyRecipientSelection = (recipient) => {
@@ -548,6 +586,332 @@ const Details = ({
             };
         });
     };
+
+    const handleAddressInputBlur = (fieldKey) => {
+        window.setTimeout(() => {
+            setActiveAddressField((current) => (current === fieldKey ? null : current));
+        }, 120);
+    };
+
+    const getProvinceSuggestions = (party, query = "") => {
+        const normalized = String(query || "").trim().toLowerCase();
+        const pool = Array.isArray(citySuggestions[party]) ? citySuggestions[party] : [];
+        const unique = new Set();
+
+        return pool
+            .map((option) => String(option?.provinceName || option?.districtName || "").trim())
+            .filter(Boolean)
+            .filter((value) => {
+                if (unique.has(value.toLowerCase())) {
+                    return false;
+                }
+                unique.add(value.toLowerCase());
+                return true;
+            })
+            .filter((value) => !normalized || value.toLowerCase().includes(normalized));
+    };
+
+    const getPostalSuggestions = (party, postalQuery = "", provinceQuery = "") => {
+        const normalizedPostal = String(postalQuery || "").trim().toLowerCase();
+        const normalizedProvince = String(provinceQuery || "").trim().toLowerCase();
+        const pool = Array.isArray(citySuggestions[party]) ? citySuggestions[party] : [];
+
+        return pool.filter((option) => {
+            const postcode = String(option?.postcode || "").trim();
+            const province = String(option?.provinceName || option?.districtName || "").trim();
+            if (!postcode) {
+                return false;
+            }
+
+            const postalMatches = !normalizedPostal || postcode.toLowerCase().includes(normalizedPostal);
+            const provinceMatches = !normalizedProvince || province.toLowerCase().includes(normalizedProvince);
+            return postalMatches && provinceMatches;
+        });
+    };
+
+    const fetchCitySuggestions = useCallback((party, city, country) => {
+        const normalizedCity = String(city || "").trim();
+        const normalizedCountry = normalizeCountryCode(country);
+
+        const activeTimer = citySuggestionTimerRef.current[party];
+        if (activeTimer) {
+            clearTimeout(activeTimer);
+            citySuggestionTimerRef.current[party] = null;
+        }
+
+        const activeController = citySuggestionAbortRef.current[party];
+        if (activeController) {
+            activeController.abort();
+            citySuggestionAbortRef.current[party] = null;
+        }
+
+        if (!normalizedCity || normalizedCountry !== "LK") {
+            setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+            return;
+        }
+
+        citySuggestionTimerRef.current[party] = setTimeout(async () => {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            if (controller) {
+                citySuggestionAbortRef.current[party] = controller;
+            }
+
+            try {
+                const params = new URLSearchParams({ q: normalizedCity, limit: "20" });
+                const response = await fetch(`${resolvedDomesticCitySearchRoute}?${params.toString()}`, {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                    signal: controller?.signal,
+                });
+
+                if (!response.ok) {
+                    setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                const cities = Array.isArray(payload?.cities)
+                    ? payload.cities.map((entry) => ({
+                        value: String(entry?.nameEn || "").trim(),
+                        label: String(entry?.displayName || entry?.nameEn || "").trim(),
+                        postcode: String(entry?.postcode || "").trim(),
+                        provinceName: String(entry?.provinceName || "").trim(),
+                        districtName: String(entry?.districtName || "").trim(),
+                    })).filter((entry) => entry.value)
+                    : [];
+
+                setCitySuggestions((previous) => ({ ...previous, [party]: cities }));
+            } catch (error) {
+                if (error?.name !== "AbortError") {
+                    setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+                }
+            } finally {
+                if (citySuggestionAbortRef.current[party] === controller) {
+                    citySuggestionAbortRef.current[party] = null;
+                }
+            }
+        }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    }, [resolvedDomesticCitySearchRoute]);
+
+    const applyCitySuggestion = (party, option) => {
+        if (!option || !option.value) {
+            return;
+        }
+
+        const resolvedState = String(option.provinceName || option.districtName || "").trim();
+        const resolvedPostalCode = String(option.postcode || "").trim();
+
+        setData((previous) => {
+            const contact = previous?.[party] || {};
+            const address = contact.address || {};
+
+            return {
+                ...previous,
+                [party]: {
+                    ...contact,
+                    address: {
+                        ...address,
+                        city: option.value,
+                        state: resolvedState || address.state || "",
+                        postalCode: resolvedPostalCode || address.postalCode || "",
+                    },
+                },
+            };
+        });
+
+        setCitySuggestions((previous) => ({ ...previous, [party]: [] }));
+        setActiveAddressField(null);
+    };
+
+    const applyProvinceSuggestion = (party, provinceName) => {
+        const normalizedProvince = String(provinceName || "").trim();
+        if (!normalizedProvince) {
+            return;
+        }
+
+        const postalOptions = getPostalSuggestions(
+            party,
+            "",
+            normalizedProvince,
+        );
+
+        setData((previous) => {
+            const contact = previous?.[party] || {};
+            const address = contact.address || {};
+            const nextPostal = postalOptions.length === 1
+                ? String(postalOptions[0]?.postcode || "").trim()
+                : String(address.postalCode || "");
+
+            return {
+                ...previous,
+                [party]: {
+                    ...contact,
+                    address: {
+                        ...address,
+                        state: normalizedProvince,
+                        postalCode: nextPostal,
+                    },
+                },
+            };
+        });
+
+        setActiveAddressField(null);
+    };
+
+    const applyPostalSuggestion = (party, option) => {
+        const postalCode = String(option?.postcode || "").trim();
+        if (!postalCode) {
+            return;
+        }
+
+        const resolvedState = String(option?.provinceName || option?.districtName || "").trim();
+
+        setData((previous) => {
+            const contact = previous?.[party] || {};
+            const address = contact.address || {};
+
+            return {
+                ...previous,
+                [party]: {
+                    ...contact,
+                    address: {
+                        ...address,
+                        postalCode,
+                        state: resolvedState || address.state || "",
+                    },
+                },
+            };
+        });
+
+        setActiveAddressField(null);
+    };
+
+    const lookupAndApplyCityAddress = useCallback((party, city, country) => {
+        const normalizedCity = String(city || "").trim();
+        const normalizedCountry = normalizeCountryCode(country);
+
+        const activeTimer = cityLookupTimerRef.current[party];
+        if (activeTimer) {
+            clearTimeout(activeTimer);
+            cityLookupTimerRef.current[party] = null;
+        }
+
+        const activeController = cityLookupAbortRef.current[party];
+        if (activeController) {
+            activeController.abort();
+            cityLookupAbortRef.current[party] = null;
+        }
+
+        if (!normalizedCity || normalizedCountry !== "LK") {
+            return;
+        }
+
+        cityLookupTimerRef.current[party] = setTimeout(async () => {
+            const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+            if (controller) {
+                cityLookupAbortRef.current[party] = controller;
+            }
+
+            try {
+                const params = new URLSearchParams({ q: normalizedCity, limit: "20" });
+                const response = await fetch(`${resolvedDomesticCitySearchRoute}?${params.toString()}`, {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                    signal: controller?.signal,
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                const cities = Array.isArray(payload?.cities) ? payload.cities : [];
+                if (cities.length === 0) {
+                    return;
+                }
+
+                const queryKey = normalizedCity.toLowerCase();
+                const exactMatch = cities.find((entry) => String(entry?.nameEn || "").trim().toLowerCase() === queryKey);
+                const prefixMatch = cities.find((entry) => String(entry?.nameEn || "").trim().toLowerCase().startsWith(queryKey));
+                const selected = exactMatch || prefixMatch || cities[0];
+
+                const resolvedState = String(selected?.provinceName || selected?.districtName || "").trim();
+                const resolvedPostalCode = String(selected?.postcode || "").trim();
+
+                if (!resolvedState && !resolvedPostalCode) {
+                    return;
+                }
+
+                setData((previous) => {
+                    const contact = previous?.[party] || {};
+                    const address = contact.address || {};
+                    const currentCity = String(address.city || "").trim().toLowerCase();
+                    const currentCountry = normalizeCountryCode(address.country);
+
+                    if (currentCity !== queryKey || currentCountry !== "LK") {
+                        return previous;
+                    }
+
+                    const nextState = resolvedState || String(address.state || "").trim();
+                    const nextPostalCode = resolvedPostalCode || String(address.postalCode || "").trim();
+
+                    if (nextState === String(address.state || "") && nextPostalCode === String(address.postalCode || "")) {
+                        return previous;
+                    }
+
+                    return {
+                        ...previous,
+                        [party]: {
+                            ...contact,
+                            address: {
+                                ...address,
+                                state: nextState,
+                                postalCode: nextPostalCode,
+                            },
+                        },
+                    };
+                });
+            } catch (error) {
+                if (error?.name !== "AbortError") {
+                    // Best-effort autofill only.
+                }
+            } finally {
+                if (cityLookupAbortRef.current[party] === controller) {
+                    cityLookupAbortRef.current[party] = null;
+                }
+            }
+        }, DOMESTIC_CITY_LOOKUP_DEBOUNCE_MS);
+    }, [resolvedDomesticCitySearchRoute, setData]);
+
+    useEffect(() => {
+        lookupAndApplyCityAddress("sender", data?.sender?.address?.city, data?.sender?.address?.country);
+    }, [data?.sender?.address?.city, data?.sender?.address?.country, lookupAndApplyCityAddress]);
+
+    useEffect(() => {
+        lookupAndApplyCityAddress("recipient", data?.recipient?.address?.city, data?.recipient?.address?.country);
+    }, [data?.recipient?.address?.city, data?.recipient?.address?.country, lookupAndApplyCityAddress]);
+
+    useEffect(() => {
+        if (normalizeCountryCode(data?.sender?.address?.country) !== "LK") {
+            setCitySuggestions((previous) => ({ ...previous, sender: [] }));
+            setActiveAddressField((current) => (String(current || "").startsWith("sender-") ? null : current));
+        }
+    }, [data?.sender?.address?.country]);
+
+    useEffect(() => {
+        if (normalizeCountryCode(data?.recipient?.address?.country) !== "LK") {
+            setCitySuggestions((previous) => ({ ...previous, recipient: [] }));
+            setActiveAddressField((current) => (String(current || "").startsWith("recipient-") ? null : current));
+        }
+    }, [data?.recipient?.address?.country]);
 
     const handleSubmit = (event) => {
         if (event?.preventDefault) {
@@ -1142,253 +1506,14 @@ const Details = ({
                             </section>
                         )}
 
-                        {packages.length > 0 && (
-                            <section className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
-                                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <h2 className="text-base font-semibold text-[#0B1739]">Package details</h2>
-                                        <p className="mt-1 text-xs text-[#5B6887]">Review the parcels included in this shipment.</p>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <div className="rounded-full bg-[#0955AC]/10 px-3 py-1 text-xs font-medium text-[#0955AC]">
-                                            Pieces: {packageMetrics.totalPackages || 0}
-                                        </div>
-                                        {packageMetrics.billableWeight > 0 && (
-                                            <div className="rounded-full bg-[#CAD6E7] px-3 py-1 text-xs font-medium text-[#0B1739]">
-                                                Billable: {packageMetrics.billableWeight.toFixed(2)} kg
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <p className="mt-4 text-xs text-[#6B7893]">
-                                    Update parcel information below. Courier pricing recalculates automatically when weights or dimensions change.
-                                </p>
-
-                                <fieldset
-                                    disabled={packageDetailsReadOnly}
-                                    aria-disabled={packageDetailsReadOnly}
-                                    className="mt-4 space-y-4"
-                                >
-                                    {packages.map((pkg, index) => {
-                                        const selection = selectedQuotesMap[index];
-                                        const rawBillable = selection?.billableWeight ?? selection?.weight;
-                                        const numericBillable = rawBillable !== undefined && rawBillable !== null && rawBillable !== ""
-                                            ? Number(rawBillable)
-                                            : null;
-                                        const billableDisplay = numericBillable !== null && !Number.isNaN(numericBillable)
-                                            ? `${numericBillable.toFixed(2)} kg billable`
-                                            : null;
-                                        const typeOptions = availablePackageTypes.length > 0
-                                            ? availablePackageTypes
-                                            : [pkg.packageType || "parcel"];
-                                        const errorFor = (field) => combinedErrors[`packages.${index}.${field}`];
-                                        const quoteEntry = quoteMatrix.find((item) => item.packageIndex === index);
-                                        const providerOptions = quoteEntry?.providers || [];
-                                        const providerDetails = providerOptions.find((option) => option.id === pkg.courierProvider) || null;
-                                        const tierOptions = providerDetails?.tiers || [];
-
-                                        return (
-                                            <div key={`details-package-${index}`} className="rounded-xl border border-[#D6DEEB] bg-white p-4 text-xs text-[#0B1739] shadow-sm">
-                                                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                                    <div>
-                                                        <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">Package {index + 1}</p>
-                                                        {selection && (
-                                                            <p className="text-xs text-[#6B7893]">
-                                                                Selected service: {selection.providerName} | {selection.serviceLabel}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                    {billableDisplay && (
-                                                        <span className="inline-flex items-center rounded-full bg-[#EEF3FC] px-3 py-1 text-xs font-medium text-[#0955AC]">
-                                                            {billableDisplay}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Courier provider *</label>
-                                                        {packageDetailsReadOnly ? (
-                                                            <input
-                                                                type="text"
-                                                                value={providerDetails?.name || pkg.courierProvider || ""}
-                                                                placeholder="Select provider"
-                                                                readOnly
-                                                                aria-readonly="true"
-                                                                className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm text-[#0B1739]"
-                                                            />
-                                                        ) : (
-                                                            <select
-                                                                value={pkg.courierProvider || ""}
-                                                                onChange={(event) => handleCourierProviderChange(index, event.target.value)}
-                                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                            >
-                                                                <option value="">Select provider</option>
-                                                                {providerOptions.map((provider) => (
-                                                                    <option key={`package-${index}-provider-${provider.id}`} value={provider.id}>
-                                                                        {provider.name}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                        {errorFor("courierProvider") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("courierProvider")}</p>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Service level *</label>
-                                                        {packageDetailsReadOnly ? (
-                                                            <input
-                                                                type="text"
-                                                                value={(() => {
-                                                                    const tier = tierOptions.find((option) => option.id === pkg.serviceLevel);
-                                                                    if (tier) {
-                                                                        return `${tier.label} — ${formatCurrency(tier.price)}`;
-                                                                    }
-                                                                    return pkg.serviceLevel || "";
-                                                                })()}
-                                                                placeholder="Select service level"
-                                                                readOnly
-                                                                aria-readonly="true"
-                                                                className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm text-[#0B1739]"
-                                                            />
-                                                        ) : (
-                                                            <select
-                                                                value={pkg.serviceLevel || ""}
-                                                                onChange={(event) => handleServiceLevelChange(index, event.target.value)}
-                                                                className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                                disabled={!pkg.courierProvider}
-                                                            >
-                                                                <option value="">Select service level</option>
-                                                                {tierOptions.map((tier) => (
-                                                                    <option key={`package-${index}-tier-${tier.id}`} value={tier.id}>
-                                                                        {`${tier.label} — ${formatCurrency(tier.price)}`}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                        {errorFor("serviceLevel") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("serviceLevel")}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                                    {/* <div>
-                                                        <label className="mb-1 block text-xs font-medium">Label</label>
-                                                        <input
-                                                            type="text"
-                                                            value={pkg.label}
-                                                            onChange={(event) => updatePackageField(index, "label", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                            placeholder="Office documents"
-                                                        />
-                                                        {errorFor("label") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("label")}</p>
-                                                        )}
-                                                    </div> */}
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Type</label>
-                                                        {packageDetailsReadOnly ? (
-                                                            <input
-                                                                type="text"
-                                                                value={pkg.packageType ? pkg.packageType.replace(/_/g, " ") : ""}
-                                                                placeholder="Select type"
-                                                                readOnly
-                                                                aria-readonly="true"
-                                                                className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm text-[#0B1739]"
-                                                            />
-                                                        ) : (
-                                                            <select
-                                                                value={pkg.packageType}
-                                                                onChange={(event) => updatePackageField(index, "packageType", event.target.value)}
-                                                                className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                            >
-                                                                {typeOptions.map((type) => (
-                                                                    <option key={`package-type-${index}-${type || 'blank'}`} value={type}>
-                                                                        {type ? type.replace(/_/g, " ") : "Select type"}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                        {errorFor("packageType") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("packageType")}</p>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Weight (kg) *</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.01"
-                                                            value={pkg.weightKg}
-                                                            onChange={(event) => updatePackageField(index, "weightKg", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                            placeholder="5.5"
-                                                        />
-                                                        {errorFor("weightKg") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("weightKg")}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-3">
-                                                </div>
-
-                                                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Length (cm)</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            value={pkg.lengthCm}
-                                                            onChange={(event) => updatePackageField(index, "lengthCm", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                        />
-                                                        {errorFor("lengthCm") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("lengthCm")}</p>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Width (cm)</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            value={pkg.widthCm}
-                                                            onChange={(event) => updatePackageField(index, "widthCm", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                        />
-                                                        {errorFor("widthCm") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("widthCm")}</p>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <label className="mb-1 block text-xs font-medium">Height (cm)</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.1"
-                                                            value={pkg.heightCm}
-                                                            onChange={(event) => updatePackageField(index, "heightCm", event.target.value)}
-                                                            className="w-full rounded-lg border border-[#D6DEEB] bg-[#0955AC]/10 px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                        />
-                                                        {errorFor("heightCm") && (
-                                                            <p className="mt-2 text-xs text-red-500">{errorFor("heightCm")}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
 
 
-                                            </div>
-                                        );
-                                    })}
-                                </fieldset>
-                            </section>
-                        )}
-
+                        <div className="mb-4">
+                            <h2 className="text-xl font-semibold text-[#0B1739]">Shipment details</h2>
+                            <p className="mt-1 text-sm text-[#5B6887]">
+                                Add pickup, delivery, and shipment preferences to complete the request.
+                            </p>
+                        </div>
                         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                             <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-4">
                                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -1529,14 +1654,33 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">City *</label>
-                                            <input
-                                                type="text"
-                                                value={data.sender.address.city}
-                                                onChange={(event) => updateNestedField("sender.address.city", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Colombo"
-                                                required
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.sender.address.city}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="Colombo"
+                                                    required
+                                                />
+                                                {activeAddressField === "sender-city" && citySuggestions.sender.length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {citySuggestions.sender.map((option) => (
+                                                            <button
+                                                                key={`sender-city-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyCitySuggestion("sender", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.label}{option.postcode ? `, ${option.postcode}` : ""}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["sender.address.city"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.city"]}</p>
                                             )}
@@ -1545,8 +1689,8 @@ const Details = ({
                                             <label className="mb-1 block text-xs font-medium">Country *</label>
                                             <select
                                                 value={data.sender.address.country}
-                                                onChange={(event) => updateNestedField("sender.address.country", event.target.value.toUpperCase())}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                disabled
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
                                                 required
                                             >
                                                 {countries.map((countryCode) => (
@@ -1564,25 +1708,63 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">State / Province</label>
-                                            <input
-                                                type="text"
-                                                value={data.sender.address.state}
-                                                onChange={(event) => updateNestedField("sender.address.state", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Western"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.sender.address.state}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="Western"
+                                                />
+                                                {activeAddressField === "sender-state" && getProvinceSuggestions("sender", data.sender.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getProvinceSuggestions("sender", data.sender.address.state).map((province) => (
+                                                            <button
+                                                                key={`sender-province-suggestion-${province}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyProvinceSuggestion("sender", province);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {province}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["sender.address.state"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.state"]}</p>
                                             )}
                                         </div>
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">Postal code</label>
-                                            <input
-                                                type="text"
-                                                value={data.sender.address.postalCode}
-                                                onChange={(event) => updateNestedField("sender.address.postalCode", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.sender.address.postalCode}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                />
+                                                {activeAddressField === "sender-postal" && getPostalSuggestions("sender", data.sender.address.postalCode, data.sender.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getPostalSuggestions("sender", data.sender.address.postalCode, data.sender.address.state).map((option) => (
+                                                            <button
+                                                                key={`sender-postal-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyPostalSuggestion("sender", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.postcode} - {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["sender.address.postalCode"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["sender.address.postalCode"]}</p>
                                             )}
@@ -1734,14 +1916,33 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">City *</label>
-                                            <input
-                                                type="text"
-                                                value={data.recipient.address.city}
-                                                onChange={(event) => updateNestedField("recipient.address.city", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="London"
-                                                required
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.recipient.address.city}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="London"
+                                                    required
+                                                />
+                                                {activeAddressField === "recipient-city" && citySuggestions.recipient.length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {citySuggestions.recipient.map((option) => (
+                                                            <button
+                                                                key={`recipient-city-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyCitySuggestion("recipient", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.label}{option.postcode ? `, ${option.postcode}` : ""}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["recipient.address.city"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.city"]}</p>
                                             )}
@@ -1750,8 +1951,8 @@ const Details = ({
                                             <label className="mb-1 block text-xs font-medium">Country *</label>
                                             <select
                                                 value={data.recipient.address.country}
-                                                onChange={(event) => updateNestedField("recipient.address.country", event.target.value.toUpperCase())}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
+                                                disabled
+                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
                                                 required
                                             >
                                                 {countries.map((countryCode) => (
@@ -1769,25 +1970,63 @@ const Details = ({
                                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">State / Province</label>
-                                            <input
-                                                type="text"
-                                                value={data.recipient.address.state}
-                                                onChange={(event) => updateNestedField("recipient.address.state", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                                placeholder="Greater London"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.recipient.address.state}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                    placeholder="Greater London"
+                                                />
+                                                {activeAddressField === "recipient-state" && getProvinceSuggestions("recipient", data.recipient.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getProvinceSuggestions("recipient", data.recipient.address.state).map((province) => (
+                                                            <button
+                                                                key={`recipient-province-suggestion-${province}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyProvinceSuggestion("recipient", province);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {province}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["recipient.address.state"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.state"]}</p>
                                             )}
                                         </div>
                                         <div>
                                             <label className="mb-1 block text-xs font-medium">Postal code</label>
-                                            <input
-                                                type="text"
-                                                value={data.recipient.address.postalCode}
-                                                onChange={(event) => updateNestedField("recipient.address.postalCode", event.target.value)}
-                                                className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={data.recipient.address.postalCode}
+                                                    readOnly
+                                                    className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none cursor-not-allowed bg-[#F3F6FB] opacity-60"
+                                                />
+                                                {activeAddressField === "recipient-postal" && getPostalSuggestions("recipient", data.recipient.address.postalCode, data.recipient.address.state).length > 0 && (
+                                                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
+                                                        {getPostalSuggestions("recipient", data.recipient.address.postalCode, data.recipient.address.state).map((option) => (
+                                                            <button
+                                                                key={`recipient-postal-suggestion-${option.value}-${option.postcode}`}
+                                                                type="button"
+                                                                onMouseDown={(event) => {
+                                                                    event.preventDefault();
+                                                                    applyPostalSuggestion("recipient", option);
+                                                                }}
+                                                                className="block w-full px-3 py-2 text-left text-xs text-[#0B1739] hover:bg-[#F0F7FF]"
+                                                            >
+                                                                {option.postcode} - {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                             {combinedErrors["recipient.address.postalCode"] && (
                                                 <p className="mt-1 text-xs text-red-500">{combinedErrors["recipient.address.postalCode"]}</p>
                                             )}
@@ -1871,8 +2110,8 @@ const Details = ({
                                         step="0.01"
                                         value={data.shipment.estimatedValue}
                                         onChange={(event) => updateNestedField("shipment.estimatedValue", event.target.value)}
-                                        disabled={!data.shipment.insurance}
-                                        className={`w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none ${data.shipment.insurance ? "bg-white" : "cursor-not-allowed bg-[#F3F6FB] opacity-60"}`}
+                                        disabled={!data.shipment.insurance && !data.shipment.codEnabled}
+                                        className={`w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none ${data.shipment.insurance || data.shipment.codEnabled ? "bg-white" : "cursor-not-allowed bg-[#F3F6FB] opacity-60"}`}
                                         placeholder="0"
                                     />
                                     {combinedErrors["shipment.estimatedValue"] && (

@@ -3,8 +3,10 @@
 namespace Tests\Feature\Courier;
 
 use App\Models\Courier\CourierShipment;
+use App\Models\Courier\CourierCustomerEmailDispatch;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\User;
+use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
@@ -178,6 +180,10 @@ class CourierSubmissionTest extends TestCase
             ->latest('id')
             ->first();
         $this->assertNotNull($shipment);
+        $this->assertSame(2, CourierCustomerEmailDispatch::query()
+            ->where('shipment_id', (int) $shipment->id)
+            ->where('event_type', CourierCustomerEmailDispatchService::EVENT_SHIPMENT_PLACED)
+            ->count());
 
         $this->actingAs($user)
             ->get(route('couriers.bill', $shipment))

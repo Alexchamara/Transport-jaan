@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import MapLocationPickerModal from "./MapLocationPickerModal";
 
 const LocationSearch = ({
     value,
@@ -18,6 +19,7 @@ const LocationSearch = ({
     const [favorites, setFavorites] = useState([]);
     const [showRecent, setShowRecent] = useState(false);
     const [gettingLocation, setGettingLocation] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
     
     const searchTimeout = useRef(null);
     const abortControllerRef = useRef(null);
@@ -275,6 +277,17 @@ const LocationSearch = ({
                 
                 <button
                     type="button"
+                    onClick={() => setIsMapOpen(true)}
+                    className="flex items-center justify-center p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Select on map"
+                >
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                </button>
+
+                <button
+                    type="button"
                     onClick={getCurrentLocation}
                     disabled={gettingLocation}
                     className="flex items-center justify-center p-1.5 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
@@ -453,6 +466,21 @@ const LocationSearch = ({
                     </div>
                 </div>
             )}
+
+            <MapLocationPickerModal
+                isOpen={isMapOpen}
+                onClose={() => setIsMapOpen(false)}
+                onConfirm={(locationData) => {
+                    setSearchQuery(locationData.name);
+                    onChange(locationData.name);
+                    if (onLocationSelect) {
+                        onLocationSelect(locationData);
+                    }
+                    saveToRecent(locationData);
+                    setIsMapOpen(false);
+                }}
+                initialLocation={null}
+            />
         </div>
     );
 };
