@@ -6,8 +6,7 @@ import proPic from "../assets/header/profilePic.svg";
 import bell from "../assets/header/bell.svg";
 import search from "../assets/header/search.svg";
 import useCSRFRefresh from "../../../hooks/useCSRFRefresh.js";
-import NotificationDropdown from "../components/vendors/warehouse/NotificationDropdown";
-import { API_BASE_URL } from "../../../config/api";
+import NotificationDropdown from "../components/vendors/NotificationDropdown";
 
 const Header = () => {
     const { url } = usePage();
@@ -16,10 +15,9 @@ const Header = () => {
     const currentUrl = String(page.url || "");
     const shouldLoadVendorNotifications =
         currentUrl.startsWith("/vendors/warehouse") ||
-        currentUrl.startsWith("/vendors");
+        currentUrl.startsWith("/vendors") ||
+        currentUrl.startsWith("/courierService");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     // ---------- Dropdown state ----------
@@ -37,41 +35,9 @@ const Header = () => {
         }));
     };
 
-    // ---------- Fetch notifications ----------
-    useEffect(() => {
-        if (auth?.user && shouldLoadVendorNotifications) {
-            fetchNotifications();
-            // Refresh notifications every 30 seconds
-            const interval = setInterval(fetchNotifications, 30000);
-            return () => clearInterval(interval);
-        }
-
-        setNotifications([]);
-        setUnreadCount(0);
-    }, [auth?.user, shouldLoadVendorNotifications]);
-
     useEffect(() => {
         setIsProfileOpen(false);
     }, [currentUrl]);
-
-    const fetchNotifications = async () => {
-        if (!shouldLoadVendorNotifications) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
-            // 403 is expected for non-vendor users — skip silently
-            if (response.status === 403) return;
-            if (response.ok) {
-                const data = await response.json();
-                setNotifications(data.notifications || []);
-                setUnreadCount(data.unreadCount || 0);
-            }
-        } catch (error) {
-            // network/parse errors — ignore silently
-        }
-    };
 
     // ---------- CSRF & Logout ----------
     useCSRFRefresh();
@@ -206,10 +172,7 @@ const Header = () => {
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     {auth?.user && shouldLoadVendorNotifications && (
-                        <NotificationDropdown
-                            notifications={notifications}
-                            unreadCount={unreadCount}
-                        />
+                        <NotificationDropdown bellIcon={bell} />
                     )}
                     <div className="relative">
                         <button

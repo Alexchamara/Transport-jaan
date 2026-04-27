@@ -128,7 +128,7 @@ class CourierCustomerEmailDispatchService
                 return 0;
             }
 
-            return $this->queueDispatches(
+            $created = $this->queueDispatches(
                 $shipment,
                 $eventType,
                 CourierNotificationPreferenceService::CHANNEL_EMAIL,
@@ -141,6 +141,15 @@ class CourierCustomerEmailDispatchService
                 $vendorId,
                 $notificationSettings,
             );
+
+            $this->queueLegacyVendorInAppNotification(
+                $shipment,
+                $eventType,
+                $sourceKey,
+                $vendorId,
+            );
+
+            return $created;
         }
 
         $created = 0;
@@ -344,13 +353,88 @@ class CourierCustomerEmailDispatchService
                 'shipment_id' => (int) $shipment->id,
                 'shipment_reference' => (string) ($shipment->reference ?? ''),
                 'severity' => $this->resolveEventSeverity($eventType),
+                'title' => $this->resolveInAppTitle($eventType),
                 'message' => $this->resolveInAppMessage($eventType, $shipment),
+                'action_url' => $this->resolveInAppActionUrl($eventType),
             ],
             'booking_id' => null,
             'read_at' => null,
         ]);
 
         return 1;
+    }
+
+    private function queueLegacyVendorInAppNotification(
+        CourierShipment $shipment,
+        string $eventType,
+        string $sourceKey,
+        int $vendorId,
+    ): void {
+        if ($vendorId <= 0) {
+            return;
+        }
+
+        $dedupeKey = sha1(implode('|', [
+            'courier',
+            'notifications',
+            'legacy_in_app',
+            CourierNotificationPreferenceService::AUDIENCE_INTERNAL,
+            $eventType,
+            $sourceKey,
+            'user:' . $vendorId,
+        ]));
+
+        $alreadyQueued = Notification::query()
+            ->where('user_id', $vendorId)
+            ->where('type', 'courier_event')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get(['data'])
+            ->contains(static function (Notification $notification) use ($dedupeKey): bool {
+                $data = is_array($notification->data) ? $notification->data : [];
+                return (string) ($data['dedupe_key'] ?? '') === $dedupeKey;
+            });
+
+        if ($alreadyQueued) {
+            return;
+        }
+
+        Notification::query()->create([
+            'user_id' => $vendorId,
+            'type' => 'courier_event',
+            'data' => [
+                'dispatch_id' => null,
+                'dedupe_key' => $dedupeKey,
+                'vendor_user_id' => $vendorId,
+                'event_type' => $eventType,
+                'shipment_id' => (int) $shipment->id,
+                'shipment_reference' => (string) ($shipment->reference ?? ''),
+                'severity' => $this->resolveEventSeverity($eventType),
+                'title' => $this->resolveInAppTitle($eventType),
+                'message' => $this->resolveInAppMessage($eventType, $shipment),
+                'action_url' => $this->resolveInAppActionUrl($eventType),
+                'legacy_mode' => true,
+            ],
+            'booking_id' => null,
+            'read_at' => null,
+        ]);
+    }
+
+    private function resolveInAppTitle(string $eventType): string
+    {
+        return match ($eventType) {
+            self::EVENT_SHIPMENT_PLACED => 'Shipment Placed',
+            self::EVENT_BOOKING_CONFIRMED => 'Booking Confirmed',
+            self::EVENT_BOOKING_CANCELLED => 'Booking Cancelled',
+            self::EVENT_TRACKING_PICKED_UP => 'Shipment Picked Up',
+            self::EVENT_TRACKING_OUT_FOR_DELIVERY => 'Out For Delivery',
+            self::EVENT_TRACKING_DELIVERED => 'Shipment Delivered',
+            self::EVENT_PAYMENT_PAID => 'Payment Received',
+            self::EVENT_PAYMENT_FAILED => 'Payment Failed',
+            self::EVENT_PAYMENT_CANCELLED => 'Payment Cancelled',
+            default => 'Courier Update',
+        };
     }
 
     private function resolveEventSeverity(string $eventType): string
@@ -380,6 +464,19 @@ class CourierCustomerEmailDispatchService
             self::EVENT_PAYMENT_FAILED => 'Payment failed: ' . $reference,
             self::EVENT_PAYMENT_CANCELLED => 'Payment cancelled: ' . $reference,
             default => 'Courier update: ' . $reference,
+        };
+    }
+
+    private function resolveInAppActionUrl(string $eventType): string
+    {
+        return match ($eventType) {
+            self::EVENT_PAYMENT_PAID,
+            self::EVENT_PAYMENT_FAILED,
+            self::EVENT_PAYMENT_CANCELLED => '/courierService/payment',
+            self::EVENT_TRACKING_PICKED_UP,
+            self::EVENT_TRACKING_OUT_FOR_DELIVERY,
+            self::EVENT_TRACKING_DELIVERED => '/courierService/tracking',
+            default => '/courierService/bookings',
         };
     }
 
@@ -487,6 +584,9 @@ class CourierCustomerEmailDispatchService
 
         $roleMembershipUserIds = $membershipQuery->pluck('user_id')->map(fn ($id) => (int) $id)->values()->all();
         $userIds = array_values(array_unique(array_filter(array_merge($roleMembershipUserIds, $explicitUserIds))));
+        if (!in_array($vendorId, $userIds, true)) {
+            $userIds[] = $vendorId;
+        }
 
         $rows = [];
         if ($userIds !== []) {
@@ -497,7 +597,7 @@ class CourierCustomerEmailDispatchService
 
             foreach ($users as $user) {
                 $rows[] = [
-                    'kind' => 'internal_user',
+                    'kind' => (int) $user->id === $vendorId ? 'vendor_owner' : 'internal_user',
                     'email' => (string) ($user->email ?? ''),
                     'user_id' => (int) $user->id,
                 ];
