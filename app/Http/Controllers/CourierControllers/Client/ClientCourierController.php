@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\VendorServiceRegistration;
 use App\Services\Courier\CourierClientObservabilityService;
+use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\PayHereGatewayService;
 use App\Support\Courier\ClientCourierShipmentTransformer;
 use App\Services\Courier\CourierVendorAssignmentService;
@@ -561,11 +562,13 @@ class ClientCourierController extends Controller
         ]);
 
         // Create tracking event
-        $shipment->trackingEvents()->create([
+        $trackingEvent = $shipment->trackingEvents()->create([
             'status' => CourierShipment::STATUS_CANCELLED,
             'description' => 'Shipment cancelled by customer',
             'recorded_at' => now(),
         ]);
+
+        app(CourierCustomerEmailDispatchService::class)->queueBookingCancelled($shipment, $trackingEvent);
 
         return back()->with('success', 'Shipment cancelled successfully.');
     }
@@ -2529,6 +2532,8 @@ class ClientCourierController extends Controller
             'assigned_vendor_user_id' => (int) ($shipment->assigned_vendor_user_id ?? 0),
             'estimated_cost_usd' => $shipment->estimated_cost !== null ? (float) $shipment->estimated_cost : null,
         ]);
+
+        app(CourierCustomerEmailDispatchService::class)->queueShipmentPlaced($shipment);
 
         if ($requiresCardPayment) {
             $checkoutAmountUsd = (float) ($finalPayableAmountUsd ?? 0);
@@ -5841,6 +5846,3 @@ class ClientCourierController extends Controller
         return app(CourierClientObservabilityService::class);
     }
 }
-
-
-

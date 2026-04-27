@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CourierControllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierShipmentPayment;
+use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\PayHereGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -264,12 +265,19 @@ class CourierPaymentController extends Controller
             ->latest('id')
             ->first();
 
+        $shouldDispatchCancellationEmail = false;
         if ($payment instanceof CourierShipmentPayment && $payment->status === CourierShipmentPayment::STATUS_PENDING) {
             $payment->forceFill([
                 'status' => CourierShipmentPayment::STATUS_CANCELLED,
                 'failed_at' => now(),
                 'failure_reason' => 'Cancelled by customer at gateway.',
             ])->save();
+
+            $shouldDispatchCancellationEmail = true;
+        }
+
+        if ($shouldDispatchCancellationEmail && $payment instanceof CourierShipmentPayment) {
+            app(CourierCustomerEmailDispatchService::class)->queuePaymentCancelled($payment);
         }
 
         if ($payment instanceof CourierShipmentPayment) {
@@ -387,7 +395,9 @@ class CourierPaymentController extends Controller
         string $resolvedStatus,
         array $crossCheck
     ): void {
-        DB::transaction(function () use ($payment, $payload, $resolvedStatus, $crossCheck) {
+        $emailEventToDispatch = null;
+
+        DB::transaction(function () use ($payment, $payload, $resolvedStatus, $crossCheck, &$emailEventToDispatch) {
             $lockedPayment = CourierShipmentPayment::query()
                 ->whereKey((int) $payment->id)
                 ->lockForUpdate()
@@ -431,6 +441,8 @@ class CourierPaymentController extends Controller
             }
 
             if ($resolvedStatus === CourierShipmentPayment::STATUS_PAID) {
+                $wasAlreadyPaid = $currentStatus === CourierShipmentPayment::STATUS_PAID;
+
                 $lockedPayment->forceFill([
                     'status' => CourierShipmentPayment::STATUS_PAID,
                     'gateway_payment_id' => (string) ($payload['payment_id'] ?? $lockedPayment->gateway_payment_id),
@@ -443,6 +455,10 @@ class CourierPaymentController extends Controller
                     'callback_payload' => $currentCallbackPayload,
                 ])->save();
 
+                if (!$wasAlreadyPaid) {
+                    $emailEventToDispatch = CourierCustomerEmailDispatchService::EVENT_PAYMENT_PAID;
+                }
+
                 return;
             }
 
@@ -451,6 +467,8 @@ class CourierPaymentController extends Controller
                 CourierShipmentPayment::STATUS_CANCELLED,
                 CourierShipmentPayment::STATUS_EXPIRED,
             ], true)) {
+                $wasAlreadyResolved = $currentStatus === $resolvedStatus;
+
                 $lockedPayment->forceFill([
                     'status' => $resolvedStatus,
                     'gateway_status' => (string) ($payload['status_message'] ?? $payload['status_code'] ?? $lockedPayment->gateway_status),
@@ -459,6 +477,12 @@ class CourierPaymentController extends Controller
                     'last_notified_at' => now(),
                     'callback_payload' => $currentCallbackPayload,
                 ])->save();
+
+                if (!$wasAlreadyResolved) {
+                    $emailEventToDispatch = $resolvedStatus === CourierShipmentPayment::STATUS_CANCELLED
+                        ? CourierCustomerEmailDispatchService::EVENT_PAYMENT_CANCELLED
+                        : CourierCustomerEmailDispatchService::EVENT_PAYMENT_FAILED;
+                }
 
                 return;
             }
@@ -470,6 +494,19 @@ class CourierPaymentController extends Controller
                 'callback_payload' => $currentCallbackPayload,
             ])->save();
         });
+
+        if ($emailEventToDispatch !== null) {
+            $payment->refresh();
+            $emailDispatch = app(CourierCustomerEmailDispatchService::class);
+
+            if ($emailEventToDispatch === CourierCustomerEmailDispatchService::EVENT_PAYMENT_PAID) {
+                $emailDispatch->queuePaymentPaid($payment);
+            } elseif ($emailEventToDispatch === CourierCustomerEmailDispatchService::EVENT_PAYMENT_CANCELLED) {
+                $emailDispatch->queuePaymentCancelled($payment);
+            } else {
+                $emailDispatch->queuePaymentFailed($payment);
+            }
+        }
     }
 
     private function assertCanAccessShipment(Request $request, CourierShipment $shipment): void

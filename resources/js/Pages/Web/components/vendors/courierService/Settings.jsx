@@ -34,9 +34,15 @@ const DEFAULT_SETTINGS = {
         allowManualScanCorrection: true,
     },
     notifications: {
+        notifyClientShipmentPlaced: true,
+        notifyClientBookingConfirmed: true,
+        notifyClientBookingCancelled: true,
         notifyClientPickup: true,
         notifyClientOutForDelivery: true,
         notifyClientDelivered: true,
+        notifyClientPaymentPaid: true,
+        notifyClientPaymentFailed: true,
+        notifyClientPaymentCancelled: true,
         notifyInternalException: true,
         notifyInternalSlaRisk: true,
     },
@@ -1008,6 +1014,7 @@ const Settings = () => {
         const incomingPricing = incoming.pricing && typeof incoming.pricing === "object" ? incoming.pricing : {};
         const incomingServices = incoming.services && typeof incoming.services === "object" ? incoming.services : {};
         const incomingServicesCod = incomingServices.cod && typeof incomingServices.cod === "object" ? incomingServices.cod : {};
+        const incomingNotifications = incoming.notifications && typeof incoming.notifications === "object" ? incoming.notifications : {};
         const hasLegacyInternationalFlag = typeof incomingServicesCod.allowCodForLogistic === "boolean";
         const incomingLabels = incoming.labels && typeof incoming.labels === "object" ? incoming.labels : {};
         const incomingLabelDefaults = incomingLabels.defaults && typeof incomingLabels.defaults === "object" ? incomingLabels.defaults : {};
@@ -1037,6 +1044,10 @@ const Settings = () => {
         return {
             ...DEFAULT_SETTINGS,
             ...incoming,
+            notifications: {
+                ...DEFAULT_SETTINGS.notifications,
+                ...incomingNotifications,
+            },
             services: {
                 ...DEFAULT_SETTINGS.services,
                 ...incomingServices,
@@ -5196,9 +5207,15 @@ const Settings = () => {
             return (
                 <SectionCard title="Notification Preferences" description="Choose what gets sent to clients and internal operations teams.">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Toggle label="Client: Shipment Placed" checked={settings.notifications.notifyClientShipmentPlaced} onChange={(next) => updateValue("notifications", "notifyClientShipmentPlaced", next)} />
+                        <Toggle label="Client: Booking Confirmed" checked={settings.notifications.notifyClientBookingConfirmed} onChange={(next) => updateValue("notifications", "notifyClientBookingConfirmed", next)} />
+                        <Toggle label="Client: Booking Cancelled" checked={settings.notifications.notifyClientBookingCancelled} onChange={(next) => updateValue("notifications", "notifyClientBookingCancelled", next)} />
                         <Toggle label="Client: Pickup Update" checked={settings.notifications.notifyClientPickup} onChange={(next) => updateValue("notifications", "notifyClientPickup", next)} />
                         <Toggle label="Client: Out For Delivery" checked={settings.notifications.notifyClientOutForDelivery} onChange={(next) => updateValue("notifications", "notifyClientOutForDelivery", next)} />
                         <Toggle label="Client: Delivered" checked={settings.notifications.notifyClientDelivered} onChange={(next) => updateValue("notifications", "notifyClientDelivered", next)} />
+                        <Toggle label="Client: Payment Paid" checked={settings.notifications.notifyClientPaymentPaid} onChange={(next) => updateValue("notifications", "notifyClientPaymentPaid", next)} />
+                        <Toggle label="Client: Payment Failed" checked={settings.notifications.notifyClientPaymentFailed} onChange={(next) => updateValue("notifications", "notifyClientPaymentFailed", next)} />
+                        <Toggle label="Client: Payment Cancelled" checked={settings.notifications.notifyClientPaymentCancelled} onChange={(next) => updateValue("notifications", "notifyClientPaymentCancelled", next)} />
                         <Toggle label="Internal: Exception Alerts" checked={settings.notifications.notifyInternalException} onChange={(next) => updateValue("notifications", "notifyInternalException", next)} />
                         <Toggle label="Internal: SLA Risk Alerts" checked={settings.notifications.notifyInternalSlaRisk} onChange={(next) => updateValue("notifications", "notifyInternalSlaRisk", next)} />
                     </div>
@@ -10209,6 +10226,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
-
-

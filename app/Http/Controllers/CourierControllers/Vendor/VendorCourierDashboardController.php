@@ -23,6 +23,7 @@ use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierApiServiceAccessService;
+use App\Services\Courier\CourierCustomerEmailDispatchService;
 use App\Services\Courier\CourierExchangeRateService;
 use App\Services\Courier\CourierPricingImportService;
 use App\Services\Courier\CourierSessionSecurityService;
@@ -3423,8 +3424,9 @@ class VendorCourierDashboardController extends Controller
         }
 
         $meta = self::BOOKING_ACTION_META[$action];
+        $trackingEvent = null;
 
-        DB::transaction(function () use ($shipment, $meta, $action) {
+        DB::transaction(function () use ($shipment, $meta, $action, &$trackingEvent) {
             $updateData = [];
 
             if (!empty($meta['status'])) {
@@ -3435,12 +3437,24 @@ class VendorCourierDashboardController extends Controller
                 $shipment->update($updateData);
             }
 
-            $shipment->trackingEvents()->create([
+            $trackingEvent = $shipment->trackingEvents()->create([
                 'status' => $meta['event'],
                 'description' => 'Booking action: ' . str_replace('_', ' ', $action),
                 'recorded_at' => now(),
             ]);
         });
+
+        if ($trackingEvent) {
+            $emailDispatch = app(CourierCustomerEmailDispatchService::class);
+
+            if ($action === 'accept_booking') {
+                $emailDispatch->queueBookingConfirmed($shipment, $trackingEvent);
+            }
+
+            if (in_array($action, ['cancel_booking', 'reject_booking', 'expire_booking'], true)) {
+                $emailDispatch->queueBookingCancelled($shipment, $trackingEvent);
+            }
+        }
 
         return ['ok' => true, 'message' => 'Updated'];
     }
@@ -3775,18 +3789,39 @@ class VendorCourierDashboardController extends Controller
         }
 
         $next = self::ACTION_META[$action];
+        $trackingEvent = null;
 
-        DB::transaction(function () use ($shipment, $next, $action) {
+        DB::transaction(function () use ($shipment, $next, $action, &$trackingEvent) {
             $shipment->update([
                 'status' => $next['status'],
             ]);
 
-            $shipment->trackingEvents()->create([
+            $trackingEvent = $shipment->trackingEvents()->create([
                 'status' => $next['event'],
                 'description' => 'Vendor action: ' . str_replace('_', ' ', $action),
                 'recorded_at' => now(),
             ]);
         });
+
+        if ($trackingEvent) {
+            $emailDispatch = app(CourierCustomerEmailDispatchService::class);
+
+            if ($action === 'picked_up') {
+                $emailDispatch->queueTrackingPickedUp($shipment, $trackingEvent);
+            }
+
+            if ($action === 'out_for_delivery') {
+                $emailDispatch->queueTrackingOutForDelivery($shipment, $trackingEvent);
+            }
+
+            if ($action === 'mark_delivered') {
+                $emailDispatch->queueTrackingDelivered($shipment, $trackingEvent);
+            }
+
+            if ($action === 'cancel_shipment') {
+                $emailDispatch->queueBookingCancelled($shipment, $trackingEvent);
+            }
+        }
 
         return ['ok' => true, 'message' => 'Updated'];
     }
@@ -4486,9 +4521,15 @@ class VendorCourierDashboardController extends Controller
                 'allowManualScanCorrection' => true,
             ],
             'notifications' => [
+                'notifyClientShipmentPlaced' => true,
+                'notifyClientBookingConfirmed' => true,
+                'notifyClientBookingCancelled' => true,
                 'notifyClientPickup' => true,
                 'notifyClientOutForDelivery' => true,
                 'notifyClientDelivered' => true,
+                'notifyClientPaymentPaid' => true,
+                'notifyClientPaymentFailed' => true,
+                'notifyClientPaymentCancelled' => true,
                 'notifyInternalException' => true,
                 'notifyInternalSlaRisk' => true,
             ],
@@ -8309,6 +8350,3 @@ class VendorCourierDashboardController extends Controller
             ->exists();
     }
 }
-
-
-
