@@ -286,7 +286,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 paymentOptions: {
                     all: false,
                     cod: false,
-                    card: false,
+                    card: !isDomestic,
                 },
                 containsDangerousGoods: false,
                 containsExclusivelyDocuments: false,
@@ -3317,36 +3317,40 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         </div>
                                                                     </div>
 
-                                                                    <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options*</p>
-                                                                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
-                                                                        <label className="inline-flex items-center gap-2">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                className="h-4 w-4 accent-[#0955AC]"
-                                                                                checked={paymentOptions.all}
-                                                                                onChange={(event) => updatePaymentOptions("all", event.target.checked)}
-                                                                            />
-                                                                            All
-                                                                        </label>
-                                                                        <label className="inline-flex items-center gap-2">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                className="h-4 w-4 accent-[#0955AC]"
-                                                                                checked={paymentOptions.cod}
-                                                                                onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
-                                                                            />
-                                                                            COD
-                                                                        </label>
-                                                                        <label className="inline-flex items-center gap-2">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                className="h-4 w-4 accent-[#0955AC]"
-                                                                                checked={paymentOptions.card}
-                                                                                onChange={(event) => updatePaymentOptions("card", event.target.checked)}
-                                                                            />
-                                                                            Card
-                                                                        </label>
-                                                                    </div>
+                                                                    {selectedRouteType === "domestic" && (
+                                                                        <>
+                                                                            <p className="mt-4 text-sm font-semibold text-[#0B1739]">Payment options*</p>
+                                                                            <div className="mt-3 flex flex-wrap gap-4 text-sm text-[#5B6887]">
+                                                                                <label className="inline-flex items-center gap-2">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        className="h-4 w-4 accent-[#0955AC]"
+                                                                                        checked={paymentOptions.all}
+                                                                                        onChange={(event) => updatePaymentOptions("all", event.target.checked)}
+                                                                                    />
+                                                                                    All
+                                                                                </label>
+                                                                                <label className="inline-flex items-center gap-2">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        className="h-4 w-4 accent-[#0955AC]"
+                                                                                        checked={paymentOptions.cod}
+                                                                                        onChange={(event) => updatePaymentOptions("cod", event.target.checked)}
+                                                                                    />
+                                                                                    COD
+                                                                                </label>
+                                                                                <label className="inline-flex items-center gap-2">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        className="h-4 w-4 accent-[#0955AC]"
+                                                                                        checked={paymentOptions.card}
+                                                                                        onChange={(event) => updatePaymentOptions("card", event.target.checked)}
+                                                                                    />
+                                                                                    Card
+                                                                                </label>
+                                                                            </div>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         )}
