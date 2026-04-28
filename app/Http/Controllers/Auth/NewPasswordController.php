@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Rules\PasswordStrength;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class NewPasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()->mixedCase()->numbers()->symbols()->uncompromised()],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()->mixedCase()->numbers()->symbols()->uncompromised(), new PasswordStrength()],
         ]);
 
         Log::info('Password reset submission attempt.', ['email' => $request->email, 'ip' => $request->ip()]);

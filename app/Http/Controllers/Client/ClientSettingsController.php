@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\PasswordStrength;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -53,7 +54,7 @@ class ClientSettingsController extends Controller
             'date_of_birth' => ['nullable', 'date'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:3072'], // 3MB max
             'current_password' => ['nullable', 'required_with:new_password', 'current_password'],
-            'new_password' => ['nullable', 'confirmed', Password::defaults()],
+            'new_password' => ['nullable', 'confirmed', Password::defaults(), new PasswordStrength()],
         ]);
 
         // Handle image upload

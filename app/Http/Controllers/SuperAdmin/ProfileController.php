@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminProfile;
+use App\Rules\PasswordStrength;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -42,7 +43,7 @@ class ProfileController extends Controller
             'bio' => ['nullable', 'string', 'max:500'],
             'department' => ['nullable', 'string', 'max:100'],
             'position' => ['nullable', 'string', 'max:100'],
-            'password' => ['nullable', 'confirmed', Password::defaults()],
+            'password' => ['nullable', 'confirmed', Password::defaults(), new PasswordStrength()],
         ]);
 
         // Handle avatar upload

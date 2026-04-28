@@ -14,6 +14,7 @@ Pricing import adapter depencency:
 
 Password Cheker:
     npm install zxcvbn
+    composer require bjeavons/zxcvbn-php
 
 Global dashboard search (Scout + Meilisearch):
 
