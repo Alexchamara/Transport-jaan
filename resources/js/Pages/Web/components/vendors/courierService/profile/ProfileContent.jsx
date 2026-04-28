@@ -5,6 +5,7 @@ import "react-phone-input-2/lib/style.css";
 import { Building2, Eye, EyeOff, FileCheck2, KeyRound, ShieldCheck, User, Users } from "lucide-react";
 import CourierFeedbackModal from "../common/CourierFeedbackModal";
 import useCourierActionModal from "../common/useCourierActionModal";
+import zxcvbn from "zxcvbn";
 
 const EMPTY = {
     isTeamUser: false,
@@ -67,6 +68,24 @@ const statusBadge = (status) => {
         default:
             return "bg-[#F3F4F6] text-[#374151]";
     }
+};
+
+const PASSWORD_STRENGTH_LEVELS = [
+    { label: "Weak", color: "bg-red-500" },
+    { label: "Weak", color: "bg-red-500" },
+    { label: "Fair", color: "bg-yellow-500" },
+    { label: "Good", color: "bg-blue-500" },
+    { label: "Strong", color: "bg-green-500" },
+];
+
+const buildPasswordStrength = (password) => {
+    if (!password) {
+        return { score: 0, label: "", color: "" };
+    }
+    const { score } = zxcvbn(password);
+    const safeScore = Math.max(0, Math.min(score, 4));
+    const level = PASSWORD_STRENGTH_LEVELS[safeScore] || PASSWORD_STRENGTH_LEVELS[0];
+    return { score: safeScore, label: level.label, color: level.color };
 };
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -202,6 +221,7 @@ const ProfileContent = () => {
     });
     const [showStepUpPassword, setShowStepUpPassword] = useState(false);
     const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
+    const passwordStrength = useMemo(() => buildPasswordStrength(securityForm.password), [securityForm.password]);
 
     const {
         feedback,
@@ -1023,6 +1043,19 @@ const ProfileContent = () => {
                                         </button>
                                     </div>
                                     <ErrorText>{errors.password}</ErrorText>
+                                    {passwordStrength.label && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <div className="flex h-1 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
+                                                {[...Array(4)].map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`h-full w-1/4 border-r border-white last:border-0 ${i < passwordStrength.score ? passwordStrength.color : "bg-transparent"} transition-all duration-300`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="text-[10px] text-[#6B7280] w-12 text-right font-medium">{passwordStrength.label}</span>
+                                        </div>
+                                    )}
                                 </Field>
                                 <Field label="Confirm New Password">
                                     <div className="relative">

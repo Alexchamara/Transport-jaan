@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { Head, useForm, Link } from '@inertiajs/react';
 import bg from "../Web/assets/landingPages/bg.svg";
 import CompanyLogo from "../Web/components/CompanyLogo";
 import { Eye, EyeOff } from "lucide-react";
+import zxcvbn from "zxcvbn";
 
 export default function ResetPassword({ token, email }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -14,23 +15,21 @@ export default function ResetPassword({ token, email }) {
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [strength, setStrength] = useState({score: 0, text: '', color: ''});
-
-    useEffect(() => {
-        const p = data.password;
-        let score = 0;
-        if (p.length >= 8) score++;
-        if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
-        if (/[0-9]/.test(p)) score++;
-        if (/[^A-Za-z0-9]/.test(p)) score++;
-        
-        switch (score) {
-            case 0: case 1: setStrength({score, text: 'Weak', color: 'bg-red-500'}); break;
-            case 2: setStrength({score, text: 'Fair', color: 'bg-yellow-500'}); break;
-            case 3: setStrength({score, text: 'Good', color: 'bg-blue-500'}); break;
-            case 4: setStrength({score, text: 'Strong', color: 'bg-green-500'}); break;
-            default: setStrength({score: 0, text: '', color: ''});
+    const strength = useMemo(() => {
+        if (!data.password) {
+            return { score: 0, label: '', color: '' };
         }
+        const { score } = zxcvbn(data.password);
+        const levels = [
+            { label: 'Weak', color: 'bg-red-500' },
+            { label: 'Weak', color: 'bg-red-500' },
+            { label: 'Fair', color: 'bg-yellow-500' },
+            { label: 'Good', color: 'bg-blue-500' },
+            { label: 'Strong', color: 'bg-green-500' },
+        ];
+        const safeScore = Math.max(0, Math.min(score, 4));
+        const level = levels[safeScore] || levels[0];
+        return { score: safeScore, label: level.label, color: level.color };
     }, [data.password]);
 
     const submit = (e) => {
@@ -134,7 +133,7 @@ export default function ResetPassword({ token, email }) {
                                                     />
                                                 ))}
                                             </div>
-                                            <span className="text-[10px] text-white/70 w-12 text-right font-medium">{strength.text}</span>
+                                            <span className="text-[10px] text-white/70 w-12 text-right font-medium">{strength.label}</span>
                                         </div>
                                     )}
                                 </div>

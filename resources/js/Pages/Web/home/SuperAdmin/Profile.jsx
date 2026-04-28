@@ -1,6 +1,25 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
+import zxcvbn from 'zxcvbn';
+
+const PASSWORD_STRENGTH_LEVELS = [
+    { label: 'Weak', color: 'bg-red-500' },
+    { label: 'Weak', color: 'bg-red-500' },
+    { label: 'Fair', color: 'bg-yellow-500' },
+    { label: 'Good', color: 'bg-blue-500' },
+    { label: 'Strong', color: 'bg-green-500' },
+];
+
+const buildPasswordStrength = (password) => {
+    if (!password) {
+        return { score: 0, label: '', color: '' };
+    }
+    const { score } = zxcvbn(password);
+    const safeScore = Math.max(0, Math.min(score, 4));
+    const level = PASSWORD_STRENGTH_LEVELS[safeScore] || PASSWORD_STRENGTH_LEVELS[0];
+    return { score: safeScore, label: level.label, color: level.color };
+};
 
 const Profile = ({ auth, adminProfile, errors }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -20,6 +39,8 @@ const Profile = ({ auth, adminProfile, errors }) => {
         password_confirmation: '',
         _method: 'PUT',
     });
+
+    const passwordStrength = useMemo(() => buildPasswordStrength(data.password), [data.password]);
 
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
@@ -207,6 +228,19 @@ const Profile = ({ auth, adminProfile, errors }) => {
                                                     />
                                                     {errors.password && (
                                                         <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                                                    )}
+                                                    {passwordStrength.label && (
+                                                        <div className="mt-2 flex items-center gap-2">
+                                                            <div className="flex h-1 w-full overflow-hidden rounded-full bg-white/20">
+                                                                {[...Array(4)].map((_, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className={`h-full w-1/4 border-r border-black/30 last:border-0 ${i < passwordStrength.score ? passwordStrength.color : 'bg-transparent'} transition-all duration-300`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <span className="text-[10px] text-white/70 w-12 text-right font-medium">{passwordStrength.label}</span>
+                                                        </div>
                                                     )}
                                                 </div>
 
