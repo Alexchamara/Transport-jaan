@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useForm } from '@inertiajs/react';
+import { useForm, Link } from '@inertiajs/react';
 import bg from "../../assets/landingPages/bg.svg";
 import CompanyLogo from "../../components/CompanyLogo";
 import google from "../../assets/auth/google.svg";
@@ -114,9 +114,12 @@ const Signup = () => {
                                             />
                                             Remember me on this device
                                         </label>
-                                        <span className="xl:text-[12px] text-[10px] font-[500] text-right cursor-pointer">
+                                        <Link 
+                                            href={route('password.request')} 
+                                            className="xl:text-[12px] text-[10px] font-[500] text-right cursor-pointer hover:underline text-[#FF7003]"
+                                        >
                                             Forgot Password?
-                                        </span>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
