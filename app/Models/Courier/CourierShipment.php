@@ -26,13 +26,20 @@ class CourierShipment extends Model
 
     protected $fillable = [
         'reference',
+        'order_number',
         'requested_by_user_id',
         'assigned_vendor_user_id',
         'assigned_vendor_registration_id',
         'sender_contact_id',
         'recipient_contact_id',
+        'recipient_alt_phone',
+        'recipient_nic',
+        'pod_receiver_name',
+        'pod_receiver_nic',
         'sender_address_id',
         'recipient_address_id',
+        'destination_district',
+        'destination_nearest_city',
         'service_level',
         'status',
         'assignment_category',
@@ -142,9 +149,14 @@ class CourierShipment extends Model
         return $this->hasMany(CourierTrackingEvent::class, 'shipment_id');
     }
 
+    public function labelPrintItems()
+    {
+        return $this->hasMany(CourierLabelPrintItem::class, 'shipment_id');
+    }
+
     public function labels()
     {
-        return $this->hasMany(VendorCourierLabel::class, 'shipment_id');
+        return $this->labelPrintItems();
     }
 
     public function payments(): HasMany

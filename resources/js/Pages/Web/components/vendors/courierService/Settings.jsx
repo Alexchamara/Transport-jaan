@@ -2979,7 +2979,7 @@ const Settings = () => {
         }
 
         const name = String(labelTemplateForm.name || "").trim();
-        const templateType = String(labelTemplateForm.templateType || "builder");
+        const templateType = "builder";
         const categoryScope = String(labelTemplateForm.categoryScope || "all");
         const sizeId = labelTemplateForm.sizeId ? Number(labelTemplateForm.sizeId) : null;
         const orientation = String(labelTemplateForm.orientation || "portrait");
@@ -3106,7 +3106,7 @@ const Settings = () => {
             return;
         }
 
-        const templateType = String(template.template_type || "builder");
+        const templateType = "builder";
         const builderSchema = template.builder_schema || null;
         const htmlTemplate = template.html_template || null;
 
@@ -6173,7 +6173,7 @@ const Settings = () => {
                         </div>
                     </SectionCard>
 
-                    <SectionCard title="Label Templates" description="Create templates from HTML or uploaded backgrounds. Use JSON tokens to map shipment fields.">
+                    <SectionCard title="Label Templates" description="Create structured POD templates using JSON schema tokens.">
                         {!labelPolicy.allowTemplateUpload && (
                             <p className="text-[11px] text-[#B45309] mb-2">Template uploads are disabled by policy.</p>
                         )}
@@ -6194,9 +6194,7 @@ const Settings = () => {
                                     disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, templateType: e.target.value }))}
                                 >
-                                    <option value="builder">Builder (JSON)</option>
-                                    <option value="html" disabled={!labelPolicy.allowHtmlTemplates}>HTML/CSS</option>
-                                    <option value="upload">Upload Background</option>
+                                    <option value="builder">Structured POD</option>
                                 </select>
                             </Field>
                             <Field label="Scope">
@@ -6262,59 +6260,17 @@ const Settings = () => {
                             </div>
                         )}
 
-                        {labelTemplateForm.templateType === "html" && (
-                            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                <Field label="HTML Template" help="Tokens map to shipment data, e.g. {{trackingNumber}}">
-                                    <textarea
-                                        rows={6}
-                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
-                                        value={labelTemplateForm.htmlTemplate}
-                                        disabled={labelControlsDisabled}
-                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, htmlTemplate: e.target.value }))}
-                                    />
-                                </Field>
-                                <Field label="CSS (optional)">
-                                    <textarea
-                                        rows={6}
-                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
-                                        value={labelTemplateForm.cssTemplate}
-                                        disabled={labelControlsDisabled}
-                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, cssTemplate: e.target.value }))}
-                                    />
-                                </Field>
-                            </div>
-                        )}
-
-                        {labelTemplateForm.templateType === "upload" && (
-                            <div className="mt-3">
-                                <Field label="Background File" help="Upload PDF, PNG, or JPG to use as the label background.">
-                                    <input
-                                        type="file"
-                                        accept=".pdf,.png,.jpg,.jpeg,.webp"
-                                        className="w-full"
-                                        disabled={labelControlsDisabled}
-                                        onChange={(e) => setLabelTemplateForm((prev) => ({
-                                            ...prev,
-                                            backgroundFile: e.target.files?.[0] || null,
-                                        }))}
-                                    />
-                                </Field>
-                            </div>
-                        )}
-
-                        {labelTemplateForm.templateType !== "upload" && (
-                            <div className="mt-3">
-                                <Field label="Field Overrides (JSON)" help="Optional JSON object to override token values at render time.">
-                                    <textarea
-                                        rows={3}
-                                        className="w-full rounded-[8px] border border-[#D1D5DB]"
-                                        value={labelTemplateForm.fieldOverrides}
-                                        disabled={labelControlsDisabled}
-                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, fieldOverrides: e.target.value }))}
-                                    />
-                                </Field>
-                            </div>
-                        )}
+                        <div className="mt-3">
+                            <Field label="Field Overrides (JSON)" help="Optional JSON object to override token values at render time.">
+                                <textarea
+                                    rows={3}
+                                    className="w-full rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.fieldOverrides}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, fieldOverrides: e.target.value }))}
+                                />
+                            </Field>
+                        </div>
 
                         <div className="mt-4 space-y-2">
                             {labelTemplates.length === 0 && (

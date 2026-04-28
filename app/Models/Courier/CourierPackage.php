@@ -43,8 +43,13 @@ class CourierPackage extends Model
         return $this->belongsTo(CourierShipment::class, 'shipment_id');
     }
 
+    public function labelPrintItems()
+    {
+        return $this->hasMany(CourierLabelPrintItem::class, 'package_id');
+    }
+
     public function labels()
     {
-        return $this->hasMany(VendorCourierLabel::class, 'package_id');
+        return $this->labelPrintItems();
     }
 }

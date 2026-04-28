@@ -6,18 +6,17 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class VendorCourierLabelSize extends Model
+class CourierLabelSize extends Model
 {
     use HasFactory;
 
-    protected $table = 'courier_vendor_label_sizes';
+    protected $table = 'courier_label_sizes';
 
     protected $fillable = [
         'vendor_user_id',
         'name',
         'width_mm',
         'height_mm',
-        'unit',
         'is_active',
         'is_system',
         'created_by_user_id',
@@ -38,23 +37,8 @@ class VendorCourierLabelSize extends Model
         return $this->belongsTo(User::class, 'vendor_user_id');
     }
 
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by_user_id');
-    }
-
-    public function updater()
-    {
-        return $this->belongsTo(User::class, 'updated_by_user_id');
-    }
-
     public function templates()
     {
-        return $this->hasMany(VendorCourierLabelTemplate::class, 'size_id');
-    }
-
-    public function labels()
-    {
-        return $this->hasMany(VendorCourierLabel::class, 'size_id');
+        return $this->hasMany(CourierLabelTemplate::class, 'size_id');
     }
 }

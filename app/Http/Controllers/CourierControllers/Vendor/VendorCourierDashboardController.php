@@ -17,7 +17,7 @@ use App\Models\Courier\SuperAdminCourierActionAudit;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\CourierShipmentPayment;
-use App\Models\Courier\VendorCourierLabel;
+use App\Models\Courier\CourierLabelPrintItem;
 use App\Models\Courier\VendorCourierClientProfile;
 use App\Models\VendorActivityLog;
 use App\Models\VendorProfile;
@@ -35,7 +35,6 @@ use App\Services\Courier\CourierTeamSecurityAuditService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
 use App\Support\CourierRbac;
-use App\Support\CourierLabelDefaults;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -2421,7 +2420,7 @@ class VendorCourierDashboardController extends Controller
                 'packages:id,shipment_id,service_tier_label,service_tier_key,service_eta,courier_provider_name',
                 'latestPayment',
                 'trackingEvents:id,shipment_id,status,location,description,recorded_at',
-                'labels:id,shipment_id',
+                'labels:id,shipment_id,status',
             ])
             ->where('assigned_vendor_user_id', $vendorId)
             ->orderByDesc('created_at');
@@ -4926,21 +4925,45 @@ class VendorCourierDashboardController extends Controller
 
     private function defaultCourierLabelSettings(): array
     {
-        return CourierLabelDefaults::settings();
+        return [
+            'defaults' => [
+                'domestic' => [
+                    'templateId' => null,
+                    'sizeId' => null,
+                ],
+                'international' => [
+                    'templateId' => null,
+                    'sizeId' => null,
+                ],
+            ],
+            'printPolicy' => [
+                'syncThreshold' => 25,
+                'hardLimit' => 500,
+                // Backward-compatible fields retained for existing settings UI state.
+                'bulkAsyncThreshold' => 25,
+                'bulkHardLimit' => 500,
+                'allowCustomSizes' => true,
+                'allowTemplateUpload' => true,
+                'allowHtmlTemplates' => false,
+                'allowPdfBackground' => false,
+            ],
+        ];
     }
 
     private function normalizeLabelSettings(array $input): array
     {
-        $defaults = CourierLabelDefaults::settings();
+        $defaults = $this->defaultCourierLabelSettings();
         $normalized = array_replace_recursive($defaults, $input);
 
         $policy = is_array($normalized['printPolicy'] ?? null) ? $normalized['printPolicy'] : [];
-        $policy['bulkAsyncThreshold'] = max(1, (int) ($policy['bulkAsyncThreshold'] ?? 50));
-        $policy['bulkHardLimit'] = max($policy['bulkAsyncThreshold'], (int) ($policy['bulkHardLimit'] ?? 200));
+        $policy['syncThreshold'] = max(1, (int) ($policy['syncThreshold'] ?? $policy['bulkAsyncThreshold'] ?? 25));
+        $policy['hardLimit'] = max($policy['syncThreshold'], (int) ($policy['hardLimit'] ?? $policy['bulkHardLimit'] ?? 500));
+        $policy['bulkAsyncThreshold'] = $policy['syncThreshold'];
+        $policy['bulkHardLimit'] = $policy['hardLimit'];
         $policy['allowCustomSizes'] = (bool) ($policy['allowCustomSizes'] ?? true);
         $policy['allowTemplateUpload'] = (bool) ($policy['allowTemplateUpload'] ?? true);
-        $policy['allowHtmlTemplates'] = (bool) ($policy['allowHtmlTemplates'] ?? true);
-        $policy['allowPdfBackground'] = (bool) ($policy['allowPdfBackground'] ?? true);
+        $policy['allowHtmlTemplates'] = false;
+        $policy['allowPdfBackground'] = false;
         $normalized['printPolicy'] = $policy;
 
         foreach (['domestic', 'international'] as $category) {
@@ -7052,11 +7075,13 @@ class VendorCourierDashboardController extends Controller
     private function isLabelCreated(CourierShipment $shipment): bool
     {
         if ($shipment->relationLoaded('labels')) {
-            return $shipment->labels->isNotEmpty();
+            return $shipment->labels
+                ->contains(fn ($item) => in_array((string) ($item->status ?? ''), ['generated', 'generated_with_errors'], true));
         }
 
-        return VendorCourierLabel::query()
+        return CourierLabelPrintItem::query()
             ->where('shipment_id', $shipment->id)
+            ->whereIn('status', ['generated'])
             ->exists();
     }
 
