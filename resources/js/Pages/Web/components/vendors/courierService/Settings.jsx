@@ -794,6 +794,8 @@ const DEFAULT_SETTINGS = {
                 enabled: true,
                 ttlMinutes: 120,
                 twoFactorTtlMinutes: 120,
+                persistOnTrustedDevice: true,
+                deviceRememberDays: 30,
                 sensitiveRouteNames: [
                     "courierService.team.access.update",
                     "courierService.team.bulk",
@@ -8737,6 +8739,30 @@ const Settings = () => {
                                                         onChange={(e) => updateSessionSecurityNested("stepUp", "twoFactorTtlMinutes", Number(e.target.value || 120))}
                                                     />
                                                 </Field>
+                                            </div>
+
+                                            <div className="mt-4 border-t border-[#E5E7EB] pt-4 mb-2">
+                                                <Toggle
+                                                    label="Persist Step-Up on Trusted Devices"
+                                                    description="Allows trusted devices to remember step-up verification across logins. If disabled, step-up always clears on logout."
+                                                    checked={Boolean(settings.team?.sessionSecurity?.stepUp?.persistOnTrustedDevice)}
+                                                    onChange={(val) => updateSessionSecurityNested("stepUp", "persistOnTrustedDevice", val)}
+                                                />
+
+                                                {Boolean(settings.team?.sessionSecurity?.stepUp?.persistOnTrustedDevice) && (
+                                                    <div className="mt-3">
+                                                        <Field label="Device Remember Duration (Days)">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                max={365}
+                                                                className="h-[36px] w-full max-w-[200px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                                value={Number(settings.team?.sessionSecurity?.stepUp?.deviceRememberDays || 30)}
+                                                                onChange={(e) => updateSessionSecurityNested("stepUp", "deviceRememberDays", Number(e.target.value || 30))}
+                                                            />
+                                                        </Field>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">

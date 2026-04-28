@@ -1967,6 +1967,18 @@ class CourierTeamController extends Controller
         $request->session()->forget('courier_security.challenge');
         $request->session()->forget('courier_security.anomaly_detected_at');
 
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $service = app(CourierSessionSecurityService::class);
+        $deviceHash = $service->deviceHash($request);
+        $trustedDevice = $service->findTrustedDevice($vendorUserId, $workspaceId, (int) $actor->id, $deviceHash);
+        
+        if ($trustedDevice) {
+            $meta = is_array($trustedDevice->metadata) ? $trustedDevice->metadata : [];
+            $meta['step_up_verified_at'] = $now;
+            $meta['two_factor_verified_at'] = $now;
+            $trustedDevice->update(['metadata' => $meta]);
+        }
+
         $this->logTeamAction(
             $vendorUserId,
             (int) $actor->id,

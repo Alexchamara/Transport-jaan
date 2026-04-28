@@ -48,6 +48,8 @@ class CourierSessionSecurityService
                 'enabled' => true,
                 'ttlMinutes' => 120,
                 'twoFactorTtlMinutes' => 120,
+                'persistOnTrustedDevice' => true,
+                'deviceRememberDays' => 30,
                 'sensitiveRouteNames' => [
                     'courierService.team.access.update',
                     'courierService.team.bulk',
@@ -141,6 +143,8 @@ class CourierSessionSecurityService
                 'enabled' => (bool) ($stepUp['enabled'] ?? $defaults['stepUp']['enabled']),
                 'ttlMinutes' => max(5, min(120, (int) ($stepUp['ttlMinutes'] ?? $defaults['stepUp']['ttlMinutes']))),
                 'twoFactorTtlMinutes' => max(5, min(120, (int) ($stepUp['twoFactorTtlMinutes'] ?? $defaults['stepUp']['twoFactorTtlMinutes']))),
+                'persistOnTrustedDevice' => (bool) ($stepUp['persistOnTrustedDevice'] ?? $defaults['stepUp']['persistOnTrustedDevice']),
+                'deviceRememberDays' => max(1, min(365, (int) ($stepUp['deviceRememberDays'] ?? $defaults['stepUp']['deviceRememberDays']))),
                 'sensitiveRouteNames' => collect($stepUp['sensitiveRouteNames'] ?? $defaults['stepUp']['sensitiveRouteNames'])
                     ->map(fn ($routeName) => trim((string) $routeName))
                     ->filter()
@@ -229,6 +233,28 @@ class CourierSessionSecurityService
             $requiresTwoFactor = $this->requiresTwoFactorForRequest($request, $policy, $actorRole, $actorUserId);
             $isTwoFactorValid = !$requiresTwoFactor
                 || $this->hasFreshSessionTimestamp($request, 'courier_security.two_factor_verified_at', (int) ($policy['stepUp']['twoFactorTtlMinutes'] ?? 20));
+
+            if ((!$isStepUpValid || !$isTwoFactorValid) && ($policy['stepUp']['persistOnTrustedDevice'] ?? true)) {
+                $trustedDevice = $trustedDevice ?? $this->findTrustedDevice($vendorUserId, $workspaceId, $user->id, $this->deviceHash($request));
+                if ($trustedDevice && is_array($trustedDevice->metadata)) {
+                    $meta = $trustedDevice->metadata;
+                    $deviceVerifiedAt = $meta['step_up_verified_at'] ?? null;
+                    if ($deviceVerifiedAt) {
+                        $days = (int) ($policy['stepUp']['deviceRememberDays'] ?? 30);
+                        try {
+                            $verifiedDate = now()->createFromFormat('Y-m-d H:i:s', $deviceVerifiedAt);
+                            if ($verifiedDate && now()->diffInDays($verifiedDate) <= max(1, $days)) {
+                                $request->session()->put('courier_security.step_up_verified_at', $deviceVerifiedAt);
+                                $request->session()->put('courier_security.two_factor_verified_at', $deviceVerifiedAt);
+                                $isStepUpValid = true;
+                                $isTwoFactorValid = true;
+                            }
+                        } catch (\Throwable) {
+                            // Invalid date format
+                        }
+                    }
+                }
+            }
 
             if (!$isStepUpValid || !$isTwoFactorValid) {
                 return [
@@ -331,6 +357,13 @@ class CourierSessionSecurityService
             if ((bool) ($policy['anomalyDetection']['clearStepUpOnAnomaly'] ?? true)) {
                 $request->session()->forget('courier_security.step_up_verified_at');
                 $request->session()->forget('courier_security.two_factor_verified_at');
+
+                $trustedDevice = $this->findTrustedDevice($vendorUserId, $request->attributes->get('service_workspace_id', 0), $userId, $this->deviceHash($request));
+                if ($trustedDevice && is_array($trustedDevice->metadata)) {
+                    $meta = $trustedDevice->metadata;
+                    unset($meta['step_up_verified_at'], $meta['two_factor_verified_at']);
+                    $trustedDevice->update(['metadata' => $meta]);
+                }
             }
 
             VendorActivityLog::query()->create([
@@ -454,7 +487,7 @@ class CourierSessionSecurityService
         }
     }
 
-    private function findTrustedDevice(int $vendorUserId, int $workspaceId, int $userId, string $hash): ?CourierTrustedDevice
+    public function findTrustedDevice(int $vendorUserId, int $workspaceId, int $userId, string $hash): ?CourierTrustedDevice
     {
         return CourierTrustedDevice::query()
             ->where('vendor_user_id', $vendorUserId)
