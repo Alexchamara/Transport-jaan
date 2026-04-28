@@ -66,4 +66,22 @@ return [
         ],
         'post_implementation_summary_path' => 'docs/Client/Services/Courier/Phases/COURIER_PHASE_7_POST_IMPLEMENTATION_SUMMARY.md',
     ],
+
+    'notifications_v2' => [
+        'enabled' => (bool) env('COURIER_NOTIFICATIONS_V2_ENABLED', false),
+        'rollout' => [
+            // all | canary | percentage | canary_or_percentage
+            'mode' => (string) env('COURIER_NOTIFICATIONS_V2_ROLLOUT_MODE', 'canary'),
+            'percentage' => (int) env('COURIER_NOTIFICATIONS_V2_ROLLOUT_PERCENTAGE', 0),
+            'canary_vendor_ids' => array_values(array_filter(array_map(
+                static fn ($value) => (int) trim((string) $value),
+                explode(',', (string) env('COURIER_NOTIFICATIONS_V2_CANARY_VENDOR_IDS', ''))
+            ))),
+        ],
+        'delivery_webhook_secret' => (string) env('COURIER_NOTIFICATIONS_V2_WEBHOOK_SECRET', ''),
+        'transactional_mailer' => (string) env('COURIER_NOTIFICATIONS_V2_MAILER', env('MAIL_MAILER', 'smtp')),
+        'allow_custom_from' => (bool) env('COURIER_NOTIFICATIONS_V2_ALLOW_CUSTOM_FROM', false),
+        'throttle_window_seconds' => (int) env('COURIER_NOTIFICATIONS_V2_THROTTLE_WINDOW_SECONDS', 300),
+        'metrics_lookback_days' => (int) env('COURIER_NOTIFICATIONS_V2_METRICS_LOOKBACK_DAYS', 30),
+    ],
 ];
