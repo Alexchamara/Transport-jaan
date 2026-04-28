@@ -13,6 +13,7 @@ use App\Models\ServiceWorkspace;
 use App\Models\User;
 use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
+use App\Rules\PasswordStrength;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
 use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierApiServiceAccessService;
@@ -250,7 +251,7 @@ class CourierTeamController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180'],
-            'password' => ['nullable', 'string', 'min:8', 'max:120'],
+            'password' => ['nullable', 'string', 'min:8', 'max:120', new PasswordStrength()],
             'role' => ['nullable', Rule::in($assignableRoleNames)],
             'provisioningBundleKey' => ['nullable', 'string', 'max:120'],
             'directPermissions' => ['nullable', 'array'],

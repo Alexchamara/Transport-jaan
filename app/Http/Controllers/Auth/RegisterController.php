@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\PasswordStrength;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -35,7 +36,8 @@ class RegisterController extends Controller
                 Rules\Password::min(8)
                     ->mixedCase()
                     ->numbers()
-                    ->symbols()
+                    ->symbols(),
+                new PasswordStrength(),
             ],
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string|max:255',

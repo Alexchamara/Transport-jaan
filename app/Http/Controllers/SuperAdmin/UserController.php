@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\PasswordStrength;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
@@ -216,7 +217,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'min:8', 'confirmed', new PasswordStrength()],
             'role' => ['required', Rule::in(['client', 'vendor', 'freight'])],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
@@ -286,7 +287,7 @@ class UserController extends Controller
             'date_of_birth' => 'nullable|date',
             'role' => ['required', Rule::in(['client', 'vendor', 'freight'])],
             'status' => ['required', Rule::in(['verified', 'unverified', 'blocked', 'rejected'])],
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => ['nullable', 'string', 'min:8', 'confirmed', new PasswordStrength()],
         ]);
 
         // Remove password if not provided

@@ -12,6 +12,10 @@ RABC depencency:
 Pricing import adapter depencency:
     composer require phpoffice/phpspreadsheet smalot/pdfparser --no-interaction
 
+Password Cheker:
+    npm install zxcvbn
+    composer require bjeavons/zxcvbn-php
+
 Global dashboard search (Scout + Meilisearch):
 
     composer require spatie/laravel-permission:^7.2 --no-interaction

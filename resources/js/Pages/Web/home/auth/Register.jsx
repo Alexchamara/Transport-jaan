@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useForm, router } from "@inertiajs/react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -7,6 +7,44 @@ import CompanyLogo from "../../components/CompanyLogo";
 import bg from "../../assets/landingPages/bg.svg";
 import google from "../../assets/auth/google.svg";
 import { Eye, EyeOff } from "lucide-react";
+import zxcvbn from "zxcvbn";
+
+const PASSWORD_STRENGTH_LEVELS = [
+    { label: "Weak", color: "bg-red-500" },
+    { label: "Weak", color: "bg-red-500" },
+    { label: "Fair", color: "bg-yellow-500" },
+    { label: "Good", color: "bg-blue-500" },
+    { label: "Strong", color: "bg-green-500" },
+];
+
+const buildPasswordStrength = (password) => {
+    if (!password) {
+        return { score: 0, label: "", color: "" };
+    }
+    const { score } = zxcvbn(password);
+    const safeScore = Math.max(0, Math.min(score, 4));
+    const level = PASSWORD_STRENGTH_LEVELS[safeScore] || PASSWORD_STRENGTH_LEVELS[0];
+    return { score: safeScore, label: level.label, color: level.color };
+};
+
+const PasswordStrengthBar = ({ strength }) => {
+    if (!strength?.label) {
+        return null;
+    }
+    return (
+        <div className="mt-2 flex items-center gap-2 px-10">
+            <div className="flex h-1 w-full overflow-hidden rounded-full bg-white/20">
+                {[...Array(4)].map((_, i) => (
+                    <div
+                        key={i}
+                        className={`h-full w-1/4 border-r border-black/30 last:border-0 ${i < strength.score ? strength.color : "bg-transparent"} transition-all duration-300`}
+                    />
+                ))}
+            </div>
+            <span className="text-[10px] text-white/70 w-12 text-right font-medium">{strength.label}</span>
+        </div>
+    );
+};
 
 const Register = ({ role = "client" }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +61,8 @@ const Register = ({ role = "client" }) => {
         vendor_type: "",
         remember: false,
     });
+
+    const passwordStrength = useMemo(() => buildPasswordStrength(data.password), [data.password]);
 
     const phoneErrorMessage = phoneValidationError || errors.phone || "";
 
@@ -308,6 +348,7 @@ const Register = ({ role = "client" }) => {
                                                     {errors.password}
                                                 </div>
                                             )}
+                                            <PasswordStrengthBar strength={passwordStrength} />
                                         </div>
 
                                         <div className="flex flex-col gap-2 mb-6">
@@ -482,6 +523,7 @@ const Register = ({ role = "client" }) => {
                                                     {errors.password}
                                                 </div>
                                             )}
+                                            <PasswordStrengthBar strength={passwordStrength} />
                                         </div>
 
                                         <div className="flex flex-col gap-2 mb-6">
