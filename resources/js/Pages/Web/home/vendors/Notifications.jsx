@@ -39,6 +39,12 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, unread, read
   const [unreadCount, setUnreadCount] = useState(initialUnread);
+  const [activeService, setActiveService] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("vendorActiveService") || "All Bookings";
+    }
+    return "All Bookings";
+  });
 
   useEffect(() => {
     fetchNotifications();
@@ -152,69 +158,21 @@ const NotificationsPage = () => {
   };
 
   return (
-    <VendorShellLayout activeService="Vehicle Rental">
+    <VendorShellLayout activeService={activeService}>
       <div className="w-full h-auto pr-5 py-10">
         {/* ==================== HEADER WITH DROPDOWN ==================== */}
-        <div className="flex flex-row gap-5 justify-between items-center mb-10">
+        <div className="flex flex-row gap-5 justify-between items-center mb-10 ml-8">
           <h1 className="figtree text-[35px] font-[700]">Notifications</h1>
 
           <div className="flex flex-row gap-5 items-center">
             {/* Notification Bell
               <NotificationDropdown bellIcon={bell} unreadCount={unreadCount} /> */}
-
-            {/* USER PROFILE + DROPDOWN */}
-            <div
-              ref={dropdownRef}
-              className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
-              onClick={() => setShowUserDropdown((s) => !s)}
-            >
-              <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                <img src={proPic} alt="Profile" />
-              </div>
-
-              <div className="figtree flex flex-col justify-center items-start">
-                <h1 className="text-[20px] font-[700]">{user?.name || "Service Provider"}</h1>
-                <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Service Provider</h1>
-              </div>
-
-              <ChevronDown
-                className={`w-5 h-5 text-[#7B7B7A] transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
-              />
-
-              {/* DROPDOWN MENU */}
-              {showUserDropdown && (
-                <div
-                  className="absolute top-[120px] right-[20px] w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-                  onMouseEnter={() => setShowUserDropdown(true)}
-                  onMouseLeave={() => setShowUserDropdown(false)}
-                >
-                  <Link
-                    href="/profile"
-                    className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#000000CC] px-4 py-3 hover:bg-[#F3F4F6] transition-colors"
-                  >
-                    <img src={proPic} className="w-[20px] h-[20px] rounded-full" alt="profile" />
-                    <span>Profile</span>
-                  </Link>
-
-                  <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
-
-                  <Link
-                    href={route("logout")}
-                    method="post"
-                    as="button"
-                    className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#DC2626] px-4 py-3 hover:bg-[#FEF2F2] transition-colors"
-                  >
-                    <img src={logOutLogo} className="w-[20px] h-[20px]" alt="logout" />
-                    <span>Logout</span>
-                  </Link>
-                </div>
-              )}
-            </div>
+            
           </div>
         </div>
 
         {/* ==================== STATS & ACTIONS ==================== */}
-        <div className="bg-white rounded-[10px] px-8 py-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-[10px] px-8 py-6 mb-6 ml-8 shadow-sm">
           <div className="flex justify-between items-center">
             <div className="flex gap-8">
               <div>
@@ -245,7 +203,7 @@ const NotificationsPage = () => {
         </div>
 
         {/* ==================== FILTER TABS ==================== */}
-        <div className="bg-white rounded-[10px] px-8 py-4 mb-6 shadow-sm">
+        <div className="bg-white rounded-[10px] px-8 py-4 mb-6 shadow-sm ml-8">
           <div className="flex gap-4">
             <button
               onClick={() => setFilter("all")}
@@ -278,7 +236,7 @@ const NotificationsPage = () => {
         </div>
 
         {/* ==================== NOTIFICATIONS LIST ==================== */}
-        <div className="bg-white rounded-[10px] shadow-sm">
+        <div className="bg-white rounded-[10px] shadow-sm ml-8">
           {loading ? (
             <div className="px-8 py-20 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>

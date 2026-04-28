@@ -87,6 +87,37 @@ class ClientCourierController extends Controller
             })
             ->values();
 
+        $favoriteSenders = CourierContact::query()
+            ->with(['addresses' => function ($query) {
+                $query->orderByDesc('is_primary')->orderBy('id');
+            }])
+            ->where('user_id', $user->id)
+            ->where('role', CourierContact::ROLE_SENDER)
+            ->where('is_favorite', true)
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(function (CourierContact $contact) {
+                $address = $contact->addresses->first();
+
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'phone' => $contact->phone,
+                    'company' => $contact->company_name,
+                    'address' => $address ? [
+                        'line1' => $address->line1,
+                        'line2' => $address->line2,
+                        'city' => $address->city,
+                        'state' => $address->state,
+                        'postalCode' => $address->postal_code,
+                        'country' => $address->country,
+                        'instructions' => $address->instructions,
+                    ] : null,
+                ];
+            })
+            ->values();
+
         $countries = $this->resolveSupportedCountryCodes();
 
         // Calculate statistics
@@ -173,6 +204,7 @@ class ClientCourierController extends Controller
             ],
             'monthlyData' => $monthlyData,
             'favoriteRecipients' => $favoriteRecipients,
+            'favoriteSenders' => $favoriteSenders,
             'countries' => $countries,
         ]);
     }

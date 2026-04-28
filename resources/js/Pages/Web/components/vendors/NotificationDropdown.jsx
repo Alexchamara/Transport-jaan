@@ -182,10 +182,10 @@ const NotificationDropdown = ({ bellIcon }) => {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-3 w-[min(92vw,760px)] rounded-[18px] border border-[#D9E1EC] bg-[#F4F6FA] shadow-[0_24px_48px_rgba(15,23,42,0.20)] z-[80] overflow-hidden">
+                <div className="absolute right-0 mt-6 w-[400px] rounded-[18px] border border-[#D9E1EC] bg-[#F4F6FA] shadow-[0_24px_48px_rgba(15,23,42,0.20)] z-[80] overflow-hidden">
                     <div className="px-6 py-6 border-b border-[#D5DCE7] flex items-center justify-between">
                         <h3 className="text-[20px] leading-none font-[700] text-[#1E293B]">
-                            <span className="inline-block px-2 py-1 bg-[#BFDDFE] text-[20px] leading-none">Notifications</span>
+                            <span className="inline-block px-2 py-1 text-[20px] leading-none">Notifications</span>
                         </h3>
 
                         {sortedNotifications.length > 0 && (
@@ -209,8 +209,8 @@ const NotificationDropdown = ({ bellIcon }) => {
                                 <div className="mx-auto mb-6 h-20 w-20 rounded-full border border-[#DEE4EE] bg-white flex items-center justify-center">
                                     <Bell size={44} className="text-[#C1C8D4]" strokeWidth={1.8} />
                                 </div>
-                                <p className="text-[40px] sm:text-[34px] leading-tight font-[500] text-[#6B7280]">No notifications yet</p>
-                                <p className="mt-3 text-[28px] sm:text-[24px] leading-tight text-[#9CA3AF]">We&apos;ll notify you when something arrives</p>
+                                <p className="text-[30px] sm:text-[24px] leading-tight font-[500] text-[#6B7280]">No notifications yet</p>
+                                <p className="mt-3 text-[20px] sm:text-[18px] leading-tight text-[#9CA3AF]">We&apos;ll notify you when something arrives</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-[#E2E8F0]">

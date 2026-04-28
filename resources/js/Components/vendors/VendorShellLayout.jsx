@@ -166,6 +166,12 @@ const VendorShellLayout = ({
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     useEffect(() => {
+        if (activeService) {
+            localStorage.setItem("vendorActiveService", activeService);
+        }
+    }, [activeService]);
+
+    useEffect(() => {
         const cleanup = installGlobalVendorButtonTracking({
             screen: "vendor_shell_layout",
         });
