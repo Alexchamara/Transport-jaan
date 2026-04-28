@@ -187,13 +187,19 @@ const UnitContent = () => {
     const [bulkAction, setBulkAction] = useState("");
     const [labelTemplates, setLabelTemplates] = useState([]);
     const [labelSizes, setLabelSizes] = useState([]);
+    const [labelTypes, setLabelTypes] = useState([]);
+    const [labelDefaults, setLabelDefaults] = useState({});
+    const [labelPolicy, setLabelPolicy] = useState({});
+    const [compliancePolicies, setCompliancePolicies] = useState({});
     const [labelCatalogBusy, setLabelCatalogBusy] = useState(false);
     const [labelCatalogError, setLabelCatalogError] = useState("");
     const [printModalOpen, setPrintModalOpen] = useState(false);
     const [printShipmentIds, setPrintShipmentIds] = useState([]);
+    const [printLabelType, setPrintLabelType] = useState("pod");
     const [printTemplateId, setPrintTemplateId] = useState("");
     const [printSizeId, setPrintSizeId] = useState("");
     const [printBusy, setPrintBusy] = useState(false);
+    const [compliancePreflight, setCompliancePreflight] = useState(null);
     const [codModalOpen, setCodModalOpen] = useState(false);
     const [codModalShipment, setCodModalShipment] = useState(null);
     const [codCollectedAmount, setCodCollectedAmount] = useState("");
@@ -231,7 +237,7 @@ const UnitContent = () => {
         return payload;
     };
 
-    const loadLabelCatalog = async () => {
+    const loadLabelCatalog = async (categoryHint = null, preferDefaults = false, preferredLabelType = "pod") => {
         if (!canViewLabels) {
             setLabelCatalogError("You do not have permission to view labels.");
             return;
@@ -240,12 +246,29 @@ const UnitContent = () => {
         setLabelCatalogBusy(true);
         setLabelCatalogError("");
         try {
-            const [sizesPayload, templatesPayload] = await Promise.all([
-                requestJson("GET", route("courierService.labels.sizes.index")),
-                requestJson("GET", route("courierService.labels.templates.index")),
-            ]);
-            setLabelSizes(Array.isArray(sizesPayload?.sizes) ? sizesPayload.sizes : []);
-            setLabelTemplates(Array.isArray(templatesPayload?.templates) ? templatesPayload.templates : []);
+            const payload = await requestJson("GET", route("courierService.labels.catalog"));
+            const sizes = Array.isArray(payload?.sizes) ? payload.sizes : [];
+            const templates = Array.isArray(payload?.templates) ? payload.templates : [];
+            setLabelSizes(sizes);
+            setLabelTemplates(templates);
+            setLabelTypes(Array.isArray(payload?.labelTypes) ? payload.labelTypes : []);
+            setLabelDefaults(payload?.defaults && typeof payload.defaults === "object" ? payload.defaults : {});
+            setLabelPolicy(payload?.policy && typeof payload.policy === "object" ? payload.policy : {});
+            setCompliancePolicies(payload?.compliancePolicies && typeof payload.compliancePolicies === "object" ? payload.compliancePolicies : {});
+            if (preferredLabelType) {
+                setPrintLabelType(String(preferredLabelType));
+            }
+
+            if (preferDefaults) {
+                const normalizedCategory = String(categoryHint || "").toLowerCase();
+                const defaultRow = (normalizedCategory === "domestic" || normalizedCategory === "international")
+                    ? (payload?.defaults?.[normalizedCategory] || {})
+                    : {};
+                const nextTemplateId = defaultRow?.templateId ? String(defaultRow.templateId) : "";
+                const nextSizeId = defaultRow?.sizeId ? String(defaultRow.sizeId) : "";
+                setPrintTemplateId(nextTemplateId);
+                setPrintSizeId(nextSizeId);
+            }
         } catch (error) {
             setLabelCatalogError(error?.message || "Failed to load label catalog.");
         } finally {
@@ -270,18 +293,30 @@ const UnitContent = () => {
             return;
         }
 
+        const categories = ids
+            .map((id) => shipments.rows.find((row) => row.id === id)?.category)
+            .filter(Boolean)
+            .map((value) => String(value || "").toLowerCase());
+        const categorySet = new Set(categories);
+        const categoryHint = categorySet.size === 1 ? Array.from(categorySet)[0] : "all";
+        const defaultLabelType = hasMixedPrintCategories ? "shipping_awb" : "pod";
+
         setPrintShipmentIds(ids);
+        setPrintLabelType(defaultLabelType);
         setPrintTemplateId("");
         setPrintSizeId("");
+        setCompliancePreflight(null);
         setPrintModalOpen(true);
-        loadLabelCatalog();
+        loadLabelCatalog(categoryHint, true, defaultLabelType);
     };
 
     const closePrintModal = () => {
         setPrintModalOpen(false);
         setPrintShipmentIds([]);
+        setPrintLabelType("pod");
         setPrintTemplateId("");
         setPrintSizeId("");
+        setCompliancePreflight(null);
     };
 
     const openCodCollectedModal = (shipment) => {
@@ -351,8 +386,25 @@ const UnitContent = () => {
 
         setPrintBusy(true);
         try {
+            const selectedShipment = shipments.rows.find((row) => row.id === printShipmentIds[0]);
+            const requiresCompliance = Array.isArray(compliancePolicies?.requiredForTypes)
+                ? compliancePolicies.requiredForTypes.includes(printLabelType)
+                : false;
+            if (requiresCompliance && selectedShipment?.id) {
+                const preflight = await requestJson("POST", route("courierService.labels.compliance.validate"), {
+                    labelType: printLabelType,
+                    shipmentId: selectedShipment.id,
+                });
+                setCompliancePreflight(preflight?.result || null);
+                if (!preflight?.result?.ok) {
+                    setFeedback({ type: "error", message: "Compliance validation failed. Please complete required customs/invoice fields." });
+                    return;
+                }
+            }
+
             const payload = await requestJson("POST", route("courierService.labels.print"), {
                 shipmentIds: printShipmentIds,
+                labelType: printLabelType,
                 templateId: printTemplateId ? Number(printTemplateId) : null,
                 sizeId: printSizeId ? Number(printSizeId) : null,
                 outputFormat: "pdf",
@@ -495,6 +547,34 @@ const UnitContent = () => {
         return new Set(categories);
     }, [printShipmentIds, shipments.rows]);
     const hasMixedPrintCategories = printCategorySet.size > 1;
+    const primaryPrintCategory = hasMixedPrintCategories ? null : Array.from(printCategorySet)[0] || null;
+    const templateOptions = useMemo(() => {
+        const filteredByType = activeLabelTemplates.filter(
+            (template) => String(template?.label_type || template?.labelType || "pod").toLowerCase() === String(printLabelType || "pod").toLowerCase(),
+        );
+
+        if (!primaryPrintCategory) {
+            return filteredByType.filter((template) => String(template?.category_scope || template?.categoryScope || "all") === "all");
+        }
+
+        return filteredByType.filter((template) => {
+            const scope = String(template?.category_scope || template?.categoryScope || "all").toLowerCase();
+            return scope === "all" || scope === String(primaryPrintCategory).toLowerCase();
+        });
+    }, [activeLabelTemplates, primaryPrintCategory, printLabelType]);
+    const defaultSelectionSummary = useMemo(() => {
+        const key = primaryPrintCategory && !hasMixedPrintCategories
+            ? String(primaryPrintCategory).toLowerCase()
+            : "domestic";
+        const defaultsRow = labelDefaults?.[key] || {};
+        const defaultTemplate = activeLabelTemplates.find((item) => Number(item.id) === Number(defaultsRow?.templateId));
+        const defaultSize = activeLabelSizes.find((item) => Number(item.id) === Number(defaultsRow?.sizeId));
+
+        return {
+            templateName: defaultTemplate?.name || null,
+            sizeName: defaultSize ? `${defaultSize.name} (${formatLabelSize(defaultSize)})` : null,
+        };
+    }, [activeLabelSizes, activeLabelTemplates, hasMixedPrintCategories, labelDefaults, primaryPrintCategory]);
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
@@ -856,6 +936,11 @@ const UnitContent = () => {
                         <p className="text-[13px] text-[#6B7280] mt-1">
                             Selected {printShipmentIds.length} shipment(s).
                         </p>
+                        {!hasMixedPrintCategories && primaryPrintCategory && (
+                            <p className="text-[11px] text-[#475569] mt-1">
+                                Category detected: {titleCase(primaryPrintCategory)}.
+                            </p>
+                        )}
 
                         {labelCatalogError && (
                             <p className="text-[12px] text-[#B91C1C] mt-3">{labelCatalogError}</p>
@@ -866,6 +951,24 @@ const UnitContent = () => {
 
                         <div className="mt-4 space-y-3">
                             <div>
+                                <label className="text-[12px] font-[700] text-[#374151]">Label Type</label>
+                                <select
+                                    className="mt-1 w-full h-[38px] rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                    value={printLabelType}
+                                    onChange={(e) => {
+                                        setPrintLabelType(e.target.value);
+                                        setPrintTemplateId("");
+                                        setCompliancePreflight(null);
+                                    }}
+                                >
+                                    {(Array.isArray(labelTypes) ? labelTypes : []).map((item) => (
+                                        <option key={`print-label-type-${item.key}`} value={item.key}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
                                 <label className="text-[12px] font-[700] text-[#374151]">Template (optional)</label>
                                 <select
                                     className="mt-1 w-full h-[38px] rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
@@ -873,7 +976,7 @@ const UnitContent = () => {
                                     onChange={(e) => setPrintTemplateId(e.target.value)}
                                 >
                                     <option value="">Use default template</option>
-                                    {activeLabelTemplates.map((template) => {
+                                    {templateOptions.map((template) => {
                                         const typeLabel = titleCase(template.template_type || template.templateType || "");
                                         const scopeLabel = titleCase(template.category_scope || template.categoryScope || "all");
                                         return (
@@ -905,8 +1008,21 @@ const UnitContent = () => {
                                 </p>
                             )}
                             <p className="text-[11px] text-[#6B7280]">
-                                Leave fields blank to use the label defaults configured in Settings.
+                                Leave fields blank to use label defaults configured in Settings.
                             </p>
+                            {(defaultSelectionSummary.templateName || defaultSelectionSummary.sizeName) && (
+                                <p className="text-[11px] text-[#64748B]">
+                                    Default: {defaultSelectionSummary.templateName || "Template not set"} / {defaultSelectionSummary.sizeName || "Size not set"}
+                                </p>
+                            )}
+                            <p className="text-[11px] text-[#64748B]">
+                                Policy: Sync up to {Number(labelPolicy?.syncThreshold || labelPolicy?.bulkAsyncThreshold || 25)} labels, hard limit {Number(labelPolicy?.hardLimit || labelPolicy?.bulkHardLimit || 500)} per request.
+                            </p>
+                            {compliancePreflight && (
+                                <p className={`text-[11px] ${compliancePreflight?.ok ? "text-[#166534]" : "text-[#B91C1C]"}`}>
+                                    Compliance: {compliancePreflight?.ok ? "Valid" : "Failed"}
+                                </p>
+                            )}
                         </div>
 
                         <div className="mt-6 flex justify-end gap-2">

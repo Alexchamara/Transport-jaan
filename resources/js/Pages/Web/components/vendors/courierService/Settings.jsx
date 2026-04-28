@@ -3,911 +3,24 @@ import { router, usePage } from "@inertiajs/react";
 import { BadgeDollarSign, BellRing, ChevronDown, Clock3, KeyRound, MapPinned, Printer, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
 import useCourierActionModal from "./common/useCourierActionModal";
-
-const NOTIFICATION_EVENT_MATRIX_DEFAULT = {
-    shipment_placed: { client: { email: true, inApp: false }, internal: { email: false, inApp: false } },
-    booking_confirmed: { client: { email: true, inApp: false }, internal: { email: false, inApp: false } },
-    booking_cancelled: { client: { email: true, inApp: true }, internal: { email: true, inApp: true } },
-    tracking_picked_up: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
-    tracking_out_for_delivery: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
-    tracking_delivered: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
-    payment_paid: { client: { email: true, inApp: true }, internal: { email: false, inApp: false } },
-    payment_failed: { client: { email: true, inApp: true }, internal: { email: true, inApp: true } },
-    payment_cancelled: { client: { email: true, inApp: true }, internal: { email: true, inApp: true } },
-    internal_exception: { internal: { email: true, inApp: true } },
-    internal_sla_risk: { internal: { email: true, inApp: true } },
-};
-
-const LEGACY_NOTIFICATION_MAP = {
-    notifyClientShipmentPlaced: { event: "shipment_placed", audience: "client" },
-    notifyClientBookingConfirmed: { event: "booking_confirmed", audience: "client" },
-    notifyClientBookingCancelled: { event: "booking_cancelled", audience: "client" },
-    notifyClientPickup: { event: "tracking_picked_up", audience: "client" },
-    notifyClientOutForDelivery: { event: "tracking_out_for_delivery", audience: "client" },
-    notifyClientDelivered: { event: "tracking_delivered", audience: "client" },
-    notifyClientPaymentPaid: { event: "payment_paid", audience: "client" },
-    notifyClientPaymentFailed: { event: "payment_failed", audience: "client" },
-    notifyClientPaymentCancelled: { event: "payment_cancelled", audience: "client" },
-    notifyInternalException: { event: "internal_exception", audience: "internal" },
-    notifyInternalSlaRisk: { event: "internal_sla_risk", audience: "internal" },
-};
-
-const NOTIFICATION_EVENT_LABELS = {
-    shipment_placed: "Shipment Placed",
-    booking_confirmed: "Booking Confirmed",
-    booking_cancelled: "Booking Cancelled",
-    tracking_picked_up: "Tracking Picked Up",
-    tracking_out_for_delivery: "Out For Delivery",
-    tracking_delivered: "Delivered",
-    payment_paid: "Payment Paid",
-    payment_failed: "Payment Failed",
-    payment_cancelled: "Payment Cancelled",
-    internal_exception: "Internal Exception",
-    internal_sla_risk: "Internal SLA Risk",
-};
-
-const buildLegacyNotificationFlags = (eventMatrix) => {
-    const matrix = eventMatrix && typeof eventMatrix === "object" ? eventMatrix : {};
-    return Object.entries(LEGACY_NOTIFICATION_MAP).reduce((acc, [legacyKey, mapping]) => {
-        const fallback = Boolean(NOTIFICATION_EVENT_MATRIX_DEFAULT?.[mapping.event]?.[mapping.audience]?.email);
-        const rawValue = matrix?.[mapping.event]?.[mapping.audience]?.email;
-        acc[legacyKey] = typeof rawValue === "boolean" ? rawValue : fallback;
-        return acc;
-    }, {});
-};
-
-const buildDefaultNotificationSettings = () => {
-    const eventMatrix = JSON.parse(JSON.stringify(NOTIFICATION_EVENT_MATRIX_DEFAULT));
-    return {
-        ...buildLegacyNotificationFlags(eventMatrix),
-        version: 2,
-        channels: {
-            email: { enabled: true },
-            inApp: { enabled: true },
-        },
-        clientRecipients: {
-            requester: true,
-            sender: true,
-            recipient: true,
-            extraEmails: [],
-        },
-        internalRecipients: {
-            roleNames: ["ops_lead"],
-            userIds: [],
-            extraEmails: [],
-        },
-        eventMatrix,
-        delivery: {
-            quietHours: {
-                enabled: false,
-                start: "22:00",
-                end: "06:00",
-                timezone: "Asia/Colombo",
-            },
-            digest: {
-                enabled: false,
-                frequency: "daily",
-                time: "09:00",
-                timezone: "Asia/Colombo",
-            },
-        },
-        deliverability: {
-            fromName: "Transport Jaan Courier",
-            fromEmail: "",
-            replyTo: "",
-            respectSuppression: true,
-        },
-    };
-};
-
-const DEFAULT_NOTIFICATION_SETTINGS = buildDefaultNotificationSettings();
-
-const DEFAULT_SETTINGS = {
-    business: {
-        companyName: "Sonnac Lanka Enterprises",
-        supportEmail: "ops@sonnac.lk",
-        hotline: "+94 11 123 4567",
-        primaryHub: "Colombo Hub",
-        serviceZones: "Colombo, Gampaha, Kalutara, Kandy",
-    },
-    operations: {
-        autoAcceptBookings: false,
-        workStart: "08:00",
-        workEnd: "20:00",
-        sameDayCutoff: "14:00",
-        maxDailyBookings: 350,
-    },
-    sla: {
-        expressHours: 8,
-        economyHours: 24,
-        breachAlertMinutes: 90,
-        autoEscalateExceptions: true,
-    },
-    tracking: {
-        noScan6h: true,
-        noScan12h: true,
-        noScan24h: false,
-        requirePodPhoto: true,
-        requirePodSignature: false,
-        allowManualScanCorrection: true,
-    },
-    notifications: {
-        ...DEFAULT_NOTIFICATION_SETTINGS,
-    },
-    integrations: {
-        webhookUrl: "",
-        apiKeyAlias: "CourierProdKey",
-        retryWindowMinutes: 15,
-        rotateKeysEveryDays: 90,
-    },
-    services: {
-        cod: {
-            acceptCodAtCheckout: false,
-            allowCodForDomestic: true,
-            allowCodForInternational: false,
-            allowTeamOverride: false,
-        },
-    },
-    labels: {
-        defaults: {
-            domestic: {
-                templateId: null,
-                sizeId: null,
-            },
-            international: {
-                templateId: null,
-                sizeId: null,
-            },
-        },
-        printPolicy: {
-            bulkAsyncThreshold: 50,
-            bulkHardLimit: 200,
-            allowCustomSizes: true,
-            allowTemplateUpload: true,
-            allowHtmlTemplates: true,
-            allowPdfBackground: true,
-        },
-    },
-    pricing: {
-        localization: {
-            domestic: {
-                baseCurrency: "LKR",
-                displayCurrency: "LKR",
-                locale: "en-LK",
-                exchangeRateProvider: "frankfurter.app",
-                autoLiveRates: true,
-                manualRates: {
-                    LKR: 1,
-                    USD: 0.00308,
-                    EUR: 0.00284,
-                },
-                lastSyncedAt: null,
-            },
-            international: {
-                baseCurrency: "LKR",
-                displayCurrency: "LKR",
-                locale: "en-LK",
-                exchangeRateProvider: "frankfurter.app",
-                autoLiveRates: true,
-                manualRates: {
-                    LKR: 1,
-                    USD: 0.00308,
-                    EUR: 0.00284,
-                },
-                lastSyncedAt: null,
-            },
-        },
-        formula: {
-            domestic: {
-                volumetricDivisor: 5000,
-                useChargeableWeight: true,
-                fuelSurchargePercent: 0,
-                handlingFee: 0,
-                taxPercent: 0,
-                roundTo: 2,
-            },
-            international: {
-                volumetricDivisor: 5000,
-                useChargeableWeight: true,
-                fuelSurchargePercent: 0,
-                handlingFee: 0,
-                taxPercent: 0,
-                roundTo: 2,
-            },
-        },
-        serviceCatalog: {
-            domestic: [
-                { key: "same_day", label: "Same Day", promisedSlaDays: 1, cutoffTime: "10:30", isActive: true, sortOrder: 1 },
-                { key: "next_day", label: "Next Day", promisedSlaDays: 1, cutoffTime: "15:00", isActive: true, sortOrder: 2 },
-                { key: "two_three_day", label: "2-3 Day", promisedSlaDays: 3, cutoffTime: "17:00", isActive: true, sortOrder: 3 },
-                { key: "economy", label: "Economy", promisedSlaDays: 5, cutoffTime: "18:00", isActive: true, sortOrder: 4 },
-            ],
-            international: [
-                { key: "next_day", label: "Next Day", promisedSlaDays: 2, cutoffTime: "13:00", isActive: true, sortOrder: 1 },
-                { key: "two_three_day", label: "2-3 Day", promisedSlaDays: 3, cutoffTime: "16:00", isActive: true, sortOrder: 2 },
-                { key: "economy", label: "Economy", promisedSlaDays: 6, cutoffTime: "18:00", isActive: true, sortOrder: 3 },
-            ],
-        },
-        zoneMaster: {
-            domestic: [],
-            international: [],
-        },
-        laneMatrix: {
-            enabled: {
-                domestic: false,
-                international: false,
-            },
-            domestic: [],
-            international: [],
-        },
-        policyModules: {
-            domestic: {
-                remoteAreaSurcharge: {
-                    enabled: false,
-                    flatFee: 0,
-                    applyOnOrigin: false,
-                    applyOnDestination: true,
-                    postalCodePrefixes: [],
-                    cityKeywords: [],
-                },
-                oversizeOverweightRules: {
-                    enabled: false,
-                    maxWeightKg: 25,
-                    overweightPerKgFee: 0,
-                    maxLengthCm: 120,
-                    maxWidthCm: 80,
-                    maxHeightCm: 80,
-                    oversizeFlatFee: 0,
-                },
-                peakHolidaySurcharge: {
-                    enabled: false,
-                    peakStartTime: "17:00",
-                    peakEndTime: "21:00",
-                    daysOfWeek: [1, 2, 3, 4, 5],
-                    peakPercent: 0,
-                    peakFlatFee: 0,
-                    holidayDates: [],
-                    holidayPercent: 0,
-                    holidayFlatFee: 0,
-                },
-                codFee: {
-                    enabled: false,
-                    flatFee: 0,
-                    percentOfDeclaredValue: 0,
-                    minFee: 0,
-                    maxFee: null,
-                },
-                minimumShipmentCharge: {
-                    enabled: true,
-                    minimumTotal: 0,
-                },
-                customerContractPricing: {
-                    enabled: false,
-                    contracts: [],
-                },
-                quoteRuntimeGovernance: {
-                    enabled: false,
-                    fieldLocks: {
-                        enabled: false,
-                        lockShipmentServiceLevel: true,
-                        lockPackageServiceLevel: true,
-                        lockPackageCourierProvider: true,
-                        lockQuoteTotal: true,
-                    },
-                    discountGuardrails: {
-                        enabled: false,
-                        maxDiscountPercent: 0,
-                        maxDiscountAmountUsd: 0,
-                    },
-                    floorPriceGuardrail: {
-                        enabled: false,
-                        minimumTotalUsd: 0,
-                    },
-                },
-                speedEtaTierEngine: {
-                    enabled: false,
-                    enforceFixedNamedTiers: true,
-                    enforceTierPricingMultiplier: true,
-                    tiers: {
-                        priority_4h: {
-                            enabled: true,
-                            etaLabel: "Priority 4 Hours",
-                            etaMinDays: 0,
-                            etaMaxDays: 0,
-                            priceMultiplier: 1.45,
-                            maxDistanceKm: 35,
-                            maxWeightKg: 12,
-                            minLeadHours: 0.5,
-                            maxLeadHours: 4,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        same_day: {
-                            enabled: true,
-                            etaLabel: "Same Day",
-                            etaMinDays: 0,
-                            etaMaxDays: 1,
-                            priceMultiplier: 1.25,
-                            maxDistanceKm: 80,
-                            maxWeightKg: 20,
-                            minLeadHours: 1,
-                            maxLeadHours: 12,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        next_day: {
-                            enabled: true,
-                            etaLabel: "Next Day",
-                            etaMinDays: 1,
-                            etaMaxDays: 2,
-                            priceMultiplier: 1.12,
-                            maxDistanceKm: 250,
-                            maxWeightKg: 30,
-                            minLeadHours: 2,
-                            maxLeadHours: null,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        two_three_day: {
-                            enabled: true,
-                            etaLabel: "2-3 Days",
-                            etaMinDays: 2,
-                            etaMaxDays: 3,
-                            priceMultiplier: 1,
-                            maxDistanceKm: null,
-                            maxWeightKg: null,
-                            minLeadHours: 0,
-                            maxLeadHours: null,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        economy: {
-                            enabled: true,
-                            etaLabel: "Economy",
-                            etaMinDays: 4,
-                            etaMaxDays: 7,
-                            priceMultiplier: 0.92,
-                            maxDistanceKm: null,
-                            maxWeightKg: null,
-                            minLeadHours: 0,
-                            maxLeadHours: null,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                    },
-                },
-                internationalDimensionsEngine: {
-                    enabled: false,
-                    enforceForInternationalOnly: true,
-                    unitTypeMultipliers: {
-                        parcel: 1.0,
-                        pallet: 1.18,
-                        crate: 1.24,
-                        container_20ft: 1.55,
-                        container_40ft: 1.85,
-                    },
-                    routeClassMultipliers: {
-                        standard: 1.0,
-                        express_corridor: 1.12,
-                        remote_corridor: 1.22,
-                        multimodal: 1.3,
-                    },
-                    handlingClassMultipliers: {
-                        standard: 1.0,
-                        fragile: 1.08,
-                        hazardous: 1.2,
-                        cold_chain: 1.18,
-                        heavy_lift: 1.26,
-                    },
-                    w2wOption: {
-                        enabled: true,
-                        strictForInternational: true,
-                        defaultMode: "door_to_door",
-                        minimumUnitCount: 1,
-                        maximumUnitCount: null,
-                        modeMultipliers: {
-                            door_to_door: 1.15,
-                            port_to_port: 0.92,
-                            hybrid: 1,
-                        },
-                    },
-                },
-            },
-            international: {
-                remoteAreaSurcharge: {
-                    enabled: false,
-                    flatFee: 0,
-                    applyOnOrigin: false,
-                    applyOnDestination: true,
-                    postalCodePrefixes: [],
-                    cityKeywords: [],
-                },
-                oversizeOverweightRules: {
-                    enabled: false,
-                    maxWeightKg: 25,
-                    overweightPerKgFee: 0,
-                    maxLengthCm: 120,
-                    maxWidthCm: 80,
-                    maxHeightCm: 80,
-                    oversizeFlatFee: 0,
-                },
-                peakHolidaySurcharge: {
-                    enabled: false,
-                    peakStartTime: "17:00",
-                    peakEndTime: "21:00",
-                    daysOfWeek: [1, 2, 3, 4, 5],
-                    peakPercent: 0,
-                    peakFlatFee: 0,
-                    holidayDates: [],
-                    holidayPercent: 0,
-                    holidayFlatFee: 0,
-                },
-                codFee: {
-                    enabled: false,
-                    flatFee: 0,
-                    percentOfDeclaredValue: 0,
-                    minFee: 0,
-                    maxFee: null,
-                },
-                minimumShipmentCharge: {
-                    enabled: true,
-                    minimumTotal: 0,
-                },
-                customerContractPricing: {
-                    enabled: false,
-                    contracts: [],
-                },
-                quoteRuntimeGovernance: {
-                    enabled: false,
-                    fieldLocks: {
-                        enabled: false,
-                        lockShipmentServiceLevel: true,
-                        lockPackageServiceLevel: true,
-                        lockPackageCourierProvider: true,
-                        lockQuoteTotal: true,
-                    },
-                    discountGuardrails: {
-                        enabled: false,
-                        maxDiscountPercent: 0,
-                        maxDiscountAmountUsd: 0,
-                    },
-                    floorPriceGuardrail: {
-                        enabled: false,
-                        minimumTotalUsd: 0,
-                    },
-                },
-                speedEtaTierEngine: {
-                    enabled: false,
-                    enforceFixedNamedTiers: true,
-                    enforceTierPricingMultiplier: true,
-                    tiers: {
-                        priority_4h: {
-                            enabled: true,
-                            etaLabel: "Priority 4 Hours",
-                            etaMinDays: 0,
-                            etaMaxDays: 0,
-                            priceMultiplier: 1.45,
-                            maxDistanceKm: 35,
-                            maxWeightKg: 12,
-                            minLeadHours: 0.5,
-                            maxLeadHours: 4,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        same_day: {
-                            enabled: true,
-                            etaLabel: "Same Day",
-                            etaMinDays: 0,
-                            etaMaxDays: 1,
-                            priceMultiplier: 1.25,
-                            maxDistanceKm: 80,
-                            maxWeightKg: 20,
-                            minLeadHours: 1,
-                            maxLeadHours: 12,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        next_day: {
-                            enabled: true,
-                            etaLabel: "Next Day",
-                            etaMinDays: 1,
-                            etaMaxDays: 2,
-                            priceMultiplier: 1.12,
-                            maxDistanceKm: 250,
-                            maxWeightKg: 30,
-                            minLeadHours: 2,
-                            maxLeadHours: null,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        two_three_day: {
-                            enabled: true,
-                            etaLabel: "2-3 Days",
-                            etaMinDays: 2,
-                            etaMaxDays: 3,
-                            priceMultiplier: 1,
-                            maxDistanceKm: null,
-                            maxWeightKg: null,
-                            minLeadHours: 0,
-                            maxLeadHours: null,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                        economy: {
-                            enabled: true,
-                            etaLabel: "Economy",
-                            etaMinDays: 4,
-                            etaMaxDays: 7,
-                            priceMultiplier: 0.92,
-                            maxDistanceKm: null,
-                            maxWeightKg: null,
-                            minLeadHours: 0,
-                            maxLeadHours: null,
-                            allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-                            blackoutDates: [],
-                        },
-                    },
-                },
-                internationalDimensionsEngine: {
-                    enabled: false,
-                    enforceForInternationalOnly: true,
-                    unitTypeMultipliers: {
-                        parcel: 1.0,
-                        pallet: 1.18,
-                        crate: 1.24,
-                        container_20ft: 1.55,
-                        container_40ft: 1.85,
-                    },
-                    routeClassMultipliers: {
-                        standard: 1.0,
-                        express_corridor: 1.12,
-                        remote_corridor: 1.22,
-                        multimodal: 1.3,
-                    },
-                    handlingClassMultipliers: {
-                        standard: 1.0,
-                        fragile: 1.08,
-                        hazardous: 1.2,
-                        cold_chain: 1.18,
-                        heavy_lift: 1.26,
-                    },
-                    w2wOption: {
-                        enabled: true,
-                        strictForInternational: true,
-                        defaultMode: "door_to_door",
-                        minimumUnitCount: 1,
-                        maximumUnitCount: null,
-                        modeMultipliers: {
-                            door_to_door: 1.15,
-                            port_to_port: 0.92,
-                            hybrid: 1,
-                        },
-                    },
-                },
-            },
-        },
-        categories: {
-            domestic: [
-                {
-                    id: "domestic_within_3_days",
-                    label: "Within 3 Days",
-                    serviceLevelKey: "two_three_day",
-                    slaDays: 3,
-                    basePrice: 250,
-                    perKgPrice: 35,
-                    minPrice: 250,
-                    priorityMultiplier: 1,
-                },
-                {
-                    id: "domestic_one_day",
-                    label: "One Day",
-                    serviceLevelKey: "next_day",
-                    slaDays: 1,
-                    basePrice: 1000,
-                    perKgPrice: 70,
-                    minPrice: 1000,
-                    priorityMultiplier: 1,
-                },
-            ],
-            international: [
-                {
-                    id: "international_standard",
-                    label: "international Standard",
-                    serviceLevelKey: "two_three_day",
-                    slaDays: 4,
-                    basePrice: 1400,
-                    perKgPrice: 90,
-                    minPrice: 1400,
-                    priorityMultiplier: 1,
-                },
-                {
-                    id: "international_express",
-                    label: "international Express",
-                    serviceLevelKey: "next_day",
-                    slaDays: 2,
-                    basePrice: 2200,
-                    perKgPrice: 130,
-                    minPrice: 2200,
-                    priorityMultiplier: 1.12,
-                },
-            ],
-        },
-        governance: {
-            domestic: {
-                requireApproval: false,
-                approverRoles: ["courier_owner", "courier_admin"],
-                draftVersion: 1,
-                publishedVersion: 1,
-                publishedAt: null,
-                publishedBy: null,
-                pendingApproval: null,
-                scheduledPublish: null,
-                versionHistory: [],
-                changeLog: [],
-            },
-            international: {
-                requireApproval: false,
-                approverRoles: ["courier_owner", "courier_admin"],
-                draftVersion: 1,
-                publishedVersion: 1,
-                publishedAt: null,
-                publishedBy: null,
-                pendingApproval: null,
-                scheduledPublish: null,
-                versionHistory: [],
-                changeLog: [],
-            },
-        },
-    },
-    team: {
-        dispatcherCanCancel: false,
-        opsLeadCanReassign: true,
-        financeCanViewRates: true,
-        enforce2FA: true,
-        approvalControl: {
-            enabled: true,
-            makerChecker: true,
-            approvalTtlMinutes: 240,
-            sensitiveActions: {
-                high_value_cancellation: {
-                    enabled: true,
-                    minAmount: 50000,
-                    requiredApprovals: 1,
-                },
-                refund: {
-                    enabled: true,
-                    level1MinAmount: 25000,
-                    level2MinAmount: 100000,
-                    requiredApprovalsLevel1: 1,
-                    requiredApprovalsLevel2: 2,
-                },
-                cod_override: {
-                    enabled: true,
-                    level1MinAmount: 25000,
-                    level2MinAmount: 100000,
-                    requiredApprovalsLevel1: 1,
-                    requiredApprovalsLevel2: 2,
-                },
-                ownership_transfer: {
-                    enabled: true,
-                    requiredApprovals: 2,
-                },
-                client_list_export: {
-                    enabled: true,
-                    minRows: 100,
-                    requiredApprovals: 1,
-                },
-            },
-        },
-        sodControl: {
-            enabled: true,
-            toxicCombinations: [
-                {
-                    key: "refund_create_and_approve",
-                    label: "Cannot both create refunds and approve refunds",
-                    permissions: ["courier.refunds.create", "courier.refunds.approve"],
-                    enforceRoleEdit: true,
-                    enforceUserAssignment: true,
-                    enabled: true,
-                },
-                {
-                    key: "assign_permissions_and_approve_access_request",
-                    label: "Cannot both assign permissions and approve access requests",
-                    permissions: ["courier.team.assign_permissions", "courier.team.access_requests.approve"],
-                    enforceRoleEdit: true,
-                    enforceUserAssignment: true,
-                    enabled: true,
-                },
-            ],
-        },
-        temporaryAccessControl: {
-            enabled: true,
-            defaultDurationMinutes: 120,
-            maxDurationMinutes: 240,
-            requireTicket: true,
-            requireReason: true,
-            makerChecker: true,
-            allowedElevationRoles: ["courier_admin"],
-            breakGlass: {
-                enabled: true,
-                defaultDurationMinutes: 30,
-                maxDurationMinutes: 60,
-                requireTicket: true,
-                requireReason: true,
-                notifyOwners: true,
-                notifyRequester: true,
-                notifyTarget: true,
-                alertEmails: [],
-                alertWebhookUrl: "",
-            },
-        },
-        accessReviewControl: {
-            enabled: true,
-            reviewFrequency: "monthly",
-            reviewDueDays: 7,
-            requireManagerCertification: true,
-            autoDisableStaleAccounts: true,
-            staleAccountDays: 45,
-            alertDormantPrivilegedUsers: true,
-            dormantPrivilegedDays: 21,
-            privilegedRoles: ["courier_owner", "courier_admin", "courier_finance"],
-        },
-        apiServiceAccessControl: {
-            enabled: true,
-            requireExpiry: true,
-            defaultTtlDays: 30,
-            maxTtlDays: 90,
-            allowWebhookScopes: true,
-            maxActiveKeysPerServiceAccount: 2,
-            webhookScopesCatalog: ["webhook.events.write"],
-        },
-        sessionSecurity: {
-            enabled: true,
-            deviceTrust: {
-                enabled: true,
-                enforceForRoles: ["courier_owner", "courier_admin"],
-                enforceForUserIds: [],
-                trustDurationDays: 30,
-            },
-            concurrentSessions: {
-                enabled: true,
-                mode: "revoke_oldest",
-                defaultLimit: 3,
-                limitsByRole: {
-                    courier_owner: 2,
-                    courier_admin: 2,
-                    courier_dispatcher: 3,
-                    courier_finance: 2,
-                    courier_support: 3,
-                    courier_tracking_officer: 4,
-                    courier_viewer: 5,
-                },
-            },
-            anomalyDetection: {
-                enabled: true,
-                rapidSwitchMinutes: 120,
-                clearStepUpOnAnomaly: false,
-                ipAllowList: [],
-                ipDenyList: [],
-            },
-            stepUp: {
-                enabled: true,
-                ttlMinutes: 120,
-                twoFactorTtlMinutes: 120,
-                sensitiveRouteNames: [
-                    "courierService.team.access.update",
-                    "courierService.team.bulk",
-                    "courierService.team.transfer-ownership",
-                    "courierService.team.roles.store",
-                    "courierService.team.roles.store-template",
-                    "courierService.team.roles.clone",
-                    "courierService.team.roles.update",
-                    "courierService.team.sensitive-approvals.approve",
-                    "courierService.team.sensitive-approvals.reject",
-                    "courierService.team.temporary-access.approve",
-                    "courierService.team.temporary-access.reject",
-                    "courierService.team.temporary-access.revoke",
-                    "courierService.team.temporary-access.break-glass",
-                    "courierService.team.access-reviews.certify",
-                    "courierService.team.api-access.store",
-                    "courierService.team.api-access.rotate",
-                    "courierService.team.api-access.revoke",
-                ],
-            },
-            mandatory2FA: {
-                enabled: true,
-                roles: ["courier_owner", "courier_admin"],
-                userIds: [],
-                forSensitiveActions: true,
-            },
-        },
-        teamAccessControl: {
-            defaultDirectPermissionsByRole: {},
-            defaultDataScopeByRole: {},
-            onboardingBundles: [],
-        },
-        permissionModel: {
-            enabled: true,
-            rolePolicies: {},
-            fieldVisibility: {
-                rate_cards: { visibleToRoles: [] },
-                margin: { visibleToRoles: [] },
-                customer_phone: { visibleToRoles: [] },
-                payment_refs: { visibleToRoles: [] },
-            },
-        },
-    },
-};
-
-const TAB_CONFIG = [
-    { key: "business", label: "Business", icon: MapPinned },
-    { key: "operations", label: "Operations", icon: Clock3 },
-    { key: "sla", label: "SLA", icon: ShieldCheck },
-    { key: "tracking", label: "Tracking", icon: MapPinned },
-    { key: "notifications", label: "Notifications", icon: BellRing },
-    { key: "integrations", label: "Integrations", icon: KeyRound },
-    { key: "services", label: "Services", icon: ShieldCheck },
-    { key: "labels", label: "Labels", icon: Printer },
-    { key: "pricing", label: "Pricing", icon: BadgeDollarSign },
-    { key: "team", label: "Team Access", icon: Users },
-];
-
-const CURRENCY_OPTIONS = [
-    "LKR",
-    "USD",
-    "EUR",
-    "GBP",
-    "AED",
-    "AUD",
-    "CAD",
-    "CHF",
-    "CNY",
-    "HKD",
-    "INR",
-    "JPY",
-    "SGD",
-];
-
-const LABEL_UNIT_OPTIONS = [
-    { value: "mm", label: "mm" },
-    { value: "cm", label: "cm" },
-    { value: "in", label: "in" },
-];
-
-const TEAM_ACCESS_TOPIC_CONFIG = [
-    { key: "policy-controls", label: "Team Policy Controls" },
-    { key: "user-defaults", label: "Team User Creation Defaults" },
-    { key: "api-access", label: "API and Service Access" },
-    { key: "role-studio", label: "Role Studio" },
-];
-
-const PRICING_TOPIC_CONFIG = [
-    { key: "currency-formula", label: "Currency and Formula", sectionId: "pricing-topic-currency-formula" },
-    { key: "policy-modules", label: "Policy Modules", sectionId: "pricing-topic-policy-modules" },
-    { key: "contracts", label: "Customer Contracts", sectionId: "pricing-topic-contracts" },
-    { key: "service-catalog", label: "Service Catalog", sectionId: "pricing-topic-service-catalog" },
-    { key: "governance", label: "Pricing Governance", sectionId: "pricing-topic-governance" },
-    { key: "rate-cards", label: "Rate Cards", sectionId: "pricing-topic-rate-cards" },
-    { key: "zone-master", label: "Zone Master", sectionId: "pricing-topic-zone-master" },
-    { key: "lane-matrix", label: "Lane Matrix", sectionId: "pricing-topic-lane-matrix" },
-    { key: "preview", label: "Formula Preview", sectionId: "pricing-topic-preview" },
-];
-
-const COD_CAPABILITY_CATEGORY_LABEL = "Domestic";
-
-const DEFAULT_SPEED_ETA_TIER_TEMPLATE = {
-    enabled: true,
-    etaLabel: "Custom Tier",
-    etaMinDays: 0,
-    etaMaxDays: null,
-    priceMultiplier: 1,
-    maxDistanceKm: null,
-    maxWeightKg: null,
-    minLeadHours: 0,
-    maxLeadHours: null,
-    allowedPickupDays: [1, 2, 3, 4, 5, 6, 7],
-    blackoutDates: [],
-};
+import SettingsPricingTab from "./SettingsPricingTab";
+import SettingsServicesTab from "./SettingsServicesTab";
+import {
+    buildLegacyNotificationFlags,
+    COD_CAPABILITY_CATEGORY_LABEL,
+    DEFAULT_NOTIFICATION_SETTINGS,
+    CURRENCY_OPTIONS,
+    DEFAULT_ROLE_SCOPE_CONSTRAINTS,
+    DEFAULT_SETTINGS,
+    DEFAULT_SPEED_ETA_TIER_TEMPLATE,
+    LABEL_UNIT_OPTIONS,
+    LEGACY_NOTIFICATION_MAP,
+    NOTIFICATION_EVENT_MATRIX_DEFAULT,
+    NOTIFICATION_EVENT_LABELS,
+    PRICING_TOPIC_CONFIG,
+    TAB_CONFIG,
+    TEAM_ACCESS_TOPIC_CONFIG,
+} from "./settingsConstants";
 
 const SectionCard = ({ title, description, children }) => (
     <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
@@ -973,22 +86,6 @@ const tryParseDate = (value) => {
 
     return parsed;
 };
-const DEFAULT_ROLE_SCOPE_CONSTRAINTS = {
-    regionZones: [],
-    hubBranches: [],
-    allowedCustomerIds: [],
-    keyAccountsOnly: false,
-    enforceShiftWindow: false,
-    shiftStart: "00:00",
-    shiftEnd: "23:59",
-    allowedEnvironments: ["production", "sandbox"],
-    blockedActionsByEnvironment: {
-        production: [],
-        sandbox: [],
-    },
-    policyRules: [],
-};
-
 const Settings = () => {
     const props = usePage().props;
     const flash = props.flash || {};
@@ -1738,6 +835,7 @@ const Settings = () => {
 
         return defaultPricingCategory;
     });
+    const [activeLabelCategory, setActiveLabelCategory] = useState(() => "all");
     const [pricingPreviewInput, setPricingPreviewInput] = useState({
         weightKg: 3,
         lengthCm: 30,
@@ -1765,6 +863,8 @@ const Settings = () => {
     const [pricingImportResult, setPricingImportResult] = useState(null);
     const [labelSizes, setLabelSizes] = useState([]);
     const [labelTemplates, setLabelTemplates] = useState([]);
+    const [labelTypes, setLabelTypes] = useState([{ key: "pod", label: "POD" }]);
+    const [newLabelTypeInput, setNewLabelTypeInput] = useState("");
     const [labelCatalogBusy, setLabelCatalogBusy] = useState(false);
     const [labelCatalogError, setLabelCatalogError] = useState("");
     const [labelSizeForm, setLabelSizeForm] = useState({
@@ -1777,6 +877,9 @@ const Settings = () => {
     const [labelTemplateForm, setLabelTemplateForm] = useState({
         name: "",
         templateType: "builder",
+        labelType: "pod",
+        schemaVersion: "v1",
+        versionChannel: "stable",
         categoryScope: "all",
         sizeId: "",
         orientation: "portrait",
@@ -1785,12 +888,16 @@ const Settings = () => {
         cssTemplate: "",
         fieldOverrides: "",
         backgroundFile: null,
+        isActive: true,
     });
+    const [editingLabelTemplateId, setEditingLabelTemplateId] = useState(null);
     const [labelTemplateDrafts, setLabelTemplateDrafts] = useState({});
     const [labelSizeSaveBusyId, setLabelSizeSaveBusyId] = useState(null);
     const [labelTemplateSaveBusyId, setLabelTemplateSaveBusyId] = useState(null);
     const [labelPreviewBusyId, setLabelPreviewBusyId] = useState(null);
     const [labelTemplateUploadBusy, setLabelTemplateUploadBusy] = useState(false);
+    const [labelSizeSearch, setLabelSizeSearch] = useState("");
+    const [labelTemplateSearch, setLabelTemplateSearch] = useState("");
     const [codRequestBusy, setCodRequestBusy] = useState(false);
     const [codRequestNote, setCodRequestNote] = useState(String(incomingCodCapability.requestedNote || ""));
     const [notificationBasicView, setNotificationBasicView] = useState(true);
@@ -1802,6 +909,23 @@ const Settings = () => {
             setActivePricingCategory(defaultPricingCategory);
         }
     }, [activePricingCategory, approvedPricingCategories, defaultPricingCategory]);
+
+    useEffect(() => {
+        if (activeLabelCategory !== "all" && !approvedPricingCategories.includes(activeLabelCategory)) {
+            setActiveLabelCategory("all");
+        }
+    }, [activeLabelCategory, approvedPricingCategories]);
+
+    useEffect(() => {
+        if (activeLabelCategory === "all") {
+            return;
+        }
+
+        setLabelTemplateForm((prev) => ({
+            ...prev,
+            categoryScope: activeLabelCategory,
+        }));
+    }, [activeLabelCategory]);
 
     useEffect(() => {
         setSettings((prev) => {
@@ -2822,6 +1946,9 @@ const Settings = () => {
             nextDrafts[template.id] = {
                 name: String(template?.name || ""),
                 templateType: String(template?.template_type || "builder"),
+                labelType: String(template?.label_type || template?.labelType || "pod"),
+                schemaVersion: String(template?.schema_version || template?.schemaVersion || "v1"),
+                versionChannel: String(template?.version_channel || template?.versionChannel || "stable"),
                 categoryScope: String(template?.category_scope || "all"),
                 sizeId: template?.size_id ? String(template.size_id) : "",
                 orientation: String(template?.orientation || "portrait"),
@@ -2841,17 +1968,33 @@ const Settings = () => {
         setLabelCatalogBusy(true);
         setLabelCatalogError("");
         try {
-            const [sizesPayload, templatesPayload] = await Promise.all([
-                requestJson("GET", route("courierService.labels.sizes.index")),
-                requestJson("GET", route("courierService.labels.templates.index")),
-            ]);
-
-            const sizes = Array.isArray(sizesPayload?.sizes) ? sizesPayload.sizes : [];
-            const templates = Array.isArray(templatesPayload?.templates) ? templatesPayload.templates : [];
+            const payload = await requestJson("GET", route("courierService.labels.catalog"));
+            const sizes = Array.isArray(payload?.sizes) ? payload.sizes : [];
+            const templates = Array.isArray(payload?.templates) ? payload.templates : [];
             setLabelSizes(sizes);
             setLabelTemplates(templates);
+            setLabelTypes(Array.isArray(payload?.labelTypes) ? payload.labelTypes : []);
             syncLabelSizeDrafts(sizes);
             syncLabelTemplateDrafts(templates);
+            setSettings((prev) => ({
+                ...prev,
+                labels: {
+                    ...(prev.labels || DEFAULT_SETTINGS.labels),
+                    defaults: payload?.defaults && typeof payload.defaults === "object"
+                        ? payload.defaults
+                        : ((prev.labels && prev.labels.defaults) || DEFAULT_SETTINGS.labels.defaults),
+                    printPolicy: payload?.policy && typeof payload.policy === "object"
+                        ? {
+                            ...((prev.labels && prev.labels.printPolicy) || DEFAULT_SETTINGS.labels.printPolicy),
+                            syncThreshold: Number(payload.policy.syncThreshold || 25),
+                            hardLimit: Number(payload.policy.hardLimit || 500),
+                            bulkAsyncThreshold: Number(payload.policy.syncThreshold || payload.policy.bulkAsyncThreshold || 25),
+                            bulkHardLimit: Number(payload.policy.hardLimit || payload.policy.bulkHardLimit || 500),
+                            byType: payload.policy.byType && typeof payload.policy.byType === "object" ? payload.policy.byType : {},
+                        }
+                        : ((prev.labels && prev.labels.printPolicy) || DEFAULT_SETTINGS.labels.printPolicy),
+                },
+            }));
         } catch (error) {
             setLabelCatalogError(error?.message || "Failed to load label catalog.");
         } finally {
@@ -2972,6 +2115,127 @@ const Settings = () => {
         }
     };
 
+    const resetLabelTemplateForm = () => {
+        setLabelTemplateForm({
+            name: "",
+            templateType: "builder",
+            labelType: "pod",
+            schemaVersion: "v1",
+            versionChannel: "stable",
+            categoryScope: "all",
+            sizeId: "",
+            orientation: "portrait",
+            builderSchema: "",
+            htmlTemplate: "",
+            cssTemplate: "",
+            fieldOverrides: "",
+            backgroundFile: null,
+            isActive: true,
+        });
+        setEditingLabelTemplateId(null);
+        setNewLabelTypeInput("");
+    };
+
+    const addCustomLabelTypeOption = () => {
+        const normalized = String(newLabelTypeInput || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_\-]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+        if (!normalized) {
+            setFeedback({ type: "error", message: "Enter a valid label type key." });
+            return;
+        }
+
+        setLabelTypes((prev) => {
+            const existing = Array.isArray(prev) ? prev : [];
+            if (existing.some((item) => String(item?.key || "").toLowerCase() === normalized)) {
+                return existing;
+            }
+            return [
+                ...existing,
+                {
+                    key: normalized,
+                    label: normalized.toUpperCase().replaceAll("_", " "),
+                    requiresCompliance: false,
+                    isCustom: true,
+                },
+            ];
+        });
+        setLabelTemplateForm((prev) => ({ ...prev, labelType: normalized }));
+        setNewLabelTypeInput("");
+    };
+
+    const confirmAddCustomLabelTypeOption = () => {
+        const normalized = String(newLabelTypeInput || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_\-]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+
+        if (!normalized) {
+            setFeedback({ type: "error", message: "Enter a valid label type key." });
+            return;
+        }
+
+        openConfirm({
+            title: "Add Label Type",
+            message: `Create new label type "${normalized}"?`,
+            confirmText: "Add Type",
+            onConfirm: addCustomLabelTypeOption,
+        });
+    };
+
+    const normalizeTemplateSchemaForSubmit = (value) => {
+        if (Array.isArray(value) && value.length === 1 && value[0] && typeof value[0] === "object" && !Array.isArray(value[0])) {
+            return value[0];
+        }
+
+        return value;
+    };
+
+    const startEditLabelTemplate = (templateId) => {
+        const template = (Array.isArray(labelTemplates) ? labelTemplates : []).find((item) => Number(item.id) === Number(templateId));
+        if (!template) {
+            setFeedback({ type: "error", message: "Template not found." });
+            return;
+        }
+
+        const schemaValue = template?.builder_schema ?? template?.schema ?? {};
+        const overridesValue = template?.field_overrides ?? {};
+
+        setLabelTemplateForm({
+            name: String(template?.name || ""),
+            templateType: "builder",
+            labelType: String(template?.label_type || template?.labelType || "pod"),
+            schemaVersion: String(template?.schema_version || template?.schemaVersion || "v1"),
+            versionChannel: String(template?.version_channel || template?.versionChannel || "stable"),
+            categoryScope: String(template?.category_scope || template?.categoryScope || "all"),
+            sizeId: template?.size_id ? String(template.size_id) : (template?.sizeId ? String(template.sizeId) : ""),
+            orientation: String(template?.orientation || "portrait"),
+            builderSchema: JSON.stringify(schemaValue, null, 2),
+            htmlTemplate: "",
+            cssTemplate: "",
+            fieldOverrides: JSON.stringify(overridesValue, null, 2),
+            backgroundFile: null,
+            isActive: Boolean(template?.is_active ?? template?.isActive ?? true),
+        });
+        setEditingLabelTemplateId(Number(template.id));
+
+        // Bring vendor directly to edit form after selecting "Edit".
+        window.requestAnimationFrame(() => {
+            const formAnchor = document.getElementById("label-template-form-anchor");
+            if (formAnchor) {
+                formAnchor.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+
+            window.setTimeout(() => {
+                const nameInput = document.getElementById("label-template-name-input");
+                nameInput?.focus();
+            }, 180);
+        });
+    };
+
     const createLabelTemplate = async () => {
         if (!labelPolicy.allowTemplateUpload) {
             setFeedback({ type: "error", message: "Template uploads are disabled by policy." });
@@ -2980,7 +2244,12 @@ const Settings = () => {
 
         const name = String(labelTemplateForm.name || "").trim();
         const templateType = "builder";
-        const categoryScope = String(labelTemplateForm.categoryScope || "all");
+        const labelType = String(labelTemplateForm.labelType || "pod").toLowerCase();
+        const schemaVersion = String(labelTemplateForm.schemaVersion || "v1");
+        const versionChannel = String(labelTemplateForm.versionChannel || "stable");
+        const categoryScope = activeLabelCategory === "all"
+            ? String(labelTemplateForm.categoryScope || "all")
+            : String(activeLabelCategory);
         const sizeId = labelTemplateForm.sizeId ? Number(labelTemplateForm.sizeId) : null;
         const orientation = String(labelTemplateForm.orientation || "portrait");
 
@@ -3020,11 +2289,6 @@ const Settings = () => {
             return;
         }
 
-        if (templateType === "builder" && (!Array.isArray(parsedBuilder.value) || parsedBuilder.value.length === 0)) {
-            setFeedback({ type: "error", message: "Builder schema must be a JSON array with at least one field." });
-            return;
-        }
-
         const parsedOverrides = templateType === "upload"
             ? { ok: true, value: null }
             : parseLabelJsonField(labelTemplateForm.fieldOverrides, "Field overrides");
@@ -3036,7 +2300,26 @@ const Settings = () => {
         setLabelTemplateUploadBusy(true);
 
         try {
-            if (templateType === "upload") {
+            const normalizedSchema = normalizeTemplateSchemaForSubmit(parsedBuilder.value);
+
+            if (editingLabelTemplateId) {
+                await requestJson("PATCH", route("courierService.labels.templates.update", { template: editingLabelTemplateId }), {
+                    name,
+                    templateType,
+                    labelType,
+                    schemaVersion,
+                    versionChannel,
+                    categoryScope,
+                    sizeId,
+                    orientation,
+                    builderSchema: templateType === "builder" ? normalizedSchema : null,
+                    htmlTemplate: templateType === "html" ? labelTemplateForm.htmlTemplate : null,
+                    cssTemplate: templateType === "html" ? labelTemplateForm.cssTemplate : null,
+                    fieldOverrides: parsedOverrides.value,
+                    isActive: Boolean(labelTemplateForm.isActive),
+                });
+                setFeedback({ type: "success", message: "Label template updated." });
+            } else if (templateType === "upload") {
                 if (!labelTemplateForm.backgroundFile) {
                     setFeedback({ type: "error", message: "Upload templates require a background file." });
                     return;
@@ -3057,32 +2340,25 @@ const Settings = () => {
                 await requestJson("POST", route("courierService.labels.templates.store"), {
                     name,
                     templateType,
+                    labelType,
+                    schemaVersion,
+                    versionChannel,
                     categoryScope,
                     sizeId,
                     orientation,
-                    builderSchema: templateType === "builder" ? parsedBuilder.value : null,
+                    builderSchema: templateType === "builder" ? normalizedSchema : null,
                     htmlTemplate: templateType === "html" ? labelTemplateForm.htmlTemplate : null,
                     cssTemplate: templateType === "html" ? labelTemplateForm.cssTemplate : null,
                     fieldOverrides: parsedOverrides.value,
+                    isActive: Boolean(labelTemplateForm.isActive),
                 });
+                setFeedback({ type: "success", message: "Label template created." });
             }
 
-            setLabelTemplateForm({
-                name: "",
-                templateType: "builder",
-                categoryScope: "all",
-                sizeId: "",
-                orientation: "portrait",
-                builderSchema: "",
-                htmlTemplate: "",
-                cssTemplate: "",
-                fieldOverrides: "",
-                backgroundFile: null,
-            });
-            setFeedback({ type: "success", message: "Label template created." });
+            resetLabelTemplateForm();
             await loadLabelCatalog();
         } catch (error) {
-            setFeedback({ type: "error", message: error?.message || "Failed to create label template." });
+            setFeedback({ type: "error", message: error?.message || "Failed to save label template." });
         } finally {
             setLabelTemplateUploadBusy(false);
         }
@@ -3107,13 +2383,11 @@ const Settings = () => {
         }
 
         const templateType = "builder";
+        const labelType = String(draft.labelType || template?.label_type || template?.labelType || "pod");
+        const schemaVersion = String(draft.schemaVersion || template?.schema_version || template?.schemaVersion || "v1");
+        const versionChannel = String(draft.versionChannel || template?.version_channel || template?.versionChannel || "stable");
         const builderSchema = template.builder_schema || null;
         const htmlTemplate = template.html_template || null;
-
-        if (templateType === "builder" && (!Array.isArray(builderSchema) || builderSchema.length === 0)) {
-            setFeedback({ type: "error", message: "Builder schema is missing for this template." });
-            return;
-        }
 
         if (templateType === "html" && !String(htmlTemplate || "").trim()) {
             setFeedback({ type: "error", message: "HTML template content is missing for this template." });
@@ -3130,6 +2404,9 @@ const Settings = () => {
             await requestJson("PATCH", route("courierService.labels.templates.update", { template: templateId }), {
                 name: String(draft.name || "").trim(),
                 templateType,
+                labelType,
+                schemaVersion,
+                versionChannel,
                 categoryScope: String(draft.categoryScope || "all"),
                 sizeId: draft.sizeId ? Number(draft.sizeId) : null,
                 orientation: String(draft.orientation || "portrait"),
@@ -3165,7 +2442,7 @@ const Settings = () => {
         });
     };
 
-    const previewLabelTemplate = async (templateId, sizeId) => {
+    const previewLabelTemplate = async (templateId, sizeId, labelType = "pod") => {
         setLabelPreviewBusyId(templateId);
 
         try {
@@ -3181,6 +2458,7 @@ const Settings = () => {
                 body: JSON.stringify({
                     templateId,
                     sizeId: sizeId || null,
+                    labelType,
                 }),
             });
 
@@ -5767,78 +5045,25 @@ const Settings = () => {
 
         if (activeTab === "services") {
             return (
-                <div className="space-y-4">
-                    <SectionCard title="Service Capabilities" description="Configure operational service behavior and request controlled capability enablement.">
-                        <p className="text-[12px] text-[#6B7280] mb-3">COD capability applies to domestic routes only.</p>
-
-                        <div className={`rounded-[10px] border px-4 py-3 ${codStatusTone}`}>
-                            <p className="text-[13px] font-[700]">{codCapabilityCategoryLabel} COD Capability Status: {codCapabilityStatusLabel}</p>
-                            <p className="text-[12px] mt-1">
-                                {codCapabilityStatus === "approved" && `Your courier workspace is approved to operate ${codCapabilityCategoryLabel.toLowerCase()} COD bookings.`}
-                                {codCapabilityStatus === "pending" && `Your ${codCapabilityCategoryLabel.toLowerCase()} COD request is pending superadmin review.`}
-                                {codCapabilityStatus === "rejected" && `Your previous ${codCapabilityCategoryLabel.toLowerCase()} COD request was rejected. Update details and re-submit.`}
-                                {codCapabilityStatus === "not_requested" && `${codCapabilityCategoryLabel} COD is not enabled yet. Submit a request for superadmin approval.`}
-                            </p>
-                            {codCapabilityRequestedAt && (
-                                <p className="text-[11px] mt-2">Requested at: {codCapabilityRequestedAt}</p>
-                            )}
-                            {codCapabilityReviewedAt && (
-                                <p className="text-[11px] mt-1">Reviewed at: {codCapabilityReviewedAt}{codCapabilityReviewedBy ? ` by ${codCapabilityReviewedBy}` : ""}</p>
-                            )}
-                            {codCapabilityDecisionReason && (
-                                <p className="text-[11px] mt-1">Decision note: {codCapabilityDecisionReason}</p>
-                            )}
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <Toggle
-                                label="Allow COD At Checkout"
-                                checked={Boolean(servicesCodSettings.acceptCodAtCheckout)}
-                                onChange={(next) => updateServiceCodValue("acceptCodAtCheckout", next)}
-                                description="Expose COD as an option during courier booking checkout."
-                            />
-                            <Toggle
-                                label="Allow Domestic COD"
-                                checked={Boolean(servicesCodSettings.allowCodForDomestic)}
-                                onChange={(next) => updateServiceCodValue("allowCodForDomestic", next)}
-                                description="Keep domestic COD path active once capability is approved."
-                            />
-                            <Toggle
-                                label="Allow Team Override"
-                                checked={Boolean(servicesCodSettings.allowTeamOverride)}
-                                onChange={(next) => updateServiceCodValue("allowTeamOverride", next)}
-                                description="Use only with explicit COD override permissions for authorized staff."
-                            />
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 gap-3">
-                            <Field label={`${codCapabilityCategoryLabel} COD Request Note`} help="Share readiness details such as SOP, collection controls, and reconciliation process.">
-                                <textarea
-                                    rows={3}
-                                    className="w-full rounded-[8px] border border-[#D1D5DB]"
-                                    value={codRequestNote}
-                                    onChange={(event) => setCodRequestNote(event.target.value)}
-                                    placeholder="COD readiness summary..."
-                                />
-                            </Field>
-
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={submitCodCapabilityRequest}
-                                    disabled={!codCapabilityCanRequest || codRequestBusy}
-                                    className="h-[38px] px-5 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
-                                >
-                                    {codRequestBusy
-                                        ? "Submitting..."
-                                        : (codCapabilityStatus === "rejected"
-                                            ? `Re-submit ${codCapabilityCategoryLabel} COD Request`
-                                            : `Submit ${codCapabilityCategoryLabel} COD Request`)}
-                                </button>
-                            </div>
-                        </div>
-                    </SectionCard>
-                </div>
+                <SettingsServicesTab
+                    {...{
+                        codCapabilityCanRequest,
+                        codCapabilityCategoryLabel,
+                        codCapabilityDecisionReason,
+                        codCapabilityRequestedAt,
+                        codCapabilityReviewedAt,
+                        codCapabilityReviewedBy,
+                        codCapabilityStatus,
+                        codCapabilityStatusLabel,
+                        codRequestBusy,
+                        codRequestNote,
+                        codStatusTone,
+                        servicesCodSettings,
+                        setCodRequestNote,
+                        submitCodCapabilityRequest,
+                        updateServiceCodValue,
+                    }}
+                />
             );
         }
 
@@ -5854,13 +5079,113 @@ const Settings = () => {
             }
 
             const labelControlsDisabled = !canManageLabels;
-            const templateOptionsForCategory = (categoryKey) => labelTemplates.filter((template) => {
-                const scope = String(template?.category_scope || template?.categoryScope || "all");
-                return scope === "all" || scope === categoryKey;
+            const normalizedSizeSearch = String(labelSizeSearch || "").trim().toLowerCase();
+            const normalizedTemplateSearch = String(labelTemplateSearch || "").trim().toLowerCase();
+            const labelCategoryOptions = visiblePricingCategoryOptions.length > 0
+                ? [{ key: "all", label: "All" }, ...visiblePricingCategoryOptions]
+                : [{ key: "domestic", label: "Domestic" }];
+            const resolvedLabelCategory = labelCategoryOptions.some((option) => option.key === activeLabelCategory)
+                ? activeLabelCategory
+                : labelCategoryOptions[0].key;
+            const resolvedLabelCategoryLabel = labelCategoryOptions.find((option) => option.key === resolvedLabelCategory)?.label || titleCase(resolvedLabelCategory);
+            const filteredLabelSizes = (Array.isArray(labelSizes) ? labelSizes : []).filter((size) => {
+                if (!normalizedSizeSearch) {
+                    return true;
+                }
+
+                const haystack = [
+                    String(size?.name || ""),
+                    String(size?.preset_code || size?.presetCode || ""),
+                    String(size?.paper_class || size?.paperClass || ""),
+                    String(size?.dpi_profile || size?.dpiProfile || ""),
+                    formatLabelSize(size),
+                ].join(" ").toLowerCase();
+                return haystack.includes(normalizedSizeSearch);
             });
+            const templateOptionsForCategory = (categoryKey) => (Array.isArray(labelTemplates) ? labelTemplates : []).filter((template) => {
+                const scope = String(template?.category_scope || template?.categoryScope || "all");
+                const scopeMatch = scope === "all" || scope === categoryKey;
+                if (!scopeMatch) {
+                    return false;
+                }
+                if (!normalizedTemplateSearch) {
+                    return true;
+                }
+                const haystack = [
+                    String(template?.name || ""),
+                    String(template?.label_type || template?.labelType || ""),
+                    String(template?.version_channel || template?.versionChannel || ""),
+                    String(template?.category_scope || template?.categoryScope || ""),
+                ].join(" ").toLowerCase();
+                return haystack.includes(normalizedTemplateSearch);
+            });
+            const filteredTemplates = (Array.isArray(labelTemplates) ? labelTemplates : []).filter((template) => {
+                const scope = String(template?.category_scope || template?.categoryScope || "all").toLowerCase();
+                const haystack = [
+                    String(template?.name || ""),
+                    String(template?.label_type || template?.labelType || ""),
+                    String(template?.version_channel || template?.versionChannel || ""),
+                    String(template?.category_scope || template?.categoryScope || ""),
+                ].join(" ").toLowerCase();
+                if (normalizedTemplateSearch && !haystack.includes(normalizedTemplateSearch)) {
+                    return false;
+                }
+                if (resolvedLabelCategory === "all") {
+                    return true;
+                }
+                return scope === String(resolvedLabelCategory).toLowerCase();
+            });
+            const templateScopeOptions = resolvedLabelCategory === "all"
+                ? [
+                    { value: "all", label: "All" },
+                    ...labelCategoryOptions
+                        .filter((option) => option.key !== "all")
+                        .map((option) => ({
+                            value: option.key,
+                            label: option.label,
+                        })),
+                ]
+                : [
+                    {
+                        value: resolvedLabelCategory,
+                        label: resolvedLabelCategoryLabel,
+                    },
+                ];
 
             return (
                 <div className="space-y-4">
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide">Label Category</p>
+                                <p className="text-[12px] text-[#475569] mt-1">Switch between Domestic and International label settings using tabs.</p>
+                            </div>
+                            {labelCategoryOptions.length > 1 && (
+                                <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
+                                    {labelCategoryOptions.map((option) => (
+                                        <button
+                                            key={`label-category-toggle-${option.key}`}
+                                            type="button"
+                                            onClick={() => setActiveLabelCategory(option.key)}
+                                            className={`h-[30px] px-4 rounded-[6px] text-[12px] font-[700] transition-colors ${
+                                                resolvedLabelCategory === option.key
+                                                    ? "bg-[#0955AC] text-white"
+                                                    : "text-[#475569] hover:text-[#1F2937]"
+                                            }`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        {labelCategoryOptions.length === 1 && (
+                            <p className="mt-2 text-[11px] text-[#64748B]">
+                                Labels are currently available only for {titleCase(labelCategoryOptions[0].key)} based on approved vendor registration.
+                            </p>
+                        )}
+                    </div>
+
                     <SectionCard title="Label Defaults and Policy" description="Set default label templates and sizes per category, then control bulk print limits and access.">
                         {labelCatalogError && (
                             <p className="text-[12px] text-[#B91C1C] mb-2">{labelCatalogError}</p>
@@ -5869,20 +5194,60 @@ const Settings = () => {
                             <p className="text-[11px] text-[#6B7280] mb-2">Refreshing label catalog...</p>
                         )}
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {resolvedLabelCategory === "all" ? (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {visiblePricingCategoryOptions.map((category) => (
+                                    <div key={`label-defaults-${category.key}`} className="border border-[#E5E7EB] rounded-[10px] p-3">
+                                        <p className="text-[13px] font-[700] text-[#111827]">{category.label} Defaults</p>
+                                        <div className="mt-3 grid grid-cols-1 gap-3">
+                                            <Field label="Default Template">
+                                                <select
+                                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                                    disabled={labelControlsDisabled}
+                                                    value={String(labelDefaults?.[category.key]?.templateId || "")}
+                                                    onChange={(e) => updateLabelDefaults(category.key, "templateId", e.target.value ? Number(e.target.value) : null)}
+                                                >
+                                                    <option value="">No default template</option>
+                                                    {templateOptionsForCategory(category.key).map((template) => (
+                                                        <option key={`label-template-${category.key}-${template.id}`} value={template.id}>
+                                                            {template.name}{template.is_active === false ? " (Inactive)" : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                            <Field label="Default Size">
+                                                <select
+                                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                                    disabled={labelControlsDisabled}
+                                                    value={String(labelDefaults?.[category.key]?.sizeId || "")}
+                                                    onChange={(e) => updateLabelDefaults(category.key, "sizeId", e.target.value ? Number(e.target.value) : null)}
+                                                >
+                                                    <option value="">No default size</option>
+                                                    {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
+                                                        <option key={`label-size-${category.key}-${size.id}`} value={size.id}>
+                                                            {size.name} ({formatLabelSize(size)}){size.is_active === false ? " (Inactive)" : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
                             <div className="border border-[#E5E7EB] rounded-[10px] p-3">
-                                <p className="text-[13px] font-[700] text-[#111827]">Domestic Defaults</p>
+                                <p className="text-[13px] font-[700] text-[#111827]">{resolvedLabelCategoryLabel} Defaults</p>
                                 <div className="mt-3 grid grid-cols-1 gap-3">
                                     <Field label="Default Template">
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                             disabled={labelControlsDisabled}
-                                            value={String(labelDefaults?.domestic?.templateId || "")}
-                                            onChange={(e) => updateLabelDefaults("domestic", "templateId", e.target.value ? Number(e.target.value) : null)}
+                                            value={String(labelDefaults?.[resolvedLabelCategory]?.templateId || "")}
+                                            onChange={(e) => updateLabelDefaults(resolvedLabelCategory, "templateId", e.target.value ? Number(e.target.value) : null)}
                                         >
                                             <option value="">No default template</option>
-                                            {templateOptionsForCategory("domestic").map((template) => (
-                                                <option key={`label-template-dom-${template.id}`} value={template.id}>
+                                            {templateOptionsForCategory(resolvedLabelCategory).map((template) => (
+                                                <option key={`label-template-${resolvedLabelCategory}-${template.id}`} value={template.id}>
                                                     {template.name}{template.is_active === false ? " (Inactive)" : ""}
                                                 </option>
                                             ))}
@@ -5892,12 +5257,12 @@ const Settings = () => {
                                         <select
                                             className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                             disabled={labelControlsDisabled}
-                                            value={String(labelDefaults?.domestic?.sizeId || "")}
-                                            onChange={(e) => updateLabelDefaults("domestic", "sizeId", e.target.value ? Number(e.target.value) : null)}
+                                            value={String(labelDefaults?.[resolvedLabelCategory]?.sizeId || "")}
+                                            onChange={(e) => updateLabelDefaults(resolvedLabelCategory, "sizeId", e.target.value ? Number(e.target.value) : null)}
                                         >
                                             <option value="">No default size</option>
                                             {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
-                                                <option key={`label-size-dom-${size.id}`} value={size.id}>
+                                                <option key={`label-size-${resolvedLabelCategory}-${size.id}`} value={size.id}>
                                                     {size.name} ({formatLabelSize(size)}){size.is_active === false ? " (Inactive)" : ""}
                                                 </option>
                                             ))}
@@ -5905,42 +5270,7 @@ const Settings = () => {
                                     </Field>
                                 </div>
                             </div>
-                            <div className="border border-[#E5E7EB] rounded-[10px] p-3">
-                                <p className="text-[13px] font-[700] text-[#111827]">international Defaults</p>
-                                <div className="mt-3 grid grid-cols-1 gap-3">
-                                    <Field label="Default Template">
-                                        <select
-                                            className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
-                                            disabled={labelControlsDisabled}
-                                            value={String(labelDefaults?.international?.templateId || "")}
-                                            onChange={(e) => updateLabelDefaults("international", "templateId", e.target.value ? Number(e.target.value) : null)}
-                                        >
-                                            <option value="">No default template</option>
-                                            {templateOptionsForCategory("international").map((template) => (
-                                                <option key={`label-template-log-${template.id}`} value={template.id}>
-                                                    {template.name}{template.is_active === false ? " (Inactive)" : ""}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </Field>
-                                    <Field label="Default Size">
-                                        <select
-                                            className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
-                                            disabled={labelControlsDisabled}
-                                            value={String(labelDefaults?.international?.sizeId || "")}
-                                            onChange={(e) => updateLabelDefaults("international", "sizeId", e.target.value ? Number(e.target.value) : null)}
-                                        >
-                                            <option value="">No default size</option>
-                                            {(Array.isArray(labelSizes) ? labelSizes : []).map((size) => (
-                                                <option key={`label-size-log-${size.id}`} value={size.id}>
-                                                    {size.name} ({formatLabelSize(size)}){size.is_active === false ? " (Inactive)" : ""}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </Field>
-                                </div>
-                            </div>
-                        </div>
+                        )}
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                             <Field label="Bulk Async Threshold">
@@ -5998,6 +5328,16 @@ const Settings = () => {
                         {!labelPolicy.allowCustomSizes && (
                             <p className="text-[11px] text-[#B45309] mb-2">Custom label sizes are disabled by policy.</p>
                         )}
+                        <div className="mb-3">
+                            <Field label="Search Sizes">
+                                <input
+                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelSizeSearch}
+                                    onChange={(e) => setLabelSizeSearch(e.target.value)}
+                                    placeholder="Search by name, size, preset, paper class, or DPI"
+                                />
+                            </Field>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                             <Field label="Size Name">
                                 <input
@@ -6055,11 +5395,11 @@ const Settings = () => {
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            {labelSizes.length === 0 && (
+                            {filteredLabelSizes.length === 0 && (
                                 <p className="text-[11px] text-[#6B7280]">No label sizes configured yet.</p>
                             )}
 
-                            {labelSizes.map((size) => {
+                            {filteredLabelSizes.map((size) => {
                                 const draft = labelSizeDrafts[size.id] || {
                                     name: size.name || "",
                                     widthMm: size.width_mm || size.widthMm || "",
@@ -6173,13 +5513,39 @@ const Settings = () => {
                         </div>
                     </SectionCard>
 
-                    <SectionCard title="Label Templates" description="Create structured POD templates using JSON schema tokens.">
+                    <SectionCard title="Label Templates" description="Create structured multi-type templates with guided defaults for non-technical vendors.">
+                        <div id="label-template-form-anchor" className="scroll-mt-24" />
                         {!labelPolicy.allowTemplateUpload && (
                             <p className="text-[11px] text-[#B45309] mb-2">Template uploads are disabled by policy.</p>
                         )}
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+                        <div className="mb-3">
+                            <Field label="Search Templates">
+                                <input
+                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateSearch}
+                                    onChange={(e) => setLabelTemplateSearch(e.target.value)}
+                                    placeholder="Search by template name, label type, scope, or channel"
+                                />
+                            </Field>
+                        </div>
+                        {editingLabelTemplateId && (
+                            <div className="mb-3 flex items-center justify-between rounded-[8px] border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-2">
+                                <p className="text-[12px] font-[700] text-[#1E3A8A]">
+                                    Editing Template #{editingLabelTemplateId}
+                                </p>
+                                <button
+                                    type="button"
+                                    className="h-[30px] px-3 rounded-[6px] border border-[#93C5FD] text-[12px] font-[700] text-[#1D4ED8]"
+                                    onClick={resetLabelTemplateForm}
+                                >
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 items-end">
                             <Field label="Template Name">
                                 <input
+                                    id="label-template-name-input"
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.name}
                                     disabled={labelControlsDisabled}
@@ -6191,11 +5557,46 @@ const Settings = () => {
                                 <select
                                     className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
                                     value={labelTemplateForm.templateType}
-                                    disabled={labelControlsDisabled}
-                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, templateType: e.target.value }))}
+                                    disabled={true}
                                 >
-                                    <option value="builder">Structured POD</option>
+                                    <option value="builder">Structured Studio</option>
                                 </select>
+                            </Field>
+                            <Field label="Label Type">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.labelType}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, labelType: e.target.value }))}
+                                >
+                                    {(Array.isArray(labelTypes) ? labelTypes : []).length === 0 && (
+                                        <option value="pod">POD</option>
+                                    )}
+                                    {(Array.isArray(labelTypes) ? labelTypes : []).map((item) => (
+                                        <option key={`label-type-option-${item.key}`} value={item.key}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field label="New Label Type">
+                                <div className="flex gap-2">
+                                    <input
+                                        className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                        value={newLabelTypeInput}
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setNewLabelTypeInput(e.target.value)}
+                                        placeholder="e.g. pallet_tag"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="h-[42px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700]"
+                                        disabled={labelControlsDisabled}
+                                        onClick={confirmAddCustomLabelTypeOption}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
                             </Field>
                             <Field label="Scope">
                                 <select
@@ -6204,9 +5605,11 @@ const Settings = () => {
                                     disabled={labelControlsDisabled}
                                     onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, categoryScope: e.target.value }))}
                                 >
-                                    <option value="all">All</option>
-                                    <option value="domestic">Domestic</option>
-                                    <option value="international">international</option>
+                                    {templateScopeOptions.map((option) => (
+                                        <option key={`template-scope-form-${option.value}`} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </Field>
                             <Field label="Size">
@@ -6235,26 +5638,49 @@ const Settings = () => {
                                     <option value="landscape">Landscape</option>
                                 </select>
                             </Field>
+                            <Field label="Channel">
+                                <select
+                                    className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]"
+                                    value={labelTemplateForm.versionChannel}
+                                    disabled={labelControlsDisabled}
+                                    onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, versionChannel: e.target.value }))}
+                                >
+                                    <option value="stable">Stable</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </Field>
+                            <div className="flex items-center gap-2 h-[42px]">
+                                <label className="inline-flex items-center gap-2 text-[12px] text-[#374151]">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(labelTemplateForm.isActive)}
+                                        disabled={labelControlsDisabled}
+                                        onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                                    />
+                                    Active
+                                </label>
+                            </div>
                             <button
                                 type="button"
                                 className="h-[42px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] disabled:opacity-50"
                                 onClick={createLabelTemplate}
                                 disabled={labelTemplateUploadBusy || !labelPolicy.allowTemplateUpload || labelControlsDisabled}
                             >
-                                {labelTemplateUploadBusy ? "Saving" : "Create Template"}
+                                {labelTemplateUploadBusy ? "Saving" : (editingLabelTemplateId ? "Update Template" : "Create Template")}
                             </button>
                         </div>
 
                         {labelTemplateForm.templateType === "builder" && (
                             <div className="mt-3">
-                                <Field label="Builder Schema (JSON array)" help="Use tokens like {{trackingNumber}}, {{sender.name}}, {{recipient.address.city}}">
+                                <Field label="Advanced Schema (Optional JSON)" help="Leave empty to use the recommended POD layout. Add JSON only for advanced customization.">
                                     <textarea
                                         rows={4}
                                         className="w-full rounded-[8px] border border-[#D1D5DB]"
                                         value={labelTemplateForm.builderSchema}
                                         disabled={labelControlsDisabled}
                                         onChange={(e) => setLabelTemplateForm((prev) => ({ ...prev, builderSchema: e.target.value }))}
-                                        placeholder='[{"type":"text","x":12,"y":14,"value":"{{trackingNumber}}"}]'
+                                        placeholder='Optional advanced schema override (JSON)'
                                     />
                                 </Field>
                             </div>
@@ -6273,13 +5699,16 @@ const Settings = () => {
                         </div>
 
                         <div className="mt-4 space-y-2">
-                            {labelTemplates.length === 0 && (
+                            {filteredTemplates.length === 0 && (
                                 <p className="text-[11px] text-[#6B7280]">No label templates yet. Create one above.</p>
                             )}
 
-                            {labelTemplates.map((template) => {
+                            {filteredTemplates.map((template) => {
                                 const draft = labelTemplateDrafts[template.id] || {
                                     name: template.name || "",
+                                    labelType: template.label_type || template.labelType || "pod",
+                                    schemaVersion: template.schema_version || template.schemaVersion || "v1",
+                                    versionChannel: template.version_channel || template.versionChannel || "stable",
                                     categoryScope: template.category_scope || "all",
                                     sizeId: template.size_id ? String(template.size_id) : "",
                                     orientation: template.orientation || "portrait",
@@ -6291,7 +5720,10 @@ const Settings = () => {
 
                                 return (
                                     <div key={`label-template-${template.id}`} className="border border-[#E5E7EB] rounded-[10px] p-3">
-                                        <div className="grid grid-cols-1 lg:grid-cols-7 gap-3 items-end">
+                                        <p className="text-[13px] font-[700] text-[#111827] mb-2">
+                                            {draft.name || template.name || `Template #${template.id}`}
+                                        </p>
+                                        <div className="grid grid-cols-1 lg:grid-cols-8 gap-3 items-end">
                                             <Field label="Name">
                                                 <input
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
@@ -6310,6 +5742,26 @@ const Settings = () => {
                                                     disabled={true}
                                                 />
                                             </Field>
+                                            <Field label="Label Type">
+                                                <select
+                                                    className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
+                                                    value={draft.labelType}
+                                                    disabled={isSystem || labelControlsDisabled}
+                                                    onChange={(e) => setLabelTemplateDrafts((prev) => ({
+                                                        ...prev,
+                                                        [template.id]: { ...draft, labelType: e.target.value },
+                                                    }))}
+                                                >
+                                                    {(Array.isArray(labelTypes) ? labelTypes : []).length === 0 && (
+                                                        <option value="pod">POD</option>
+                                                    )}
+                                                    {(Array.isArray(labelTypes) ? labelTypes : []).map((item) => (
+                                                        <option key={`template-type-${template.id}-${item.key}`} value={item.key}>
+                                                            {item.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </Field>
                                             <Field label="Scope">
                                                 <select
                                                     className="w-full h-[38px] rounded-[8px] border border-[#D1D5DB]"
@@ -6320,9 +5772,11 @@ const Settings = () => {
                                                         [template.id]: { ...draft, categoryScope: e.target.value },
                                                     }))}
                                                 >
-                                                    <option value="all">All</option>
-                                                    <option value="domestic">Domestic</option>
-                                                    <option value="international">international</option>
+                                                    {templateScopeOptions.map((option) => (
+                                                        <option key={`template-scope-row-${template.id}-${option.value}`} value={option.value}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
                                                 </select>
                                             </Field>
                                             <Field label="Size">
@@ -6375,10 +5829,18 @@ const Settings = () => {
                                                 <button
                                                     type="button"
                                                     className="h-[34px] px-3 rounded-[8px] border border-[#D1D5DB] text-[12px] font-[700] text-[#374151] disabled:opacity-50"
-                                                    onClick={() => previewLabelTemplate(template.id, draft.sizeId || template.size_id)}
+                                                    onClick={() => previewLabelTemplate(template.id, draft.sizeId || template.size_id, draft.labelType || template.label_type || "pod")}
                                                     disabled={labelPreviewBusyId === template.id}
                                                 >
                                                     {labelPreviewBusyId === template.id ? "Previewing" : "Preview"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="h-[34px] px-3 rounded-[8px] border border-[#93C5FD] text-[#1D4ED8] text-[12px] font-[700] disabled:opacity-50"
+                                                    onClick={() => startEditLabelTemplate(template.id)}
+                                                    disabled={labelControlsDisabled}
+                                                >
+                                                    Edit
                                                 </button>
                                                 <button
                                                     type="button"
@@ -6401,7 +5863,7 @@ const Settings = () => {
                                             </div>
                                         </div>
                                         <p className="mt-2 text-[11px] text-[#6B7280]">
-                                            Template ID: {template.id} • Category: {titleCase(template.category_scope || "all")}
+                                            Template ID: {template.id} • Type: {titleCase(draft.labelType || template.label_type || "pod")} • Category: {titleCase(template.category_scope || "all")}
                                         </p>
                                     </div>
                                 );
@@ -6413,1846 +5875,101 @@ const Settings = () => {
         }
 
         if (activeTab === "pricing") {
-            if (visiblePricingCategoryOptions.length === 0) {
-                return (
-                    <SectionCard title="Advanced Pricing" description="Configure domestic/international rate cards with category-based approvals.">
-                        <p className="text-[12px] text-[#B45309]">
-                            Pricing setup is locked because no courier pricing category is approved yet. Ask super admin to approve Domestic and/or international courier registration.
-                        </p>
-                    </SectionCard>
-                );
-            }
-
             return (
-                <div className="space-y-4">
-                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide">Pricing Category</p>
-                                <p className="text-[12px] text-[#475569] mt-1">Switch between Domestic and International pricing using URL-based tabs.</p>
-                            </div>
-                            <div className="inline-flex rounded-[8px] border border-[#D1D5DB] p-1 bg-[#F8FAFC]">
-                                {visiblePricingCategoryOptions.map((item) => (
-                                    <button
-                                        key={`pricing-category-tab-${item.key}`}
-                                        type="button"
-                                        className={`h-[30px] px-4 rounded-[6px] text-[12px] font-[700] transition-colors ${activePricingCategory === item.key ? "bg-[#0955AC] text-white" : "text-[#475569] hover:text-[#1F2937]"}`}
-                                        onClick={() => navigatePricingCategory(item.key)}
-                                    >
-                                        {item.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        {visiblePricingCategoryOptions.length === 1 && (
-                            <p className="mt-2 text-[11px] text-[#64748B]">
-                                Pricing is currently available only for {titleCase(visiblePricingCategoryOptions[0].key)} based on super admin service approval.
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-5">
-                        <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                            <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Pricing Topics</p>
-                            <div className="space-y-2">
-                                {PRICING_TOPIC_CONFIG.map((topic) => (
-                                    <button
-                                        key={topic.key}
-                                        type="button"
-                                        onClick={() => navigatePricingTopic(topic.key, { category: activePricingCategory })}
-                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${activePricingTopic === topic.key
-                                                ? "bg-[#0955AC] text-white"
-                                                : "bg-[#F3F4F6] text-[#374151]"
-                                            }`}
-                                    >
-                                        <span>{topic.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <SectionCard title="Advanced Pricing" description={`Configure ${titleCase(activePricingCategory)} rate cards, localized currency display, and formula controls for accurate quote calculations.`}>
-                            <div className="space-y-4">
-                            {activePricingTopic === "currency-formula" && (
-                                <div id="pricing-topic-currency-formula" className="grid grid-cols-1 lg:grid-cols-2 gap-4 scroll-mt-24">
-                                    <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
-                                        <p className="text-[13px] font-[700] text-[#111827] mb-2">Currency Localization</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            <Field label="Base Currency">
-                                                <select
-                                                    className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={String(activePricingLocalization.baseCurrency || "LKR").toUpperCase()}
-                                                    onChange={(e) => updatePricingLocalization(activePricingCategory, "baseCurrency", String(e.target.value || "LKR").toUpperCase())}
-                                                >
-                                                    {CURRENCY_OPTIONS.map((currencyCode) => (
-                                                        <option key={`base_currency_${currencyCode}`} value={currencyCode}>{currencyCode}</option>
-                                                    ))}
-                                                </select>
-                                            </Field>
-                                            <Field label="Display Currency">
-                                                <select
-                                                    className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={String(activePricingLocalization.displayCurrency || "LKR").toUpperCase()}
-                                                    onChange={(e) => updatePricingLocalization(activePricingCategory, "displayCurrency", String(e.target.value || "LKR").toUpperCase())}
-                                                >
-                                                    {CURRENCY_OPTIONS.map((currencyCode) => (
-                                                        <option key={`display_currency_${currencyCode}`} value={currencyCode}>{currencyCode}</option>
-                                                    ))}
-                                                </select>
-                                            </Field>
-                                            <Field label="Locale">
-                                                <input
-                                                    className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={String(activePricingLocalization.locale || "en-LK")}
-                                                    onChange={(e) => updatePricingLocalization(activePricingCategory, "locale", e.target.value)}
-                                                    placeholder="en-LK"
-                                                />
-                                            </Field>
-                                            <Field label="Display Exchange Rate">
-                                                <input
-                                                    type="number"
-                                                    min={0.000001}
-                                                    step="0.000001"
-                                                    className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={Number((activePricingLocalization.manualRates || {})[String(activePricingLocalization.displayCurrency || "LKR").toUpperCase()] || 1)}
-                                                    onChange={(e) => {
-                                                        const displayCurrency = String(activePricingLocalization.displayCurrency || "LKR").toUpperCase();
-                                                        const nextRate = Math.max(0.000001, Number(e.target.value || 1));
-                                                        const currentManual = activePricingLocalization.manualRates || {};
-                                                        updatePricingLocalization(activePricingCategory, "manualRates", {
-                                                            ...currentManual,
-                                                            [String(activePricingLocalization.baseCurrency || "LKR").toUpperCase()]: 1,
-                                                            [displayCurrency]: nextRate,
-                                                        });
-                                                    }}
-                                                />
-                                            </Field>
-                                        </div>
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            <button
-                                                type="button"
-                                                disabled={liveRateBusy}
-                                                className="h-[32px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700] disabled:opacity-50"
-                                                onClick={fetchLiveExchangeRates}
-                                            >
-                                                {liveRateBusy ? "Syncing..." : "Sync Live Rates"}
-                                            </button>
-                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingLocalization.autoLiveRates)}
-                                                    onChange={(e) => updatePricingLocalization(activePricingCategory, "autoLiveRates", e.target.checked)}
-                                                />
-                                                Enable live-rate strategy
-                                            </label>
-                                            <span className="text-[11px] text-[#64748B]">
-                                                Provider: {activePricingLocalization.exchangeRateProvider || "frankfurter.app"}
-                                            </span>
-                                            <span className="text-[11px] text-[#64748B]">
-                                                Last Sync: {activePricingLocalization.lastSyncedAt || "Not synced"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC]">
-                                        <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Controls ({titleCase(activePricingCategory)})</p>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Field label="Volumetric Divisor">
-                                                <input type="number" min={1} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.volumetricDivisor || 5000)} onChange={(e) => updatePricingFormula(activePricingCategory, "volumetricDivisor", Number(e.target.value || 5000))} />
-                                            </Field>
-                                            <Field label="Fuel Surcharge %">
-                                                <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.fuelSurchargePercent || 0)} onChange={(e) => updatePricingFormula(activePricingCategory, "fuelSurchargePercent", Number(e.target.value || 0))} />
-                                            </Field>
-                                            <Field label="Handling Fee">
-                                                <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.handlingFee || 0)} onChange={(e) => updatePricingFormula(activePricingCategory, "handlingFee", Number(e.target.value || 0))} />
-                                            </Field>
-                                            <Field label="Tax %">
-                                                <input type="number" min={0} step="0.01" className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.taxPercent || 0)} onChange={(e) => updatePricingFormula(activePricingCategory, "taxPercent", Number(e.target.value || 0))} />
-                                            </Field>
-                                        </div>
-                                        <div className="mt-2 grid grid-cols-2 gap-2">
-                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingFormula.useChargeableWeight)}
-                                                    onChange={(e) => updatePricingFormula(activePricingCategory, "useChargeableWeight", e.target.checked)}
-                                                />
-                                                Use chargeable weight
-                                            </label>
-                                            <Field label="Round Decimals">
-                                                <input type="number" min={0} max={4} className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingFormula.roundTo || 2)} onChange={(e) => updatePricingFormula(activePricingCategory, "roundTo", Number(e.target.value || 2))} />
-                                            </Field>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "policy-modules" && (
-                                <div id="pricing-topic-policy-modules" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC] scroll-mt-24">
-                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Rule-Based Policy Modules ({titleCase(activePricingCategory)})</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
-                                            <p className="text-[12px] font-[700] text-[#111827]">Speed/ETA Explicit Tier Engine</p>
-                                            <p className="text-[11px] text-[#64748B] mt-1">Manage your own tiers with explicit ETA ranges, constraints, and optional tier price multipliers.</p>
-                                            <div className="mt-2 flex flex-wrap gap-3">
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activeSpeedEtaTierEngine?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enabled", e.target.checked)}
-                                                    />
-                                                    Enable
-                                                </label>
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activeSpeedEtaTierEngine?.enforceFixedNamedTiers)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enforceFixedNamedTiers", e.target.checked)}
-                                                    />
-                                                    Require Selected Service Tier To Exist
-                                                </label>
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activeSpeedEtaTierEngine?.enforceTierPricingMultiplier)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "speedEtaTierEngine", "enforceTierPricingMultiplier", e.target.checked)}
-                                                    />
-                                                    Enforce Tier Price Multiplier
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                                                    onClick={() => openAddTierModal(activePricingCategory)}
-                                                >
-                                                    Add Tier
-                                                </button>
-                                            </div>
-
-                                            <div className="mt-3 overflow-x-auto">
-                                                <table className="w-full min-w-[1200px] text-[12px]">
-                                                    <thead>
-                                                        <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                            <th className="px-2 py-2">Tier</th>
-                                                            <th className="px-2 py-2">Enabled</th>
-                                                            <th className="px-2 py-2">ETA Label</th>
-                                                            <th className="px-2 py-2">ETA Min Days</th>
-                                                            <th className="px-2 py-2">ETA Max Days</th>
-                                                            <th className="px-2 py-2">Price Multiplier</th>
-                                                            <th className="px-2 py-2">Max Distance (km)</th>
-                                                            <th className="px-2 py-2">Max Weight (kg)</th>
-                                                            <th className="px-2 py-2">Min Lead Hours</th>
-                                                            <th className="px-2 py-2">Max Lead Hours</th>
-                                                            <th className="px-2 py-2">Action</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {activeSpeedEtaTierRows.map((tier) => {
-                                                            const tierRow = tier.row || {};
-                                                            return (
-                                                                <tr key={`speed-eta-tier-${tier.key}`} className="border-x border-b border-[#E5E7EB]">
-                                                                    <td className="px-2 py-2 font-[700] text-[#0F172A]">{tier.key}</td>
-                                                                    <td className="px-2 py-2">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={Boolean(tierRow?.enabled)}
-                                                                            onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "enabled", e.target.checked)}
-                                                                        />
-                                                                    </td>
-                                                                    <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(tierRow?.etaLabel || titleCase(tier.key))} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaLabel", e.target.value)} /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0} step="1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.etaMinDays ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaMinDays", Number(e.target.value || 0))} /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0} step="1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.etaMaxDays === null || tierRow?.etaMaxDays === undefined ? "" : Number(tierRow?.etaMaxDays ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "etaMaxDays", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0.1} step="0.01" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.priceMultiplier ?? 1)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "priceMultiplier", Number(e.target.value || 1))} /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0.1} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxDistanceKm === null || tierRow?.maxDistanceKm === undefined ? "" : Number(tierRow?.maxDistanceKm ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxDistanceKm", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0.1} step="0.1" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxWeightKg === null || tierRow?.maxWeightKg === undefined ? "" : Number(tierRow?.maxWeightKg ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxWeightKg", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0} step="0.25" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(tierRow?.minLeadHours ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "minLeadHours", Number(e.target.value || 0))} /></td>
-                                                                    <td className="px-2 py-2"><input type="number" min={0} step="0.25" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={tierRow?.maxLeadHours === null || tierRow?.maxLeadHours === undefined ? "" : Number(tierRow?.maxLeadHours ?? 0)} onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "maxLeadHours", e.target.value === "" ? null : Number(e.target.value || 0))} placeholder="No cap" /></td>
-                                                                    <td className="px-2 py-2">
-                                                                        <button
-                                                                            type="button"
-                                                                            className="h-[28px] px-2 rounded-[6px] border border-[#DC2626] text-[#DC2626] text-[11px] font-[700]"
-                                                                            onClick={() => removePricingTierEngineTier(activePricingCategory, tier.key)}
-                                                                        >
-                                                                            Remove
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                {activeSpeedEtaTierRows.map((tier) => {
-                                                    const tierRow = tier.row || {};
-                                                    return (
-                                                        <div key={`speed-eta-tier-list-${tier.key}`} className="rounded-[8px] border border-[#E5E7EB] p-2">
-                                                            <p className="text-[11px] font-[700] text-[#0F172A]">{tierRow?.etaLabel || titleCase(tier.key)} Constraints</p>
-                                                            <Field label="Allowed Pickup Days (1-7, comma-separated)">
-                                                                <input
-                                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={Array.isArray(tierRow?.allowedPickupDays) ? tierRow.allowedPickupDays.join(", ") : "1, 2, 3, 4, 5, 6, 7"}
-                                                                    onChange={(e) => updatePricingTierEngineTier(
-                                                                        activePricingCategory,
-                                                                        tier.key,
-                                                                        "allowedPickupDays",
-                                                                        parseCommaList(e.target.value, (item) => Number(item)).filter((item) => Number.isInteger(item) && item >= 1 && item <= 7),
-                                                                    )}
-                                                                />
-                                                            </Field>
-                                                            <Field label="Blackout Dates (YYYY-MM-DD, comma-separated)">
-                                                                <input
-                                                                    className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={Array.isArray(tierRow?.blackoutDates) ? tierRow.blackoutDates.join(", ") : ""}
-                                                                    onChange={(e) => updatePricingTierEngineTier(activePricingCategory, tier.key, "blackoutDates", parseCommaList(e.target.value))}
-                                                                    placeholder="2026-12-25, 2027-01-01"
-                                                                />
-                                                            </Field>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        {activePricingCategory === "international" && (
-                                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3 md:col-span-2">
-                                                <p className="text-[12px] font-[700] text-[#111827]">International Dimensions Engine</p>
-                                                <p className="text-[11px] text-[#64748B] mt-1">Enforce unit type, route class, handling class, and W2W option multipliers. Keys should match shipment inputs.</p>
-                                                <div className="mt-2 flex flex-wrap gap-3">
-                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activeInternationalDimensionsEngine?.enabled)}
-                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enabled", e.target.checked)}
-                                                        />
-                                                        Enable
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activeInternationalDimensionsEngine?.enforceForInternationalOnly)}
-                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "enforceForInternationalOnly", e.target.checked)}
-                                                        />
-                                                        Enforce for International category only
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.enabled)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "internationalDimensionsEngine",
-                                                                "w2wOption",
-                                                                {
-                                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                    enabled: e.target.checked,
-                                                                },
-                                                            )}
-                                                        />
-                                                        Enable W2W mode engine
-                                                    </label>
-                                                </div>
-
-                                                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                                    <Field label="Unit Type Multipliers (key: value)">
-                                                        <textarea
-                                                            rows={5}
-                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.unitTypeMultipliers || {})}
-                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "unitTypeMultipliers", parseMultiplierMapInput(e.target.value))}
-                                                            placeholder={"parcel: 1.0\npallet: 1.18\ncrate: 1.24"}
-                                                        />
-                                                    </Field>
-                                                    <Field label="Route Class Multipliers (key: value)">
-                                                        <textarea
-                                                            rows={5}
-                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.routeClassMultipliers || {})}
-                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "routeClassMultipliers", parseMultiplierMapInput(e.target.value))}
-                                                            placeholder={"standard: 1.0\nexpress_corridor: 1.12\nremote_corridor: 1.22"}
-                                                        />
-                                                    </Field>
-                                                    <Field label="Handling Class Multipliers (key: value)">
-                                                        <textarea
-                                                            rows={5}
-                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.handlingClassMultipliers || {})}
-                                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "internationalDimensionsEngine", "handlingClassMultipliers", parseMultiplierMapInput(e.target.value))}
-                                                            placeholder={"standard: 1.0\nfragile: 1.08\nhazardous: 1.2"}
-                                                        />
-                                                    </Field>
-                                                </div>
-
-                                                <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-3">
-                                                    <p className="text-[11px] font-[700] text-[#111827]">W2W Option Policy</p>
-                                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={Boolean(activeInternationalDimensionsEngine?.w2wOption?.strictForInternational)}
-                                                                onChange={(e) => updatePricingPolicyModule(
-                                                                    activePricingCategory,
-                                                                    "internationalDimensionsEngine",
-                                                                    "w2wOption",
-                                                                    {
-                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                        strictForInternational: e.target.checked,
-                                                                    },
-                                                                )}
-                                                            />
-                                                            Strict for international
-                                                        </label>
-                                                        <Field label="Default Mode">
-                                                            <input
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                value={String(activeInternationalDimensionsEngine?.w2wOption?.defaultMode || "")}
-                                                                onChange={(e) => updatePricingPolicyModule(
-                                                                    activePricingCategory,
-                                                                    "internationalDimensionsEngine",
-                                                                    "w2wOption",
-                                                                    {
-                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                        defaultMode: String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
-                                                                    },
-                                                                )}
-                                                            />
-                                                        </Field>
-                                                        <Field label="Min Unit Count">
-                                                            <input
-                                                                type="number"
-                                                                min={1}
-                                                                step="1"
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                value={Number(activeInternationalDimensionsEngine?.w2wOption?.minimumUnitCount || 1)}
-                                                                onChange={(e) => updatePricingPolicyModule(
-                                                                    activePricingCategory,
-                                                                    "internationalDimensionsEngine",
-                                                                    "w2wOption",
-                                                                    {
-                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                        minimumUnitCount: Number(e.target.value || 1),
-                                                                    },
-                                                                )}
-                                                            />
-                                                        </Field>
-                                                        <Field label="Max Unit Count (optional)">
-                                                            <input
-                                                                type="number"
-                                                                min={1}
-                                                                step="1"
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                value={activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === null || activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount === undefined ? "" : Number(activeInternationalDimensionsEngine?.w2wOption?.maximumUnitCount || 1)}
-                                                                onChange={(e) => updatePricingPolicyModule(
-                                                                    activePricingCategory,
-                                                                    "internationalDimensionsEngine",
-                                                                    "w2wOption",
-                                                                    {
-                                                                        ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                        maximumUnitCount: e.target.value === "" ? null : Number(e.target.value || 1),
-                                                                    },
-                                                                )}
-                                                            />
-                                                        </Field>
-                                                    </div>
-                                                    <Field label="W2W Mode Multipliers (key: value)">
-                                                        <textarea
-                                                            rows={4}
-                                                            className="w-full rounded-[8px] border border-[#D1D5DB] px-2 py-2 text-[12px]"
-                                                            value={formatMultiplierMapInput(activeInternationalDimensionsEngine?.w2wOption?.modeMultipliers || {})}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "internationalDimensionsEngine",
-                                                                "w2wOption",
-                                                                {
-                                                                    ...(activeInternationalDimensionsEngine?.w2wOption || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].internationalDimensionsEngine.w2wOption),
-                                                                    modeMultipliers: parseMultiplierMapInput(e.target.value),
-                                                                },
-                                                            )}
-                                                            placeholder={"door_to_door: 1.15\nport_to_port: 0.92\nhybrid: 1.0"}
-                                                        />
-                                                    </Field>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
-                                            <p className="text-[12px] font-[700] text-[#111827]">Remote Area Surcharge</p>
-                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingPolicyModules.remoteAreaSurcharge?.enabled)}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "enabled", e.target.checked)}
-                                                />
-                                                Enable
-                                            </label>
-                                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                                <Field label="Flat Fee">
-                                                    <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.remoteAreaSurcharge?.flatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "flatFee", Number(e.target.value || 0))} />
-                                                </Field>
-                                                <div className="grid grid-cols-1 gap-1">
-                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                        <input type="checkbox" checked={Boolean(activePricingPolicyModules.remoteAreaSurcharge?.applyOnOrigin)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "applyOnOrigin", e.target.checked)} />
-                                                        Apply on origin
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                        <input type="checkbox" checked={Boolean(activePricingPolicyModules.remoteAreaSurcharge?.applyOnDestination)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "applyOnDestination", e.target.checked)} />
-                                                        Apply on destination
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <Field label="Postal Prefixes (comma-separated)">
-                                                <input
-                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={(activePricingPolicyModules.remoteAreaSurcharge?.postalCodePrefixes || []).join(", ")}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "postalCodePrefixes", parseCommaList(e.target.value, (item) => item.toUpperCase()))}
-                                                    placeholder="81, 82"
-                                                />
-                                            </Field>
-                                            <Field label="City Keywords (comma-separated)">
-                                                <input
-                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={(activePricingPolicyModules.remoteAreaSurcharge?.cityKeywords || []).join(", ")}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "remoteAreaSurcharge", "cityKeywords", parseCommaList(e.target.value, (item) => item.toLowerCase()))}
-                                                    placeholder="rural, mountain"
-                                                />
-                                            </Field>
-                                        </div>
-
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
-                                            <p className="text-[12px] font-[700] text-[#111827]">Oversize / Overweight Rules</p>
-                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingPolicyModules.oversizeOverweightRules?.enabled)}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "enabled", e.target.checked)}
-                                                />
-                                                Enable
-                                            </label>
-                                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                                <Field label="Max Weight (kg)"><input type="number" min={0.1} step="0.1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxWeightKg || 25)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxWeightKg", Number(e.target.value || 25))} /></Field>
-                                                <Field label="Overweight Fee / kg"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.overweightPerKgFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "overweightPerKgFee", Number(e.target.value || 0))} /></Field>
-                                                <Field label="Max Length (cm)"><input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxLengthCm || 120)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxLengthCm", Number(e.target.value || 120))} /></Field>
-                                                <Field label="Max Width (cm)"><input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxWidthCm || 80)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxWidthCm", Number(e.target.value || 80))} /></Field>
-                                                <Field label="Max Height (cm)"><input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.maxHeightCm || 80)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "maxHeightCm", Number(e.target.value || 80))} /></Field>
-                                                <Field label="Oversize Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.oversizeOverweightRules?.oversizeFlatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "oversizeOverweightRules", "oversizeFlatFee", Number(e.target.value || 0))} /></Field>
-                                            </div>
-                                        </div>
-
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
-                                            <p className="text-[12px] font-[700] text-[#111827]">Peak Hour / Holiday Surcharges</p>
-                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingPolicyModules.peakHolidaySurcharge?.enabled)}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "enabled", e.target.checked)}
-                                                />
-                                                Enable
-                                            </label>
-                                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                                <Field label="Peak Start"><input type="time" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(activePricingPolicyModules.peakHolidaySurcharge?.peakStartTime || "17:00")} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakStartTime", e.target.value)} /></Field>
-                                                <Field label="Peak End"><input type="time" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(activePricingPolicyModules.peakHolidaySurcharge?.peakEndTime || "21:00")} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakEndTime", e.target.value)} /></Field>
-                                                <Field label="Peak %"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.peakPercent || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakPercent", Number(e.target.value || 0))} /></Field>
-                                                <Field label="Peak Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.peakFlatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "peakFlatFee", Number(e.target.value || 0))} /></Field>
-                                                <Field label="Holiday %"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.holidayPercent || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "holidayPercent", Number(e.target.value || 0))} /></Field>
-                                                <Field label="Holiday Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.peakHolidaySurcharge?.holidayFlatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "holidayFlatFee", Number(e.target.value || 0))} /></Field>
-                                            </div>
-                                            <Field label="Holiday Dates (YYYY-MM-DD, comma-separated)">
-                                                <input
-                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                    value={(activePricingPolicyModules.peakHolidaySurcharge?.holidayDates || []).join(", ")}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "peakHolidaySurcharge", "holidayDates", parseCommaList(e.target.value))}
-                                                    placeholder="2026-12-25, 2027-01-01"
-                                                />
-                                            </Field>
-                                        </div>
-
-                                        {activePricingCategory === "domestic" && (
-                                            <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
-                                                <p className="text-[12px] font-[700] text-[#111827]">COD and Minimum Charge Guardrail</p>
-                                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activePricingPolicyModules.codFee?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "enabled", e.target.checked)}
-                                                    />
-                                                    Enable COD Fee
-                                                </label>
-                                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                                    <Field label="COD Flat Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.flatFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "flatFee", Number(e.target.value || 0))} /></Field>
-                                                    <Field label="COD % Declared"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.percentOfDeclaredValue || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "percentOfDeclaredValue", Number(e.target.value || 0))} /></Field>
-                                                    <Field label="COD Min Fee"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.codFee?.minFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "minFee", Number(e.target.value || 0))} /></Field>
-                                                    <Field label="COD Max Fee (optional)"><input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={activePricingPolicyModules.codFee?.maxFee === null || activePricingPolicyModules.codFee?.maxFee === undefined ? "" : Number(activePricingPolicyModules.codFee?.maxFee || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "codFee", "maxFee", e.target.value === "" ? null : Number(e.target.value || 0))} /></Field>
-                                                </div>
-                                                <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activePricingPolicyModules.minimumShipmentCharge?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "enabled", e.target.checked)}
-                                                    />
-                                                    Enforce Minimum Shipment Charge
-                                                </label>
-                                                <Field label="Minimum Total">
-                                                    <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(activePricingPolicyModules.minimumShipmentCharge?.minimumTotal || 0)} onChange={(e) => updatePricingPolicyModule(activePricingCategory, "minimumShipmentCharge", "minimumTotal", Number(e.target.value || 0))} />
-                                                </Field>
-                                            </div>
-                                        )}
-
-                                        <div className="rounded-[8px] border border-[#E5E7EB] bg-white p-3">
-                                            <p className="text-[12px] font-[700] text-[#111827]">Quote Runtime Governance Guardrails</p>
-                                            <p className="mt-1 text-[11px] text-[#64748B]">Lock quote-critical fields and enforce discount/floor controls at booking runtime.</p>
-
-                                            <label className="mt-2 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.enabled)}
-                                                    onChange={(e) => updatePricingPolicyModule(activePricingCategory, "quoteRuntimeGovernance", "enabled", e.target.checked)}
-                                                />
-                                                Enable Quote Runtime Governance
-                                            </label>
-
-                                            <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-2">
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(
-                                                            activePricingCategory,
-                                                            "quoteRuntimeGovernance",
-                                                            "fieldLocks",
-                                                            {
-                                                                ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
-                                                                enabled: e.target.checked,
-                                                            },
-                                                        )}
-                                                    />
-                                                    Enable Field Locks
-                                                </label>
-                                                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-[#334155]">
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockShipmentServiceLevel)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "quoteRuntimeGovernance",
-                                                                "fieldLocks",
-                                                                {
-                                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
-                                                                    lockShipmentServiceLevel: e.target.checked,
-                                                                },
-                                                            )}
-                                                        />
-                                                        Lock Shipment Service Level
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockPackageServiceLevel)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "quoteRuntimeGovernance",
-                                                                "fieldLocks",
-                                                                {
-                                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
-                                                                    lockPackageServiceLevel: e.target.checked,
-                                                                },
-                                                            )}
-                                                        />
-                                                        Lock Package Service Level
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockPackageCourierProvider)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "quoteRuntimeGovernance",
-                                                                "fieldLocks",
-                                                                {
-                                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
-                                                                    lockPackageCourierProvider: e.target.checked,
-                                                                },
-                                                            )}
-                                                        />
-                                                        Lock Package Courier Provider
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks?.lockQuoteTotal)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "quoteRuntimeGovernance",
-                                                                "fieldLocks",
-                                                                {
-                                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.fieldLocks || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.fieldLocks),
-                                                                    lockQuoteTotal: e.target.checked,
-                                                                },
-                                                            )}
-                                                        />
-                                                        Lock Review Quote Total
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-2">
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(
-                                                            activePricingCategory,
-                                                            "quoteRuntimeGovernance",
-                                                            "discountGuardrails",
-                                                            {
-                                                                ...(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.discountGuardrails),
-                                                                enabled: e.target.checked,
-                                                            },
-                                                        )}
-                                                    />
-                                                    Enable Discount Ceiling Guardrails
-                                                </label>
-                                                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                    <Field label="Max Discount (%)">
-                                                        <input
-                                                            type="number"
-                                                            min={0}
-                                                            step="0.01"
-                                                            className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                            value={Number(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails?.maxDiscountPercent || 0)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "quoteRuntimeGovernance",
-                                                                "discountGuardrails",
-                                                                {
-                                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.discountGuardrails),
-                                                                    maxDiscountPercent: Number(e.target.value || 0),
-                                                                },
-                                                            )}
-                                                        />
-                                                    </Field>
-                                                    <Field label="Max Discount Amount (USD)">
-                                                        <input
-                                                            type="number"
-                                                            min={0}
-                                                            step="0.01"
-                                                            className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                            value={Number(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails?.maxDiscountAmountUsd || 0)}
-                                                            onChange={(e) => updatePricingPolicyModule(
-                                                                activePricingCategory,
-                                                                "quoteRuntimeGovernance",
-                                                                "discountGuardrails",
-                                                                {
-                                                                    ...(activePricingPolicyModules.quoteRuntimeGovernance?.discountGuardrails || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.discountGuardrails),
-                                                                    maxDiscountAmountUsd: Number(e.target.value || 0),
-                                                                },
-                                                            )}
-                                                        />
-                                                    </Field>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 rounded-[8px] border border-[#E5E7EB] p-2">
-                                                <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={Boolean(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail?.enabled)}
-                                                        onChange={(e) => updatePricingPolicyModule(
-                                                            activePricingCategory,
-                                                            "quoteRuntimeGovernance",
-                                                            "floorPriceGuardrail",
-                                                            {
-                                                                ...(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.floorPriceGuardrail),
-                                                                enabled: e.target.checked,
-                                                            },
-                                                        )}
-                                                    />
-                                                    Enable Floor Price Guardrail
-                                                </label>
-                                                <Field label="Minimum Total (USD)">
-                                                    <input
-                                                        type="number"
-                                                        min={0}
-                                                        step="0.01"
-                                                        className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                        value={Number(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail?.minimumTotalUsd || 0)}
-                                                        onChange={(e) => updatePricingPolicyModule(
-                                                            activePricingCategory,
-                                                            "quoteRuntimeGovernance",
-                                                            "floorPriceGuardrail",
-                                                            {
-                                                                ...(activePricingPolicyModules.quoteRuntimeGovernance?.floorPriceGuardrail || DEFAULT_SETTINGS.pricing.policyModules[activePricingCategory].quoteRuntimeGovernance.floorPriceGuardrail),
-                                                                minimumTotalUsd: Number(e.target.value || 0),
-                                                            },
-                                                        )}
-                                                    />
-                                                </Field>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "contracts" && (
-                                <div id="pricing-topic-contracts" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div>
-                                            <p className="text-[13px] font-[700] text-[#111827]">Customer Contract Pricing</p>
-                                            <p className="text-[11px] text-[#64748B] mt-1">Configure account-level negotiated rates, effective ranges, renewal controls, and volume tiers.</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                                            onClick={() => {
-                                                const existingContracts = Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts)
-                                                    ? activePricingPolicyModules.customerContractPricing.contracts
-                                                    : [];
-                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", [
-                                                    ...existingContracts,
-                                                    {
-                                                        enabled: true,
-                                                        priority: 0,
-                                                        allAccounts: true,
-                                                        accountUserIds: [],
-                                                        category: activePricingCategory,
-                                                        categories: [activePricingCategory],
-                                                        effectiveFrom: "",
-                                                        effectiveTo: "",
-                                                        autoRenew: false,
-                                                        renewalCycleDays: 30,
-                                                        renewalGraceDays: 0,
-                                                        maxRenewals: 0,
-                                                        negotiatedRateType: "percent_off",
-                                                        negotiatedRateValue: 0,
-                                                        minimumTotal: 0,
-                                                        volumeMetric: "shipment_count_30d",
-                                                        volumeLookbackDays: 30,
-                                                        volumeTiers: [],
-                                                    },
-                                                ]);
-                                            }}
-                                        >
-                                            Add Contract
-                                        </button>
-                                    </div>
-
-                                    <label className="mt-3 inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                        <input
-                                            type="checkbox"
-                                            checked={Boolean(activePricingPolicyModules.customerContractPricing?.enabled)}
-                                            onChange={(e) => updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "enabled", e.target.checked)}
-                                        />
-                                        Enable Customer Contract Pricing
-                                    </label>
-
-                                    <div className="mt-3 space-y-3">
-                                        {(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts)
-                                            ? activePricingPolicyModules.customerContractPricing.contracts
-                                            : []).map((contract, contractIndex) => {
-                                                const contractRow = contract && typeof contract === "object" ? contract : {};
-                                                const tiers = Array.isArray(contractRow.volumeTiers) ? contractRow.volumeTiers : [];
-
-                                                return (
-                                                    <div key={`contract-${activePricingCategory}-${contractIndex}`} className="rounded-[8px] border border-[#E5E7EB] p-3 bg-[#F8FAFC]">
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <p className="text-[12px] font-[700] text-[#111827]">Contract #{contractIndex + 1}</p>
-                                                            <button
-                                                                type="button"
-                                                                className="h-[26px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]"
-                                                                onClick={() => {
-                                                                    const nextContracts = (Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts)
-                                                                        ? activePricingPolicyModules.customerContractPricing.contracts
-                                                                        : []).filter((_, idx) => idx !== contractIndex);
-                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                }}
-                                                            >
-                                                                Remove
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(contractRow.enabled ?? true)}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, enabled: e.target.checked };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                />
-                                                                Active
-                                                            </label>
-                                                            <Field label="Priority">
-                                                                <input
-                                                                    type="number"
-                                                                    step="1"
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={Number(contractRow.priority || 0)}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, priority: Number(e.target.value || 0) };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                />
-                                                            </Field>
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(contractRow.allAccounts)}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, allAccounts: e.target.checked };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                />
-                                                                Apply To All Accounts
-                                                            </label>
-                                                        </div>
-
-                                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                            <Field label="Account User IDs (comma-separated)">
-                                                                <input
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={Array.isArray(contractRow.accountUserIds) ? contractRow.accountUserIds.join(", ") : ""}
-                                                                    onChange={(e) => {
-                                                                        const parsedIds = parseCommaList(e.target.value)
-                                                                            .map((value) => Number(value))
-                                                                            .filter((value) => Number.isInteger(value) && value > 0);
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, accountUserIds: parsedIds };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                    placeholder="102, 204, 305"
-                                                                />
-                                                            </Field>
-                                                            <Field label="Contract Category (Locked)">
-                                                                <div className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] bg-[#F8FAFC] px-2 text-[12px] text-[#334155] flex items-center">
-                                                                    {titleCase(activePricingCategory)}
-                                                                </div>
-                                                            </Field>
-                                                            <Field label="Effective From">
-                                                                <input
-                                                                    type="date"
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={String(contractRow.effectiveFrom || "")}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, effectiveFrom: e.target.value };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                />
-                                                            </Field>
-                                                            <Field label="Effective To">
-                                                                <input
-                                                                    type="date"
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={String(contractRow.effectiveTo || "")}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, effectiveTo: e.target.value };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                />
-                                                            </Field>
-                                                        </div>
-
-                                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(contractRow.autoRenew)}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, autoRenew: e.target.checked };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                />
-                                                                Auto Renew
-                                                            </label>
-                                                            <Field label="Renewal Cycle (days)">
-                                                                <input type="number" min={0} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.renewalCycleDays || 0)} onChange={(e) => {
-                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                    nextContracts[contractIndex] = { ...contractRow, renewalCycleDays: Number(e.target.value || 0) };
-                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                }} />
-                                                            </Field>
-                                                            <Field label="Renewal Grace (days)">
-                                                                <input type="number" min={0} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.renewalGraceDays || 0)} onChange={(e) => {
-                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                    nextContracts[contractIndex] = { ...contractRow, renewalGraceDays: Number(e.target.value || 0) };
-                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                }} />
-                                                            </Field>
-                                                            <Field label="Max Renewals (0 = unlimited)">
-                                                                <input type="number" min={0} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.maxRenewals || 0)} onChange={(e) => {
-                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                    nextContracts[contractIndex] = { ...contractRow, maxRenewals: Number(e.target.value || 0) };
-                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                }} />
-                                                            </Field>
-                                                        </div>
-
-                                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                                            <Field label="Negotiated Rate Type">
-                                                                <select
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={String(contractRow.negotiatedRateType || "percent_off")}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, negotiatedRateType: e.target.value };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                >
-                                                                    <option value="percent_off">Percent Off</option>
-                                                                    <option value="flat_off">Flat Off</option>
-                                                                    <option value="fixed_total">Fixed Total</option>
-                                                                    <option value="multiplier">Multiplier</option>
-                                                                </select>
-                                                            </Field>
-                                                            <Field label="Negotiated Value">
-                                                                <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.negotiatedRateValue || 0)} onChange={(e) => {
-                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                    nextContracts[contractIndex] = { ...contractRow, negotiatedRateValue: Number(e.target.value || 0) };
-                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                }} />
-                                                            </Field>
-                                                            <Field label="Contract Minimum Total">
-                                                                <input type="number" min={0} step="0.01" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.minimumTotal || 0)} onChange={(e) => {
-                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                    nextContracts[contractIndex] = { ...contractRow, minimumTotal: Number(e.target.value || 0) };
-                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                }} />
-                                                            </Field>
-                                                            <Field label="Volume Metric">
-                                                                <select
-                                                                    className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                                    value={String(contractRow.volumeMetric || "shipment_count_30d")}
-                                                                    onChange={(e) => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        nextContracts[contractIndex] = { ...contractRow, volumeMetric: e.target.value };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                >
-                                                                    <option value="shipment_count_30d">Shipment Count (30d)</option>
-                                                                    <option value="total_weight_kg_30d">Total Weight KG (30d)</option>
-                                                                    <option value="revenue_usd_30d">Revenue USD (30d)</option>
-                                                                    <option value="current_shipment_weight_kg">Current Shipment Weight KG</option>
-                                                                </select>
-                                                            </Field>
-                                                        </div>
-
-                                                        <Field label="Volume Lookback Days">
-                                                            <input type="number" min={1} step="1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(contractRow.volumeLookbackDays || 30)} onChange={(e) => {
-                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                nextContracts[contractIndex] = { ...contractRow, volumeLookbackDays: Number(e.target.value || 30) };
-                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                            }} />
-                                                        </Field>
-
-                                                        <div className="mt-2 rounded-[8px] border border-[#E5E7EB] bg-white p-2">
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <p className="text-[11px] font-[700] text-[#334155]">Volume Tiers</p>
-                                                                <button
-                                                                    type="button"
-                                                                    className="h-[24px] px-2 rounded-[6px] border border-[#0955AC] text-[#0955AC] text-[10px] font-[700]"
-                                                                    onClick={() => {
-                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                        const nextTiers = [...tiers, { enabled: true, minVolume: 0, maxVolume: null, adjustmentType: "percent_off", adjustmentValue: 0 }];
-                                                                        nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                    }}
-                                                                >
-                                                                    Add Tier
-                                                                </button>
-                                                            </div>
-
-                                                            <div className="mt-2 space-y-2">
-                                                                {tiers.map((tier, tierIndex) => {
-                                                                    const tierRow = tier && typeof tier === "object" ? tier : {};
-                                                                    return (
-                                                                        <div key={`tier-${contractIndex}-${tierIndex}`} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
-                                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155] pb-1">
-                                                                                <input
-                                                                                    type="checkbox"
-                                                                                    checked={Boolean(tierRow.enabled ?? true)}
-                                                                                    onChange={(e) => {
-                                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                                        const nextTiers = [...tiers];
-                                                                                        nextTiers[tierIndex] = { ...tierRow, enabled: e.target.checked };
-                                                                                        nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                                    }}
-                                                                                />
-                                                                                Active
-                                                                            </label>
-                                                                            <Field label="Min Volume"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.minVolume || 0)} onChange={(e) => {
-                                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                                const nextTiers = [...tiers];
-                                                                                nextTiers[tierIndex] = { ...tierRow, minVolume: Number(e.target.value || 0) };
-                                                                                nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                            }} /></Field>
-                                                                            <Field label="Max Volume"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={tierRow.maxVolume === null || tierRow.maxVolume === undefined ? "" : Number(tierRow.maxVolume || 0)} onChange={(e) => {
-                                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                                const nextTiers = [...tiers];
-                                                                                nextTiers[tierIndex] = { ...tierRow, maxVolume: e.target.value === "" ? null : Number(e.target.value || 0) };
-                                                                                nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                            }} /></Field>
-                                                                            <Field label="Adjustment Type">
-                                                                                <select className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={String(tierRow.adjustmentType || "percent_off")} onChange={(e) => {
-                                                                                    const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                                    const nextTiers = [...tiers];
-                                                                                    nextTiers[tierIndex] = { ...tierRow, adjustmentType: e.target.value };
-                                                                                    nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                                    updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                                }}>
-                                                                                    <option value="percent_off">Percent Off</option>
-                                                                                    <option value="flat_off">Flat Off</option>
-                                                                                    <option value="fixed_total">Fixed Total</option>
-                                                                                    <option value="multiplier">Multiplier</option>
-                                                                                </select>
-                                                                            </Field>
-                                                                            <Field label="Adjustment Value"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(tierRow.adjustmentValue || 0)} onChange={(e) => {
-                                                                                const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                                const nextTiers = [...tiers];
-                                                                                nextTiers[tierIndex] = { ...tierRow, adjustmentValue: Number(e.target.value || 0) };
-                                                                                nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                                updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                            }} /></Field>
-                                                                            <div className="flex items-end">
-                                                                                <button
-                                                                                    type="button"
-                                                                                    className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700]"
-                                                                                    onClick={() => {
-                                                                                        const nextContracts = [...(Array.isArray(activePricingPolicyModules.customerContractPricing?.contracts) ? activePricingPolicyModules.customerContractPricing.contracts : [])];
-                                                                                        const nextTiers = tiers.filter((_, idx) => idx !== tierIndex);
-                                                                                        nextContracts[contractIndex] = { ...contractRow, volumeTiers: nextTiers };
-                                                                                        updatePricingPolicyModule(activePricingCategory, "customerContractPricing", "contracts", nextContracts);
-                                                                                    }}
-                                                                                >
-                                                                                    Remove Tier
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "service-catalog" && (
-                                <div id="pricing-topic-service-catalog" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <p className="text-[13px] font-[700] text-[#111827]">Service Catalog</p>
-                                        <button
-                                            type="button"
-                                            className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                                            onClick={() => addPricingServiceLevel(activePricingCategory)}
-                                        >
-                                            Add Service Level
-                                        </button>
-                                    </div>
-                                    <p className="text-[11px] text-[#64748B] mt-1">Define explicit service-level policies with cutoff times and promised SLA for {titleCase(activePricingCategory)}.</p>
-                                    <div className="mt-2 overflow-x-auto">
-                                        <table className="w-full min-w-[920px] text-[12px]">
-                                            <thead>
-                                                <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                    <th className="px-2 py-2">Key</th>
-                                                    <th className="px-2 py-2">Label</th>
-                                                    <th className="px-2 py-2">Promised SLA (days)</th>
-                                                    <th className="px-2 py-2">Cutoff Time</th>
-                                                    <th className="px-2 py-2">Active</th>
-                                                    <th className="px-2 py-2">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {activeServiceCatalogRows.map((row, index) => (
-                                                    <tr key={`${activePricingCategory}-service-${row?.key || index}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-2">
-                                                            <input
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2"
-                                                                value={String(row?.key || "")}
-                                                                onChange={(e) => updatePricingServiceLevel(
-                                                                    activePricingCategory,
-                                                                    index,
-                                                                    "key",
-                                                                    String(e.target.value || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""),
-                                                                )}
-                                                            />
-                                                        </td>
-                                                        <td className="px-2 py-2"><input className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(row?.label || "")} onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "label", e.target.value)} /></td>
-                                                        <td className="px-2 py-2"><input type="number" min={1} className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={Number(row?.promisedSlaDays || 1)} onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "promisedSlaDays", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-2"><input type="time" className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] px-2" value={String(row?.cutoffTime || "18:00")} onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "cutoffTime", e.target.value)} /></td>
-                                                        <td className="px-2 py-2">
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(row?.isActive)}
-                                                                    onChange={(e) => updatePricingServiceLevel(activePricingCategory, index, "isActive", e.target.checked)}
-                                                                />
-                                                                Active
-                                                            </label>
-                                                        </td>
-                                                        <td className="px-2 py-2">
-                                                            <button type="button" className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingServiceLevel(activePricingCategory, index)}>
-                                                                Remove
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "governance" && (
-                                <div id="pricing-topic-governance" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC] scroll-mt-24">
-                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Pricing Governance</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                            <input
-                                                type="checkbox"
-                                                checked={Boolean(activePricingGovernance.requireApproval)}
-                                                disabled={!canConfigurePricingGovernance}
-                                                onChange={(e) => updatePricingGovernance(activePricingCategory, "requireApproval", e.target.checked)}
-                                            />
-                                            Require approval before publish
-                                        </label>
-                                        <Field label="Approver Roles">
-                                            <div className="w-full rounded-[8px] border border-[#D1D5DB] bg-white p-2">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {governanceApproverRoleOptions.map((roleName) => {
-                                                        const selectedRoles = Array.isArray(activePricingGovernance.approverRoles)
-                                                            ? activePricingGovernance.approverRoles
-                                                            : [];
-                                                        const isSelected = selectedRoles.includes(roleName);
-
-                                                        return (
-                                                            <label
-                                                                key={`governance-approver-${roleName}`}
-                                                                className={`inline-flex items-center gap-1 rounded-[999px] border px-2 py-1 text-[11px] font-[700] ${isSelected ? "border-[#0955AC] bg-[#EFF6FF] text-[#0955AC]" : "border-[#E5E7EB] text-[#475569]"}`}
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="h-[12px] w-[12px]"
-                                                                    disabled={!canConfigurePricingGovernance}
-                                                                    checked={isSelected}
-                                                                    onChange={() => updatePricingGovernance(
-                                                                        activePricingCategory,
-                                                                        "approverRoles",
-                                                                        toggleInArray(selectedRoles, roleName),
-                                                                    )}
-                                                                />
-                                                                {roleName}
-                                                            </label>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </Field>
-                                        <Field label="Schedule Publish At">
-                                            <input
-                                                type="datetime-local"
-                                                className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
-                                                value={pricingPublishAt}
-                                                onChange={(e) => setPricingPublishAt(e.target.value)}
-                                            />
-                                        </Field>
-                                    </div>
-
-                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        <p className="text-[11px] text-[#475569]">Draft Version: {Number(activePricingGovernance.draftVersion || 1)}</p>
-                                        <p className="text-[11px] text-[#475569]">Published Version: {Number(activePricingGovernance.publishedVersion || 1)}</p>
-                                        <p className="text-[11px] text-[#475569]">Published At: {activePricingGovernance.publishedAt || "Not published"}</p>
-                                        <p className="text-[11px] text-[#475569]">Pending Approval: {activePricingGovernance.pendingApproval ? "Yes" : "No"}</p>
-                                        <p className="text-[11px] text-[#475569]">Approval Authority: {titleCase(activePricingApprovalAuthority)}</p>
-                                    </div>
-
-                                    <textarea
-                                        rows={2}
-                                        className="mt-2 w-full rounded-[8px] border border-[#D1D5DB] px-2 py-1 text-[12px]"
-                                        placeholder="Optional governance note"
-                                        value={pricingGovernanceNote}
-                                        onChange={(e) => setPricingGovernanceNote(e.target.value)}
-                                    />
-
-                                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                                        {canPublishPricingChanges && (
-                                            <button
-                                                type="button"
-                                                disabled={pricingGovernanceActionBusy}
-                                                className="h-[30px] px-3 rounded-[8px] bg-[#0F766E] text-white text-[11px] font-[700] disabled:opacity-50"
-                                                onClick={() => runPricingGovernanceAction("pricing_publish_now")}
-                                            >
-                                                Publish Now
-                                            </button>
-                                        )}
-                                        {canPublishPricingChanges && (
-                                            <button
-                                                type="button"
-                                                disabled={pricingGovernanceActionBusy || !pricingPublishAt}
-                                                className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700] disabled:opacity-50"
-                                                onClick={() => runPricingGovernanceAction("pricing_schedule_publish", { effectiveAt: pricingPublishAt })}
-                                            >
-                                                Schedule Publish
-                                            </button>
-                                        )}
-                                        {canReviewPricingPublish && (
-                                            <button
-                                                type="button"
-                                                disabled={pricingGovernanceActionBusy || !activePricingGovernance.pendingApproval || pendingApprovalRequestedByCurrentActor}
-                                                className="h-[30px] px-3 rounded-[8px] bg-[#0955AC] text-white text-[11px] font-[700] disabled:opacity-50"
-                                                onClick={() => runPricingGovernanceAction("pricing_approve_publish")}
-                                            >
-                                                Approve Publish
-                                            </button>
-                                        )}
-                                        {canReviewPricingPublish && (
-                                            <button
-                                                type="button"
-                                                disabled={pricingGovernanceActionBusy || !activePricingGovernance.pendingApproval}
-                                                className="h-[30px] px-3 rounded-[8px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700] disabled:opacity-50"
-                                                onClick={() => runPricingGovernanceAction("pricing_reject_publish")}
-                                            >
-                                                Reject Publish
-                                            </button>
-                                        )}
-                                        {canReviewPricingPublish && (
-                                            <div className="inline-flex items-center gap-2">
-                                                <select
-                                                    className="h-[30px] rounded-[8px] border border-[#D1D5DB] px-2 text-[11px]"
-                                                    value={pricingRollbackVersion}
-                                                    onChange={(e) => setPricingRollbackVersion(e.target.value)}
-                                                >
-                                                    <option value="">Previous Version</option>
-                                                    {rollbackCandidates.map((entry) => (
-                                                        <option key={`rollback-version-${entry.version}`} value={String(entry.version)}>
-                                                            v{Number(entry.version)}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    type="button"
-                                                    disabled={pricingGovernanceActionBusy || rollbackCandidates.length === 0}
-                                                    className="h-[30px] px-3 rounded-[8px] border border-[#0F766E] text-[#0F766E] text-[11px] font-[700] disabled:opacity-50"
-                                                    onClick={() => runPricingGovernanceAction("pricing_rollback_version", {
-                                                        rollbackVersion: pricingRollbackVersion ? Number(pricingRollbackVersion) : null,
-                                                    })}
-                                                >
-                                                    Rollback Version
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {pendingApprovalRequestedByCurrentActor && canReviewPricingPublish && (
-                                        <p className="mt-2 text-[11px] text-[#B45309]">Four-eyes control: requester cannot approve their own publish request.</p>
-                                    )}
-                                    {isSuperAdminPricingAuthority && (
-                                        <p className="mt-2 text-[11px] text-[#1E3A8A]">Approval, rejection, and rollback are delegated to SuperAdmin for this pricing category.</p>
-                                    )}
-                                    {!canPublishPricingChanges && !canReviewPricingPublish && (
-                                        <p className="mt-2 text-[11px] text-[#6B7280]">You do not have permission to run pricing governance actions.</p>
-                                    )}
-
-                                    <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white max-h-[180px] overflow-y-auto">
-                                        <p className="text-[12px] font-[700] text-[#111827] mb-1">Pricing Audit Trail</p>
-                                        {(activePricingGovernance.changeLog || []).length === 0 && (
-                                            <p className="text-[11px] text-[#6B7280]">No governance events yet.</p>
-                                        )}
-                                        {(activePricingGovernance.changeLog || []).map((entry, idx) => (
-                                            <p key={`pricing-log-${idx}`} className="text-[11px] text-[#475569] mb-1">
-                                                {String(entry?.at || "-")} • {titleCase(String(entry?.event || "event"))}
-                                            </p>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "rate-cards" && (
-                                <div id="pricing-topic-rate-cards" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <p className="text-[13px] font-[700] text-[#111827]">Rate Cards</p>
-                                        <span className="inline-flex items-center h-[28px] px-3 rounded-[999px] bg-[#EFF6FF] text-[#1E3A8A] text-[11px] font-[700]">
-                                            {titleCase(activePricingCategory)}
-                                        </span>
-                                    </div>
-                                    <div className="mt-2 overflow-x-auto">
-                                        <table className="w-max min-w-[1100px] text-[11px]">
-                                            <thead>
-                                                <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                    <th className="px-2 py-2 min-w-[140px]">Label</th>
-                                                    <th className="px-2 py-2 min-w-[180px]">Service Level</th>
-                                                    <th className="px-2 py-2 min-w-[90px]">SLA Days</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Base Price</th>
-                                                    <th className="px-2 py-2 min-w-[90px]">Per Kg</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Min Price</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Priority Mult.</th>
-                                                    <th className="px-2 py-2 min-w-[80px]">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {activePricingRows.map((row, index) => (
-                                                    <tr key={`${activePricingCategory}-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-3"><input className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={String(row?.label || "")} onChange={(e) => updatePricingTier(activePricingCategory, index, "label", e.target.value)} /></td>
-                                                        <td className="px-2 py-3 min-w-[180px]">
-                                                            <select
-                                                                className="h-[44px] w-full min-w-[160px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
-                                                                value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
-                                                                onChange={(e) => updatePricingTier(activePricingCategory, index, "serviceLevelKey", e.target.value)}
-                                                            >
-                                                                {activeServiceLevelOptions.map((option) => (
-                                                                    <option key={`${activePricingCategory}-tier-service-${option.key}`} value={option.key}>{option.label}</option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        <td className="px-2 py-3"><input type="number" min={1} className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.slaDays || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "slaDays", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingTier(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingTier(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-3">
-                                                            <button type="button" className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingTier(activePricingCategory, index)}>
-                                                                Remove
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div className="mt-2">
-                                        <button type="button" className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]" onClick={() => addPricingTier(activePricingCategory)}>
-                                            Add Tier
-                                        </button>
-                                    </div>
-
-                                    <div className="mt-4 border border-[#E2E8F0] rounded-[10px] p-3 bg-[#F8FAFC]">
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <div>
-                                                <p className="text-[13px] font-[700] text-[#111827]">Bulk Import (Advanced)</p>
-                                                <p className="text-[11px] text-[#64748B] mt-1">Upload XLSX, CSV, JSON, or PDF pricing files. System auto-detects structure, scores confidence, and flags mapping conflicts.</p>
-                                            </div>
-                                            <div className="inline-flex items-center gap-2">
-                                                <select
-                                                    className="h-[30px] rounded-[8px] border border-[#CBD5E1] px-2 text-[11px]"
-                                                    value={pricingImportMode}
-                                                    onChange={(e) => setPricingImportMode(e.target.value)}
-                                                >
-                                                    <option value="replace">Replace {titleCase(activePricingCategory)} Draft</option>
-                                                    <option value="merge">Merge Into {titleCase(activePricingCategory)} Draft</option>
-                                                </select>
-                                                <select
-                                                    className="h-[30px] rounded-[8px] border border-[#CBD5E1] px-2 text-[11px]"
-                                                    value={pricingImportResolutionStrategy}
-                                                    onChange={(e) => setPricingImportResolutionStrategy(e.target.value)}
-                                                >
-                                                    <option value="prefer_most_frequent">Conflicts: Prefer Most Frequent Zone</option>
-                                                    <option value="prefer_existing">Conflicts: Prefer Existing City Mapping</option>
-                                                    <option value="manual">Conflicts: Manual City Mapping</option>
-                                                </select>
-                                                <button
-                                                    type="button"
-                                                    disabled={pricingImportPreviewBusy || pricingImportApplyBusy}
-                                                    className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700] disabled:opacity-50"
-                                                    onClick={previewPricingImport}
-                                                >
-                                                    {pricingImportPreviewBusy ? "Analyzing..." : "Analyze Import"}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled={pricingImportApplyBusy || !pricingImportResult?.patch || !pricingImportPreviewToken || (pricingImportResult?.requiresManualReview && !pricingImportManualReviewConfirmed)}
-                                                    className="h-[30px] px-3 rounded-[8px] bg-[#0F766E] text-white text-[11px] font-[700] disabled:opacity-50"
-                                                    onClick={applyPricingImportToDraft}
-                                                >
-                                                    {pricingImportApplyBusy ? "Applying..." : "Apply To Draft"}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            <input
-                                                key={`pricing-import-file-${activePricingCategory}`}
-                                                type="file"
-                                                accept=".xlsx,.xls,.csv,.txt,.json,.pdf"
-                                                className="block w-full md:w-[420px] text-[11px] text-[#334155] file:mr-2 file:rounded-[6px] file:border file:border-[#CBD5E1] file:bg-white file:px-2 file:py-1 file:text-[11px] file:font-[600] file:text-[#334155]"
-                                                onChange={(e) => {
-                                                    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-                                                    setPricingImportFile(file);
-                                                    setPricingImportResult(null);
-                                                    setPricingImportPreviewToken("");
-                                                    setPricingImportManualReviewConfirmed(false);
-                                                    setPricingImportManualResolutions({});
-                                                }}
-                                            />
-                                            {pricingImportFile && (
-                                                <span className="inline-flex items-center rounded-[999px] bg-white border border-[#CBD5E1] px-2 py-1 text-[11px] font-[700] text-[#334155]">
-                                                    {pricingImportFile.name}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {pricingImportResult && (
-                                            <div className="mt-3 border border-[#E2E8F0] rounded-[8px] p-3 bg-white">
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                                    <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
-                                                        <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Detected</p>
-                                                        <p className="text-[12px] font-[700] text-[#0F172A] mt-1">{String(pricingImportResult?.detectedFormat || "unknown").toUpperCase()}</p>
-                                                    </div>
-                                                    <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
-                                                        <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Confidence</p>
-                                                        <p className="text-[12px] font-[700] text-[#0F172A] mt-1">{Math.round(Number(pricingImportResult?.confidence || 0) * 100)}%</p>
-                                                    </div>
-                                                    <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
-                                                        <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Rows Parsed</p>
-                                                        <p className="text-[12px] font-[700] text-[#0F172A] mt-1">{Number(pricingImportResult?.rowsParsed || 0)} / {Number(pricingImportResult?.rowsScanned || 0)}</p>
-                                                    </div>
-                                                    <div className="rounded-[8px] border border-[#E2E8F0] px-2 py-2">
-                                                        <p className="text-[10px] text-[#64748B] uppercase tracking-wide">Patch Size</p>
-                                                        <p className="text-[12px] font-[700] text-[#0F172A] mt-1">
-                                                            {Number(pricingImportResult?.summary?.zoneCount || 0)} zones, {Number(pricingImportResult?.summary?.categoryCount || 0)} tiers, {Number(pricingImportResult?.summary?.laneCount || 0)} lanes
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                {pricingImportResult?.requiresManualReview && (
-                                                    <div className="mt-2 rounded-[8px] border border-[#FCD34D] bg-[#FFFBEB] px-2 py-2">
-                                                        <p className="text-[11px] text-[#92400E] font-[700]">Manual review required before apply</p>
-                                                        <p className="mt-1 text-[11px] text-[#92400E]">Low confidence or conflicts were detected. Confirm review after checking sample rows, warnings, and conflict mappings.</p>
-                                                        {String(pricingImportResult?.detectedFormat || "").toLowerCase() === "pdf" && (
-                                                            <p className="mt-1 text-[11px] text-[#92400E]">Best practice for PDF: correct extracted rows in XLSX/CSV and re-import before final apply.</p>
-                                                        )}
-                                                        <label className="mt-2 inline-flex items-center gap-2 text-[11px] text-[#78350F] font-[700]">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="h-3.5 w-3.5 rounded border border-[#D97706]"
-                                                                checked={pricingImportManualReviewConfirmed}
-                                                                onChange={(e) => setPricingImportManualReviewConfirmed(Boolean(e.target.checked))}
-                                                            />
-                                                            I reviewed conflicts/warnings and confirm this import is ready to apply.
-                                                        </label>
-                                                    </div>
-                                                )}
-
-                                                {(pricingImportResult?.conflicts || []).length > 0 && (
-                                                    <div className="mt-2 rounded-[8px] border border-[#FCA5A5] bg-[#FEF2F2] p-2">
-                                                        <p className="text-[11px] font-[700] text-[#991B1B]">Conflicts</p>
-                                                        <p className="text-[11px] text-[#7F1D1D] mt-1">
-                                                            Strategy: {pricingImportResolutionStrategy === "manual"
-                                                                ? "Manual city mapping"
-                                                                : pricingImportResolutionStrategy === "prefer_existing"
-                                                                    ? "Prefer existing saved city mapping"
-                                                                    : "Prefer most frequent imported zone"}
-                                                        </p>
-                                                        {(pricingImportResult?.conflicts || []).slice(0, 8).map((conflict, idx) => {
-                                                            const cityKey = normalizeImportCityKey(conflict?.cityKey || conflict?.city || "");
-                                                            const selectedZone = pricingImportManualResolutions[cityKey] || "";
-
-                                                            return (
-                                                                <div key={`import-conflict-${idx}`} className="mt-2 rounded-[6px] border border-[#FECACA] bg-white px-2 py-2">
-                                                                    <p className="text-[11px] text-[#7F1D1D] font-[700]">
-                                                                        {String(conflict?.city || conflict?.cityKey || "City")}
-                                                                    </p>
-                                                                    <p className="text-[11px] text-[#7F1D1D] mt-1">
-                                                                        {Array.isArray(conflict?.zones) ? `Zones: ${conflict.zones.join(", ")}` : "Multiple zones detected"}
-                                                                    </p>
-                                                                    {conflict?.zoneVotes && typeof conflict.zoneVotes === "object" && (
-                                                                        <p className="text-[11px] text-[#7F1D1D] mt-1">
-                                                                            Votes: {Object.entries(conflict.zoneVotes)
-                                                                                .map(([zoneKey, count]) => `${zoneKey}=${Number(count || 0)}`)
-                                                                                .join(", ")}
-                                                                        </p>
-                                                                    )}
-                                                                    {pricingImportResolutionStrategy === "manual" && (
-                                                                        <div className="mt-2 inline-flex items-center gap-2">
-                                                                            <span className="text-[11px] font-[700] text-[#7F1D1D]">Select zone</span>
-                                                                            <select
-                                                                                className="h-[28px] rounded-[6px] border border-[#FCA5A5] bg-white px-2 text-[11px]"
-                                                                                value={selectedZone}
-                                                                                onChange={(e) => {
-                                                                                    const value = String(e.target.value || "");
-                                                                                    if (!cityKey) {
-                                                                                        return;
-                                                                                    }
-
-                                                                                    setPricingImportManualResolutions((prev) => ({
-                                                                                        ...prev,
-                                                                                        [cityKey]: value,
-                                                                                    }));
-                                                                                }}
-                                                                            >
-                                                                                <option value="">Select zone</option>
-                                                                                {(Array.isArray(conflict?.zones) ? conflict.zones : []).map((zoneOption) => (
-                                                                                    <option key={`conflict-zone-option-${cityKey}-${zoneOption}`} value={String(zoneOption)}>{String(zoneOption)}</option>
-                                                                                ))}
-                                                                            </select>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-
-                                                {(pricingImportResult?.warnings || []).length > 0 && (
-                                                    <div className="mt-2 rounded-[8px] border border-[#FCD34D] bg-[#FFFBEB] p-2">
-                                                        <p className="text-[11px] font-[700] text-[#92400E]">Warnings</p>
-                                                        {(pricingImportResult?.warnings || []).slice(0, 4).map((warning, idx) => (
-                                                            <p key={`import-warning-${idx}`} className="text-[11px] text-[#92400E] mt-1">{String(warning || "")}</p>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {(pricingImportResult?.sampleRows || []).length > 0 && (
-                                                    <div className="mt-2 rounded-[8px] border border-[#E2E8F0] p-2">
-                                                        <p className="text-[11px] font-[700] text-[#111827]">Parsed Row Sample</p>
-                                                        <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                            {(pricingImportResult?.sampleRows || []).slice(0, 4).map((sample, idx) => (
-                                                                <div key={`import-sample-${idx}`} className="rounded-[6px] bg-[#F8FAFC] px-2 py-1 border border-[#E2E8F0]">
-                                                                    <p className="text-[11px] text-[#334155]">City: {String(sample?.city || "-")}</p>
-                                                                    <p className="text-[11px] text-[#334155]">Zone: {String(sample?.zone || "-")}</p>
-                                                                    <p className="text-[11px] text-[#334155]">Service: {String(sample?.serviceLevelKey || "-")}</p>
-                                                                    <p className="text-[11px] text-[#334155]">Base: {sample?.basePrice ?? "-"} • Per Kg: {sample?.perKgPrice ?? "-"}</p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {pricingImportResult?.appliedSummary && (
-                                                    <p className="mt-2 text-[11px] text-[#0F766E] font-[700]">
-                                                        Applied in {String(pricingImportResult.appliedSummary.mode || pricingImportMode)} mode: {Number(pricingImportResult.appliedSummary.zoneCount || 0)} zones, {Number(pricingImportResult.appliedSummary.categoryCount || 0)} tiers, {Number(pricingImportResult.appliedSummary.laneCount || 0)} lanes.
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "zone-master" && (
-                                <div id="pricing-topic-zone-master" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div>
-                                            <p className="text-[13px] font-[700] text-[#111827]">Zone Master ({titleCase(activePricingCategory)})</p>
-                                            <p className="text-[11px] text-[#64748B] mt-1">Define category-specific zones for {titleCase(activePricingCategory)} lane rules.</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                className="h-[32px] w-[220px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]"
-                                                value={pricingZoneDraft}
-                                                placeholder="Add zone label"
-                                                onChange={(e) => setPricingZoneDraft(e.target.value)}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]"
-                                                onClick={() => addPricingZone(activePricingCategory)}
-                                            >
-                                                Add Zone
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-2 overflow-x-auto">
-                                        <table className="w-full min-w-[560px] text-[12px]">
-                                            <thead>
-                                                <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                    <th className="px-2 py-2">Zone Label</th>
-                                                    <th className="px-2 py-2">Zone Key</th>
-                                                    <th className="px-2 py-2">Active</th>
-                                                    <th className="px-2 py-2">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {activePricingZones.map((zone, index) => (
-                                                    <tr key={`zone-master-${zone?.key || index}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-2">
-                                                            <input
-                                                                className="h-[32px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]"
-                                                                value={String(zone?.label || "")}
-                                                                onChange={(e) => updatePricingZone(activePricingCategory, index, "label", e.target.value)}
-                                                            />
-                                                        </td>
-                                                        <td className="px-2 py-2">
-                                                            <span className="inline-flex h-[32px] items-center rounded-[8px] border border-[#E5E7EB] bg-[#F8FAFC] px-2 text-[11px] font-[700] text-[#334155]">{String(zone?.key || "")}</span>
-                                                        </td>
-                                                        <td className="px-2 py-2">
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(zone?.isActive)}
-                                                                    onChange={(e) => updatePricingZone(activePricingCategory, index, "isActive", e.target.checked)}
-                                                                />
-                                                                Active
-                                                            </label>
-                                                        </td>
-                                                        <td className="px-2 py-2">
-                                                            <button
-                                                                type="button"
-                                                                className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]"
-                                                                onClick={() => removePricingZone(activePricingCategory, index)}
-                                                            >
-                                                                Remove
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "lane-matrix" && (
-                                <div id="pricing-topic-lane-matrix" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-white scroll-mt-24">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <p className="text-[13px] font-[700] text-[#111827]">Lane Matrix Pricing</p>
-                                        <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                            <input
-                                                type="checkbox"
-                                                checked={activeLaneEnabled}
-                                                onChange={(e) => updatePricingLaneMatrix(activePricingCategory, "enabled", e.target.checked)}
-                                            />
-                                            Enable lane-based pricing enforcement
-                                        </label>
-                                    </div>
-                                    <p className="text-[11px] text-[#64748B] mt-1">When enabled, booking runtime requires a matching lane rule by origin zone, destination zone, service level, and distance band (if configured).</p>
-
-                                    <div className="mt-2 overflow-x-auto">
-                                        <table className="w-max min-w-[2100px] text-[11px]">
-                                            <thead>
-                                                <tr className="bg-[#F8FAFC] text-left border border-[#E5E7EB]">
-                                                    <th className="px-2 py-2 min-w-[160px]">Origin Zone</th>
-                                                    <th className="px-2 py-2 min-w-[160px]">Destination Zone</th>
-                                                    <th className="px-2 py-2 min-w-[160px]">Service Level</th>
-                                                    <th className="px-2 py-2 min-w-[130px]">Distance From (km)</th>
-                                                    <th className="px-2 py-2 min-w-[130px]">Distance To (km)</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Included Km</th>
-                                                    <th className="px-2 py-2 min-w-[90px]">Per Km</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Distance Fee</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Distance Mult.</th>
-                                                    <th className="px-2 py-2 min-w-[100px]">Base Price</th>
-                                                    <th className="px-2 py-2 min-w-[90px]">Per Kg</th>
-                                                    <th className="px-2 py-2 min-w-[100px]">Min Price</th>
-                                                    <th className="px-2 py-2 min-w-[110px]">Priority Mult.</th>
-                                                    <th className="px-2 py-2 min-w-[70px]">Active</th>
-                                                    <th className="px-2 py-2 min-w-[80px]">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {activeLaneRows.map((row, index) => (
-                                                    <tr key={`${activePricingCategory}-lane-${row?.id || index}`} className="border-x border-b border-[#E5E7EB]">
-                                                        <td className="px-2 py-3 min-w-[160px]">
-                                                            <select
-                                                                className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
-                                                                value={String(row?.originZone || "*")}
-                                                                onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "originZone", String(e.target.value || "*"))}
-                                                            >
-                                                                {activeZoneOptions.map((option) => (
-                                                                    <option key={`${activePricingCategory}-origin-zone-${option.key}`} value={option.key}>{option.label}</option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        <td className="px-2 py-3 min-w-[160px]">
-                                                            <select
-                                                                className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
-                                                                value={String(row?.destinationZone || "*")}
-                                                                onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "destinationZone", String(e.target.value || "*"))}
-                                                            >
-                                                                {activeZoneOptions.map((option) => (
-                                                                    <option key={`${activePricingCategory}-destination-zone-${option.key}`} value={option.key}>{option.label}</option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        <td className="px-2 py-3 min-w-[160px]">
-                                                            <select
-                                                                className="h-[44px] w-full min-w-[140px] rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A]"
-                                                                value={String(row?.serviceLevelKey || activeServiceLevelOptions[0]?.key || "")}
-                                                                onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "serviceLevelKey", e.target.value)}
-                                                            >
-                                                                {activeServiceLevelOptions.map((option) => (
-                                                                    <option key={`${activePricingCategory}-lane-service-${option.key}`} value={option.key}>{option.label}</option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceFromKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceFromKm", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={row?.distanceToKm === null || row?.distanceToKm === undefined || row?.distanceToKm === "" ? "" : Number(row?.distanceToKm || 0)} placeholder="No limit" onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceToKm", e.target.value === "" ? null : Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.1" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceBaseKm || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceBaseKm", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKmPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKmPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceSurcharge || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceSurcharge", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.distanceMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "distanceMultiplier", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.basePrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "basePrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.perKgPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "perKgPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.minPrice || 0)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "minPrice", Number(e.target.value || 0))} /></td>
-                                                        <td className="px-2 py-3"><input type="number" min={0.1} step="0.01" className="h-[44px] w-full rounded-[8px] border border-[#D1D5DB] bg-white px-2 text-[#0F172A] placeholder:text-[#94A3B8]" value={Number(row?.priorityMultiplier || 1)} onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "priorityMultiplier", Number(e.target.value || 1))} /></td>
-                                                        <td className="px-2 py-3">
-                                                            <label className="inline-flex items-center gap-2 text-[11px] font-[700] text-[#334155]">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={Boolean(row?.isActive)}
-                                                                    onChange={(e) => updatePricingLaneRule(activePricingCategory, index, "isActive", e.target.checked)}
-                                                                />
-                                                                Active
-                                                            </label>
-                                                        </td>
-                                                        <td className="px-2 py-3">
-                                                            <button type="button" className="h-[44px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[11px] font-[700]" onClick={() => removePricingLaneRule(activePricingCategory, index)}>
-                                                                Remove
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <div className="mt-2">
-                                        <button type="button" className="h-[30px] px-3 rounded-[8px] border border-[#0955AC] text-[#0955AC] text-[11px] font-[700]" onClick={() => addPricingLaneRule(activePricingCategory)}>
-                                            Add Lane Rule
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activePricingTopic === "preview" && (
-                                <div id="pricing-topic-preview" className="mt-4 border border-[#E5E7EB] rounded-[10px] p-3 bg-[#F8FAFC] scroll-mt-24">
-                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Formula Validation Preview</p>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                        <Field label="Weight (kg)"><input type="number" min={0.1} step="0.1" className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.weightKg || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, weightKg: Number(e.target.value || 0) }))} /></Field>
-                                        <Field label="Length (cm)"><input type="number" min={1} className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.lengthCm || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, lengthCm: Number(e.target.value || 0) }))} /></Field>
-                                        <Field label="Width (cm)"><input type="number" min={1} className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.widthCm || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, widthCm: Number(e.target.value || 0) }))} /></Field>
-                                        <Field label="Height (cm)"><input type="number" min={1} className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]" value={Number(pricingPreviewInput.heightCm || 0)} onChange={(e) => setPricingPreviewInput((prev) => ({ ...prev, heightCm: Number(e.target.value || 0) }))} /></Field>
-                                    </div>
-
-                                    <div className="mt-3 space-y-2">
-                                        {pricingPreviewRows.map((row) => (
-                                            <div key={`preview-${row.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
-                                                <p className="text-[12px] font-[700] text-[#111827]">{row.label} ({row.slaDays} day{row.slaDays > 1 ? "s" : ""})</p>
-                                                <p className="text-[11px] text-[#475569] mt-1">Service Level: {row.serviceLevelLabel} • Cutoff {row.cutoffTime}</p>
-                                                <p className="text-[11px] text-[#475569] mt-1">Chargeable Weight: {row.chargeableWeight} kg</p>
-                                                <p className="text-[11px] text-[#475569] mt-1">Base Currency Total: {formatMoney(row.totalBaseCurrency, activePricingLocalization.baseCurrency, activePricingLocalization.locale)}</p>
-                                                <p className="text-[12px] font-[700] text-[#0F172A] mt-1">Display Total: {formatMoney(row.totalDisplayCurrency, activePricingLocalization.displayCurrency, activePricingLocalization.locale)}</p>
-                                            </div>
-                                        ))}
-                                        {pricingPreviewRows.length === 0 && (
-                                            <p className="text-[11px] text-[#6B7280]">No pricing tiers configured for this category.</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            </div>
-                        </SectionCard>
-                    </div>
-                </div>
+                <SettingsPricingTab
+                    {...{
+                        CURRENCY_OPTIONS,
+                        DEFAULT_SETTINGS,
+                        PRICING_TOPIC_CONFIG,
+                        activeInternationalDimensionsEngine,
+                        activeLaneEnabled,
+                        activeLaneRows,
+                        activePricingApprovalAuthority,
+                        activePricingCategory,
+                        activePricingFormula,
+                        activePricingGovernance,
+                        activePricingLocalization,
+                        activePricingPolicyModules,
+                        activePricingRows,
+                        activePricingTopic,
+                        activePricingZones,
+                        activeServiceCatalogRows,
+                        activeServiceLevelOptions,
+                        activeSpeedEtaTierEngine,
+                        activeSpeedEtaTierRows,
+                        activeZoneOptions,
+                        addPricingLaneRule,
+                        addPricingServiceLevel,
+                        addPricingTier,
+                        addPricingZone,
+                        applyPricingImportToDraft,
+                        canConfigurePricingGovernance,
+                        canPublishPricingChanges,
+                        canReviewPricingPublish,
+                        fetchLiveExchangeRates,
+                        formatMoney,
+                        formatMultiplierMapInput,
+                        governanceApproverRoleOptions,
+                        isSuperAdminPricingAuthority,
+                        liveRateBusy,
+                        navigatePricingCategory,
+                        navigatePricingTopic,
+                        normalizeImportCityKey,
+                        openAddTierModal,
+                        parseCommaList,
+                        parseMultiplierMapInput,
+                        pendingApprovalRequestedByCurrentActor,
+                        previewPricingImport,
+                        pricingGovernanceActionBusy,
+                        pricingGovernanceNote,
+                        pricingImportApplyBusy,
+                        pricingImportFile,
+                        pricingImportManualResolutions,
+                        pricingImportManualReviewConfirmed,
+                        pricingImportMode,
+                        pricingImportPreviewBusy,
+                        pricingImportPreviewToken,
+                        pricingImportResolutionStrategy,
+                        pricingImportResult,
+                        pricingPreviewInput,
+                        pricingPreviewRows,
+                        pricingPublishAt,
+                        pricingRollbackVersion,
+                        pricingZoneDraft,
+                        removePricingLaneRule,
+                        removePricingServiceLevel,
+                        removePricingTier,
+                        removePricingTierEngineTier,
+                        removePricingZone,
+                        rollbackCandidates,
+                        runPricingGovernanceAction,
+                        setPricingGovernanceNote,
+                        setPricingImportFile,
+                        setPricingImportManualResolutions,
+                        setPricingImportManualReviewConfirmed,
+                        setPricingImportMode,
+                        setPricingImportPreviewToken,
+                        setPricingImportResolutionStrategy,
+                        setPricingImportResult,
+                        setPricingPreviewInput,
+                        setPricingPublishAt,
+                        setPricingRollbackVersion,
+                        setPricingZoneDraft,
+                        titleCase,
+                        toggleInArray,
+                        updatePricingFormula,
+                        updatePricingGovernance,
+                        updatePricingLaneMatrix,
+                        updatePricingLaneRule,
+                        updatePricingLocalization,
+                        updatePricingPolicyModule,
+                        updatePricingServiceLevel,
+                        updatePricingTier,
+                        updatePricingTierEngineTier,
+                        updatePricingZone,
+                        visiblePricingCategoryOptions,
+                    }}
+                />
             );
         }
 

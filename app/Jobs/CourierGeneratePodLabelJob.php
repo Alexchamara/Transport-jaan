@@ -5,6 +5,9 @@ namespace App\Jobs;
 use App\Models\Courier\CourierLabelPrintItem;
 use App\Models\Courier\CourierLabelPrintJob;
 use App\Models\Notification;
+use App\Services\Courier\CourierLabelComplianceService;
+use App\Services\Courier\CourierLabelRenderService;
+use App\Services\Courier\CourierLabelSchemaRegistry;
 use App\Services\Courier\CourierPodLabelService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,7 +27,12 @@ class CourierGeneratePodLabelJob implements ShouldQueue
     {
     }
 
-    public function handle(CourierPodLabelService $service): void
+    public function handle(
+        CourierPodLabelService $service,
+        CourierLabelRenderService $renderService,
+        CourierLabelComplianceService $complianceService,
+        CourierLabelSchemaRegistry $schemaRegistry
+    ): void
     {
         $job = CourierLabelPrintJob::query()
             ->with([
@@ -51,6 +59,7 @@ class CourierGeneratePodLabelJob implements ShouldQueue
 
         $template = $job->template;
         $size = $job->size ?? $template?->size ?? $service->makeFallbackSize();
+        $labelType = strtolower((string) ($job->label_type ?: $template?->label_type ?: 'pod'));
 
         try {
             $pages = [];
@@ -62,14 +71,41 @@ class CourierGeneratePodLabelJob implements ShouldQueue
                     continue;
                 }
 
-                $payload = $service->buildPayload($shipment, $package, $this->vendorId);
+                $payload = $service->buildPayload($shipment, $package, $this->vendorId, $labelType);
+                $complianceResult = $complianceService->validate($labelType, $payload, $shipment);
+                if (!$complianceResult['ok']) {
+                    $item->update([
+                        'status' => 'failed',
+                        'validation_state' => 'invalid',
+                        'compliance_errors' => $complianceResult['errors'],
+                        'render_warnings' => $complianceResult['warnings'],
+                        'error_code' => 'compliance_validation_failed',
+                        'error_message' => 'Compliance validation failed for this item.',
+                    ]);
+                    continue;
+                }
+
+                if ($schemaRegistry->requiresCompliance($labelType)) {
+                    $complianceService->logExternalSync(
+                        $this->vendorId,
+                        $labelType,
+                        $payload,
+                        ['status' => 'accepted', 'reference' => 'CUST-' . strtoupper(substr(md5((string) $shipment->id . '-' . $package->id), 0, 10))],
+                        $job,
+                        $item
+                    );
+                }
+
                 $item->update([
                     'status' => 'generated',
+                    'validation_state' => 'valid',
+                    'compliance_errors' => [],
+                    'render_warnings' => $complianceResult['warnings'],
                     'payload_snapshot' => $payload,
                     'generated_at' => now(),
                     'printed_at' => now(),
                 ]);
-                $pages[] = $service->renderLabelHtml($payload, $template);
+                $pages[] = $renderService->renderLabelHtml($payload, $template, $size);
             }
 
             if (count($pages) === 0) {
@@ -77,7 +113,7 @@ class CourierGeneratePodLabelJob implements ShouldQueue
                 return;
             }
 
-            $pdfBinary = $service->renderLabelsPdf($pages, $size, (string) ($template->orientation ?? 'portrait'));
+            $pdfBinary = $renderService->renderLabelsPdf($pages, $size, (string) ($template->orientation ?? 'portrait'));
             $stored = $service->storePdf($pdfBinary, $this->vendorId, 'pod_labels');
             $failed = CourierLabelPrintItem::query()
                 ->where('print_job_id', $job->id)

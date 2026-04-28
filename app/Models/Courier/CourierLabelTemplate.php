@@ -16,6 +16,9 @@ class CourierLabelTemplate extends Model
         'vendor_user_id',
         'size_id',
         'name',
+        'label_type',
+        'schema_version',
+        'version_channel',
         'category_scope',
         'layout_preset',
         'orientation',
@@ -26,6 +29,8 @@ class CourierLabelTemplate extends Model
         'created_by_user_id',
         'updated_by_user_id',
         'metadata',
+        'published_at',
+        'archived_at',
     ];
 
     protected $casts = [
@@ -34,6 +39,8 @@ class CourierLabelTemplate extends Model
         'is_active' => 'boolean',
         'is_system' => 'boolean',
         'metadata' => 'array',
+        'published_at' => 'datetime',
+        'archived_at' => 'datetime',
     ];
 
     public function vendor()

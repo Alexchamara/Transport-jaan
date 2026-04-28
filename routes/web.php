@@ -1309,6 +1309,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
         ->middleware('service.permission:courier.labels.view')
         ->name('courierService.labels.catalog');
 
+    Route::get('/courierService/labels/types/{type}/schema', [VendorCourierPodLabelController::class, 'typeSchema'])
+        ->middleware('service.permission:courier.labels.view')
+        ->name('courierService.labels.types.schema');
+
     Route::get('/courierService/labels/sizes', [VendorCourierPodLabelController::class, 'listSizes'])
         ->middleware('service.permission:courier.labels.view')
         ->name('courierService.labels.sizes.index');
@@ -1344,6 +1348,10 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
     Route::post('/courierService/labels/preview', [VendorCourierPodLabelController::class, 'preview'])
         ->middleware(['service.permission:courier.labels.view', 'throttle:30,1'])
         ->name('courierService.labels.preview');
+
+    Route::post('/courierService/labels/compliance/validate', [VendorCourierPodLabelController::class, 'complianceValidate'])
+        ->middleware(['service.permission:courier.labels.view', 'throttle:30,1'])
+        ->name('courierService.labels.compliance.validate');
 
     Route::post('/courierService/labels/jobs', [VendorCourierPodLabelController::class, 'storeJob'])
         ->middleware(['service.permission:courier.labels.print', 'throttle:15,1'])
