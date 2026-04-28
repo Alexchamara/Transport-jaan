@@ -1074,7 +1074,7 @@ const ProfileContent = () => {
                                         </button>
                                     </div>
                                     <ErrorText>{errors.password_confirmation}</ErrorText>
-                                            disabled={!isDirty || !editableTab}
+                                </Field>
                             </div>
                         </SectionCard>
                     )}
