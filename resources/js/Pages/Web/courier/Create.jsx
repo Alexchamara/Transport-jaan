@@ -3346,7 +3346,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         checked={paymentOptions.card}
                                                                                         onChange={(event) => updatePaymentOptions("card", event.target.checked)}
                                                                                     />
-                                                                                    Card
+                                                                                    Debit / Credit
                                                                                 </label>
                                                                             </div>
                                                                         </>
