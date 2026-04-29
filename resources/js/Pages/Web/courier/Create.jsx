@@ -239,6 +239,17 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }), {}),
     });
 
+    const verifiedQuoteProviders = useMemo(() => {
+        return quoteProviders.filter((provider) => {
+            if (provider?.isVerified === true) {
+                return true;
+            }
+
+            const providerStatus = String(provider?.status || provider?.vendorStatus || "").trim().toLowerCase();
+            return providerStatus === "verified";
+        });
+    }, [quoteProviders]);
+
     // Currency conversion state
     const [displayCurrency, setDisplayCurrency] = useState('LKR');
     const USD_TO_LKR_RATE = 325; // Exchange rate (you can make this dynamic later)
@@ -2074,10 +2085,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         // If 'All' is selected, we show everything (OR logic)
         // If 'All' is NOT selected, but specific ones are, we filter strictly (AND logic)
         if (!requiresCod && !requiresCard && !isAllSelected) {
-            return quoteProviders;
+            return verifiedQuoteProviders;
         }
 
-        return quoteProviders.filter((provider) => {
+        return verifiedQuoteProviders.filter((provider) => {
             const providerPaymentOptions = provider?.paymentOptions || {};
             const supportsCod = Boolean(providerPaymentOptions.cod);
             const supportsCard = providerPaymentOptions.card === undefined
@@ -2100,7 +2111,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
             return true;
         });
-    }, [quoteProviders]);
+    }, [verifiedQuoteProviders]);
 
     const paymentFilteredQuoteProviders = useMemo(
         () => filterQuoteProvidersByPaymentOptions(paymentOptions),
