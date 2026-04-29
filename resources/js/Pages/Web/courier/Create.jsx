@@ -12,7 +12,6 @@ import presetPalletTwoImage from "../assets/courierService/size-pallet-2.svg";
 import presetMovingBoxImage from "../assets/courierService/size-moving-box.svg";
 import DetailsForm from "./Details";
 import SummaryView from "./Summary";
-import ScrollToTop from "../../../Components/ScrollToTop";
 import {
     buildQuoteMatrix,
     buildReviewContext,
@@ -4564,7 +4563,6 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             </main>
 
             <Footer />
-            <ScrollToTop />
         </div>
     );
 };
