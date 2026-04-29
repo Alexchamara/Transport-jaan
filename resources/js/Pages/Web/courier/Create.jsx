@@ -29,6 +29,7 @@ const POSTAL_LOOKUP_MIN_CITY_LENGTH = 3;
 const POSTAL_PREFIX_LOOKUP_MIN_LENGTH = 2;
 const CITY_PREFIX_LOOKUP_MIN_LENGTH = 2;
 const POSTAL_CITY_MISMATCH_MESSAGE = "The postal code you entered doesn't match our database. Please retry using a valid postal code.";
+const DOMESTIC_CITY_INVALID_MESSAGE = "Please select a valid city from the suggestion list.";
 
 const OUNCES_PER_KILOGRAM = 35.27396195;
 const CENTIMETERS_PER_YARD = 91.44;
@@ -162,6 +163,9 @@ const normalizeComparableValue = (value) => {
 
 const buildSummaryStepDependencyFingerprint = (formData = {}) =>
     JSON.stringify(normalizeComparableValue(formData || {}));
+
+const normalizeLocationText = (value) =>
+    String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
 
 const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverrides = null }) => {
     const { props } = usePage();
@@ -409,7 +413,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         sender: false,
         recipient: false,
     });
+    const [locationValidationState, setLocationValidationState] = useState({
+        sender: { cityValid: null, postalValid: null, message: "" },
+        recipient: { cityValid: null, postalValid: null, message: "" },
+    });
     const domesticCityAbortRef = useRef({
+        sender: null,
+        recipient: null,
+    });
+    const domesticCityValidationAbortRef = useRef({
         sender: null,
         recipient: null,
     });
@@ -459,6 +471,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             || normalizedKey.replaceAll("_", " ");
     };
 
+    const setLocationPartyValidation = (party, updates) => {
+        setLocationValidationState((previous) => ({
+            ...previous,
+            [party]: {
+                ...previous[party],
+                ...updates,
+            },
+        }));
+    };
+
+    const validationInputClassName = (isValid, isInvalid) => {
+        if (isValid) {
+            return "border-[#2F7D32] bg-[#F0FFF4] text-[#0B1739] pr-12 focus:border-[#2F7D32]";
+        }
+
+        if (isInvalid) {
+            return "border-[#C43D35] bg-[#FFF5F5] text-[#0B1739] pr-12 focus:border-[#C43D35]";
+        }
+
+        return "border-[#D6DEEB] bg-white text-[#0B1739] focus:border-[#0955AC]";
+    };
+
     const updatePackage = (index, field, value) => {
         const nextPackages = data.packages.map((item, idx) =>
             idx === index
@@ -505,6 +539,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
 
         setPostalMismatchNotice(party, false);
+        setLocationPartyValidation(party, {
+            cityValid: null,
+            postalValid: null,
+            message: "",
+        });
     };
 
     const fetchDomesticCitySuggestions = (party, query) => {
@@ -679,6 +718,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     : currentParty.address.country,
             },
         });
+
+        if (selectedRouteType === "domestic") {
+            setLocationPartyValidation(party, {
+                cityValid: null,
+                message: "",
+            });
+            return;
+        }
+
+        setLocationPartyValidation(party, {
+            cityValid: null,
+            postalValid: null,
+            message: "",
+        });
     };
 
     const updateAddressPostalCode = (party, postalCode) => {
@@ -697,6 +750,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             ...previous,
             [party]: "",
         }));
+
+        if (selectedRouteType === "international") {
+            setLocationPartyValidation(party, {
+                cityValid: null,
+                postalValid: null,
+                message: "",
+            });
+        }
     };
 
     const updateAddressResidential = (party, isResidential) => {
@@ -1149,6 +1210,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
             if (city) {
                 setPostalMismatchNotice(party, false);
+                setLocationPartyValidation(party, {
+                    cityValid: true,
+                    postalValid: true,
+                    message: "",
+                });
 
                 updateAddressCity(party, city);
                 setCityLookupState((previous) => ({
@@ -1164,6 +1230,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             if (suggestions.length > 0) {
                 updateAddressCity(party, "");
                 setPostalMismatchNotice(party, false);
+                setLocationPartyValidation(party, {
+                    cityValid: null,
+                    postalValid: true,
+                    message: "",
+                });
                 setCityLookupState((previous) => ({
                     ...previous,
                     [party]: {
@@ -1176,6 +1247,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
             updateAddressCity(party, "");
             setPostalMismatchNotice(party, true);
+            setLocationPartyValidation(party, {
+                cityValid: false,
+                postalValid: false,
+                message: POSTAL_CITY_MISMATCH_MESSAGE,
+            });
             setCityLookupState((previous) => ({
                 ...previous,
                 [party]: {
@@ -1204,6 +1280,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                     error: errorMessage,
                 },
             }));
+            setLocationPartyValidation(party, {
+                cityValid: false,
+                postalValid: false,
+                message: errorMessage,
+            });
         } finally {
             if (cityLookupAbortRef.current[party] === controller) {
                 cityLookupAbortRef.current[party] = null;
@@ -1317,7 +1398,163 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 error: "",
             },
         }));
+        setLocationPartyValidation(party, {
+            cityValid: true,
+            postalValid: true,
+            message: "",
+        });
         setActiveLocationField((current) => (current === fieldKey ? null : current));
+    };
+
+    const abortDomesticCityValidationForParty = (party) => {
+        const controller = domesticCityValidationAbortRef.current[party];
+        if (controller) {
+            controller.abort();
+            domesticCityValidationAbortRef.current[party] = null;
+        }
+    };
+
+    const validateDomesticCity = async (party, cityValue) => {
+        const normalizedCity = normalizeLocationText(cityValue);
+        if (!normalizedCity) {
+            setLocationPartyValidation(party, {
+                cityValid: null,
+                message: "",
+            });
+            return false;
+        }
+
+        abortDomesticCityValidationForParty(party);
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        if (controller) {
+            domesticCityValidationAbortRef.current[party] = controller;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                q: String(cityValue || "").trim(),
+                limit: "20",
+            });
+            const response = await fetch(
+                `${flowRoutes.domesticCitySearch}?${params.toString()}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                    signal: controller?.signal,
+                }
+            );
+
+            if (!response.ok) {
+                setLocationPartyValidation(party, {
+                    cityValid: false,
+                    message: DOMESTIC_CITY_INVALID_MESSAGE,
+                });
+                return false;
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const cities = Array.isArray(payload?.cities) ? payload.cities : [];
+            const isMatched = cities.some((item) => {
+                const normalizedNameEn = normalizeLocationText(item?.nameEn);
+                const normalizedDisplayName = normalizeLocationText(item?.displayName);
+                return normalizedCity === normalizedNameEn || normalizedCity === normalizedDisplayName;
+            });
+
+            setLocationPartyValidation(party, {
+                cityValid: isMatched,
+                message: isMatched ? "" : DOMESTIC_CITY_INVALID_MESSAGE,
+            });
+
+            return isMatched;
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return false;
+            }
+
+            setLocationPartyValidation(party, {
+                cityValid: false,
+                message: "Unable to verify city right now. Please try again.",
+            });
+            return false;
+        } finally {
+            if (domesticCityValidationAbortRef.current[party] === controller) {
+                domesticCityValidationAbortRef.current[party] = null;
+            }
+        }
+    };
+
+    const validateInternationalAddressPair = async (party, overrides = {}) => {
+        const currentAddress = party === "recipient"
+            ? (data.recipient?.address || {})
+            : (data.sender?.address || {});
+
+        const city = String(overrides.city ?? currentAddress.city ?? "").trim();
+        const postalCode = String(overrides.postalCode ?? currentAddress.postalCode ?? "").trim();
+        const country = String(overrides.country ?? currentAddress.country ?? "").trim().toUpperCase();
+
+        if (!city || !postalCode || country.length !== 2) {
+            setLocationPartyValidation(party, {
+                cityValid: null,
+                postalValid: null,
+                message: "",
+            });
+            return false;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                postalCode,
+                country,
+                routeType: "international",
+                limit: "20",
+            });
+
+            const response = await fetch(`${flowRoutes.cityByPostal}?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                setLocationPartyValidation(party, {
+                    cityValid: false,
+                    postalValid: false,
+                    message: "Unable to verify city and postal code right now.",
+                });
+                return false;
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const normalizedInputCity = normalizeLocationText(city);
+            const matchedByDirectCity = normalizeLocationText(payload?.city) === normalizedInputCity;
+            const matchedBySuggestions = Array.isArray(payload?.suggestions) && payload.suggestions.some((item) =>
+                normalizeLocationText(item?.city) === normalizedInputCity
+                && String(item?.postalCode || "").trim() === postalCode
+            );
+
+            const isValidPair = matchedByDirectCity || matchedBySuggestions;
+            setPostalMismatchNotice(party, !isValidPair);
+            setLocationPartyValidation(party, {
+                cityValid: isValidPair,
+                postalValid: isValidPair,
+                message: isValidPair ? "" : POSTAL_CITY_MISMATCH_MESSAGE,
+            });
+            return isValidPair;
+        } catch {
+            setLocationPartyValidation(party, {
+                cityValid: false,
+                postalValid: false,
+                message: "Unable to verify city and postal code right now.",
+            });
+            return false;
+        }
     };
 
     const handleCitySearchChange = (party, fieldKey, value) => {
@@ -1354,6 +1591,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 ...previous,
                 [fieldKey]: option.label,
             }));
+            if (selectedRouteType === "domestic") {
+                setLocationPartyValidation(party, {
+                    cityValid: true,
+                    message: "",
+                });
+            }
         } else {
             updateAddressCountry(party, option.value);
             setLocationSearch((previous) => ({
@@ -1374,6 +1617,10 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             recipientCity: nextForm.recipient.address.city || "",
             senderCountry: nextForm.sender.address.country || "",
             recipientCountry: nextForm.recipient.address.country || "",
+        });
+        setLocationValidationState({
+            sender: { cityValid: null, postalValid: null, message: "" },
+            recipient: { cityValid: null, postalValid: null, message: "" },
         });
         setActiveLocationField(null);
         setActivePackageIndex(0);
@@ -1644,15 +1891,15 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
         if (shouldShowDescribeShipmentCta) {
             if (hasLocationDetailsForDescribe) {
-                revealShipmentDetailsSection();
+                void revealShipmentDetailsSection();
                 return true;
             }
             return false;
         }
 
         if (!showQuotes) {
-            if (hasRequiredDetails && !isPlacing) {
-                handleContinueToQuotes();
+            if (hasRequiredDetailsBase && !isPlacing) {
+                void handleContinueToQuotes();
                 return true;
             }
             return false;
@@ -1683,7 +1930,38 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         triggerEligibleContinueAction(activeElement);
     };
 
-    const revealShipmentDetailsSection = () => {
+    const validateCurrentLocations = useCallback(async () => {
+        if (selectedRouteType === "domestic") {
+            const [senderValid, recipientValid] = await Promise.all([
+                validateDomesticCity("sender", locationSearch.senderCity || data.sender?.address?.city || ""),
+                validateDomesticCity("recipient", locationSearch.recipientCity || data.recipient?.address?.city || ""),
+            ]);
+            return senderValid && recipientValid;
+        }
+
+        const [senderValid, recipientValid] = await Promise.all([
+            validateInternationalAddressPair("sender"),
+            validateInternationalAddressPair("recipient"),
+        ]);
+        return senderValid && recipientValid;
+    }, [
+        selectedRouteType,
+        validateDomesticCity,
+        validateInternationalAddressPair,
+        locationSearch.senderCity,
+        locationSearch.recipientCity,
+        data.sender?.address?.city,
+        data.recipient?.address?.city,
+    ]);
+
+    const revealShipmentDetailsSection = async () => {
+        setSubmitError("");
+        const locationsValid = await validateCurrentLocations();
+        if (!locationsValid) {
+            setSubmitError("Please provide valid pickup and destination locations before continuing.");
+            return;
+        }
+
         const nextVisibleState = {};
         data.packages.forEach((_, packageIndex) => {
             nextVisibleState[packageIndex] = true;
@@ -2288,7 +2566,20 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }).length;
     }, [data.packages]);
 
-    const hasRequiredDetails = useMemo(() => {
+    const hasValidatedLocations = useMemo(() => {
+        if (selectedRouteType === "domestic") {
+            return Boolean(locationValidationState.sender.cityValid && locationValidationState.recipient.cityValid);
+        }
+
+        return Boolean(
+            locationValidationState.sender.cityValid
+            && locationValidationState.sender.postalValid
+            && locationValidationState.recipient.cityValid
+            && locationValidationState.recipient.postalValid
+        );
+    }, [locationValidationState, selectedRouteType]);
+
+    const hasRequiredDetailsBase = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
             return false;
         }
@@ -2337,7 +2628,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         hasPaymentOption,
     ]);
 
-    const hasRequiredDetailsForQuoteOnly = useMemo(() => {
+    const hasRequiredDetailsForQuoteOnlyBase = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
             return false;
         }
@@ -2383,6 +2674,16 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         data.shipment,
         selectedRouteType,
     ]);
+
+    const hasRequiredDetails = useMemo(
+        () => hasRequiredDetailsBase && hasValidatedLocations,
+        [hasRequiredDetailsBase, hasValidatedLocations],
+    );
+
+    const hasRequiredDetailsForQuoteOnly = useMemo(
+        () => hasRequiredDetailsForQuoteOnlyBase && hasValidatedLocations,
+        [hasRequiredDetailsForQuoteOnlyBase, hasValidatedLocations],
+    );
 
     const hasSelectedServices = useMemo(() => {
         if (!Array.isArray(data.packages) || data.packages.length === 0) {
@@ -2782,17 +3083,23 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setIsPlacing(false);
     };
 
-    const handleContinueToQuotes = () => {
+    const handleContinueToQuotes = async () => {
         setStepFlowNotice("");
         setSubmitError("");
         setQuoteOnlyMessage("");
 
-        if (!hasRequiredDetails) {
+        if (!hasRequiredDetailsBase) {
             setSubmitError(
                 selectedRouteType === "domestic" && !hasPaymentOption
                     ? "Select at least one payment option to continue."
                     : "Complete all required fields before continuing.",
             );
+            return;
+        }
+
+        const locationsValid = await validateCurrentLocations();
+        if (!locationsValid) {
+            setSubmitError("Please provide valid pickup and destination locations before continuing.");
             return;
         }
 
@@ -3085,12 +3392,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             fetchDomesticCitySuggestions("sender", locationSearch.senderCity);
                                                                                         }
                                                                                     }}
-                                                                                    onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    onBlur={(event) => {
+                                                                                        handleLocationInputBlur(`sender-city-${index}`);
+                                                                                        void validateDomesticCity("sender", event.target.value);
+                                                                                    }}
+                                                                                    className={`h-[52px] w-full rounded-lg border px-4 text-sm leading-5 focus:outline-none ${validationInputClassName(
+                                                                                        locationValidationState.sender.cityValid === true,
+                                                                                        locationValidationState.sender.cityValid === false,
+                                                                                    )}`}
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.sender && (
                                                                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {!domesticCityLoading.sender && locationValidationState.sender.cityValid === true && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#2F7D32] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                        OK
+                                                                                    </span>
+                                                                                )}
+                                                                                {!domesticCityLoading.sender && locationValidationState.sender.cityValid === false && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#C43D35] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                        !
+                                                                                    </span>
                                                                                 )}
                                                                                 {activeLocationField === `sender-city-${index}` && domesticCitySuggestions.sender.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
@@ -3111,6 +3434,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     </div>
                                                                                 )}
                                                                             </div>
+                                                                            {locationValidationState.sender.cityValid === false && locationValidationState.sender.message && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">
+                                                                                    {locationValidationState.sender.message}
+                                                                                </p>
+                                                                            )}
                                                                         </div>
                                                                         <div>
                                                                             <label className="mb-1 block text-xs font-medium text-[#5B6887]">Destination city*</label>
@@ -3127,12 +3455,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             fetchDomesticCitySuggestions("recipient", locationSearch.recipientCity);
                                                                                         }
                                                                                     }}
-                                                                                    onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
-                                                                                    className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
+                                                                                    onBlur={(event) => {
+                                                                                        handleLocationInputBlur(`recipient-city-${index}`);
+                                                                                        void validateDomesticCity("recipient", event.target.value);
+                                                                                    }}
+                                                                                    className={`h-[52px] w-full rounded-lg border px-4 text-sm leading-5 focus:outline-none ${validationInputClassName(
+                                                                                        locationValidationState.recipient.cityValid === true,
+                                                                                        locationValidationState.recipient.cityValid === false,
+                                                                                    )}`}
                                                                                     placeholder="Type to search city..."
                                                                                 />
                                                                                 {domesticCityLoading.recipient && (
                                                                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#5B6887]">...</span>
+                                                                                )}
+                                                                                {!domesticCityLoading.recipient && locationValidationState.recipient.cityValid === true && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#2F7D32] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                        OK
+                                                                                    </span>
+                                                                                )}
+                                                                                {!domesticCityLoading.recipient && locationValidationState.recipient.cityValid === false && (
+                                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#C43D35] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                        !
+                                                                                    </span>
                                                                                 )}
                                                                                 {activeLocationField === `recipient-city-${index}` && domesticCitySuggestions.recipient.length > 0 && (
                                                                                     <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
@@ -3153,6 +3497,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                     </div>
                                                                                 )}
                                                                             </div>
+                                                                            {locationValidationState.recipient.cityValid === false && locationValidationState.recipient.message && (
+                                                                                <p className="mt-1 text-xs text-[#C43D35]">
+                                                                                    {locationValidationState.recipient.message}
+                                                                                </p>
+                                                                            )}
                                                                         </div>
                                                                     </>
                                                                 ) : (
@@ -3205,10 +3554,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             onChange={(event) => updateAddressCity("sender", event.target.value)}
                                                                                             disabled={!data.sender?.address?.country}
                                                                                             onFocus={() => setActiveLocationField(`sender-city-${index}`)}
-                                                                                            onBlur={() => handleLocationInputBlur(`sender-city-${index}`)}
-                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                            onBlur={(event) => {
+                                                                                                handleLocationInputBlur(`sender-city-${index}`);
+                                                                                                void validateInternationalAddressPair("sender", {
+                                                                                                    city: event.target.value,
+                                                                                                });
+                                                                                            }}
+                                                                                            className={`h-[52px] w-full rounded-lg border px-4 text-sm leading-5 disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:outline-none ${validationInputClassName(
+                                                                                                locationValidationState.sender.cityValid === true,
+                                                                                                locationValidationState.sender.cityValid === false,
+                                                                                            )}`}
                                                                                             placeholder={data.sender?.address?.country ? "Enter pickup city" : "Select pickup country first"}
                                                                                         />
+                                                                                        {!cityLookupState.sender.loading && locationValidationState.sender.cityValid === true && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#2F7D32] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                OK
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {!cityLookupState.sender.loading && locationValidationState.sender.cityValid === false && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#C43D35] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                !
+                                                                                            </span>
+                                                                                        )}
                                                                                         {activeLocationField === `sender-city-${index}`
                                                                                             && filterPostalCitySuggestions(
                                                                                                 postalCitySuggestions.sender,
@@ -3248,10 +3615,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             onChange={(event) => updateAddressPostalCode("sender", event.target.value)}
                                                                                             disabled={!data.sender?.address?.country}
                                                                                             onFocus={() => setActiveLocationField(`sender-postal-${index}`)}
-                                                                                            onBlur={() => handleLocationInputBlur(`sender-postal-${index}`)}
-                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                            onBlur={(event) => {
+                                                                                                handleLocationInputBlur(`sender-postal-${index}`);
+                                                                                                void validateInternationalAddressPair("sender", {
+                                                                                                    postalCode: event.target.value,
+                                                                                                });
+                                                                                            }}
+                                                                                            className={`h-[52px] w-full rounded-lg border px-4 text-sm leading-5 disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:outline-none ${validationInputClassName(
+                                                                                                locationValidationState.sender.postalValid === true,
+                                                                                                locationValidationState.sender.postalValid === false,
+                                                                                            )}`}
                                                                                             placeholder={data.sender?.address?.country ? "Enter pickup postal code" : "Select pickup country first"}
                                                                                         />
+                                                                                        {!cityLookupState.sender.loading && locationValidationState.sender.postalValid === true && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#2F7D32] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                OK
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {!cityLookupState.sender.loading && locationValidationState.sender.postalValid === false && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#C43D35] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                !
+                                                                                            </span>
+                                                                                        )}
                                                                                         {activeLocationField === `sender-postal-${index}` && postalCitySuggestions.sender.length > 0 && (
                                                                                             <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
                                                                                                 {postalCitySuggestions.sender.map((suggestion) => (
@@ -3290,6 +3675,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
                                                                                             {postalCityNotice.sender}
                                                                                         </div>
+                                                                                    )}
+                                                                                    {locationValidationState.sender.message && locationValidationState.sender.cityValid === false && (
+                                                                                        <p className="mt-2 text-xs text-[#C43D35]">
+                                                                                            {locationValidationState.sender.message}
+                                                                                        </p>
                                                                                     )}
                                                                                 </div>
                                                                             </div>
@@ -3343,10 +3733,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             onChange={(event) => updateAddressCity("recipient", event.target.value)}
                                                                                             disabled={!data.recipient?.address?.country}
                                                                                             onFocus={() => setActiveLocationField(`recipient-city-${index}`)}
-                                                                                            onBlur={() => handleLocationInputBlur(`recipient-city-${index}`)}
-                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                            onBlur={(event) => {
+                                                                                                handleLocationInputBlur(`recipient-city-${index}`);
+                                                                                                void validateInternationalAddressPair("recipient", {
+                                                                                                    city: event.target.value,
+                                                                                                });
+                                                                                            }}
+                                                                                            className={`h-[52px] w-full rounded-lg border px-4 text-sm leading-5 disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:outline-none ${validationInputClassName(
+                                                                                                locationValidationState.recipient.cityValid === true,
+                                                                                                locationValidationState.recipient.cityValid === false,
+                                                                                            )}`}
                                                                                             placeholder={data.recipient?.address?.country ? "Enter destination city" : "Select destination country first"}
                                                                                         />
+                                                                                        {!cityLookupState.recipient.loading && locationValidationState.recipient.cityValid === true && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#2F7D32] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                OK
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {!cityLookupState.recipient.loading && locationValidationState.recipient.cityValid === false && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#C43D35] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                !
+                                                                                            </span>
+                                                                                        )}
                                                                                         {activeLocationField === `recipient-city-${index}`
                                                                                             && filterPostalCitySuggestions(
                                                                                                 postalCitySuggestions.recipient,
@@ -3386,10 +3794,28 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                             onChange={(event) => updateAddressPostalCode("recipient", event.target.value)}
                                                                                             disabled={!data.recipient?.address?.country}
                                                                                             onFocus={() => setActiveLocationField(`recipient-postal-${index}`)}
-                                                                                            onBlur={() => handleLocationInputBlur(`recipient-postal-${index}`)}
-                                                                                            className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm leading-5 text-[#0B1739] disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:border-[#0955AC] focus:outline-none"
+                                                                                            onBlur={(event) => {
+                                                                                                handleLocationInputBlur(`recipient-postal-${index}`);
+                                                                                                void validateInternationalAddressPair("recipient", {
+                                                                                                    postalCode: event.target.value,
+                                                                                                });
+                                                                                            }}
+                                                                                            className={`h-[52px] w-full rounded-lg border px-4 text-sm leading-5 disabled:cursor-not-allowed disabled:bg-[#F4F7FB] disabled:text-[#8C97B0] focus:outline-none ${validationInputClassName(
+                                                                                                locationValidationState.recipient.postalValid === true,
+                                                                                                locationValidationState.recipient.postalValid === false,
+                                                                                            )}`}
                                                                                             placeholder={data.recipient?.address?.country ? "Enter destination postal code" : "Select destination country first"}
                                                                                         />
+                                                                                        {!cityLookupState.recipient.loading && locationValidationState.recipient.postalValid === true && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#2F7D32] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                OK
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {!cityLookupState.recipient.loading && locationValidationState.recipient.postalValid === false && (
+                                                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#C43D35] px-2 py-0.5 text-[10px] font-semibold text-white">
+                                                                                                !
+                                                                                            </span>
+                                                                                        )}
                                                                                         {activeLocationField === `recipient-postal-${index}` && postalCitySuggestions.recipient.length > 0 && (
                                                                                             <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-[#D6DEEB] bg-white shadow-lg">
                                                                                                 {postalCitySuggestions.recipient.map((suggestion) => (
@@ -3428,6 +3854,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                                         <div className="mt-2 rounded-md bg-[#E5E7EB] px-3 py-2 text-sm leading-5 text-[#1F2937]">
                                                                                             {postalCityNotice.recipient}
                                                                                         </div>
+                                                                                    )}
+                                                                                    {locationValidationState.recipient.message && locationValidationState.recipient.cityValid === false && (
+                                                                                        <p className="mt-2 text-xs text-[#C43D35]">
+                                                                                            {locationValidationState.recipient.message}
+                                                                                        </p>
                                                                                     )}
                                                                                 </div>
                                                                             </div>
@@ -4813,7 +5244,9 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                     <>
                                         <button
                                             type="button"
-                                            onClick={revealShipmentDetailsSection}
+                                            onClick={() => {
+                                                void revealShipmentDetailsSection();
+                                            }}
                                             disabled={!hasLocationDetailsForDescribe}
                                             className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasLocationDetailsForDescribe ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
                                                 }`}
@@ -4831,13 +5264,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                         <button
                                             type="button"
                                             onClick={handleContinueToQuotes}
-                                            disabled={!hasRequiredDetails || isPlacing}
-                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasRequiredDetails || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                            disabled={!hasRequiredDetailsBase || isPlacing}
+                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasRequiredDetailsBase || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
                                                 }`}
                                         >
                                             Continue to Courier service quotes
                                         </button>
-                                        {!hasRequiredDetails && (
+                                        {!hasRequiredDetailsBase && (
                                             <p className="text-xs text-[#D14343]">
                                                 {selectedRouteType === 'domestic' && !hasPaymentOption
                                                     ? 'Select at least one payment option to continue.'
@@ -4871,6 +5304,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                             <p className="text-xs text-[#D14343]">
                                                 {hasRequiredDetails
                                                     ? 'Select a courier service for each package to continue.'
+                                                    : !hasValidatedLocations
+                                                        ? 'Please provide valid pickup and destination locations.'
                                                     : selectedRouteType === 'domestic' && !hasPaymentOption
                                                         ? 'Select at least one payment option to continue.'
                                                         : 'Complete all required fields before continuing.'}
