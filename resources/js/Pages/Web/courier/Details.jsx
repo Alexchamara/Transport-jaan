@@ -297,8 +297,21 @@ const Details = ({
             && normalizeFavoriteValue(formContact?.phone) === normalizeFavoriteValue(savedContact?.phone)
             && normalizeFavoriteValue(formContact?.company) === normalizeFavoriteValue(savedContact?.company)
             && normalizeFavoriteValue(formAddress?.line1) === normalizeFavoriteValue(savedAddress?.line1)
-            && normalizeFavoriteValue(formAddress?.city) === normalizeFavoriteValue(savedAddress?.city)
-            && normalizeCountryCode(formAddress?.country) === normalizeCountryCode(savedAddress?.country);
+            && normalizeFavoriteValue(formAddress?.line2) === normalizeFavoriteValue(savedAddress?.line2)
+            && normalizeFavoriteValue(formAddress?.instructions) === normalizeFavoriteValue(savedAddress?.instructions);
+    };
+
+    const stripFavoriteLocation = (contact) => {
+        if (!contact?.address) {
+            return contact;
+        }
+
+        const { city, state, postalCode, country, ...addressWithoutLocation } = contact.address;
+
+        return {
+            ...contact,
+            address: addressWithoutLocation,
+        };
     };
 
     const favoriteStorageKey = (roleKey) => roleKey === "sender"
@@ -317,10 +330,6 @@ const Details = ({
             address: {
                 line1: String(address?.line1 || "").trim(),
                 line2: String(address?.line2 || "").trim(),
-                city: String(address?.city || "").trim(),
-                state: String(address?.state || "").trim(),
-                postalCode: String(address?.postalCode || "").trim(),
-                country: normalizeCountryCode(address?.country || countries[0] || "US"),
                 instructions: String(address?.instructions || "").trim(),
             },
         };
@@ -341,10 +350,10 @@ const Details = ({
                 ...previousAddress,
                 line1: senderAddress.line1 ?? "",
                 line2: senderAddress.line2 ?? "",
-                city: senderAddress.city ?? "",
-                state: senderAddress.state ?? "",
-                postalCode: senderAddress.postalCode ?? "",
-                country: senderAddress.country ?? (countries[0] || "US"),
+                city: previousAddress.city ?? "",
+                state: previousAddress.state ?? "",
+                postalCode: previousAddress.postalCode ?? "",
+                country: previousAddress.country ?? (countries[0] || "US"),
                 instructions: senderAddress.instructions ?? "",
             },
         };
@@ -357,23 +366,25 @@ const Details = ({
     useEffect(() => {
         const serverFavorites = Array.isArray(favoriteRecipients) ? favoriteRecipients : [];
         if (serverFavorites.length > 0) {
-            setSavedRecipients(serverFavorites);
-            writeLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY, serverFavorites);
+            const sanitizedFavorites = serverFavorites.map(stripFavoriteLocation);
+            setSavedRecipients(sanitizedFavorites);
+            writeLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY, sanitizedFavorites);
             return;
         }
 
-        setSavedRecipients(readLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY));
+        setSavedRecipients(readLocalFavorites(LOCAL_RECIPIENT_FAVORITES_KEY).map(stripFavoriteLocation));
     }, [favoriteRecipients]);
 
     useEffect(() => {
         const serverFavorites = Array.isArray(favoriteSenders) ? favoriteSenders : [];
         if (serverFavorites.length > 0) {
-            setSavedSenders(serverFavorites);
-            writeLocalFavorites(LOCAL_SENDER_FAVORITES_KEY, serverFavorites);
+            const sanitizedFavorites = serverFavorites.map(stripFavoriteLocation);
+            setSavedSenders(sanitizedFavorites);
+            writeLocalFavorites(LOCAL_SENDER_FAVORITES_KEY, sanitizedFavorites);
             return;
         }
 
-        setSavedSenders(readLocalFavorites(LOCAL_SENDER_FAVORITES_KEY));
+        setSavedSenders(readLocalFavorites(LOCAL_SENDER_FAVORITES_KEY).map(stripFavoriteLocation));
     }, [favoriteSenders]);
 
     useEffect(() => {
@@ -431,10 +442,10 @@ const Details = ({
                         ...previousAddress,
                         line1: selectedAddress.line1 ?? "",
                         line2: selectedAddress.line2 ?? "",
-                        city: selectedAddress.city ?? "",
-                        state: selectedAddress.state ?? "",
-                        postalCode: selectedAddress.postalCode ?? "",
-                        country: selectedAddress.country ?? previousAddress.country ?? (countries[0] || "US"),
+                        city: previousAddress.city ?? "",
+                        state: previousAddress.state ?? "",
+                        postalCode: previousAddress.postalCode ?? "",
+                        country: previousAddress.country ?? (countries[0] || "US"),
                         instructions: selectedAddress.instructions ?? "",
                     },
                 },
@@ -468,10 +479,10 @@ const Details = ({
                         ...previousAddress,
                         line1: selectedAddress.line1 ?? "",
                         line2: selectedAddress.line2 ?? "",
-                        city: selectedAddress.city ?? "",
-                        state: selectedAddress.state ?? "",
-                        postalCode: selectedAddress.postalCode ?? "",
-                        country: selectedAddress.country ?? previousAddress.country ?? (countries[0] || "US"),
+                        city: previousAddress.city ?? "",
+                        state: previousAddress.state ?? "",
+                        postalCode: previousAddress.postalCode ?? "",
+                        country: previousAddress.country ?? (countries[0] || "US"),
                         instructions: selectedAddress.instructions ?? "",
                     },
                 },
@@ -1346,10 +1357,11 @@ const Details = ({
 
                 const savedContact = result?.contact;
                 if (savedContact && savedContact.id) {
+                    const sanitizedSavedContact = stripFavoriteLocation(savedContact);
                     setFavoritesList((previous) => {
-                        const filtered = previous.filter((item) => item.id !== savedContact.id);
-                        const deduped = filtered.filter((item) => !matchesFavoriteContact(savedContact, item));
-                        const next = [savedContact, ...deduped];
+                        const filtered = previous.filter((item) => item.id !== sanitizedSavedContact.id);
+                        const deduped = filtered.filter((item) => !matchesFavoriteContact(sanitizedSavedContact, item));
+                        const next = [sanitizedSavedContact, ...deduped];
                         writeLocalFavorites(storageKey, next);
                         return next;
                     });

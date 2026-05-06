@@ -412,10 +412,6 @@ class ClientCourierController extends Controller
             'address' => $address ? [
                 'line1' => $address->line1,
                 'line2' => $address->line2,
-                'city' => $address->city,
-                'state' => $address->state,
-                'postalCode' => $address->postal_code,
-                'country' => $address->country,
                 'instructions' => $address->instructions,
             ] : null,
         ];
