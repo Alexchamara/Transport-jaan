@@ -122,12 +122,12 @@ class ClientCourierController extends Controller
 
         // Calculate statistics
         $totalShipments = $shipments->count();
-        
+
         // Count by package type
         $documentCount = 0;
         $parcelCount = 0;
         $freightCount = 0;
-        
+
         foreach ($shipments as $shipment) {
             foreach ($shipment->packages as $package) {
                 if (stripos($package->package_type, 'document') !== false) {
@@ -153,15 +153,15 @@ class ClientCourierController extends Controller
             $month = now()->subMonths($i);
             $monthStart = $month->copy()->startOfMonth();
             $monthEnd = $month->copy()->endOfMonth();
-            
+
             $monthShipments = $shipments->filter(function ($shipment) use ($monthStart, $monthEnd) {
                 return $shipment->created_at >= $monthStart && $shipment->created_at <= $monthEnd;
             });
-            
+
             $docCount = 0;
             $parcCount = 0;
             $freightCount = 0;
-            
+
             foreach ($monthShipments as $shipment) {
                 foreach ($shipment->packages as $package) {
                     if (stripos($package->package_type, 'document') !== false) {
@@ -173,7 +173,7 @@ class ClientCourierController extends Controller
                     }
                 }
             }
-            
+
             $monthlyData[] = [
                 'month' => $month->format('M'),
                 'document' => $docCount,
@@ -186,7 +186,7 @@ class ClientCourierController extends Controller
 
         // Format shipments for frontend with a shared DTO contract.
         $formattedShipments = $shipments
-            ->map(fn (CourierShipment $shipment) => $transformer->forDashboard($shipment))
+            ->map(fn(CourierShipment $shipment) => $transformer->forDashboard($shipment))
             ->values();
 
         return Inertia::render('Web/home/client/CourierBookingDashboard', [
@@ -666,13 +666,17 @@ class ClientCourierController extends Controller
                 $score = 0;
             } elseif ($nameLower === $searchQueryLower || ($nativeLower !== '' && $nativeLower === $searchQueryLower)) {
                 $score = 1;
-            } elseif (str_starts_with($nameLower, $searchQueryLower)
+            } elseif (
+                str_starts_with($nameLower, $searchQueryLower)
                 || ($nativeLower !== '' && str_starts_with($nativeLower, $searchQueryLower))
                 || str_starts_with($normalizedCode, $searchQueryUpper)
-                || ($normalizedIso3 !== '' && str_starts_with($normalizedIso3, $searchQueryUpper))) {
+                || ($normalizedIso3 !== '' && str_starts_with($normalizedIso3, $searchQueryUpper))
+            ) {
                 $score = 2;
-            } elseif (str_contains($nameLower, $searchQueryLower)
-                || ($nativeLower !== '' && str_contains($nativeLower, $searchQueryLower))) {
+            } elseif (
+                str_contains($nameLower, $searchQueryLower)
+                || ($nativeLower !== '' && str_contains($nativeLower, $searchQueryLower))
+            ) {
                 $score = 3;
             } else {
                 return null;
@@ -686,21 +690,21 @@ class ClientCourierController extends Controller
         };
 
         $suggestions = collect($catalog)
-            ->map(fn (array $entry) => $buildSuggestion(
+            ->map(fn(array $entry) => $buildSuggestion(
                 (string) ($entry['code'] ?? ''),
                 (string) ($entry['name'] ?? ''),
                 (string) ($entry['iso3'] ?? ''),
                 (string) ($entry['nameNative'] ?? '')
             ))
-            ->filter(fn ($entry) => is_array($entry) && $entry['code'] !== '' && $entry['name'] !== '')
-            ->unique(fn (array $entry) => $entry['code'])
+            ->filter(fn($entry) => is_array($entry) && $entry['code'] !== '' && $entry['name'] !== '')
+            ->unique(fn(array $entry) => $entry['code'])
             ->sortBy([
                 ['score', 'asc'],
                 ['name', 'asc'],
             ])
             ->values()
             ->take($limit)
-            ->map(fn (array $entry) => [
+            ->map(fn(array $entry) => [
                 'code' => $entry['code'],
                 'name' => $entry['name'],
             ])
@@ -718,8 +722,8 @@ class ClientCourierController extends Controller
     private function resolveSupportedCountryCodes(): array
     {
         return collect($this->resolveCountryCatalog())
-            ->map(fn (array $entry) => strtoupper(trim((string) ($entry['code'] ?? ''))))
-            ->filter(fn (string $code) => strlen($code) === 2)
+            ->map(fn(array $entry) => strtoupper(trim((string) ($entry['code'] ?? ''))))
+            ->filter(fn(string $code) => strlen($code) === 2)
             ->unique()
             ->values()
             ->all();
@@ -748,7 +752,7 @@ class ClientCourierController extends Controller
                     'nameNative' => $nameNative,
                 ];
             })
-            ->filter(fn (array $entry) => $entry['code'] !== '' && $entry['name'] !== '')
+            ->filter(fn(array $entry) => $entry['code'] !== '' && $entry['name'] !== '')
             ->values();
 
         $externalCatalog = Cache::remember('courier:countries:external_catalog', now()->addDay(), function () {
@@ -772,7 +776,7 @@ class ClientCourierController extends Controller
                 }
 
                 return collect($payload)
-                    ->filter(fn ($item) => is_array($item))
+                    ->filter(fn($item) => is_array($item))
                     ->map(function (array $item) {
                         $code = strtoupper(trim((string) ($item['cca2'] ?? '')));
                         $iso3 = strtoupper(trim((string) ($item['cca3'] ?? '')));
@@ -785,7 +789,7 @@ class ClientCourierController extends Controller
                             'nameNative' => '',
                         ];
                     })
-                    ->filter(fn (array $entry) => strlen($entry['code']) === 2 && $entry['name'] !== '')
+                    ->filter(fn(array $entry) => strlen($entry['code']) === 2 && $entry['name'] !== '')
                     ->values()
                     ->all();
             } catch (\Throwable $exception) {
@@ -797,7 +801,7 @@ class ClientCourierController extends Controller
 
         return $databaseCatalog
             ->merge(collect($externalCatalog))
-            ->filter(fn ($entry) => is_array($entry))
+            ->filter(fn($entry) => is_array($entry))
             ->map(function (array $entry) {
                 return [
                     'code' => strtoupper(trim((string) ($entry['code'] ?? ''))),
@@ -806,8 +810,8 @@ class ClientCourierController extends Controller
                     'nameNative' => trim((string) ($entry['nameNative'] ?? '')),
                 ];
             })
-            ->filter(fn (array $entry) => strlen($entry['code']) === 2 && $entry['name'] !== '')
-            ->unique(fn (array $entry) => $entry['code'])
+            ->filter(fn(array $entry) => strlen($entry['code']) === 2 && $entry['name'] !== '')
+            ->unique(fn(array $entry) => $entry['code'])
             ->sortBy('name')
             ->values()
             ->all();
@@ -876,7 +880,7 @@ class ClientCourierController extends Controller
                 );
 
                 $fastPostalCodes = collect($fastSuggestions)
-                    ->map(fn ($item) => trim((string) ($item['postalCode'] ?? '')))
+                    ->map(fn($item) => trim((string) ($item['postalCode'] ?? '')))
                     ->filter()
                     ->unique()
                     ->values()
@@ -934,7 +938,7 @@ class ClientCourierController extends Controller
                 );
 
                 $fallbackPostalCodes = collect($fallbackSuggestions)
-                    ->map(fn ($item) => trim((string) ($item['postalCode'] ?? '')))
+                    ->map(fn($item) => trim((string) ($item['postalCode'] ?? '')))
                     ->filter()
                     ->unique()
                     ->values()
@@ -1028,7 +1032,7 @@ class ClientCourierController extends Controller
             : [$postalCodePrefix];
 
         $queryCandidates = collect($queryCandidates)
-            ->map(fn ($candidate) => trim((string) $candidate))
+            ->map(fn($candidate) => trim((string) $candidate))
             ->filter()
             ->unique()
             ->values()
@@ -1060,13 +1064,13 @@ class ClientCourierController extends Controller
             if (!empty($fastSuggestions)) {
                 $fastExactMatch = $isCityLookup
                     ? collect($fastSuggestions)->first(
-                        fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                        fn($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
                     )
                     : collect($fastSuggestions)->first(
-                        fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                        fn($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
                     );
                 $fastCities = collect($fastSuggestions)
-                    ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                    ->map(fn($item) => trim((string) ($item['city'] ?? '')))
                     ->filter()
                     ->unique()
                     ->values()
@@ -1146,8 +1150,8 @@ class ClientCourierController extends Controller
                                 'city' => $candidate,
                             ];
                         })
-                        ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
-                        ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
+                        ->filter(fn($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+                        ->unique(fn($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
                         ->values()
                         ->all();
                 } else {
@@ -1181,13 +1185,13 @@ class ClientCourierController extends Controller
                 if (!empty($fallbackSuggestions)) {
                     $fallbackExactMatch = $isCityLookup
                         ? collect($fallbackSuggestions)->first(
-                            fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                            fn($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
                         )
                         : collect($fallbackSuggestions)->first(
-                            fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                            fn($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
                         );
                     $fallbackCities = collect($fallbackSuggestions)
-                        ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                        ->map(fn($item) => trim((string) ($item['city'] ?? '')))
                         ->filter()
                         ->unique()
                         ->values()
@@ -1219,13 +1223,13 @@ class ClientCourierController extends Controller
 
             $exactMatch = $isCityLookup
                 ? collect($suggestions)->first(
-                    fn ($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
+                    fn($item) => strcasecmp(trim((string) ($item['city'] ?? '')), $cityPrefix) === 0
                 )
                 : collect($suggestions)->first(
-                    fn ($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
+                    fn($item) => trim((string) ($item['postalCode'] ?? '')) === $postalCodePrefix
                 );
             $cities = collect($suggestions)
-                ->map(fn ($item) => trim((string) ($item['city'] ?? '')))
+                ->map(fn($item) => trim((string) ($item['city'] ?? '')))
                 ->filter()
                 ->unique()
                 ->values()
@@ -1321,15 +1325,15 @@ class ClientCourierController extends Controller
         }
 
         return collect($results)
-            ->filter(fn ($item) => is_array($item))
+            ->filter(fn($item) => is_array($item))
             ->map(function (array $item) {
                 return [
                     'postalCode' => trim((string) ($item['postal_code'] ?? '')),
                     'city' => trim((string) ($item['place_name'] ?? '')),
                 ];
             })
-            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
-            ->unique(fn ($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
+            ->filter(fn($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->unique(fn($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
             ->values()
             ->take($limit)
             ->all();
@@ -1370,12 +1374,12 @@ class ClientCourierController extends Controller
             ucfirst(strtolower($coarsePrefix)),
             strtoupper($coarsePrefix),
         ])
-            ->filter(fn ($value) => trim((string) $value) !== '')
+            ->filter(fn($value) => trim((string) $value) !== '')
             ->unique()
             ->values();
 
         $startsWithConditions = $prefixVariants
-            ->map(fn ($variant) => 'startswith(place_name,"' . $variant . '")')
+            ->map(fn($variant) => 'startswith(place_name,"' . $variant . '")')
             ->implode(' OR ');
 
         if ($startsWithConditions === '') {
@@ -1445,14 +1449,14 @@ class ClientCourierController extends Controller
             : $normalizedPrefix;
 
         return collect($results)
-            ->filter(fn ($item) => is_array($item))
+            ->filter(fn($item) => is_array($item))
             ->map(function (array $item) {
                 return [
                     'postalCode' => trim((string) ($item['postal_code'] ?? '')),
                     'city' => trim((string) ($item['place_name'] ?? '')),
                 ];
             })
-            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->filter(fn($item) => $item['postalCode'] !== '' && $item['city'] !== '')
             ->filter(function (array $item) use ($normalizedPrefix, $normalizedCoarsePrefix) {
                 $city = strtolower((string) ($item['city'] ?? ''));
 
@@ -1484,7 +1488,7 @@ class ClientCourierController extends Controller
 
                 return $rank . '|' . $city . '|' . strtolower((string) $item['postalCode']);
             })
-            ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
+            ->unique(fn($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
             ->values()
             ->take($limit)
             ->all();
@@ -1507,7 +1511,7 @@ class ClientCourierController extends Controller
                 }
 
                 return collect($items)
-                    ->filter(fn ($entry) => is_array($entry))
+                    ->filter(fn($entry) => is_array($entry))
                     ->map(function (array $entry) use ($code) {
                         if (trim((string) ($entry['postal_code'] ?? '')) === '') {
                             $entry['postal_code'] = is_scalar($code) ? (string) $code : '';
@@ -1517,7 +1521,7 @@ class ClientCourierController extends Controller
                     })
                     ->all();
             })
-            ->filter(fn ($entry) => is_array($entry))
+            ->filter(fn($entry) => is_array($entry))
             ->filter(function (array $entry) use ($normalizedCountry) {
                 $entryCountry = strtoupper(trim((string) ($entry['country_code'] ?? '')));
 
@@ -1548,8 +1552,8 @@ class ClientCourierController extends Controller
 
                 return str_starts_with((string) $entry['postalCode'], $normalizedPostalCodePrefix);
             })
-            ->unique(fn ($entry) => strtolower((string) $entry['postalCode']) . '|' . strtolower((string) $entry['city']))
-            ->sortBy(fn ($entry) => (string) ($entry['postalCode'] ?? ''))
+            ->unique(fn($entry) => strtolower((string) $entry['postalCode']) . '|' . strtolower((string) $entry['city']))
+            ->sortBy(fn($entry) => (string) ($entry['postalCode'] ?? ''))
             ->values()
             ->take(50)
             ->all();
@@ -1584,8 +1588,8 @@ class ClientCourierController extends Controller
                     'city' => trim((string) ($row->name_en ?? '')),
                 ];
             })
-            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
-            ->unique(fn ($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
+            ->filter(fn($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->unique(fn($item) => strtolower($item['postalCode']) . '|' . strtolower($item['city']))
             ->values()
             ->take($limit)
             ->all();
@@ -1628,8 +1632,8 @@ class ClientCourierController extends Controller
                     'city' => $city,
                 ];
             })
-            ->filter(fn ($item) => $item['postalCode'] !== '' && $item['city'] !== '')
-            ->unique(fn ($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
+            ->filter(fn($item) => $item['postalCode'] !== '' && $item['city'] !== '')
+            ->unique(fn($item) => strtolower((string) $item['postalCode']) . '|' . strtolower((string) $item['city']))
             ->values()
             ->take($limit)
             ->all();
@@ -1645,7 +1649,7 @@ class ClientCourierController extends Controller
         $candidates = [$normalizedCity];
 
         return collect($candidates)
-            ->map(fn ($candidate) => trim((string) $candidate))
+            ->map(fn($candidate) => trim((string) $candidate))
             ->filter()
             ->unique()
             ->values()
@@ -1688,8 +1692,8 @@ class ClientCourierController extends Controller
                     ->orWhere('location_cities.name_en', 'like', '% ' . $query . '%')
                     ->orWhere('location_cities.sub_name_en', 'like', $query . '%');
             })
-                ->orderByRaw("CASE WHEN LOWER(location_cities.name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
-                ->orderBy('location_cities.name_en')
+            ->orderByRaw("CASE WHEN LOWER(location_cities.name_en) LIKE ? THEN 0 ELSE 1 END", [strtolower($query) . '%'])
+            ->orderBy('location_cities.name_en')
             ->limit($limit)
             ->get();
 
@@ -2226,7 +2230,7 @@ class ClientCourierController extends Controller
         $normalized['reviewContext']['displayCurrency'] = $normalized['shipment']['currency'];
         $normalized['reviewContext']['totalPriceUSD'] = array_reduce(
             $normalizedSelectedQuotes,
-            static fn ($carry, $quote) => $carry + ($quote['priceUSD'] ?? 0),
+            static fn($carry, $quote) => $carry + ($quote['priceUSD'] ?? 0),
             0.0
         );
         $normalized['reviewContext']['accountUserId'] = (int) (
@@ -2281,7 +2285,7 @@ class ClientCourierController extends Controller
         $fallbackEstimatedUsd = (float) ($formData['reviewContext']['totalPriceUSD'] ?? 0);
         if ($fallbackEstimatedUsd <= 0) {
             $fallbackEstimatedUsd = (float) $selectedQuotes->reduce(
-                fn ($carry, $quote) => $carry + (float) ($quote['priceUSD'] ?? 0),
+                fn($carry, $quote) => $carry + (float) ($quote['priceUSD'] ?? 0),
                 0.0
             );
         }
@@ -2937,7 +2941,7 @@ class ClientCourierController extends Controller
         }
 
         return collect($values)
-            ->map(fn ($value) => trim($value))
+            ->map(fn($value) => trim($value))
             ->filter()
             ->unique()
             ->values()
@@ -2984,8 +2988,8 @@ class ClientCourierController extends Controller
         $catalog = $this->defaultServiceCatalog();
 
         return collect($catalog[$category] ?? [])
-            ->filter(fn ($item) => (bool) ($item['isActive'] ?? false))
-            ->map(fn ($item) => (string) ($item['label'] ?? ''))
+            ->filter(fn($item) => (bool) ($item['isActive'] ?? false))
+            ->map(fn($item) => (string) ($item['label'] ?? ''))
             ->filter()
             ->values()
             ->all();
@@ -3193,7 +3197,7 @@ class ClientCourierController extends Controller
                     'isActive' => (bool) ($item['isActive'] ?? true),
                 ];
             })
-            ->filter(fn ($item) => is_array($item) && (bool) ($item['isActive'] ?? false))
+            ->filter(fn($item) => is_array($item) && (bool) ($item['isActive'] ?? false))
             ->values()
             ->all();
 
@@ -3326,8 +3330,8 @@ class ClientCourierController extends Controller
         }
 
         $supportedInternationalCurrencies = collect(config('courier.payments.provider.payhere.supported_international_currencies', ['USD']))
-            ->map(fn ($currency) => strtoupper(trim((string) $currency)))
-            ->filter(fn ($currency) => $currency !== '')
+            ->map(fn($currency) => strtoupper(trim((string) $currency)))
+            ->filter(fn($currency) => $currency !== '')
             ->values();
 
         if ($selectedCurrency !== '' && $supportedInternationalCurrencies->contains($selectedCurrency)) {
@@ -3349,8 +3353,7 @@ class ClientCourierController extends Controller
         string $paymentCurrency,
         CourierShipment $shipment,
         array $payload
-    ): float
-    {
+    ): float {
         $paymentCurrency = strtoupper(trim($paymentCurrency));
         if ($paymentCurrency === '' || $paymentCurrency === 'USD') {
             return $amountUsd;
@@ -3552,10 +3555,10 @@ class ClientCourierController extends Controller
     private function resolveEstimatedCostWithLaneMatrix(CourierShipment $shipment, array $payload, float $fallbackEstimatedUsd, ?array &$pricingExplanation = null): float
     {
         $codRequest = $this->resolveCodBookingPayload($payload);
-        $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $packages = collect($payload['packages'] ?? [])->map(fn($item) => is_array($item) ? $item : [])->values();
         $declaredValueForCodPreview = max(
             0,
-            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
+            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
         $codEnabled = (bool) ($codRequest['enabled'] ?? false);
         $codFeeBaseAmount = $codEnabled
@@ -3646,16 +3649,16 @@ class ClientCourierController extends Controller
                     return null;
                 }
 
-            $ruleLevel = (string) ($rule['serviceLevelKey'] ?? '');
-            if ($ruleLevel !== '' && $ruleLevel !== $selectedLevelKey) {
+                $ruleLevel = (string) ($rule['serviceLevelKey'] ?? '');
+                if ($ruleLevel !== '' && $ruleLevel !== $selectedLevelKey) {
                     return null;
-            }
+                }
 
-            $ruleOrigin = (string) ($rule['originZone'] ?? '*');
-            $ruleDestination = (string) ($rule['destinationZone'] ?? '*');
+                $ruleOrigin = (string) ($rule['originZone'] ?? '*');
+                $ruleDestination = (string) ($rule['destinationZone'] ?? '*');
 
-            $originMatches = $ruleOrigin === '*' || $ruleOrigin === $originZone;
-            $destinationMatches = $ruleDestination === '*' || $ruleDestination === $destinationZone;
+                $originMatches = $ruleOrigin === '*' || $ruleOrigin === $originZone;
+                $destinationMatches = $ruleDestination === '*' || $ruleDestination === $destinationZone;
                 if (!$originMatches || !$destinationMatches) {
                     return null;
                 }
@@ -3679,7 +3682,7 @@ class ClientCourierController extends Controller
 
                 return ($left['index'] ?? 0) <=> ($right['index'] ?? 0);
             })
-            ->map(fn ($entry) => $entry['rule'])
+            ->map(fn($entry) => $entry['rule'])
             ->first();
 
         if (!$matchedRule) {
@@ -4019,10 +4022,10 @@ class ClientCourierController extends Controller
 
         $senderAddress = (array) ($payload['sender']['address'] ?? []);
         $recipientAddress = (array) ($payload['recipient']['address'] ?? []);
-        $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $packages = collect($payload['packages'] ?? [])->map(fn($item) => is_array($item) ? $item : [])->values();
         $declaredValue = max(
             0,
-            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn ($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
+            (float) (($payload['shipment']['estimatedValue'] ?? 0) ?: $packages->sum(fn($pkg) => (float) ($pkg['declaredValue'] ?? 0)))
         );
         $codRequest = $this->resolveCodBookingPayload($payload);
         $codEnabled = (bool) ($codRequest['enabled'] ?? false);
@@ -4082,7 +4085,8 @@ class ClientCourierController extends Controller
         $tierPolicy = is_array($policyModules['speedEtaTierEngine'] ?? null) ? $policyModules['speedEtaTierEngine'] : [];
         $selectedTierKey = $this->normalizeServiceLevelKey((string) ($payload['shipment']['serviceLevel'] ?? ''));
         $selectedTier = is_array($tierPolicy['tiers'][$selectedTierKey] ?? null) ? $tierPolicy['tiers'][$selectedTierKey] : null;
-        if ((bool) ($tierPolicy['enabled'] ?? false)
+        if (
+            (bool) ($tierPolicy['enabled'] ?? false)
             && (bool) ($tierPolicy['enforceTierPricingMultiplier'] ?? true)
             && is_array($selectedTier)
             && (bool) ($selectedTier['enabled'] ?? true)
@@ -4177,7 +4181,7 @@ class ClientCourierController extends Controller
 
             if ($pickupDate) {
                 $holidayDates = collect($timePolicy['holidayDates'] ?? [])
-                    ->map(fn ($item) => trim((string) $item))
+                    ->map(fn($item) => trim((string) $item))
                     ->filter()
                     ->values()
                     ->all();
@@ -4196,8 +4200,8 @@ class ClientCourierController extends Controller
                 }
 
                 $daysOfWeek = collect($timePolicy['daysOfWeek'] ?? [1, 2, 3, 4, 5])
-                    ->map(fn ($item) => (int) $item)
-                    ->filter(fn ($item) => $item >= 1 && $item <= 7)
+                    ->map(fn($item) => (int) $item)
+                    ->filter(fn($item) => $item >= 1 && $item <= 7)
                     ->values()
                     ->all();
                 $start = trim((string) ($timePolicy['peakStartTime'] ?? '17:00'));
@@ -4277,7 +4281,7 @@ class ClientCourierController extends Controller
     private function resolvePolicyAdjustmentAmount(array $policyBreakdown, string $key): float
     {
         $entry = collect($policyBreakdown)
-            ->first(fn ($item) => is_array($item) && (string) ($item['key'] ?? '') === $key);
+            ->first(fn($item) => is_array($item) && (string) ($item['key'] ?? '') === $key);
 
         return $entry ? (float) ($entry['amount'] ?? 0) : 0.0;
     }
@@ -4316,7 +4320,7 @@ class ClientCourierController extends Controller
                     'amount' => round((float) ($entry['amount'] ?? 0), 2),
                 ];
             })
-            ->filter(fn ($entry) => $entry['key'] !== '')
+            ->filter(fn($entry) => $entry['key'] !== '')
             ->values()
             ->all();
 
@@ -4419,8 +4423,8 @@ class ClientCourierController extends Controller
         }
 
         $volumeTiers = collect($contract['volumeTiers'] ?? [])
-            ->map(fn ($item) => is_array($item) ? $item : [])
-            ->filter(fn ($item) => (bool) ($item['enabled'] ?? true))
+            ->map(fn($item) => is_array($item) ? $item : [])
+            ->filter(fn($item) => (bool) ($item['enabled'] ?? true))
             ->values()
             ->all();
         if (!empty($volumeTiers)) {
@@ -4495,7 +4499,7 @@ class ClientCourierController extends Controller
                     'index' => (int) $index,
                 ];
             })
-            ->filter(fn ($entry) => (bool) ($entry['contract']['enabled'] ?? true))
+            ->filter(fn($entry) => (bool) ($entry['contract']['enabled'] ?? true))
             ->values();
         if ($contracts->isEmpty()) {
             return null;
@@ -4508,8 +4512,8 @@ class ClientCourierController extends Controller
                 $contract = is_array($entry['contract'] ?? null) ? $entry['contract'] : [];
 
                 $accountIds = collect($contract['accountUserIds'] ?? [])
-                    ->map(fn ($item) => (int) $item)
-                    ->filter(fn ($item) => $item > 0)
+                    ->map(fn($item) => (int) $item)
+                    ->filter(fn($item) => $item > 0)
                     ->values();
                 $singleAccountId = (int) ($contract['accountUserId'] ?? 0);
                 if ($singleAccountId > 0) {
@@ -4521,8 +4525,8 @@ class ClientCourierController extends Controller
                 }
 
                 $categories = collect($contract['categories'] ?? [])
-                    ->map(fn ($item) => $this->normalizeZoneKey((string) $item))
-                    ->filter(fn ($item) => $item !== '' && $item !== '*')
+                    ->map(fn($item) => $this->normalizeZoneKey((string) $item))
+                    ->filter(fn($item) => $item !== '' && $item !== '*')
                     ->values();
                 $contractCategory = $this->normalizeZoneKey((string) ($contract['category'] ?? ''));
                 if ($contractCategory !== '*' && !$categories->contains($contractCategory)) {
@@ -4600,7 +4604,7 @@ class ClientCourierController extends Controller
 
                 return ((int) ($leftEntry['index'] ?? 0)) <=> ((int) ($rightEntry['index'] ?? 0));
             })
-            ->map(fn ($entry) => is_array($entry['contract'] ?? null) ? $entry['contract'] : null)
+            ->map(fn($entry) => is_array($entry['contract'] ?? null) ? $entry['contract'] : null)
             ->filter()
             ->first();
     }
@@ -4704,7 +4708,7 @@ class ClientCourierController extends Controller
 
                 return ((int) ($leftEntry['index'] ?? 0)) <=> ((int) ($rightEntry['index'] ?? 0));
             })
-            ->map(fn ($entry) => is_array($entry['tier'] ?? null) ? $entry['tier'] : null)
+            ->map(fn($entry) => is_array($entry['tier'] ?? null) ? $entry['tier'] : null)
             ->filter()
             ->first();
     }
@@ -4723,7 +4727,7 @@ class ClientCourierController extends Controller
             return;
         }
 
-        $selectedQuotes = collect($payload['reviewContext']['selectedQuotes'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+        $selectedQuotes = collect($payload['reviewContext']['selectedQuotes'] ?? [])->map(fn($item) => is_array($item) ? $item : [])->values();
         $errors = [];
 
         if ((bool) ($fieldLocks['lockShipmentServiceLevel'] ?? true) && $selectedQuotes->isNotEmpty()) {
@@ -4738,7 +4742,7 @@ class ClientCourierController extends Controller
         }
 
         if ((bool) ($fieldLocks['lockPackageServiceLevel'] ?? true)) {
-            $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+            $packages = collect($payload['packages'] ?? [])->map(fn($item) => is_array($item) ? $item : [])->values();
             foreach ($packages as $index => $package) {
                 $quote = is_array($selectedQuotes->get($index)) ? $selectedQuotes->get($index) : [];
                 if (empty($quote)) {
@@ -4754,7 +4758,7 @@ class ClientCourierController extends Controller
         }
 
         if ((bool) ($fieldLocks['lockPackageCourierProvider'] ?? true)) {
-            $packages = collect($payload['packages'] ?? [])->map(fn ($item) => is_array($item) ? $item : [])->values();
+            $packages = collect($payload['packages'] ?? [])->map(fn($item) => is_array($item) ? $item : [])->values();
             foreach ($packages as $index => $package) {
                 $quote = is_array($selectedQuotes->get($index)) ? $selectedQuotes->get($index) : [];
                 if (empty($quote)) {
@@ -4771,7 +4775,7 @@ class ClientCourierController extends Controller
 
         if ((bool) ($fieldLocks['lockQuoteTotal'] ?? true)) {
             $selectedQuoteTotal = (float) $selectedQuotes->reduce(
-                fn ($carry, $quote) => $carry + (float) ($quote['priceUSD'] ?? 0),
+                fn($carry, $quote) => $carry + (float) ($quote['priceUSD'] ?? 0),
                 0.0
             );
             $reviewTotal = max(0, (float) ($payload['reviewContext']['totalPriceUSD'] ?? 0));
@@ -4945,22 +4949,22 @@ class ClientCourierController extends Controller
     private function addressMatchesRemotePolicy(array $address, array $remotePolicy): bool
     {
         $postalPrefixes = collect($remotePolicy['postalCodePrefixes'] ?? [])
-            ->map(fn ($item) => strtoupper(trim((string) $item)))
+            ->map(fn($item) => strtoupper(trim((string) $item)))
             ->filter()
             ->values();
         $cityKeywords = collect($remotePolicy['cityKeywords'] ?? [])
-            ->map(fn ($item) => strtolower(trim((string) $item)))
+            ->map(fn($item) => strtolower(trim((string) $item)))
             ->filter()
             ->values();
 
         $postal = strtoupper(trim((string) ($address['postalCode'] ?? '')));
         $cityState = strtolower(trim((string) (($address['city'] ?? '') . ' ' . ($address['state'] ?? ''))));
 
-        if ($postalPrefixes->contains(fn ($prefix) => $prefix !== '' && str_starts_with($postal, $prefix))) {
+        if ($postalPrefixes->contains(fn($prefix) => $prefix !== '' && str_starts_with($postal, $prefix))) {
             return true;
         }
 
-        return $cityKeywords->contains(fn ($keyword) => $keyword !== '' && str_contains($cityState, $keyword));
+        return $cityKeywords->contains(fn($keyword) => $keyword !== '' && str_contains($cityState, $keyword));
     }
 
     private function isWithinPeakWindow(string $pickupTime, string $start, string $end): bool
@@ -4987,7 +4991,7 @@ class ClientCourierController extends Controller
         $catalog = $this->resolveServiceCatalogForVendor((int) ($shipment->assigned_vendor_user_id ?? 0), $category);
 
         $selectedEntry = collect($catalog)
-            ->first(fn ($item) => (bool) ($item['isActive'] ?? false) && (string) ($item['key'] ?? '') === $selectedLevelKey);
+            ->first(fn($item) => (bool) ($item['isActive'] ?? false) && (string) ($item['key'] ?? '') === $selectedLevelKey);
 
         if (!$selectedEntry) {
             throw ValidationException::withMessages([
@@ -5165,8 +5169,8 @@ class ClientCourierController extends Controller
 
         if ($pickupDate) {
             $allowedPickupDays = collect($selectedTier['allowedPickupDays'] ?? [1, 2, 3, 4, 5, 6, 7])
-                ->map(fn ($value) => (int) $value)
-                ->filter(fn ($value) => $value >= 1 && $value <= 7)
+                ->map(fn($value) => (int) $value)
+                ->filter(fn($value) => $value >= 1 && $value <= 7)
                 ->values()
                 ->all();
             if (!empty($allowedPickupDays) && !in_array($pickupDate->dayOfWeekIso, $allowedPickupDays, true)) {
@@ -5176,7 +5180,7 @@ class ClientCourierController extends Controller
             }
 
             $blackoutDates = collect($selectedTier['blackoutDates'] ?? [])
-                ->map(fn ($value) => trim((string) $value))
+                ->map(fn($value) => trim((string) $value))
                 ->filter()
                 ->values()
                 ->all();
@@ -5216,7 +5220,7 @@ class ClientCourierController extends Controller
 
         if (isset($selectedTier['maxWeightKg']) && $selectedTier['maxWeightKg'] !== null && $selectedTier['maxWeightKg'] !== '') {
             $maxPackageWeight = collect($payload['packages'] ?? [])
-                ->map(fn ($item) => max(0, (float) ((is_array($item) ? ($item['weightKg'] ?? 0) : 0))))
+                ->map(fn($item) => max(0, (float) ((is_array($item) ? ($item['weightKg'] ?? 0) : 0))))
                 ->max();
             if ($maxPackageWeight !== null && $maxPackageWeight > (float) $selectedTier['maxWeightKg']) {
                 throw ValidationException::withMessages([
@@ -5356,8 +5360,8 @@ class ClientCourierController extends Controller
 
         $vendorIds = $registrations
             ->pluck('user_id')
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn (int $value) => $value > 0)
+            ->map(fn($value) => (int) $value)
+            ->filter(fn(int $value) => $value > 0)
             ->unique()
             ->values();
 
@@ -5375,10 +5379,10 @@ class ClientCourierController extends Controller
                     ->orWhere('expires_at', '>', now());
             })
             ->pluck('vendor_user_id')
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn (int $value) => $value > 0)
+            ->map(fn($value) => (int) $value)
+            ->filter(fn(int $value) => $value > 0)
             ->unique()
-            ->mapWithKeys(fn (int $value) => [$value => true])
+            ->mapWithKeys(fn(int $value) => [$value => true])
             ->all();
 
         return $registrations
@@ -5419,8 +5423,7 @@ class ClientCourierController extends Controller
         VendorServiceRegistration $registration,
         array $settings,
         array $approvedDomesticCodVendorLookup = []
-    ): ?array
-    {
+    ): ?array {
         $category = $this->normalizeQuoteProviderCategory((string) optional($registration->serviceSubCategory)->slug);
         $vendor = $registration->user;
 
@@ -5799,7 +5802,7 @@ class ClientCourierController extends Controller
         }
 
         $totalUsd = $shipment->packages->reduce(
-            static fn ($carry, $package) => $carry + (float) ($package->quoted_price_usd ?? 0),
+            static fn($carry, $package) => $carry + (float) ($package->quoted_price_usd ?? 0),
             0.0
         );
         $codEnabled = (bool) ($shipment->is_cod_enabled ?? false);
@@ -5839,7 +5842,7 @@ class ClientCourierController extends Controller
             . '<p><strong>Cash on delivery enabled:</strong> ' . ($codEnabled ? 'Yes' : 'No') . '</p>'
             . ($codEnabled
                 ? '<p><strong>COD collection amount:</strong> ' . $escape($codAmountText) . '</p>'
-                    . '<p><strong>COD payment method:</strong> ' . $escape($codMethodText) . '</p>'
+                . '<p><strong>COD payment method:</strong> ' . $escape($codMethodText) . '</p>'
                 : '')
             . '<h2>Package details</h2>'
             . '<table><thead><tr><th>#</th><th>Label</th><th>Type</th><th>Quantity</th><th>Weight (kg)</th><th>Dimensions (cm)</th><th>Declared value</th><th>Courier</th><th>Service</th><th>ETA</th><th>Quote (USD)</th><th>Description</th></tr></thead><tbody>'
@@ -5867,8 +5870,8 @@ class ClientCourierController extends Controller
         }
 
         $existingIds = collect((array) $request->session()->get('courier_guest_bill_access_ids', []))
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn (int $value) => $value > 0);
+            ->map(fn($value) => (int) $value)
+            ->filter(fn(int $value) => $value > 0);
 
         $request->session()->put(
             'courier_guest_bill_access_ids',
@@ -5889,8 +5892,8 @@ class ClientCourierController extends Controller
         }
 
         $allowedIds = collect((array) $request->session()->get('courier_guest_bill_access_ids', []))
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn (int $value) => $value > 0)
+            ->map(fn($value) => (int) $value)
+            ->filter(fn(int $value) => $value > 0)
             ->values();
 
         return $allowedIds->contains($shipmentId);
