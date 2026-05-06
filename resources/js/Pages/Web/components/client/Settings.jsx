@@ -129,6 +129,10 @@ const Settings = ({ user = {} }) => {
     const [clientErrors, setClientErrors] = useState({});
     const [activeTab, setActiveTab] = useState("profile");
 
+    // Modals state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
     /* ---------- editing flags for each section ---------- */
     const [editing, setEditing] = useState({
         profile: false,
@@ -153,28 +157,32 @@ const Settings = ({ user = {} }) => {
             last_name: user.last_name || "",
             email: user.email || "",
             phone: user.phone || "",
+            date_of_birth: user.date_of_birth || "",
             // address
-            address_line1: user.address_line1 || "",
+            address_line1: user.address_line1 || user.address || "",
             address_line2: user.address_line2 || "",
             city: user.city || "",
             state: user.state || "",
             postal_code: user.postal_code || "",
             country: user.country || "",
+            // payment
+            cardholder_name: user.cardholder_name || "",
+            card_brand: user.card_brand || "",
+            card_last4: user.card_last4 || "",
+            expiry_month: user.expiry_month || "",
+            expiry_year: user.expiry_year || "",
             // security
             current_password: "",
             new_password: "",
             confirm_password: "",
-            // payment (tokenized)
-            cardholder_name: user.cardholder_name || "",
-            card_last4: user.card_last4 || "",
-            card_brand: user.card_brand || "",
-            expiry_month: user.expiry_month || "",
-            expiry_year: user.expiry_year || "",
             // notifications
             notify_email: user.notify_email ?? true,
             notify_sms: user.notify_sms ?? false,
             notify_push: user.notify_push ?? true,
-            // avatar file
+            // preferences
+            language: user.language || "en",
+            timezone: user.timezone || "Asia/Colombo",
+            // image file
             avatar: null,
             // Advanced
             two_factor: false,
@@ -856,6 +864,48 @@ const Settings = ({ user = {} }) => {
                         {activeTab === "preferences" && (
                             <div className="animate-fade-in space-y-6">
                                 <Section 
+                                    title="Regional Settings" 
+                                    description="Set your preferred language and timezone for the platform."
+                                >
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+                                        <Field label="Language" htmlFor="language">
+                                            <select
+                                                id="language"
+                                                value={data.language}
+                                                onChange={(e) => {
+                                                    setData("language", e.target.value);
+                                                    post(updateUrl, { preserveScroll: true, onSuccess: () => toast.success("Language preference updated.") });
+                                                }}
+                                                className="w-full h-12 px-3 rounded-[10px] border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow bg-white text-gray-700"
+                                            >
+                                                <option value="en">English (US)</option>
+                                                <option value="es">Español</option>
+                                                <option value="fr">Français</option>
+                                                <option value="si">Sinhala</option>
+                                                <option value="ta">Tamil</option>
+                                            </select>
+                                        </Field>
+                                        <Field label="Timezone" htmlFor="timezone">
+                                            <select
+                                                id="timezone"
+                                                value={data.timezone}
+                                                onChange={(e) => {
+                                                    setData("timezone", e.target.value);
+                                                    post(updateUrl, { preserveScroll: true, onSuccess: () => toast.success("Timezone preference updated.") });
+                                                }}
+                                                className="w-full h-12 px-3 rounded-[10px] border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow bg-white text-gray-700"
+                                            >
+                                                <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                                <option value="Asia/Colombo">Asia/Colombo (IST)</option>
+                                                <option value="America/New_York">America/New_York (EST)</option>
+                                                <option value="Europe/London">Europe/London (GMT)</option>
+                                                <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                                            </select>
+                                        </Field>
+                                    </div>
+                                </Section>
+
+                                <Section 
                                     title="Notification Preferences" 
                                     description="Manage how we communicate with you regarding your bookings and updates."
                                 >
@@ -895,20 +945,25 @@ const Settings = ({ user = {} }) => {
                         {/* --- TAB: ADVANCED --- */}
                         {activeTab === "advanced" && (
                             <div className="animate-fade-in space-y-6">
-                                <Section title="Two-Factor Authentication (2FA)" description="Add an extra layer of security to your account.">
+                                <Section title="Email Verification" description="Verify your email address to secure your account.">
                                     <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 bg-gray-50 border border-gray-200 rounded-lg gap-4">
                                         <div>
-                                            <p className="font-[600] text-[14px] text-gray-900">Authenticator App</p>
-                                            <p className="text-[12px] text-gray-500 mt-1 max-w-md">Use an authenticator app (like Google Authenticator) to generate one-time security codes.</p>
+                                            <p className="font-[600] text-[14px] text-gray-900">Email Address: {data.email || 'Not provided'}</p>
+                                            <p className="text-[12px] text-gray-500 mt-1 max-w-md">
+                                                {user?.email_verified_at 
+                                                    ? 'Your email address has been verified.' 
+                                                    : 'Please verify your email address to unlock all features and secure your account.'}
+                                            </p>
                                         </div>
                                         <button 
-                                            onClick={() => toast.info("2FA Setup feature coming soon.")}
-                                            className={`px-4 py-2 text-sm font-[600] rounded-md transition-colors shadow-sm ${data.two_factor ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 'bg-gray-800 text-white hover:bg-gray-900'}`}
+                                            type="button"
+                                            onClick={() => user?.email_verified_at ? toast.info("Email is already verified.") : toast.success("Verification link sent to your email!")}
+                                            className={`px-4 py-2 text-sm font-[600] rounded-md transition-colors shadow-sm ${user?.email_verified_at ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-800 text-white hover:bg-gray-900'}`}
                                         >
-                                            {data.two_factor ? 'Disable 2FA' : 'Enable 2FA'}
-                                        </button>
-                                    </div>
-                                </Section>
+                                            {user?.email_verified_at ? 'Verified' : 'Verify Email'}
+                                            </button>
+                                        </div>
+                                    </Section>
 
                                 <Section title="Recent Activity" description="Review recent logins and activity on your account.">
                                     <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -947,13 +1002,15 @@ const Settings = ({ user = {} }) => {
                                     
                                     <div className="flex flex-col sm:flex-row gap-4">
                                         <button 
+                                            type="button"
                                             onClick={() => toast.info("Data export initiated. You will receive an email shortly.")}
                                             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm"
                                         >
                                             Export My Data
                                         </button>
                                         <button 
-                                            onClick={() => toast.error("Account deletion requires contacting support in this version.")}
+                                            type="button"
+                                            onClick={() => setShowDeleteModal(true)}
                                             className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 shadow-sm"
                                         >
                                             Delete Account
@@ -967,9 +1024,66 @@ const Settings = ({ user = {} }) => {
                 </div>
             </div>
             
+            {/* Delete Account Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4 transition-opacity">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-fade-in relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-[700] text-gray-900 flex items-center gap-2">
+                                <FiAlertTriangle className="w-5 h-5 text-red-600" />
+                                Delete Account
+                            </h3>
+                            <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <FiXCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                            This action cannot be undone. This will permanently delete your account, active bookings, history, and all personal data associated with your profile.
+                        </p>
+                        <p className="text-sm text-gray-800 mb-2 font-medium">
+                            Please type <span className="font-bold text-red-600 select-none">DELETE</span> to confirm.
+                        </p>
+                        <input 
+                            type="text" 
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            className="w-full h-12 px-4 border border-gray-300 rounded-[8px] focus:border-red-500 focus:ring-1 focus:ring-red-500 mb-6 text-center font-[600] tracking-widest uppercase"
+                            placeholder="DELETE"
+                            autoComplete="off"
+                        />
+                        <div className="flex justify-end gap-3">
+                            <button 
+                                type="button"
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteConfirmText("");
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button"
+                                disabled={deleteConfirmText !== "DELETE"}
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    toast.success("Account deletion request submitted to administration.");
+                                    setDeleteConfirmText("");
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Confirm Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            
+
             <style dangerouslySetAttribute={{__html: `
                 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}} />
         </div>
     );

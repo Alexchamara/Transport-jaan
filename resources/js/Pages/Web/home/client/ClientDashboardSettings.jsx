@@ -3,13 +3,14 @@ import Header from "./ClientHeader";
 import Settings from '../../components/client/Settings';
 import { usePage } from '@inertiajs/react';
 
-const ClientDashboardSettings = () => {
+const ClientDashboardSettings = ({ user }) => {
   const { auth } = usePage().props;
+  const fullUser = user || auth?.user;
   
   return (
     <div>
      <Header />
-     <Settings user={auth?.user} />
+     <Settings user={fullUser} />
     </div>
   )
 }
