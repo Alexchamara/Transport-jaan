@@ -5338,6 +5338,9 @@ class ClientCourierController extends Controller
     {
         $registrations = VendorServiceRegistration::query()
             ->where('status', 'approved')
+            ->whereHas('user', function ($query) {
+                $query->whereIn('status', ['verified', 'Verified']);
+            })
             ->whereHas('serviceCategory', function ($query) {
                 $query->where('slug', 'courier-services');
             })
@@ -5345,7 +5348,7 @@ class ClientCourierController extends Controller
                 $query->whereIn('slug', ['domestic', 'international']);
             })
             ->with([
-                'user:id,name',
+                'user:id,name,status',
                 'user.vendorProfile:id,user_id,company_name,logo,city,country',
                 'serviceSubCategory:id,slug,name',
             ])
@@ -5429,6 +5432,10 @@ class ClientCourierController extends Controller
             return null;
         }
 
+        if (!in_array((string) ($vendor->status ?? ''), ['verified', 'Verified'], true)) {
+            return null;
+        }
+
         $profile = $vendor->vendorProfile;
         $providerName = trim((string) ($profile?->company_name ?? $vendor->name ?? 'Courier Vendor'));
         if ($providerName === '') {
@@ -5462,6 +5469,7 @@ class ClientCourierController extends Controller
                 'cod' => $supportsCodAtCheckout,
                 'card' => true,
             ],
+            'isVerified' => true,
             'codEligibility' => [
                 'hasApprovedDomesticCapability' => $hasApprovedDomesticCodCapability,
                 'servicePolicy' => $codServicePolicy,

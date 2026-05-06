@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
 import { createPortal } from "react-dom";
 import jsPDF from "jspdf";
@@ -139,6 +139,30 @@ const QUOTE_TIER_OPTIONS = [
     { id: "priority", label: "Priority", color: "text-purple-700" },
 ];
 
+const normalizeComparableValue = (value) => {
+    if (Array.isArray(value)) {
+        return value.map((item) => normalizeComparableValue(item));
+    }
+
+    if (value && typeof value === "object") {
+        return Object.keys(value)
+            .sort()
+            .reduce((accumulator, key) => {
+                accumulator[key] = normalizeComparableValue(value[key]);
+                return accumulator;
+            }, {});
+    }
+
+    if (typeof value === "string") {
+        return value.trim();
+    }
+
+    return value;
+};
+
+const buildSummaryStepDependencyFingerprint = (formData = {}) =>
+    JSON.stringify(normalizeComparableValue(formData || {}));
+
 const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverrides = null }) => {
     const { props } = usePage();
     const packageTypes = props.packageTypes || [];
@@ -215,6 +239,17 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         }), {}),
     });
 
+    const verifiedQuoteProviders = useMemo(() => {
+        return quoteProviders.filter((provider) => {
+            if (provider?.isVerified === true) {
+                return true;
+            }
+
+            const providerStatus = String(provider?.status || provider?.vendorStatus || "").trim().toLowerCase();
+            return providerStatus === "verified";
+        });
+    }, [quoteProviders]);
+
     // Currency conversion state
     const [displayCurrency, setDisplayCurrency] = useState('LKR');
     const USD_TO_LKR_RATE = 325; // Exchange rate (you can make this dynamic later)
@@ -230,16 +265,27 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const [routeSwitchPrompt, setRouteSwitchPrompt] = useState(null);
     const [quoteFilters, setQuoteFilters] = useState(() => buildDefaultQuoteFilters());
     const [appliedQuoteFilters, setAppliedQuoteFilters] = useState(() => buildDefaultQuoteFilters());
+    const [showQuotes, setShowQuotes] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [stepFlowNotice, setStepFlowNotice] = useState("");
+    const quotesStepUpstreamVersionRef = useRef(0);
+    const detailsStepUpstreamVersionRef = useRef(0);
+    const summaryStepDependencyRef = useRef("");
+    const upstreamChangeCounterRef = useRef(0);
+    const [upstreamChangeVersion, setUpstreamChangeVersion] = useState(0);
     const quotesSectionRef = useRef(null);
     const quotesTableRef = useRef(null);
-    const quotesAutoScrollRef = useRef(false);
     const shipmentDimensionSectionRef = useRef(null);
     const shipmentSectionAutoScrollPendingRef = useRef(false);
     const detailsSectionRef = useRef(null);
     const summarySectionRef = useRef(null);
+
+    const markUpstreamChange = () => {
+        upstreamChangeCounterRef.current += 1;
+        setUpstreamChangeVersion((previous) => previous + 1);
+    };
 
     const buildEmptyForm = (routeType) => {
         const isDomestic = routeType !== "international";
@@ -422,6 +468,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 }
                 : item
         );
+        markUpstreamChange();
         setData("packages", nextPackages);
     };
 
@@ -441,12 +488,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                 : item
         ));
 
+        markUpstreamChange();
         setData("packages", nextPackages);
     };
 
     const updateAddressCountry = (party, countryCode) => {
         const currentParty = party === "recipient" ? data.recipient : data.sender;
 
+        markUpstreamChange();
         setData(party, {
             ...currentParty,
             address: {
@@ -619,6 +668,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const updateAddressCity = (party, cityName) => {
         const currentParty = party === "recipient" ? data.recipient : data.sender;
 
+        markUpstreamChange();
         setData(party, {
             ...currentParty,
             address: {
@@ -634,6 +684,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const updateAddressPostalCode = (party, postalCode) => {
         const currentParty = party === "recipient" ? data.recipient : data.sender;
 
+        markUpstreamChange();
         setData(party, {
             ...currentParty,
             address: {
@@ -651,6 +702,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     const updateAddressResidential = (party, isResidential) => {
         const currentParty = party === "recipient" ? data.recipient : data.sender;
 
+        markUpstreamChange();
         setData(party, {
             ...currentParty,
             address: {
@@ -1328,9 +1380,14 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         setDisplayCurrency("LKR");
         setServiceDetailsModal(null);
         setIsPlacing(false);
+        setShowQuotes(false);
         setShowDetails(false);
         setShowSummary(false);
         setIsSummaryLoading(false);
+        setStepFlowNotice("");
+        quotesStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        detailsStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        summaryStepDependencyRef.current = "";
         ["sender", "recipient"].forEach((party) => {
             abortPostalLookupForParty(party);
             clearPostalLookupForParty(party);
@@ -1409,6 +1466,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const handleShipmentTypeChange = (value) => {
+        markUpstreamChange();
         setData("shipment", {
             ...data.shipment,
             shipmentType: value,
@@ -1417,6 +1475,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     };
 
     const updateShipmentPreference = (key, value) => {
+        markUpstreamChange();
         setData("shipment", {
             ...data.shipment,
             [key]: value,
@@ -1438,6 +1497,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             nextOptions.all = nextOptions.cod && nextOptions.card;
         }
 
+        markUpstreamChange();
         setData("shipment", {
             ...data.shipment,
             paymentOptions: nextOptions,
@@ -1484,6 +1544,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         const shouldRevealNewPackageDetails = isInternationalRoute
             && data.packages.every((_, packageIndex) => Boolean(revealedPackageDetails[packageIndex]));
 
+        markUpstreamChange();
         setData("packages", [
             ...data.packages,
             {
@@ -1534,6 +1595,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return next;
         });
 
+        markUpstreamChange();
         setData(
             "packages",
             data.packages.filter((_, idx) => idx !== index)
@@ -1542,6 +1604,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        triggerEligibleContinueAction(event?.target?.ownerDocument?.activeElement);
     };
 
     const selectedRouteType = data.shipment?.routeType === "international" ? "international" : "domestic";
@@ -1561,6 +1624,64 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         || areAllPackageDetailsRevealed;
     const shouldShowDescribeShipmentCta = selectedRouteType === "international"
         && !shouldShowShipmentDetailsSection;
+
+    const triggerEligibleContinueAction = (activeElement = null) => {
+        const activeTag = String(activeElement?.tagName || "").toLowerCase();
+        const inputType = String(activeElement?.type || "").toLowerCase();
+        const isTypingInTextarea = activeTag === "textarea";
+        const isTypingInSelect = activeTag === "select";
+        const isContentEditable = Boolean(activeElement?.isContentEditable);
+        const isButtonLike = activeTag === "button" || activeTag === "a";
+        const isNonTextInput = activeTag === "input" && ["checkbox", "radio", "file"].includes(inputType);
+        if (isTypingInTextarea || isTypingInSelect || isContentEditable || isButtonLike || isNonTextInput) {
+            return false;
+        }
+
+        if (showDetails && !showSummary && !isSummaryLoading) {
+            handleContinueToSummary();
+            return true;
+        }
+
+        if (shouldShowDescribeShipmentCta) {
+            if (hasLocationDetailsForDescribe) {
+                revealShipmentDetailsSection();
+                return true;
+            }
+            return false;
+        }
+
+        if (!showQuotes) {
+            if (hasRequiredDetails && !isPlacing) {
+                handleContinueToQuotes();
+                return true;
+            }
+            return false;
+        }
+
+        if (isReadyToPlace && !isPlacing) {
+            handleContinueToDetails();
+            return true;
+        }
+        return false;
+    };
+
+    const handleFormKeyDown = (event) => {
+        if (event.key !== "Enter" || event.defaultPrevented || event.shiftKey || event.isComposing) {
+            return;
+        }
+
+        const activeElement = event?.target;
+        const activeTag = String(activeElement?.tagName || "").toLowerCase();
+        const isTypingInTextarea = activeTag === "textarea";
+        const isTypingInSelect = activeTag === "select";
+        const isContentEditable = Boolean(activeElement?.isContentEditable);
+        if (isTypingInTextarea || isTypingInSelect || isContentEditable) {
+            return;
+        }
+
+        event.preventDefault();
+        triggerEligibleContinueAction(activeElement);
+    };
 
     const revealShipmentDetailsSection = () => {
         const nextVisibleState = {};
@@ -1956,18 +2077,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         });
     };
 
-    const paymentFilteredQuoteProviders = useMemo(() => {
-        const requiresCod = Boolean(paymentOptions.cod);
-        const requiresCard = Boolean(paymentOptions.card);
-        const isAllSelected = Boolean(paymentOptions.all);
+    const filterQuoteProvidersByPaymentOptions = useCallback((options = {}) => {
+        const requiresCod = Boolean(options.cod);
+        const requiresCard = Boolean(options.card);
+        const isAllSelected = Boolean(options.all);
 
         // If 'All' is selected, we show everything (OR logic)
         // If 'All' is NOT selected, but specific ones are, we filter strictly (AND logic)
         if (!requiresCod && !requiresCard && !isAllSelected) {
-            return quoteProviders;
+            return verifiedQuoteProviders;
         }
 
-        return quoteProviders.filter((provider) => {
+        return verifiedQuoteProviders.filter((provider) => {
             const providerPaymentOptions = provider?.paymentOptions || {};
             const supportsCod = Boolean(providerPaymentOptions.cod);
             const supportsCard = providerPaymentOptions.card === undefined
@@ -1990,7 +2111,12 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
             return true;
         });
-    }, [paymentOptions.card, paymentOptions.cod, paymentOptions.all, quoteProviders]);
+    }, [verifiedQuoteProviders]);
+
+    const paymentFilteredQuoteProviders = useMemo(
+        () => filterQuoteProvidersByPaymentOptions(paymentOptions),
+        [filterQuoteProvidersByPaymentOptions, paymentOptions]
+    );
 
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, {
@@ -2004,6 +2130,151 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
         () => resolveDetailedQuotes(data.packages, quoteMatrix),
         [data.packages, quoteMatrix]
     );
+
+    const computeReviewContextForPayload = useCallback((payload = {}) => {
+        const payloadPackages = Array.isArray(payload?.packages) ? payload.packages : [];
+        const payloadShipment = payload?.shipment || {};
+        const payloadPaymentOptions = payloadShipment?.paymentOptions || {};
+        const payloadCurrency = String(
+            payload?.reviewContext?.displayCurrency
+            || payloadShipment?.currency
+            || displayCurrency
+            || "LKR"
+        ).toUpperCase();
+
+        const services = filterQuoteProvidersByPaymentOptions(payloadPaymentOptions);
+        const metrics = computePackageMetrics(payloadPackages);
+        const payloadQuoteMatrix = buildQuoteMatrix(payloadPackages, {
+            metrics,
+            services,
+        });
+        const payloadDetailedQuotes = resolveDetailedQuotes(payloadPackages, payloadQuoteMatrix);
+
+        return buildReviewContext(payloadDetailedQuotes, payloadCurrency);
+    }, [displayCurrency, filterQuoteProvidersByPaymentOptions]);
+    const summaryStepDependencyFingerprint = useMemo(
+        () => buildSummaryStepDependencyFingerprint(data),
+        [data]
+    );
+
+    useEffect(() => {
+        if (!Array.isArray(data.packages) || data.packages.length === 0) {
+            return;
+        }
+
+        let hasChanges = false;
+
+        const nextPackages = data.packages.map((pkg, index) => {
+            const currentProvider = String(pkg?.courierProvider || "").trim();
+            const currentServiceLevel = String(pkg?.serviceLevel || "").trim();
+
+            if (!currentProvider && !currentServiceLevel) {
+                return pkg;
+            }
+
+            const packageQuotes = quoteMatrix.find((item) => item.packageIndex === index);
+            if (!packageQuotes) {
+                hasChanges = true;
+                return {
+                    ...pkg,
+                    courierProvider: "",
+                    serviceLevel: "",
+                };
+            }
+
+            const provider = (packageQuotes.providers || []).find(
+                (candidate) => candidate.id === currentProvider
+            );
+            if (!provider) {
+                hasChanges = true;
+                return {
+                    ...pkg,
+                    courierProvider: "",
+                    serviceLevel: "",
+                };
+            }
+
+            const tier = (provider.tiers || []).find((candidate) => candidate.id === currentServiceLevel);
+            if (!tier) {
+                hasChanges = true;
+                return {
+                    ...pkg,
+                    courierProvider: "",
+                    serviceLevel: "",
+                };
+            }
+
+            return pkg;
+        });
+
+        if (hasChanges) {
+            setData("packages", nextPackages);
+        }
+    }, [data.packages, quoteMatrix, setData]);
+
+    useEffect(() => {
+        if (!showQuotes) {
+            return;
+        }
+
+        if (upstreamChangeCounterRef.current === quotesStepUpstreamVersionRef.current) {
+            return;
+        }
+
+        setShowQuotes(false);
+        setShowDetails(false);
+        setShowSummary(false);
+        setIsSummaryLoading(false);
+        setSubmitError("");
+        setQuoteOnlyMessage("");
+        clearErrors();
+        setStepFlowNotice("");
+        quotesStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        detailsStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        summaryStepDependencyRef.current = "";
+    }, [showQuotes, upstreamChangeVersion, clearErrors]);
+
+    useEffect(() => {
+        if (!showDetails) {
+            return;
+        }
+
+        if (upstreamChangeCounterRef.current === detailsStepUpstreamVersionRef.current) {
+            return;
+        }
+
+        setShowDetails(false);
+        setShowSummary(false);
+        setIsSummaryLoading(false);
+        setSubmitError("");
+        setQuoteOnlyMessage("");
+        clearErrors();
+        setStepFlowNotice("");
+        detailsStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        summaryStepDependencyRef.current = "";
+    }, [showDetails, upstreamChangeVersion, clearErrors]);
+
+    useEffect(() => {
+        if (!showSummary) {
+            return;
+        }
+
+        if (!summaryStepDependencyRef.current) {
+            summaryStepDependencyRef.current = summaryStepDependencyFingerprint;
+            return;
+        }
+
+        if (summaryStepDependencyRef.current === summaryStepDependencyFingerprint) {
+            return;
+        }
+
+        setShowSummary(false);
+        setIsSummaryLoading(false);
+        setSubmitError("");
+        clearErrors();
+        setStepFlowNotice("Details changed. Continue from details to regenerate summary.");
+        summaryStepDependencyRef.current = summaryStepDependencyFingerprint;
+    }, [showSummary, summaryStepDependencyFingerprint, clearErrors]);
 
     const incompletePackages = useMemo(() => {
         if (!Array.isArray(data.packages) || !data.packages.length) {
@@ -2126,34 +2397,21 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
     }, [data.packages, selectedQuotes]);
 
     useEffect(() => {
-        if (typeof window === "undefined") {
+        if (!showQuotes || typeof window === "undefined") {
             return;
         }
 
-        if (!hasRequiredDetails || quoteMatrix.length === 0) {
-            quotesAutoScrollRef.current = false;
-            return;
-        }
-
-        if (quotesAutoScrollRef.current) {
-            return;
-        }
-
-        const target = quotesTableRef.current || quotesSectionRef.current;
+        const target = quotesSectionRef.current;
         if (!target) {
             return;
         }
 
-        const targetTop = target.getBoundingClientRect().top + window.scrollY;
-        const offset = 300;
+        const timeoutId = window.setTimeout(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
 
-        window.scrollTo({
-            top: Math.max(targetTop - offset, 0),
-            behavior: "smooth",
-        });
-
-        quotesAutoScrollRef.current = true;
-    }, [hasRequiredDetails, quoteMatrix.length]);
+        return () => window.clearTimeout(timeoutId);
+    }, [showQuotes]);
 
     useEffect(() => {
         if (!showDetails || typeof window === "undefined") {
@@ -2340,7 +2598,8 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return;
         }
 
-        const reviewContext = buildReviewContext(selectedQuotes, displayCurrency);
+        const payload = JSON.parse(JSON.stringify(data));
+        const reviewContext = computeReviewContextForPayload(payload);
         setData((previous) => ({
             ...previous,
             reviewContext,
@@ -2493,12 +2752,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return;
         }
 
+        setStepFlowNotice("");
         setSubmitError("");
         setQuoteOnlyMessage("");
         setIsPlacing(true);
 
         const basePayload = JSON.parse(JSON.stringify(data));
-        const reviewContext = buildReviewContext(selectedQuotes, displayCurrency);
+        const reviewContext = computeReviewContextForPayload(basePayload);
         const payload = {
             ...basePayload,
             reviewContext,
@@ -2515,9 +2775,35 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             ...previous,
             reviewContext,
         }));
+        detailsStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        summaryStepDependencyRef.current = "";
         setShowDetails(true);
         setShowSummary(false);
         setIsPlacing(false);
+    };
+
+    const handleContinueToQuotes = () => {
+        setStepFlowNotice("");
+        setSubmitError("");
+        setQuoteOnlyMessage("");
+
+        if (!hasRequiredDetails) {
+            setSubmitError(
+                selectedRouteType === "domestic" && !hasPaymentOption
+                    ? "Select at least one payment option to continue."
+                    : "Complete all required fields before continuing.",
+            );
+            return;
+        }
+
+        clearErrors();
+        setShowQuotes(true);
+        setShowDetails(false);
+        setShowSummary(false);
+        setIsSummaryLoading(false);
+        quotesStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        detailsStepUpstreamVersionRef.current = upstreamChangeCounterRef.current;
+        summaryStepDependencyRef.current = "";
     };
 
     const handleContinueToSummary = async ({ setSubmitError: setDetailsSubmitError } = {}) => {
@@ -2529,11 +2815,18 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             ? setDetailsSubmitError
             : setSubmitError;
 
+        setStepFlowNotice("");
         setErrorMessage("");
         clearErrors();
         setIsSummaryLoading(true);
 
         const payload = JSON.parse(JSON.stringify(data));
+        const reviewContext = computeReviewContextForPayload(payload);
+        payload.reviewContext = reviewContext;
+        setData((previous) => ({
+            ...previous,
+            reviewContext,
+        }));
         const result = await prepareSummarySession(payload);
         if (!result.ok) {
             if (result.errors) {
@@ -2544,6 +2837,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
             return;
         }
 
+        summaryStepDependencyRef.current = buildSummaryStepDependencyFingerprint(payload);
         setShowSummary(true);
         setIsSummaryLoading(false);
     };
@@ -2660,7 +2954,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-10">
+                    <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-10">
                         <div className="flex flex-col items-center gap-3 text-center">
                             <div>
                                 <h2 className="text-lg font-semibold text-[#0B1739]">Shipment route type</h2>
@@ -3277,10 +3571,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                         <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
                                                                         <textarea
                                                                             value={data.shipment.shipmentTypeDescription || ""}
-                                                                            onChange={(event) => setData("shipment", {
-                                                                                ...data.shipment,
-                                                                                shipmentTypeDescription: event.target.value,
-                                                                            })}
+                                                                            onChange={(event) => {
+                                                                                markUpstreamChange();
+                                                                                setData("shipment", {
+                                                                                    ...data.shipment,
+                                                                                    shipmentTypeDescription: event.target.value,
+                                                                                });
+                                                                            }}
                                                                             className="min-h-[96px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 py-3 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                             placeholder="Describe the shipment type"
                                                                         />
@@ -3619,10 +3916,13 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                                                 <label className="mb-2 block text-sm font-medium text-[#0B1739]">Describe shipment</label>
                                                                 <textarea
                                                                     value={data.shipment.shipmentTypeDescription || ""}
-                                                                    onChange={(event) => setData("shipment", {
-                                                                        ...data.shipment,
-                                                                        shipmentTypeDescription: event.target.value,
-                                                                    })}
+                                                                    onChange={(event) => {
+                                                                        markUpstreamChange();
+                                                                        setData("shipment", {
+                                                                            ...data.shipment,
+                                                                            shipmentTypeDescription: event.target.value,
+                                                                        });
+                                                                    }}
                                                                     className="h-[52px] w-full rounded-lg border border-[#D6DEEB] bg-white px-4 text-sm text-[#0B1739] focus:border-[#0955AC] focus:outline-none"
                                                                     placeholder="Describe the shipment type"
                                                                 />
@@ -3659,7 +3959,7 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                             </div>
                         </section>
 
-                        {hasRequiredDetails && (
+                        {showQuotes && hasRequiredDetails && (
                             <section
                                 id="courier-quotes-section"
                                 ref={quotesSectionRef}
@@ -4294,7 +4594,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                 ref={detailsSectionRef}
                                 className="rounded-2xl border border-[#E3EAF5] bg-white px-6 py-8 shadow-sm"
                             >
-                                
+                                {stepFlowNotice && !showSummary && (
+                                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                        {stepFlowNotice}
+                                    </div>
+                                )}
                                 <DetailsForm
                                     inline
                                     renderAsForm={false}
@@ -4500,6 +4804,11 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 
                         {!showDetails && (
                             <div className="mt-8 flex flex-col items-center gap-3">
+                                {stepFlowNotice && (
+                                    <div className="w-full max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                        {stepFlowNotice}
+                                    </div>
+                                )}
                                 {shouldShowDescribeShipmentCta ? (
                                     <>
                                         <button
@@ -4509,11 +4818,30 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
                                             className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasLocationDetailsForDescribe ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
                                                 }`}
                                         >
-                                            Describe shipment
+                                            Continue to Shipment
                                         </button>
                                         {!hasLocationDetailsForDescribe && (
                                             <p className="text-xs text-[#D14343]">
                                                 Complete From and To location details to continue.
+                                            </p>
+                                        )}
+                                    </>
+                                ) : !showQuotes ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleContinueToQuotes}
+                                            disabled={!hasRequiredDetails || isPlacing}
+                                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!hasRequiredDetails || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                                }`}
+                                        >
+                                            Continue to Courier service quotes
+                                        </button>
+                                        {!hasRequiredDetails && (
+                                            <p className="text-xs text-[#D14343]">
+                                                {selectedRouteType === 'domestic' && !hasPaymentOption
+                                                    ? 'Select at least one payment option to continue.'
+                                                    : 'Complete all required fields before continuing.'}
                                             </p>
                                         )}
                                     </>
@@ -4572,6 +4900,3 @@ const Create = ({ forcedRouteType = null, lockFlowToUrl = false, flowRouteOverri
 };
 
 export default Create;
-
-
-
