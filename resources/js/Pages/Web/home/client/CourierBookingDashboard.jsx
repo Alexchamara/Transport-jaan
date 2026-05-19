@@ -61,7 +61,6 @@ const CourierBookingDashboard = () => {
     }, [favoriteSenders]);
 
     const defaultCountry = countries[0] || 'US';
-    const countryOptions = countries.length > 0 ? countries : [defaultCountry];
     const buildFavoriteForm = (role = 'recipient') => {
         const base = {
             name: '',
@@ -71,10 +70,6 @@ const CourierBookingDashboard = () => {
             address: {
                 line1: '',
                 line2: '',
-                city: '',
-                state: '',
-                postalCode: '',
-                country: defaultCountry,
                 instructions: '',
             },
         };
@@ -99,10 +94,9 @@ const CourierBookingDashboard = () => {
         }
 
         const street = [address.line1, address.line2].filter(Boolean).join(', ');
-        const locality = [address.city, address.state, address.postalCode].filter(Boolean).join(', ');
-        const country = address.country;
+        const instructions = address.instructions;
 
-        return [street, locality, country].filter(Boolean).join(', ');
+        return [street, instructions].filter(Boolean).join(', ');
     };
 
     const handleRemoveFavorite = (contactId) => {
@@ -132,11 +126,16 @@ const CourierBookingDashboard = () => {
 
     const filteredFavoritesList = useMemo(() => {
         return currentFavoritesList.filter((contact) => {
-            const isDomestic = contact?.address?.country === defaultCountry || contact?.address?.country === 'LK';
+            const favoriteCountry = String(contact?.address?.country || '').trim().toUpperCase();
+            if (!favoriteCountry) {
+                return true;
+            }
+
+            const isDomestic = favoriteCountry === defaultCountry || favoriteCountry === 'LK';
             return activeFlow === 'domestic' ? isDomestic : !isDomestic;
         });
     }, [currentFavoritesList, activeFlow, defaultCountry]);
-    
+
     const favoriteTotalPages = useMemo(() => {
         return Math.max(1, Math.ceil(filteredFavoritesList.length / FAVORITES_PAGE_SIZE));
     }, [filteredFavoritesList.length]);
@@ -244,7 +243,7 @@ const CourierBookingDashboard = () => {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="mt-4">
                     {filteredFavoritesList.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-[#DDE7F5] bg-[#F9FBFF] py-8 text-center text-[12px] text-[#5B6887]">
@@ -441,69 +440,6 @@ const CourierBookingDashboard = () => {
                                 {favoriteErrorFor('address.line2') && (
                                     <p className="mt-1 text-xs text-red-500">{favoriteErrorFor('address.line2')}</p>
                                 )}
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">City *</label>
-                                    <input
-                                        type="text"
-                                        value={data[currentRole].address.city}
-                                        onChange={(event) => updateFavoriteField(`${currentRole}.address.city`, event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                        placeholder="City"
-                                        required
-                                    />
-                                    {favoriteErrorFor('address.city') && (
-                                        <p className="mt-1 text-xs text-red-500">{favoriteErrorFor('address.city')}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">Country *</label>
-                                    <select
-                                        value={data[currentRole].address.country}
-                                        onChange={(event) => updateFavoriteField(`${currentRole}.address.country`, event.target.value.toUpperCase())}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                        required
-                                    >
-                                        {countryOptions.map((countryCode) => (
-                                            <option key={`favorite-country-${countryCode}`} value={countryCode}>
-                                                {countryCode}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {favoriteErrorFor('address.country') && (
-                                        <p className="mt-1 text-xs text-red-500">{favoriteErrorFor('address.country')}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">State / Province</label>
-                                    <input
-                                        type="text"
-                                        value={data[currentRole].address.state}
-                                        onChange={(event) => updateFavoriteField(`${currentRole}.address.state`, event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                        placeholder="State / Province"
-                                    />
-                                    {favoriteErrorFor('address.state') && (
-                                        <p className="mt-1 text-xs text-red-500">{favoriteErrorFor('address.state')}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">Postal code</label>
-                                    <input
-                                        type="text"
-                                        value={data[currentRole].address.postalCode}
-                                        onChange={(event) => updateFavoriteField(`${currentRole}.address.postalCode`, event.target.value)}
-                                        className="w-full rounded-lg border border-[#D6DEEB] px-3 py-2 text-sm focus:border-[#0955AC] focus:outline-none"
-                                    />
-                                    {favoriteErrorFor('address.postalCode') && (
-                                        <p className="mt-1 text-xs text-red-500">{favoriteErrorFor('address.postalCode')}</p>
-                                    )}
-                                </div>
                             </div>
 
                             <div>

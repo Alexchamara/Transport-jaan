@@ -170,10 +170,7 @@ const Header = () => {
                 </div>
 
                 {/* Desktop icons */}
-                <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    {auth?.user && shouldLoadVendorNotifications && (
-                        <NotificationDropdown bellIcon={bell} />
-                    )}
+                <div className="absolute right-3 sm:right-4 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 md:flex hidden flex-row gap-4 justify-end items-center">
                     <div className="relative">
                         <button
                             onClick={() => setIsProfileOpen((prev) => !prev)}
@@ -252,6 +249,10 @@ const Header = () => {
                             </>
                         )}
                     </div>
+
+                    {auth?.user && shouldLoadVendorNotifications && (
+                        <NotificationDropdown bellIcon={bell} />
+                    )}
                 </div>
             </div>
 

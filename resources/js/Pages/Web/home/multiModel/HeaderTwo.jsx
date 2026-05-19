@@ -154,14 +154,15 @@ const HeaderTwo = () => {
                 </div>
 
                 {/* Desktop icons */}
-                <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <img
-                        src={bell}
-                        className="size-[18px] md:w-[24px] md:h-[23px]"
-                        alt="Notifications"
-                    />
-                </div>
-                <div className="relative">
+                <div className="absolute right-3 sm:right-4 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 md:flex hidden flex-row gap-4 justify-end items-center">
+                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                        <img
+                            src={bell}
+                            className="size-[18px] md:w-[24px] md:h-[23px]"
+                            alt="Notifications"
+                        />
+                    </div>
+                    <div className="relative">
                     <button
                         type="button"
                         className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center cursor-pointer"
@@ -238,6 +239,7 @@ const HeaderTwo = () => {
                             </div>
                         </>
                     )}
+                </div>
                 </div>
             </div>
 

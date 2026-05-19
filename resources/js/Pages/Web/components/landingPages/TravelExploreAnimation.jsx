@@ -29,7 +29,7 @@ const IMAGES = [
         tags: ["Courier", "Delivery", "Tracking"],
     },
     {
-        statusLabel: "COMING SOON",
+        statusLabel: "AVAILABLE",
         title: "Vehicle Rental",
         subtitle: "Cars, vans, boats and aircraft",
         description:
@@ -40,7 +40,7 @@ const IMAGES = [
         tags: ["Vehicle", "Rental", "Transport"],
     },
     {
-        statusLabel: "COMING SOON",
+        statusLabel: "AVAILABLE",
         title: "Ticket Booking",
         subtitle: "Bus, train and flight tickets",
         description:
@@ -51,7 +51,7 @@ const IMAGES = [
         tags: ["Train", "Bus", "Flight"],
     },
     {
-        statusLabel: "COMING SOON",
+        statusLabel: "AVAILABLE",
         title: "Warehousing",
         subtitle: "Storage & Fulfillment",
         description:
@@ -62,7 +62,7 @@ const IMAGES = [
         tags: ["Warehouse", "Storage", "Fulfillment"],
     },
     {
-        statusLabel: "COMING SOON",
+        statusLabel: "AVAILABLE",
         title: "Freight",
         subtitle: "Bulk Cargo Movement",
         description:
@@ -77,7 +77,7 @@ const IMAGES = [
 const SERVICES = [
     { statusLabel: "AVAILABLE", title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
     {
-        statusLabel: "COMING SOON",
+        statusLabel: "AVAILABLE",
         title: "Vehicle Rental",
         subtitle: "Cars, vans & trucks",
         img: img1,
@@ -88,7 +88,7 @@ const SERVICES = [
         ],
     },
     {
-        statusLabel: "COMING SOON",
+        statusLabel: "AVAILABLE",
         title: "Ticket Booking",
         subtitle: "Land, air & sea tickets",
         img: img7,
@@ -98,10 +98,9 @@ const SERVICES = [
             { title: "Flight Ticket", subtitle: "Book air tickets", href: "/multiModel/plan-journey?tab=ticket&subTab=flight", img: img3 },
         ],
     },
-    { statusLabel: "COMING SOON", title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey?tab=multimodal", img: img6 },
-    { statusLabel: "COMING SOON", title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
-    { statusLabel: "COMING SOON", title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
-
+    { statusLabel: "AVAILABLE", title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey?tab=multimodal", img: img6 },
+    { statusLabel: "AVAILABLE", title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
+    { statusLabel: "AVAILABLE", title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
 ];
 
 const TravelExploreAnimation = ({ auth }) => {
