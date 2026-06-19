@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\AirVehicleBookings;
+use App\Models\SeaVehicleBookings;
 use App\Models\CancellationSetting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +29,7 @@ class VehicleBookingCancellationService
      * @param string $cancelledBy - 'client' or 'vendor'
      * @return array
      */
-    public function calculateRefund(Booking $booking, string $cancelledBy = 'client'): array
+    public function calculateRefund(Booking|AirVehicleBookings|SeaVehicleBookings $booking, string $cancelledBy = 'client'): array
     {
         $daysUntilPickup = $booking->getDaysUntilPickup();
         
@@ -103,8 +105,8 @@ class VehicleBookingCancellationService
      * @return array
      */
     public function cancelBooking(
-        Booking $booking, 
-        string $cancelledBy, 
+        Booking|AirVehicleBookings|SeaVehicleBookings $booking,
+        string $cancelledBy,
         ?string $reason = null, 
         ?int $userId = null
     ): array
@@ -172,7 +174,7 @@ class VehicleBookingCancellationService
      * @param Booking $booking
      * @return bool
      */
-    public function canCancel(Booking $booking): bool
+    public function canCancel(Booking|AirVehicleBookings|SeaVehicleBookings $booking): bool
     {
         return $booking->canBeCancelled() && !$booking->isCancelled();
     }
@@ -184,7 +186,7 @@ class VehicleBookingCancellationService
      * @param string $cancelledBy
      * @return array
      */
-    public function getRefundPreview(Booking $booking, string $cancelledBy = 'client'): array
+    public function getRefundPreview(Booking|AirVehicleBookings|SeaVehicleBookings $booking, string $cancelledBy = 'client'): array
     {
         try {
             $refundDetails = $this->calculateRefund($booking, $cancelledBy);

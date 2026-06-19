@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\AirVehicleBookings;
 use App\Models\SeaVehicleBookings;
-use App\Models\CancellationSetting;
 use App\Models\Notification;
+use App\Services\VehicleBookingCancellationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -768,21 +768,8 @@ class BookingController extends Controller
 
         $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
 
-        $refundDetails = $this->buildVehicleRefundPreview(
-            (float) ($booking->total_amount ?? $booking->subtotal ?? 0),
-            $booking->schedule?->pickup_at,
-            'vendor'
-        );
-
-        if (!$refundDetails['success']) {
-            return response()->json($refundDetails, 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'can_cancel' => strtolower((string) $booking->status) !== 'cancelled',
-            'refund_details' => $refundDetails['refund_details'],
-        ]);
+        $cancellationService = app(VehicleBookingCancellationService::class);
+        return response()->json($cancellationService->getRefundPreview($booking, 'vendor'));
     }
 
     public function cancelBookingAsVendorByType(Request $request, string $bookingType, int $bookingId)
@@ -795,57 +782,24 @@ class BookingController extends Controller
 
         $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
 
-        if (strtolower((string) $booking->status) === 'cancelled') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Booking is already cancelled.',
-            ], 422);
-        }
-
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $refundPreview = $this->buildVehicleRefundPreview(
-            (float) ($booking->total_amount ?? $booking->subtotal ?? 0),
-            $booking->schedule?->pickup_at,
-            'vendor'
+        $cancellationService = app(VehicleBookingCancellationService::class);
+
+        $result = $cancellationService->cancelBooking(
+            $booking,
+            'vendor',
+            $validated['reason'] ?? null,
+            $vendorId
         );
 
-        if (!$refundPreview['success']) {
-            return response()->json($refundPreview, 422);
+        if (!$result['success']) {
+            return response()->json($result, 422);
         }
 
-        $notes = trim((string) ($booking->notes ?? ''));
-        $reason = trim((string) ($validated['reason'] ?? ''));
-        $cancelNote = 'Cancelled by vendor on ' . now()->toDateTimeString();
-        if ($reason !== '') {
-            $cancelNote .= ' | Reason: ' . $reason;
-        }
-
-        $updatePayload = [
-            'status' => 'cancelled',
-            'notes' => trim($notes . "\n" . $cancelNote),
-        ];
-
-        $table = $booking->getTable();
-        if (Schema::hasColumn($table, 'cancellation_reason')) {
-            $updatePayload['cancellation_reason'] = $reason !== '' ? $reason : null;
-        }
-        if (Schema::hasColumn($table, 'cancelled_at')) {
-            $updatePayload['cancelled_at'] = now();
-        }
-        if (Schema::hasColumn($table, 'cancelled_by')) {
-            $updatePayload['cancelled_by'] = 'vendor';
-        }
-
-        $booking->update($updatePayload);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking cancelled successfully.',
-            'refund_details' => $refundPreview['refund_details'] ?? null,
-        ]);
+        return response()->json($result);
     }
 
     private function resolveVendorVehicleBookingByType(string $bookingType, int $bookingId, ?int $vendorId, ?string $ownerCol)
@@ -865,49 +819,6 @@ class BookingController extends Controller
         }
 
         return $booking;
-    }
-
-    private function buildVehicleRefundPreview(float $totalAmount, $pickupAt, string $cancelledBy = 'vendor'): array
-    {
-        try {
-            if (!$pickupAt) {
-                return [
-                    'success' => false,
-                    'message' => 'Cannot calculate refund: booking has no pickup date',
-                ];
-            }
-
-            $pickup = Carbon::parse($pickupAt);
-            $daysUntilPickup = Carbon::now()->diffInDays($pickup, false);
-            $threshold = CancellationSetting::getDaysForContext('vehicle');
-
-            $refundPercentage = $daysUntilPickup >= ($threshold - 0.01) ? 100 : 50;
-            $refundAmount = round(($totalAmount * $refundPercentage) / 100, 2);
-            $cancellationFee = round($totalAmount - $refundAmount, 2);
-            $actor = $cancelledBy === 'vendor' ? 'Vendor' : 'You';
-            $timingText = $daysUntilPickup >= $threshold
-                ? "more than {$threshold} days before pickup"
-                : "less than {$threshold} days before pickup";
-
-            return [
-                'success' => true,
-                'refund_details' => [
-                    'refund_amount' => $refundAmount,
-                    'refund_percentage' => $refundPercentage,
-                    'cancellation_fee' => $cancellationFee,
-                    'days_until_pickup' => round($daysUntilPickup, 2),
-                    'policy_message' => $refundPercentage === 100
-                        ? "{$actor} are cancelling {$timingText} and customer will receive 100% refund."
-                        : "{$actor} are cancelling {$timingText} and customer will receive 50% refund.",
-                    'vendor_commission_refund' => 0,
-                ],
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'message' => 'Cannot calculate refund: ' . $e->getMessage(),
-            ];
-        }
     }
 
     /**

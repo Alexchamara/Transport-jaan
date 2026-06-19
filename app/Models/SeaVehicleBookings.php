@@ -32,6 +32,12 @@ class SeaVehicleBookings extends Model
         'addons_snapshot',
         'vehicle_snapshot',
         'notes',
+        'cancelled_at',
+        'cancellation_reason',
+        'refund_amount',
+        'cancellation_fee',
+        'cancelled_by',
+        'vendor_commission_refund',
     ];
 
     protected $casts = [
@@ -43,9 +49,13 @@ class SeaVehicleBookings extends Model
         'deposit_amount'   => 'float',
         'advance_amount'   => 'float',
         'total_amount'     => 'float',
+        'refund_amount'    => 'float',
+        'cancellation_fee' => 'float',
+        'vendor_commission_refund' => 'float',
         'rental_days'      => 'integer',
         'created_at'       => 'datetime',
         'updated_at'       => 'datetime',
+        'cancelled_at'     => 'datetime',
     ];
 
     protected $with    = ['schedule'];
@@ -82,6 +92,16 @@ class SeaVehicleBookings extends Model
         }
         
         return Carbon::now()->diffInDays(Carbon::parse($pickupDate), false);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled_at !== null;
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return $this->status === 'confirmed' || $this->status === 'paid';
     }
 
     public function scopeForVendor(Builder $q, int $vendorId, string $ownerKey = self::VEHICLE_OWNER_KEY): Builder
