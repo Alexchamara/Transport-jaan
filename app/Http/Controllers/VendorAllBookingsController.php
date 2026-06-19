@@ -313,6 +313,70 @@ class VendorAllBookingsController extends Controller
                 ];
             });
 
+        // Fetch air vehicle rental bookings where vendor is the provider
+        $airVehicleBookings = AirVehicleBookings::whereHas('vehicle', function($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+            ->get()
+            ->map(function($booking) {
+                $vehicle = $booking->vehicle;
+                $customer = $booking->customer;
+                $schedule = $booking->schedule;
+
+                return [
+                    'id' => $booking->id,
+                    'booking_type' => 'vehicle',
+                    'service_name' => 'Vehicle Rental',
+                    'vehicle_name' => $vehicle->name ?? null,
+                    'vehicle_category' => $vehicle->category ?? null,
+                    'status' => $booking->status,
+                    'total_amount' => $booking->total_amount,
+                    'amount' => $booking->total_amount,
+                    'booking_date' => $booking->created_at->format('Y-m-d'),
+                    'start_date' => $booking->start_date,
+                    'end_date' => $booking->end_date,
+                    'pickup_location' => $schedule->pickup_location ?? null,
+                    'dropoff_location' => $schedule->dropoff_location ?? null,
+                    'booking_code' => $booking->booking_code ?? 'ABK-' . $booking->id,
+                    'reference_number' => $booking->booking_code ?? 'REF-' . $booking->id,
+                    'customer_name' => ($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '') ?? 'N/A',
+                    'created_at' => $booking->created_at->format('Y-m-d'),
+                ];
+            });
+
+        // Fetch sea vehicle rental bookings where vendor is the provider
+        $seaVehicleBookings = SeaVehicleBookings::whereHas('vehicle', function($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+            ->get()
+            ->map(function($booking) {
+                $vehicle = $booking->vehicle;
+                $customer = $booking->customer;
+                $schedule = $booking->schedule;
+
+                return [
+                    'id' => $booking->id,
+                    'booking_type' => 'vehicle',
+                    'service_name' => 'Vehicle Rental',
+                    'vehicle_name' => $vehicle->name ?? null,
+                    'vehicle_category' => $vehicle->category ?? null,
+                    'status' => $booking->status,
+                    'total_amount' => $booking->total_amount,
+                    'amount' => $booking->total_amount,
+                    'booking_date' => $booking->created_at->format('Y-m-d'),
+                    'start_date' => $booking->start_date,
+                    'end_date' => $booking->end_date,
+                    'pickup_location' => $schedule->pickup_location ?? null,
+                    'dropoff_location' => $schedule->dropoff_location ?? null,
+                    'booking_code' => $booking->booking_code ?? 'SBK-' . $booking->id,
+                    'reference_number' => $booking->booking_code ?? 'REF-' . $booking->id,
+                    'customer_name' => ($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '') ?? 'N/A',
+                    'created_at' => $booking->created_at->format('Y-m-d'),
+                ];
+            });
+
         // Fetch all flight bookings
         $flightBookings = FlightBooking::with(['user'])
             ->get()
@@ -340,7 +404,12 @@ class VendorAllBookingsController extends Controller
             });
 
 
-        $allBookings = $vehicleBookings->concat($flightBookings)->sortByDesc('created_at')->values();
+        $allBookings = $vehicleBookings
+            ->concat($airVehicleBookings)
+            ->concat($seaVehicleBookings)
+            ->concat($flightBookings)
+            ->sortByDesc('created_at')
+            ->values();
 
         // Calculate statistics
         $statistics = [

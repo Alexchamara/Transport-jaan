@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
 use App\Models\VehicleMaintenance;
 use App\Models\Booking;
+use App\Models\AirVehicleBookings;
+use App\Models\SeaVehicleBookings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -50,7 +52,10 @@ class VehicleMaintenanceController extends Controller
         $from = Carbon::parse($data['start'])->startOfDay();
         $to   = Carbon::parse($data['end'])->endOfDay();
 
-        $bookings = Booking::with(['schedule', 'customer'])
+        // Pick the booking model that matches this vehicle's type (land/air/sea)
+        $model = $this->bookingModelForVehicle($vehicle);
+
+        $bookings = $model::with(['schedule', 'customer'])
             ->where('vehicle_id', $vehicle->id)
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereHas('schedule', function ($q) use ($from, $to) {
@@ -97,13 +102,17 @@ class VehicleMaintenanceController extends Controller
             'end_date'       => ['required', 'date', 'after_or_equal:start_date'],
             'reason'         => ['nullable', 'string', 'max:1000'],
             'booking_ids'    => ['required', 'array'],
-            'booking_ids.*'  => ['integer', 'exists:bookings,id'],
+            'booking_ids.*'  => ['integer'],
         ]);
 
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
         $this->authorizeOwner($request, $vehicle);
 
-        $bookings = Booking::with('customer')
+        // Resolve the booking model for this vehicle's type (land/air/sea).
+        // Filtering by vehicle_id ensures only this vehicle's bookings are matched.
+        $model = $this->bookingModelForVehicle($vehicle);
+
+        $bookings = $model::with('customer')
             ->where('vehicle_id', $vehicle->id)
             ->whereIn('id', $data['booking_ids'])
             ->get();
@@ -121,7 +130,7 @@ class VehicleMaintenanceController extends Controller
             try {
                 Mail::raw(
                     "Hello {$name},\n\n"
-                    ."Your booking {$booking->reference} overlaps a maintenance window for {$vehicle->manufacturer} {$vehicle->model}.\n"
+                    ."Your booking ".($booking->reference ?? ('#' . $booking->id))." overlaps a maintenance window for {$vehicle->manufacturer} {$vehicle->model}.\n"
                     ."From: {$data['start_date']}  To: {$data['end_date']}\n"
                     ."Reason: ".($data['reason'] ?: 'Scheduled maintenance')."\n\n"
                     ."Please contact support to adjust your booking.\n",
@@ -143,6 +152,16 @@ class VehicleMaintenanceController extends Controller
     private function authorizeOwner(Request $request, Vehicle $vehicle): void
     {
         abort_unless((int) $vehicle->provider_id === (int) $request->user()->id, 403);
+    }
+
+    /** Resolve the booking model class for a vehicle's type (land/air/sea). */
+    private function bookingModelForVehicle(Vehicle $vehicle): string
+    {
+        return match ($vehicle->type) {
+            'air' => AirVehicleBookings::class,
+            'sea' => SeaVehicleBookings::class,
+            default => Booking::class,
+        };
     }
 
     /** Prefer booking_customer.email / email_address */
