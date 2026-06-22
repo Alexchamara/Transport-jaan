@@ -20,6 +20,7 @@ class SeaVehicleBookings extends Model
     protected $fillable = [
         'client_id',
         'vehicle_id',
+        'driver_id',
         'status',
         'price_per_day',
         'rental_days',
@@ -63,6 +64,7 @@ class SeaVehicleBookings extends Model
 
     public function client()   { return $this->belongsTo(User::class, 'client_id'); }
     public function vehicle()  { return $this->belongsTo(Vehicle::class); }
+    public function driver()   { return $this->belongsTo(Driver::class); }
     // Sea-specific relations use explicit foreign keys and dedicated models
     public function schedule() { return $this->hasOne(SeaVehicleBookingSchedule::class, 'sea_vehicle_booking_id'); }
     public function addons()   { return $this->hasMany(SeaVehicleBookingAddon::class, 'sea_vehicle_booking_id'); }

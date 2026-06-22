@@ -16,6 +16,7 @@ class Booking extends Model
     protected $fillable = [
         'client_id',
         'vehicle_id',
+        'driver_id',
         'status',
         'price_per_day',
         'rental_days',
@@ -59,6 +60,7 @@ class Booking extends Model
 
     public function client()   { return $this->belongsTo(User::class, 'client_id'); }
     public function vehicle()  { return $this->belongsTo(Vehicle::class); }
+    public function driver()   { return $this->belongsTo(Driver::class); }
     public function schedule() { return $this->hasOne(BookingSchedule::class); }
     public function addons()   { return $this->hasMany(BookingAddon::class); }
     public function payments() { return $this->hasMany(BookingPayment::class); }

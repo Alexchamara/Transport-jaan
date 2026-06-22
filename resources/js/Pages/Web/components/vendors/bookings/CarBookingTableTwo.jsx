@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
-import { Trash2 } from "lucide-react";
+import { Trash2, UserCog } from "lucide-react";
 import VendorCancellationModal from "./VendorCancellationModal";
+import AssignDriverModal from "./AssignDriverModal";
 
 /** Hide the plate chip if it's empty or just a dash */
 const hasRealPlate = (p) => {
@@ -18,7 +19,7 @@ const hasRealPlate = (p) => {
  *    payment, paymentStatus, status, paymentStatusColor, paymentStatusBg,
  *    statusBg, statusText }
  */
-const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
+const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors, drivers = [] }) => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -39,6 +40,10 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
   // Cancellation Modal
   const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState(null);
+
+  // Assign Driver Modal
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [bookingToAssign, setBookingToAssign] = useState(null);
 
   const goToPage = (p) => {
     if (p < 1 || p > totalPages) return;
@@ -204,19 +209,41 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           </div>
 
           {/* Actions Column */}
-          <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
-            {booking.canCancel !== false && booking.status !== "Cancelled" && (
-              <button
-                onClick={() => {
-                  setBookingToCancel(booking);
-                  setShowCancellationModal(true);
-                }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Cancel booking"
+          <div className="flex flex-col justify-center items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {booking.assignedDriverName && (
+              <span
+                className="text-[10px] text-[#0955AC] font-[600] truncate max-w-[130px]"
+                title={booking.assignedDriverName}
               >
-                <Trash2 className="h-5 w-5" />
-              </button>
+                {booking.assignedDriverName}
+              </span>
             )}
+            <div className="flex items-center gap-1">
+              {booking.status !== "Cancelled" && (
+                <button
+                  onClick={() => {
+                    setBookingToAssign(booking);
+                    setShowAssignModal(true);
+                  }}
+                  className="p-2 text-[#0955AC] hover:bg-blue-50 rounded-lg transition-colors"
+                  title={booking.assignedDriverName ? "Reassign driver" : "Assign driver"}
+                >
+                  <UserCog className="h-5 w-5" />
+                </button>
+              )}
+              {booking.canCancel !== false && booking.status !== "Cancelled" && (
+                <button
+                  onClick={() => {
+                    setBookingToCancel(booking);
+                    setShowCancellationModal(true);
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Cancel booking"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ))}
@@ -276,6 +303,12 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
                 <span className="text-[12px] text-[#7B7B7A]">Plan:</span>
                 <span className="text-[13px] font-[600]">{booking.plan}</span>
               </div>
+              {booking.assignedDriverName && (
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-[12px] text-[#7B7B7A]">Driver:</span>
+                  <span className="text-[13px] font-[600] text-[#0955AC]">{booking.assignedDriverName}</span>
+                </div>
+              )}
             </div>
 
             {/* Dates */}
@@ -316,6 +349,18 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
                   className="flex-1 py-2 px-3 bg-[#0955AC] text-white rounded-lg text-[13px] font-[600] hover:bg-[#0744a0] transition-colors"
                 >
                   View Details
+                </button>
+              )}
+              {booking.status !== "Cancelled" && (
+                <button
+                  onClick={() => {
+                    setBookingToAssign(booking);
+                    setShowAssignModal(true);
+                  }}
+                  className="flex-1 py-2 px-3 bg-[#0955AC] text-white rounded-lg text-[13px] font-[600] hover:bg-[#0744a0] transition-colors flex items-center justify-center gap-2"
+                >
+                  <UserCog className="h-4 w-4" />
+                  {booking.assignedDriverName ? "Reassign" : "Driver"}
                 </button>
               )}
               {booking.canCancel !== false && booking.status !== "Cancelled" && (
@@ -477,6 +522,20 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
         onClose={() => {
           setShowCancellationModal(false);
           setBookingToCancel(null);
+        }}
+        onSuccess={() => {
+          window.location.reload();
+        }}
+      />
+
+      {/* Assign Driver Modal */}
+      <AssignDriverModal
+        booking={bookingToAssign}
+        drivers={drivers}
+        isOpen={showAssignModal}
+        onClose={() => {
+          setShowAssignModal(false);
+          setBookingToAssign(null);
         }}
         onSuccess={() => {
           window.location.reload();

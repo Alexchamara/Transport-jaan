@@ -17,6 +17,7 @@ class AirVehicleBookings extends Model
     protected $fillable = [
         'client_id',
         'vehicle_id',
+        'driver_id',
         'status',
         'price_per_day',
         'rental_days',
@@ -60,6 +61,7 @@ class AirVehicleBookings extends Model
 
     public function client()   { return $this->belongsTo(User::class, 'client_id'); }
     public function vehicle()  { return $this->belongsTo(Vehicle::class); }
+    public function driver()   { return $this->belongsTo(Driver::class); }
     // Explicit foreign key because this model class name is plural. Laravel would otherwise
     // assume `air_vehicle_bookings_id` which doesn't exist (migration uses `air_vehicle_booking_id`).
     public function schedule() { return $this->hasOne(AirVehicleBookingSchedule::class, 'air_vehicle_booking_id'); }

@@ -48,6 +48,7 @@ const BookingContent = ({
     bookingData = [], // [{name:'Jan', done:120, cancelled:12}, ...]
     vendorUser = { name: "Service Provider", role: "Service Provider" },
     unreadNotifications = 0, // NEW
+    drivers = [],
 }) => {
     const [bookings, setBookings] = useState(() =>
         (initialBookings || []).map(decorateBooking)
@@ -649,6 +650,7 @@ const BookingContent = ({
                     bookings={Array.isArray(filteredBookings) ? filteredBookings : []}
                     setBookings={setBookings}
                     statusColors={statusColors}
+                    drivers={drivers}
                 />
             </div>
         </div>

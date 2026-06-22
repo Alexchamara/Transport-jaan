@@ -887,6 +887,7 @@ Route::middleware(['auth', 'vendor.verified'])
         Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
         Route::get('/bookings/{bookingType}/{bookingId}/vendor/cancellation-policy', [VendorBookingController::class, 'getVendorCancellationPolicyByType'])->name('bookings.vendor.cancellation-policy.type');
         Route::post('/bookings/{bookingType}/{bookingId}/vendor/cancel-booking', [VendorBookingController::class, 'cancelBookingAsVendorByType'])->name('bookings.vendor.cancel-booking.type');
+        Route::post('/bookings/{bookingType}/{bookingId}/assign-driver', [VendorBookingController::class, 'assignDriver'])->name('bookings.assign-driver');
 
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');

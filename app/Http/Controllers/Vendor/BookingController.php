@@ -62,7 +62,7 @@ class BookingController extends Controller
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
-                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->with(['client', 'customer', 'vehicle', 'driver', 'schedule', 'payments'])
                 ->latest('created_at')
                 ->take(100)
                 ->get()
@@ -119,6 +119,9 @@ class BookingController extends Controller
                     'canCancel'     => true,
                     'policyUrl'     => '/vendors/bookings/' . $b->id . '/vendor/cancellation-policy',
                     'cancelUrl'     => '/vendors/bookings/' . $b->id . '/vendor/cancel-booking',
+                    'rawId'              => $b->id,
+                    'assignedDriverId'   => $b->driver_id,
+                    'assignedDriverName' => $b->driver?->full_name,
                     'cancellationReason' => $b->cancellation_reason,
                     'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                     'cancelledBy'   => $b->cancelled_by,
@@ -130,7 +133,7 @@ class BookingController extends Controller
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
-                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->with(['client', 'customer', 'vehicle', 'driver', 'schedule', 'payments'])
                 ->latest('created_at')
                 ->take(100)
                 ->get()
@@ -185,6 +188,9 @@ class BookingController extends Controller
                         'canCancel'     => true,
                         'policyUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancellation-policy',
                         'cancelUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancel-booking',
+                        'rawId'              => $b->id,
+                        'assignedDriverId'   => $b->driver_id,
+                        'assignedDriverName' => $b->driver?->full_name,
                         'cancellationReason' => $b->cancellation_reason,
                         'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                         'cancelledBy'   => $b->cancelled_by,
@@ -196,7 +202,7 @@ class BookingController extends Controller
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
-                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->with(['client', 'customer', 'vehicle', 'driver', 'schedule', 'payments'])
                 ->latest('created_at')
                 ->take(100)
                 ->get()
@@ -251,6 +257,9 @@ class BookingController extends Controller
                         'canCancel'     => true,
                         'policyUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancellation-policy',
                         'cancelUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancel-booking',
+                        'rawId'              => $b->id,
+                        'assignedDriverId'   => $b->driver_id,
+                        'assignedDriverName' => $b->driver?->full_name,
                         'cancellationReason' => $b->cancellation_reason,
                         'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                         'cancelledBy'   => $b->cancelled_by,
@@ -317,8 +326,17 @@ class BookingController extends Controller
             // Get unread notification count
             $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
 
+            // Vendor's assignable (active) drivers for the assign-driver control
+            $drivers = \App\Models\Driver::where('user_id', $vendorId)
+                ->where('status', 'Active')
+                ->orderBy('full_name')
+                ->get(['id', 'full_name'])
+                ->map(fn ($d) => ['id' => $d->id, 'name' => $d->full_name])
+                ->values();
+
             return Inertia::render('Web/home/vendors/Booking', [
                 'initialBookings' => $initialBookings,
+                'drivers'         => $drivers,
                 'bookingData'     => $bookingData,
                 'vendorUser'      => [
                     'name' => $vendor?->name ?? 'Vendor',
@@ -800,6 +818,48 @@ class BookingController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    public function assignDriver(Request $request, string $bookingType, int $bookingId)
+    {
+        $vendor   = Auth::user();
+        $vendorId = $vendor?->id;
+
+        $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+            ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+        $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
+
+        $validated = $request->validate([
+            'driver_id' => ['nullable', 'integer'],
+        ]);
+
+        $driverId = $validated['driver_id'] ?? null;
+        $driver   = null;
+
+        if ($driverId) {
+            // Only the vendor's own active drivers may be assigned.
+            $driver = \App\Models\Driver::where('id', $driverId)
+                ->where('user_id', $vendorId)
+                ->where('status', 'Active')
+                ->first();
+
+            if (!$driver) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Driver not found, inactive, or not one of your drivers.',
+                ], 422);
+            }
+        }
+
+        $booking->driver_id = $driverId;
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $driver ? 'Driver assigned successfully.' : 'Driver unassigned.',
+            'driver'  => $driver ? ['id' => $driver->id, 'name' => $driver->full_name] : null,
+        ]);
     }
 
     private function resolveVendorVehicleBookingByType(string $bookingType, int $bookingId, ?int $vendorId, ?string $ownerCol)
