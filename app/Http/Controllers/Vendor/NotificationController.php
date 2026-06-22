@@ -50,8 +50,8 @@ class NotificationController extends Controller
                     'title' => $this->resolveTitle($notification),
                     'message' => $this->formatMessage($notification),
                     'booking_id' => $notification->booking_id,
-                    'client_name' => $booking?->client?->name ?? 'Unknown Client',
-                    'vehicle_name' => $booking ? ($booking->vehicle->make ?? '') . ' ' . ($booking->vehicle->model ?? '') : '',
+                    'client_name' => $data['client_name'] ?? ($booking?->client?->name ?? 'Unknown Client'),
+                    'vehicle_name' => $data['vehicle_name'] ?? ($booking ? trim(($booking->vehicle->manufacturer ?? '') . ' ' . ($booking->vehicle->model ?? '')) : ''),
                     'is_read' => !is_null($notification->read_at),
                     'read_at' => optional($notification->read_at)->toIso8601String(),
                     'created_at' => $notification->created_at->diffForHumans(),
@@ -158,15 +158,22 @@ class NotificationController extends Controller
 
         switch ($notification->type) {
             case 'new_booking':
+                if (!empty($data['message'])) {
+                    return (string) $data['message'];
+                }
                 $clientName = $booking?->client?->name ?? 'A client';
-                $vehicleName = $booking ? trim(($booking->vehicle->make ?? '') . ' ' . ($booking->vehicle->model ?? '')) : 'a vehicle';
+                $vehicleName = $booking ? trim(($booking->vehicle->manufacturer ?? '') . ' ' . ($booking->vehicle->model ?? '')) : 'a vehicle';
                 return "{$clientName} made a new booking for {$vehicleName}";
 
             case 'booking_updated':
-                return "Booking #{$notification->booking_id} has been updated";
+                return !empty($data['message'])
+                    ? (string) $data['message']
+                    : "Booking #{$notification->booking_id} has been updated";
 
             case 'booking_cancelled':
-                return "Booking #{$notification->booking_id} has been cancelled";
+                return !empty($data['message'])
+                    ? (string) $data['message']
+                    : "Booking #{$notification->booking_id} has been cancelled";
 
             case 'payment_received':
                 $amount = $data['amount'] ?? '0';
