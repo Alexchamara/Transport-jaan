@@ -943,20 +943,13 @@ class BookingController extends Controller
                     'status' => $paymentStatusValue,
                 ]);
                 
-                // If status is paid, set paid_at timestamp on the latest payment
-                if ($paymentStatusValue === 'paid') {
-                    $latestPayment = $booking->payments()->latest()->first();
-                    if ($latestPayment && !$latestPayment->paid_at) {
-                        $latestPayment->update(['paid_at' => now()]);
-                    }
-                }
             } else {
-                // No payment records exist, create one
+                // No payment records exist, create one with valid BookingPayment columns.
                 $booking->payments()->create([
-                    'amount' => $validated['total_amount'],
-                    'payment_method' => 'manual',
-                    'status' => $paymentStatusValue,
-                    'paid_at' => $paymentStatusValue === 'paid' ? now() : null,
+                    'method'      => 'Bank Transfer',
+                    'option'      => 'full',
+                    'amount_paid' => $validated['total_amount'],
+                    'status'      => $paymentStatusValue,
                 ]);
             }
 

@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\Notification;
 use App\Models\SeaVehicleBookings;
 use App\Models\User;
+use App\Services\VehicleCommissionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -61,6 +62,7 @@ class BookingObserver
 
         if (in_array($new, ['cancelled', 'canceled'], true)) {
             $this->createNotification($booking, $vendorId, 'booking_cancelled', "Booking #{$booking->id} has been cancelled.");
+            app(VehicleCommissionService::class)->reverseForBooking($booking);
             return;
         }
 
@@ -100,6 +102,9 @@ class BookingObserver
         } catch (\Throwable $e) {
             Log::warning('Vendor new-booking email failed: ' . $e->getMessage());
         }
+
+        // Record the platform commission for this confirmed booking (idempotent).
+        app(VehicleCommissionService::class)->recordForConfirmedBooking($booking, $vendorId);
     }
 
     private function createNotification($booking, int $vendorId, string $type, string $message): void
