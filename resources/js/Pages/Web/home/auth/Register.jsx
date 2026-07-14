@@ -1,12 +1,55 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useForm, router } from "@inertiajs/react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
+import CompanyLogo from "../../components/CompanyLogo";
 import bg from "../../assets/landingPages/bg.svg";
-import eye from "../../assets/auth/eye.svg";
 import google from "../../assets/auth/google.svg";
+import { Eye, EyeOff } from "lucide-react";
+import zxcvbn from "zxcvbn";
+
+const PASSWORD_STRENGTH_LEVELS = [
+    { label: "Weak", color: "bg-red-500" },
+    { label: "Weak", color: "bg-red-500" },
+    { label: "Fair", color: "bg-yellow-500" },
+    { label: "Good", color: "bg-blue-500" },
+    { label: "Strong", color: "bg-green-500" },
+];
+
+const buildPasswordStrength = (password) => {
+    if (!password) {
+        return { score: 0, label: "", color: "" };
+    }
+    const { score } = zxcvbn(password);
+    const safeScore = Math.max(0, Math.min(score, 4));
+    const level = PASSWORD_STRENGTH_LEVELS[safeScore] || PASSWORD_STRENGTH_LEVELS[0];
+    return { score: safeScore, label: level.label, color: level.color };
+};
+
+const PasswordStrengthBar = ({ strength }) => {
+    if (!strength?.label) {
+        return null;
+    }
+    return (
+        <div className="mt-2 flex items-center gap-2 px-10">
+            <div className="flex h-1 w-full overflow-hidden rounded-full bg-white/20">
+                {[...Array(4)].map((_, i) => (
+                    <div
+                        key={i}
+                        className={`h-full w-1/4 border-r border-black/30 last:border-0 ${i < strength.score ? strength.color : "bg-transparent"} transition-all duration-300`}
+                    />
+                ))}
+            </div>
+            <span className="text-[10px] text-white/70 w-12 text-right font-medium">{strength.label}</span>
+        </div>
+    );
+};
 
 const Register = ({ role = "client" }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [phoneValidationError, setPhoneValidationError] = useState("");
 
     const { data, setData, post, processing, errors } = useForm({
         email: "",
@@ -15,11 +58,72 @@ const Register = ({ role = "client" }) => {
         password: "",
         password_confirmation: "",
         role_type: role,
-        date_of_birth: "",
+        vendor_type: "",
+        remember: false,
     });
+
+    const passwordStrength = useMemo(() => buildPasswordStrength(data.password), [data.password]);
+
+    const phoneErrorMessage = phoneValidationError || errors.phone || "";
+
+    // Phone validation using libphonenumber-js library
+    const validatePhone = (phone) => {
+        // Check if phone is empty
+        if (!phone || phone.trim() === '') {
+            return { valid: false, message: 'Phone number is required' };
+        }
+
+        try {
+            // Add + prefix if not present for proper validation
+            const phoneWithPlus = phone.startsWith('+') ? phone : '+' + phone;
+            
+            // Validate using libphonenumber-js
+            if (!isValidPhoneNumber(phoneWithPlus)) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            // Parse the phone number to get more details
+            const phoneNumber = parsePhoneNumber(phoneWithPlus);
+            
+            // Additional check to ensure it's a valid mobile/fixed line
+            if (!phoneNumber.isValid()) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            return { valid: true, message: '' };
+        } catch (error) {
+            return { 
+                valid: false, 
+                message: 'Please enter a valid phone number with country code'
+            };
+        }
+    };
+
+    // Phone change handler with real-time validation
+    const handlePhoneChange = (phone) => {
+        setData('phone', phone);
+        const validation = validatePhone(phone);
+        setPhoneValidationError(validation.valid ? '' : validation.message);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Validate phone number before submission
+        const phoneValidation = validatePhone(data.phone);
+        if (!phoneValidation.valid) {
+            setPhoneValidationError(phoneValidation.message);
+            return;
+        }
+
+        setPhoneValidationError('');
+        
         post(route("register.store"), {
             preserveScroll: true,
             onSuccess: () => {
@@ -39,21 +143,23 @@ const Register = ({ role = "client" }) => {
     };
 
     return (
-        <div className="bg-[#000000] text-[#FFFFFF] poppins">
-            <div className="flex relative justify-center items-center md:py-10 md:px-20 px-10 poppins">
+        <div className="bg-[#000000] text-[#FFFFFF] poppins h-auto">
+            <div className="flex relative justify-center items-center md:py-10 md:px-20 px-0 poppins">
                 <h1
-                    className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
+                    className="absolute top-[30px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
                     onClick={() => router.visit("/")}
                 >
-                    Company Logo
+                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
                 </h1>
 
                 <div
-                    className="h-screen w-full bg-cover bg-center py-[100px] px-10 xl:px-20 flex justify-center items-center"
-                    style={{ backgroundImage: `url(${bg})` }}
+                    className="h-auto xl:min-h-screen w-full bg-cover bg-center bg-no-repeat py-[100px] px-0 xl:px-20 flex justify-center items-center bg-gradient-to-br from-gray-900 to-black"
+                    style={{ 
+                        backgroundImage: `url(${bg})`
+                    }}
                 >
                     <div
-                        className="w-auto h-auto bg-white/5 rounded-[30px] backdrop-blur-sm px-10 py-10 flex flex-col items-center relative mt-20"
+                        className="w-auto h-auto bg-white/5 rounded-[30px] backdrop-blur-lg px-5 py-10 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
@@ -70,206 +176,408 @@ const Register = ({ role = "client" }) => {
                             onSubmit={handleSubmit}
                             className="flex flex-col items-center"
                         >
-                            <div className="flex flex-row gap-10 justify-center items-center">
-                                <div className="flex flex-col gap-5">
-                                    {/* username */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Full Name
-                                        </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="text"
-                                                value={data.name}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "name",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Enter your full name"
-                                                required
-                                            />
+                            <style>{`
+                                .custom-phone-input {
+                                    width: 100%;
+                                }
+                                .custom-phone-input .form-control {
+                                    width: 100% !important;
+                                    background: transparent !important;
+                                    border: none !important;
+                                    color: white !important;
+                                    font-size: 14px !important;
+                                    padding-left: 48px !important;
+                                    height: 40px !important;
+                                }
+                                .custom-phone-input .form-control::placeholder {
+                                    color: #9CA3AF !important;
+                                }
+                                .custom-phone-input .form-control:focus {
+                                    outline: none !important;
+                                    box-shadow: none !important;
+                                }
+                                .custom-phone-input .flag-dropdown {
+                                    background: transparent !important;
+                                    border: none !important;
+                                }
+                                .custom-phone-input .selected-flag {
+                                    background: transparent !important;
+                                    padding: 0 0 0 8px !important;
+                                }
+                                .custom-phone-input .selected-flag:hover,
+                                .custom-phone-input .selected-flag:focus {
+                                    background: transparent !important;
+                                }
+                            `}</style>
+
+                            {role === "client" ? (
+                                <>
+                                    {/* Client Form Layout */}
+                                    {/* Row 1: Client Type | Full Name */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Client Type
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <select
+                                                    value={data.vendor_type}
+                                                    onChange={(e) => setData("vendor_type", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none text-white"
+                                                    required
+                                                >
+                                                    <option value="" className="bg-gray-800 text-white">
+                                                        Select Client type
+                                                    </option>
+                                                    <option value="individual" className="bg-gray-800 text-white">
+                                                        Individual
+                                                    </option>
+                                                    <option value="business" className="bg-gray-800 text-white">
+                                                        Business
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            {errors.vendor_type && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.vendor_type}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                {data.vendor_type === "business" ? "Company Name" : "Full Name"}
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <input
+                                                    type="text"
+                                                    value={data.name}
+                                                    onChange={(e) => setData("name", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder={data.vendor_type === "business" ? "Enter your company name" : "Enter your full name"}
+                                                    required
+                                                />
+                                            </div>
                                             {errors.name && (
-                                                <div className="text-red-500 text-sm px-10">
+                                                <div className="text-red-500 text-sm px-10 mt-1">
                                                     {errors.name}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    {/* phone number */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Phone Number
-                                        </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="tel"
-                                                value={data.phone}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "phone",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Enter your phone number"
-                                                required
-                                            />
-                                            {errors.phone && (
-                                                <div className="text-red-500 text-sm px-10">
-                                                    {errors.phone}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    {/* password */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Password
-                                        </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
-                                            <input
-                                                type={
-                                                    showPassword
-                                                        ? "text"
-                                                        : "password"
-                                                }
-                                                value={data.password}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "password",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Enter your password"
-                                                required
-                                            />
-                                            <img
-                                                src={eye}
-                                                onClick={() =>
-                                                    setShowPassword(
-                                                        !showPassword
-                                                    )
-                                                }
-                                                className="cursor-pointer"
-                                            />
-                                            {errors.password && (
-                                                <div className="text-red-500 text-sm px-10">
-                                                    {errors.password}
-                                                </div>
-                                            )}
+                                    {/* Row 2: Phone Number | Email Address */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Phone Number
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-4 py-2">
+                                                <PhoneInput
+                                                    country={'lk'}
+                                                    value={data.phone}
+                                                    onChange={handlePhoneChange}
+                                                    countryCodeEditable={false}
+                                                    containerClass="custom-phone-input"
+                                                    inputClass="form-control"
+                                                    buttonClass="flag-dropdown"
+                                                    dropdownClass="text-gray-800 bg-white"
+                                                    searchClass="text-gray-800"
+                                                    preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                                    enableSearch={true}
+                                                    placeholder="Enter your phone number"
+                                                />
+                                            </div>
+                                            <div className="min-h-[20px] text-red-500 text-sm px-10 mt-1">
+                                                {phoneErrorMessage}
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                <div className="flex flex-col items-center justify-center gap-5">
-                                    {/* username */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Email Address
-                                        </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="email"
-                                                value={data.email}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "email",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Enter your email address"
-                                                required
-                                            />
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Email Address
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <input
+                                                    type="email"
+                                                    value={data.email}
+                                                    onChange={(e) => setData("email", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Enter your email address"
+                                                    required
+                                                />
+                                            </div>
                                             {errors.email && (
-                                                <div className="text-red-500 text-sm px-10">
+                                                <div className="text-red-500 text-sm px-10 mt-1">
                                                     {errors.email}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* phone number */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Date of Birth
-                                        </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="date"
-                                                value={data.date_of_birth}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "date_of_birth",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                required
-                                            />
-                                            {errors.date_of_birth && (
-                                                <div className="text-red-500 text-sm">
-                                                    {errors.date_of_birth}
+                                    {/* Row 3: Password | Confirm Password */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Password
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                                <input
+                                                    type={showPassword ? "text" : "password"}
+                                                    value={data.password}
+                                                    onChange={(e) => setData("password", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Enter your password"
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle password visibility"
+                                                >
+                                                    {showPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            {errors.password && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.password}
+                                                </div>
+                                            )}
+                                            <PasswordStrengthBar strength={passwordStrength} />
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Confirm Password
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                                <input
+                                                    type={showConfirmPassword ? "text" : "password"}
+                                                    value={data.password_confirmation}
+                                                    onChange={(e) => setData("password_confirmation", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Confirm your password"
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle confirm password visibility"
+                                                >
+                                                    {showConfirmPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            {errors.password_confirmation && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.password_confirmation}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Service Provider Form Layout */}
+                                    {/* Row 1: Service Provider Type | Full Name */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Service Provider Type
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <select
+                                                    value={data.vendor_type}
+                                                    onChange={(e) => setData("vendor_type", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none text-white"
+                                                    required
+                                                >
+                                                    <option value="" className="bg-gray-800 text-white">
+                                                        Select Service Provider type
+                                                    </option>
+                                                    <option value="individual" className="bg-gray-800 text-white">
+                                                        Individual
+                                                    </option>
+                                                    <option value="business" className="bg-gray-800 text-white">
+                                                        Business
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            {errors.vendor_type && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.vendor_type}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                {data.vendor_type === "business" ? "Company Name" : "Full Name"}
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <input
+                                                    type="text"
+                                                    value={data.name}
+                                                    onChange={(e) => setData("name", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder={data.vendor_type === "business" ? "Enter your company name" : "Enter your full name"}
+                                                    required
+                                                />
+                                            </div>
+                                            {errors.name && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.name}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* password */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Confirm Password
-                                        </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
-                                            <input
-                                                type={
-                                                    showConfirmPassword
-                                                        ? "text"
-                                                        : "password"
-                                                }
-                                                value={
-                                                    data.password_confirmation
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "password_confirmation",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Confirm your password"
-                                                required
-                                            />
-                                            <img
-                                                src={eye}
-                                                onClick={() =>
-                                                    setShowConfirmPassword(
-                                                        !showConfirmPassword
-                                                    )
-                                                }
-                                                className="cursor-pointer"
-                                            />
+                                    {/* Row 2: Email Address | Phone Number */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Email Address
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <input
+                                                    type="email"
+                                                    value={data.email}
+                                                    onChange={(e) => setData("email", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Enter your email address"
+                                                    required
+                                                />
+                                            </div>
+                                            {errors.email && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.email}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Phone Number
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-4 py-2">
+                                                <PhoneInput
+                                                    country={'lk'}
+                                                    value={data.phone}
+                                                    onChange={handlePhoneChange}
+                                                    countryCodeEditable={false}
+                                                    containerClass="custom-phone-input"
+                                                    inputClass="form-control"
+                                                    buttonClass="flag-dropdown"
+                                                    dropdownClass="text-gray-800 bg-white"
+                                                    searchClass="text-gray-800"
+                                                    preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                                    enableSearch={true}
+                                                    placeholder="Enter your phone number"
+                                                />
+                                            </div>
+                                            <div className="min-h-[20px] text-red-500 text-sm px-10 mt-1">
+                                                {phoneErrorMessage}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Password | Confirm Password */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Password
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                                <input
+                                                    type={showPassword ? "text" : "password"}
+                                                    value={data.password}
+                                                    onChange={(e) => setData("password", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Enter your password"
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle password visibility"
+                                                >
+                                                    {showPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            {errors.password && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.password}
+                                                </div>
+                                            )}
+                                            <PasswordStrengthBar strength={passwordStrength} />
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Confirm Password
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                                <input
+                                                    type={showConfirmPassword ? "text" : "password"}
+                                                    value={data.password_confirmation}
+                                                    onChange={(e) => setData("password_confirmation", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Confirm your password"
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle confirm password visibility"
+                                                >
+                                                    {showConfirmPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
+                                            </div>
                                             {errors.password_confirmation && (
-                                                <div className="text-red-500 text-sm px-10">
-                                                    {
-                                                        errors.password_confirmation
-                                                    }
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.password_confirmation}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                </>
+                            )}
+
+                            <div className="flex items-center gap-3 self-start px-10 mt-4">
+                                <input
+                                    type="checkbox"
+                                    checked={data.remember}
+                                    onChange={(e) => setData("remember", e.target.checked)}
+                                    className="w-4 h-4 accent-[#2E6099] cursor-pointer"
+                                />
+                                <span className="text-[12px] md:text-[13px] font-[500] text-[#FFFFFFB2]">
+                                    Remember me on this device
+                                </span>
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer mt-10 disabled:opacity-50"
+                                className="w-full md:w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer mt-10 disabled:opacity-50"
                             >
                                 {processing
                                     ? "Creating Account..."
@@ -287,12 +595,12 @@ const Register = ({ role = "client" }) => {
                             </h1>
 
                             <div className="flex flex-row gap-5 justify-center items-center py-10">
-                                <div className="w-[174px] h-[1px] bg-[#FFFFFF80]" />
+                                <div className="w-full md:w-[174px] h-[1px] bg-[#FFFFFF80]" />
                                 <h1 className="text-[12px] font-[500]">or</h1>
                                 <div className="w-[174px] h-[1px] bg-[#FFFFFF80]" />
                             </div>
 
-                            <div className="w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer">
+                            <div className="w-full md:w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer">
                                 <img src={google} />
                                 <h1>Continue with Google</h1>
                             </div>

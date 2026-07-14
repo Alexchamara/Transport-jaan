@@ -23,15 +23,19 @@ const VehicleImageGallery = ({ vehicle }) => {
   const mainImage = useMemo(() => (
     <div 
       className="main-image xl:w-[537px] h-[349px] bg-[#F4F3F3] rounded-[12px] flex items-center justify-center cursor-pointer" 
-      onClick={() => handleImageClick(vehicle.image)}
+      onClick={() => handleImageClick(vehicle.image || vehicle.primary_image_url)}
     >
       <img 
-        src={vehicle.image} 
+        src={vehicle.image || vehicle.primary_image_url || '/images/default-vehicle.jpg'} 
         alt={vehicle.name} 
-        className="w-full h-full object-contain rounded-md" 
+        className="w-full h-full object-contain rounded-md"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = '/images/default-vehicle.jpg';
+        }}
       />
     </div>
-  ), [vehicle.image, vehicle.name]);
+  ), [vehicle.image, vehicle.primary_image_url, vehicle.name]);
 
   const imagePreviews = useMemo(() => (
     <div className="preview-images xl:w-[537px] flex flex-col gap-5 xl:flex-row justify-between mt-4">

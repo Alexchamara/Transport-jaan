@@ -22,11 +22,12 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
 
     const formatPriceDisplay = (pricingModel) => {
         const priceUnit = {
-            hourly: '/hour',
+            hourly: '/hr',
             daily: '/day',
             monthly: '/month'
         };
-        return `$${warehouse.price}${priceUnit[pricingModel]}`;
+        const displayPrice = warehouse.monthly_rate || warehouse.base_price;
+        return `$${displayPrice}${priceUnit[pricingModel]}`;
     };
 
     // Calculate price whenever relevant form fields change
@@ -58,7 +59,8 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                 break;
         }
 
-        const price = duration * warehouse.price * data.quantity;
+        const baseRate = warehouse.monthly_rate || warehouse.base_price;
+        const price = duration * baseRate * data.quantity;
 
         setCalculatedDuration(durationText);
         setCalculatedPrice(price);
@@ -132,9 +134,16 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
                                             {warehouse.type.replace('_', ' ')}
                                         </span>
-                                        <span className="text-xl font-bold">
-                                            {formatPriceDisplay(warehouse.pricing_model)}
-                                        </span>
+                                        <div className="text-right">
+                                            <div className="text-xl font-bold">
+                                                {formatPriceDisplay(warehouse.pricing_model)}
+                                            </div>
+                                            {warehouse.monthly_rate && (
+                                                <div className="text-sm text-gray-600">
+                                                    Monthly: ${warehouse.monthly_rate}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="mb-6">
@@ -148,7 +157,7 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                                 <p>{warehouse.capacity}</p>
                                             </div>
                                             <div>
-                                                <h3 className="text-gray-600 font-medium">Vendor</h3>
+                                                <h3 className="text-gray-600 font-medium">Service Provider</h3>
                                                 <p>{warehouse.vendor.company_name}</p>
                                             </div>
                                             <div>
@@ -157,6 +166,48 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Detailed Pricing Breakdown */}
+                                    {(warehouse.monthly_rate || warehouse.security_deposit || warehouse.setup_fee) && (
+                                        <div className="mb-6 bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-lg font-medium mb-3">Pricing Breakdown</h3>
+                                            <div className="space-y-2 text-sm">
+                                                {warehouse.monthly_rate && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Monthly Rate:</span>
+                                                        <span className="font-medium">${warehouse.monthly_rate}</span>
+                                                    </div>
+                                                )}
+                                                {warehouse.security_deposit && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Security Deposit:</span>
+                                                        <span className="font-medium">${warehouse.security_deposit}</span>
+                                                    </div>
+                                                )}
+                                                {warehouse.setup_fee && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Setup Fee:</span>
+                                                        <span className="font-medium">${warehouse.setup_fee}</span>
+                                                    </div>
+                                                )}
+                                                {warehouse.tax_rate && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Tax Rate:</span>
+                                                        <span className="font-medium">{warehouse.tax_rate}%</span>
+                                                    </div>
+                                                )}
+                                                {warehouse.final_amount && (
+                                                    <>
+                                                        <hr className="my-2" />
+                                                        <div className="flex justify-between text-base font-bold">
+                                                            <span>Total Amount:</span>
+                                                            <span>${warehouse.final_amount}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="mb-6">
                                         <h3 className="text-lg font-medium mb-2">Amenities</h3>
@@ -244,10 +295,10 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                                     You need to be logged in to book a warehouse.
                                                 </p>
                                                 <Link
-                                                    href={route('login', { redirect: window.location.href })}
+                                                    href={route('signin', { redirect: window.location.href })}
                                                     className="inline-block py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                 >
-                                                    Login to Continue
+                                                    Sign in to Continue
                                                 </Link>
                                             </div>
                                         ) : (
@@ -263,7 +314,7 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                                             <h3 className="text-sm font-medium text-yellow-800">Important Notice</h3>
                                                             <div className="mt-2 text-sm text-yellow-700">
                                                                 <p>
-                                                                    Booking requests are subject to approval by the vendor.
+                                                                    Booking requests are subject to approval by the service provider.
                                                                     You will be notified once your request is processed.
                                                                 </p>
                                                             </div>

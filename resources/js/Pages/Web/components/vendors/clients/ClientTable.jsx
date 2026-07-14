@@ -1,120 +1,224 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { usePage, router } from "@inertiajs/react";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 import file from "../../../assets/vendors/clients/file.svg";
 import proPic from "../../../assets/vendors/clients/proPic.svg";
+import { Download, ChevronDown as DropdownIcon } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+
 
 const ClientTable = () => {
-    const [clients, setClients] = useState([
-        {
-            id: 1,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 2,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 3,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 4,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 5,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 6,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 7,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-    ]);
+    const { clients: clientsData, currentFilter, stats } = usePage().props;
 
-    // State for popup
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentClientId, setCurrentClientId] = useState(null);
-    const [newClient, setNewClient] = useState({
-        name: "",
-        email: "",
-        phone: "",
-        address: "",
-        documents: [],
-    });
-    const [documentInput, setDocumentInput] = useState("");
-    const [selectedFile, setSelectedFile] = useState(null);
+    // State for filter (land, air, sea, all)
+    const [activeFilter, setActiveFilter] = useState(currentFilter || 'all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isMobile, setIsMobile] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showExportMenu]);
+
+    // Get clients based on active filter
+    const getFilteredClients = () => {
+        if (activeFilter === 'all') {
+            return [
+                ...(clientsData?.land || []),
+                ...(clientsData?.air || []),
+                ...(clientsData?.sea || [])
+            ];
+        }
+        return clientsData?.[activeFilter] || [];
+    };
+
+    // Export functionality
+    const exportToCSV = () => {
+        // Combine all clients from different categories
+        const allClients = [
+            ...(clientsData?.land || []),
+            ...(clientsData?.air || []),
+            ...(clientsData?.sea || [])
+        ];
+
+        if (allClients.length === 0) {
+            alert("No clients to export");
+            return;
+        }
+
+        const headers = ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"];
+        const data = allClients.map(client => [
+            client.name || "",
+            client.email || "",
+            client.phone || "",
+            client.type || "Rental",
+            client.totalBookings || 0,
+            client.totalSpent || "LKR 0",
+            client.joinDate || ""
+        ]);
+
+        
+
+        const csvContent = [
+            headers.join(","),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `clients-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setShowExportMenu(false);
+    };
+
+    const exportToPDF = () => {
+        try {
+            const allClients = [
+                ...(clientsData?.land || []),
+                ...(clientsData?.air || []),
+                ...(clientsData?.sea || [])
+            ];
+
+            if (allClients.length === 0) {
+                alert("No clients to export");
+                return;
+            }
+
+            const doc = new jsPDF();
+            const headers = [["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"]];
+            const data = allClients.map(client => [
+                client.name || "",
+                client.email || "",
+                client.phone || "",
+                client.type || "Rental",
+                client.totalBookings || 0,
+                client.totalSpent || "LKR 0",
+                client.joinDate || ""
+            ]);
+
+            doc.setFontSize(16);
+            doc.text("Clients Report", 14, 10);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
+
+            autoTable(doc, {
+                head: headers,
+                body: data,
+                startY: 25,
+                margin: { top: 20, right: 10, bottom: 10, left: 10 },
+                headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [230, 240, 250] },
+                didDrawPage: (tableData) => {
+                    const pageCount = doc.getNumberOfPages();
+                    doc.setFontSize(9);
+                    doc.text(
+                        `Page ${tableData.pageNumber} of ${pageCount}`,
+                        doc.internal.pageSize.getWidth() / 2,
+                        doc.internal.pageSize.getHeight() - 10,
+                        { align: 'center' }
+                    );
+                }
+            });
+
+            doc.save(`clients-${new Date().toISOString().slice(0, 10)}.pdf`);
+        } catch (error) {
+            console.error("Error exporting to PDF:", error);
+            alert("Error exporting to PDF. Please try again.");
+        }
+        setShowExportMenu(false);
+    };
+
+    const exportToXLSX = () => {
+        try {
+            // Combine all clients from different categories
+            const allClients = [
+                ...(clientsData?.land || []),
+                ...(clientsData?.air || []),
+                ...(clientsData?.sea || [])
+            ];
+
+            if (allClients.length === 0) {
+                alert("No clients to export");
+                return;
+            }
+
+            const data = [
+                ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"],
+                ...allClients.map(client => [
+                    client.name || "",
+                    client.email || "",
+                    client.phone || "",
+                    client.type || "Rental",
+                    client.totalBookings || 0,
+                    client.totalSpent || "LKR 0",
+                    client.joinDate || ""
+                ])
+            ];
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Clients");
+
+            XLSX.writeFile(workbook, `clients-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (error) {
+            console.error("Error exporting to XLSX:", error);
+            alert("Error exporting to XLSX. Please try again.");
+        }
+        setShowExportMenu(false);
+    };
+
+    const [clients, setClients] = useState(getFilteredClients());
+
+    // Update clients when filter changes
+    useEffect(() => {
+        setClients(getFilteredClients());
+        setCurrentPage(1);
+    }, [activeFilter, clientsData]);
+
+    // Search functionality
+    const filteredClients = clients.filter(client =>
+        client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(clients.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
-    const currentClients = clients.slice(startIdx, endIdx);
+    const currentClients = filteredClients.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -152,342 +256,227 @@ const ClientTable = () => {
         return pages;
     };
 
-    // Handle form input changes
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewClient({ ...newClient, [name]: value });
-    };
-
-    // Handle file input
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-        }
-    };
-
-    // Add file to documents
-    const addFileToDocuments = () => {
-        if (selectedFile) {
-            setNewClient({
-                ...newClient,
-                documents: [
-                    ...newClient.documents,
-                    { name: selectedFile.name },
-                ],
-            });
-            setSelectedFile(null);
-        }
-    };
-
-    // Handle form submission
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (isEditing) {
-            setClients(
-                clients.map((client) =>
-                    client.id === currentClientId
-                        ? { ...newClient, id: currentClientId }
-                        : client
-                )
-            );
-        } else {
-            setClients([...clients, { ...newClient, id: clients.length + 1 }]);
-        }
-        setNewClient({
-            name: "",
-            email: "",
-            phone: "",
-            address: "",
-            documents: [],
+    // Handle filter change
+    const handleFilterChange = (filter) => {
+        setActiveFilter(filter);
+        // Optionally, reload data from backend
+        router.get(`/vendorAllBookings/clients?filter=${filter}`, {}, {
+            preserveState: true,
+            preserveScroll: true,
         });
-        setDocumentInput("");
-        setSelectedFile(null);
-        setIsPopupOpen(false);
-        setIsEditing(false);
-        setCurrentClientId(null);
-    };
-
-    // Handle edit button click
-    const handleEdit = (client) => {
-        setNewClient({ ...client });
-        setCurrentClientId(client.id);
-        setIsEditing(true);
-        setIsPopupOpen(true);
-    };
-
-    // Handle delete button click
-    const handleDelete = (id) => {
-        setClients(clients.filter((client) => client.id !== id));
     };
 
     // Reset to first page when itemsPerPage changes
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [itemsPerPage]);
 
+console.log("Current Clients:", clients);
     return (
         <div className="relative">
-            <div className="flex flex-row items-center justify-between w-full">
-                <div className="flex flex-row gap-5 justify-center items-center">
-                    <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+                <div className="flex flex-row gap-5 justify-center items-center w-full sm:w-auto">
+                    <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                         <img src={miniSearchIcon} />
                         <input
                             type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                            placeholder="Search client name, car, etc."
+                            placeholder="Search client name, email, phone..."
                         />
                     </div>
                 </div>
-                <button
-                    className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
-                    onClick={() => {
-                        setIsEditing(false);
-                        setNewClient({
-                            name: "",
-                            email: "",
-                            phone: "",
-                            address: "",
-                            documents: [],
-                        });
-                        setIsPopupOpen(true);
-                    }}
-                >
-                    Add Booking
-                </button>
-            </div>
-
-            {/* Popup for adding/editing client */}
-            {isPopupOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                    <div className="bg-white p-10 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
-                        <h2 className="text-[18px] font-[700] mb-4">
-                            {isEditing ? "Edit Client" : "Add New Client"}
-                        </h2>
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Name
-                                </label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={newClient.name}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter name"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={newClient.email}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter email"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Phone
-                                </label>
-                                <input
-                                    type="text"
-                                    name="phone"
-                                    value={newClient.phone}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter phone number"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Address
-                                </label>
-                                <input
-                                    type="text"
-                                    name="address"
-                                    value={newClient.address}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter address"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Documents
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="file"
-                                        onChange={handleFileChange}
-                                        className="w-full p-5 border border-[#000000] border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000] text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
-                                    />
-                                    <button
-                                        onClick={addFileToDocuments}
-                                        disabled={!selectedFile}
-                                        className={`px-4 py-5 font-[600] rounded-[5px] text-white ${
-                                            selectedFile
-                                                ? "bg-[#0955AC]"
-                                                : "bg-gray-400 cursor-not-allowed"
-                                        }`}
-                                    >
-                                        Add File
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="mt-2">
-                                {newClient.documents.map((doc, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <img src={file} alt="file icon" />
-                                        <span>{doc.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-end gap-2">
+                <div className="relative" ref={exportMenuRef}>
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-[6px] hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition text-[14px] sm:text-[16px]"
+                        >
+                            <Download size={18} />
+                            <span>Export</span>
+                            <DropdownIcon size={14} />
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
                                 <button
-                                    onClick={() => {
-                                        setIsPopupOpen(false);
-                                        setIsEditing(false);
-                                        setNewClient({
-                                            name: "",
-                                            email: "",
-                                            phone: "",
-                                            address: "",
-                                            documents: [],
-                                        });
-                                        setDocumentInput("");
-                                        setSelectedFile(null);
-                                    }}
-                                    className="px-4 py-2 bg-gray-200 rounded-[5px] font-[700]"
+                                    onClick={exportToCSV}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
                                 >
-                                    Cancel
+                                    Export to CSV
                                 </button>
                                 <button
-                                    onClick={handleSubmit}
-                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] font-[700]"
+                                    onClick={exportToPDF}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
                                 >
-                                    {isEditing ? "Update" : "Save"}
+                                    Export to PDF
+                                </button>
+                                <button
+                                    onClick={exportToXLSX}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                >
+                                    Export to XLSX
                                 </button>
                             </div>
-                        </div>
+                        )}
                     </div>
-                </div>
-            )}
-
-            {/* table headings */}
-            <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                <div className="flex flex-row gap-5 items-center col-span-2">
-                    <input
-                        type="checkbox"
-                        className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                    />
-                    <h1>Client Name</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center pl-10">
-                    <h1>Contact No</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center col-span-2 pl-20">
-                    <h1>Address</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Documents</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Action</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
             </div>
-            {/* end */}
 
-            {/* table rows */}
-            {currentClients.map((client, idx) => (
-                <div
-                    key={client.id}
-                    className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-10 items-center text-[14px] font-[500]"
-                >
-                    <div className="flex flex-row col-span-2 items-center gap-7">
+            {/* table headings - hidden on mobile */}
+            {!isMobile && (
+                <div className="figtree grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+                    <div className="flex flex-row gap-5 items-center col-span-2">
                         <input
                             type="checkbox"
                             className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
                         />
-                        <div className="flex flex-row gap-3 justify-center items-center">
-                            <img src={proPic} className="size-[50px]" />
-                            <div>
-                                <h1 className="text-[15px]">{client.name}</h1>
-                                <h1 className="text-[#616161] text-[14px]">
-                                    {client.email}
-                                </h1>
-                            </div>
+                        <h1>Client Name</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
                         </div>
                     </div>
-                    <div className="pl-10">{client.phone}</div>
-                    <div className="col-span-2 pl-20">{client.address}</div>
-                    <div className="text-[12px]">
-                        {client.documents.map((doc, docIdx) => (
-                            <div className="flex flex-row gap-2" key={docIdx}>
-                                <img src={file} />
-                                <h1>{doc.name}</h1>
-                            </div>
-                        ))}
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Contact No</h1>
                     </div>
-                    <div className="flex flex-row justify-center items-center gap-3">
-                        <div
-                            className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer"
-                            onClick={() => handleEdit(client)}
-                        >
-                            Edit
-                        </div>
-                        <div
-                            className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer"
-                            onClick={() => handleDelete(client.id)}
-                        >
-                            Delete
-                        </div>
+                    <div className="flex flex-row gap-2 items-center col-span-2">
+                        <h1>Address</h1>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Vehicle Type</h1>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Bookings</h1>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Total Spent</h1>
                     </div>
                 </div>
-            ))}
-            {/* end */}
+            )}
+
+            {/* Desktop Table View */}
+            {!isMobile && (
+                <>
+                    {/* table rows */}
+                    {currentClients.length > 0 ? (
+                        currentClients.map((client) => (
+                            <div
+                                key={client.id}
+                                className="figtree grid grid-cols-8 min-h-[100px] border-b-[1.5px] border-[#00000033] px-10 items-center text-[14px] font-[500] py-4"
+                            >
+                                <div className="flex flex-row col-span-2 items-center gap-7">
+                                    <input
+                                        type="checkbox"
+                                        className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                    />
+                                    <div className="flex flex-row gap-3 justify-center items-center">
+                                        <img src={client.image || proPic} className="size-[50px]" />
+                                        <div>
+                                            <h1 className="text-[15px] font-semibold">{client.name}</h1>
+                                            <h1 className="text-[#616161] text-[12px]">
+                                                {client.email}
+                                            </h1>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="">{client.phone}</div>
+                                <div className="col-span-2">{client.address}</div>
+                                <div className="">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                        client.vehicle_type === 'Land' ? 'bg-green-100 text-green-700' :
+                                        client.vehicle_type === 'Air' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-cyan-100 text-cyan-700'
+                                    }`}>
+                                        {client.vehicle_type}
+                                    </span>
+                                </div>
+                                <div className="text-center">
+                                    <span className="font-semibold">{client.bookings_count}</span>
+                                </div>
+                                <div className="text-right font-semibold">
+                                    ${client.total_spent?.toFixed(2) || '0.00'}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-10 text-gray-500">
+                            No clients found for the selected filter.
+                        </div>
+                    )}
+                    {/* end */}
+                </>
+            )}
+
+            {/* Mobile Card View */}
+            {isMobile && (
+                <div className="mt-10 space-y-4">
+                    {currentClients.length > 0 ? (
+                        currentClients.map((client) => (
+                            <div
+                                key={client.id}
+                                className="bg-white rounded-lg p-4 shadow-md border"
+                            >
+                                <div className="flex items-start gap-4">
+                                    <input
+                                        type="checkbox"
+                                        className="size-[20px] rounded-[4px] bg-[#CCCCCC73] mt-1 flex-shrink-0"
+                                    />
+                                    <img
+                                        src={client.image || proPic}
+                                        className="size-[60px] rounded-full object-cover flex-shrink-0"
+                                        alt="client"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-[18px] font-[700] truncate">{client.name}</h3>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
+                                                client.vehicle_type === 'Land' ? 'bg-green-100 text-green-700' :
+                                                client.vehicle_type === 'Air' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-cyan-100 text-cyan-700'
+                                            }`}>
+                                                {client.vehicle_type}
+                                            </span>
+                                        </div>
+                                        <p className="text-[14px] text-[#616161] mb-2 truncate">{client.email}</p>
+                                        <div className="space-y-1 text-[14px]">
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Phone:</span>
+                                                <span className="truncate ml-2">{client.phone}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Address:</span>
+                                                <span className="truncate ml-2">{client.address}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Bookings:</span>
+                                                <span className="font-semibold ml-2">{client.bookings_count}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Total Spent:</span>
+                                                <span className="font-semibold ml-2">${client.total_spent?.toFixed(2) || '0.00'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-10 text-gray-500">
+                            No clients found for the selected filter.
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Pagination Controls and Results per page */}
-            <div className="flex justify-between items-center gap-2 mt-20">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-20">
                 {/* Left: Results per page */}
                 <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">
+                    <span className="mr-3 text-[#00000080] text-[14px] sm:text-[15px]">
                         Results per page
                     </span>
                     <select
-                        className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                        className="rounded px-3 py-1 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
                         onChange={(e) =>
                             setItemsPerPage(Number(e.target.value))
@@ -501,7 +490,7 @@ const ClientTable = () => {
                     </select>
                 </div>
                 {/* Right: Pagination */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                         onClick={() => goToPage(currentPage - 1)}
@@ -517,7 +506,7 @@ const ClientTable = () => {
                         ) : (
                             <button
                                 key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
                                     currentPage === num
                                         ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                         : "bg-[#F4F3F3]"

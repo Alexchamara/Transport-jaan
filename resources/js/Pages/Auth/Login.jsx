@@ -15,14 +15,18 @@ export default function Login({ status, canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('login'), {
+
+        // Reset the dashboard loaded flag before login
+        localStorage.removeItem('adminDashboardLoaded');
+
+        post(route('signin'), {
             onFinish: () => reset('password'),
         });
     };
 
     return (
         <GuestLayout>
-            <Head title="Log in" />
+            <Head title="Sign in" />
 
             {/* Header Section */}
             <div className="text-center mb-8">

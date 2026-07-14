@@ -1,14 +1,58 @@
 import React from "react";
+import { router } from "@inertiajs/react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
 import locationBlue from "../../assets/vehicleList/locationBlue.png"
 
-const SearchForm = ({ formData, onFormChange }) => {
+const SearchForm = ({ formData, onFormChange, onSearch, redirectToFirstVehicle = false }) => {
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     onFormChange({
       ...formData,
       [id]: value
     });
+  };
+
+  const handleSearch = async () => {
+    // If a custom onSearch handler is provided (e.g. inline filtering), call it
+    if (onSearch) {
+      onSearch(formData);
+      return;
+    }
+
+    // Otherwise navigate to vehicleList page with form data as query parameters
+    const params = new URLSearchParams();
+    if (formData.pickupLocation) params.set('pickupLocation', formData.pickupLocation);
+    if (formData.pickupDate) params.set('pickupDate', formData.pickupDate);
+    if (formData.dropoffLocation) params.set('dropoffLocation', formData.dropoffLocation);
+    if (formData.dropoffDate) params.set('dropoffDate', formData.dropoffDate);
+
+    const queryString = params.toString();
+
+    if (redirectToFirstVehicle) {
+      try {
+        const response = await fetch(queryString ? `/vehicleList/json?${queryString}` : '/vehicleList/json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        const vehicles = Array.isArray(data?.vehicles)
+          ? data.vehicles
+          : (Array.isArray(data?.vehicles?.data) ? data.vehicles.data : []);
+        const firstVehicle = vehicles[0];
+
+        if (firstVehicle?.id) {
+          router.visit(`/vehicleDetails/${firstVehicle.id}${queryString ? `?${queryString}` : ''}`, {
+            method: 'get',
+            preserveScroll: true,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to find a vehicle:', error);
+      }
+    }
+
+    const url = queryString ? `/vehicleList?${queryString}` : '/vehicleList';
+    router.visit(url, { method: 'get', preserveScroll: true });
   };
 
   return (
@@ -106,7 +150,10 @@ const SearchForm = ({ formData, onFormChange }) => {
           </div>
 
           {/* Find a Vehicle Button */}
-          <button className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0">
+          <button 
+            onClick={handleSearch}
+            className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0"
+          >
             →
           </button>
         </div>

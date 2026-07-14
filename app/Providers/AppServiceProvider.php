@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,7 +13,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override PHP settings for file uploads
+        ini_set('upload_max_filesize', '50M');
+        ini_set('post_max_size', '100M');
+        ini_set('max_file_uploads', '20');
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '512M');
     }
 
     /**
@@ -21,7 +27,19 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
-        
+
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
+
+        // Vehicle-rental booking notifications (land / air / sea) — the vendor is
+        // notified on the transition into 'confirmed', not on the pending draft.
+        \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
+        \App\Models\AirVehicleBookings::observe(\App\Observers\BookingObserver::class);
+        \App\Models\SeaVehicleBookings::observe(\App\Observers\BookingObserver::class);
+
+        Inertia::share([
+        'authUser' => fn () => auth()->user(),
+    ]);
     }
+
+    
 }

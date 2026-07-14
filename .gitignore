@@ -16,9 +16,13 @@
 /public/build
 /public/hot
 /public/storage
+/public/uploads
 /storage/*.key
 /storage/pail
 /vendor
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Large local datasets
+docs/3b2db89d-07cb-41aa-ac3f-e60c3348f78b.jsonl

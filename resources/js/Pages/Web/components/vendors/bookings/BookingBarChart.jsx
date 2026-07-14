@@ -7,254 +7,253 @@ import {
   BarElement,
   Tooltip,
   Legend,
-  Title,
 } from "chart.js";
 import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, Title);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-const bookingData = [
-  { name: "Jan", done: 320, cancelled: 220 },
-  { name: "Feb", done: 380, cancelled: 270 },
-  { name: "Mar", done: 250, cancelled: 150 },
-  { name: "Apr", done: 500, cancelled: 230 },
-  { name: "May", done: 310, cancelled: 410 },
-  { name: "Jun", done: 370, cancelled: 180 },
-  { name: "Jul", done: 420, cancelled: 210 },
-  { name: "Aug", done: 480, cancelled: 380 },
-  { name: "Sep", done: 270, cancelled: 320 },
-  { name: "Oct", done: 390, cancelled: 210 },
-  { name: "Nov", done: 320, cancelled: 170 },
-  { name: "Dec", done: 500, cancelled: 250 },
-];
-
-const labels = bookingData.map((d) => d.name);
-const doneData = bookingData.map((d) => d.done);
-const cancelledData = bookingData.map((d) => -d.cancelled); // negative for downward bars
-
-const data = {
-  labels,
-  datasets: [
-    {
-      label: "Done",
-      data: doneData,
-      backgroundColor: labels.map((_, i) => (i === 7 ? "#39CEF3" : "#0955AC")),
-      borderRadius: { topLeft: 8, topRight: 8 },
-      borderSkipped: false,
-      barPercentage: 0.6,
-      categoryPercentage: 0.8,
-      stack: 'booking',
-    },
-    {
-      label: "Cancelled",
-      data: cancelledData,
-      backgroundColor: "#000000",
-      borderRadius: { bottomLeft: 8, bottomRight: 8 },
-      borderSkipped: false,
-      barPercentage: 0.6,
-      categoryPercentage: 0.8,
-      stack: 'booking',
-    },
-  ],
+// ---------- helpers ----------
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const monthIndex = (m) => {
+  if (m === undefined || m === null) return -1;
+  const n = Number(m);
+  if (!Number.isNaN(n)) {
+    if (n >= 1 && n <= 12) return n - 1;
+    if (n >= 0 && n <= 11) return n;
+  }
+  const s = String(m).trim().slice(0,3).toLowerCase();
+  return MONTHS.findIndex((x) => x.toLowerCase() === s);
 };
 
-const options = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-    tooltip: {
-      enabled: false,
-      external: function(context) {
-        // Custom tooltip rendering handled below
-      },
-      callbacks: {
-        label: function(context) {
-          // Not used, custom tooltip below
-          return '';
-        },
-      },
-    },
-    title: {
-      display: false,
-    },
-  },
-  layout: {
-    padding: {
-      top: 20,
-      bottom: 10,
-      left: 0,
-      right: 0,
-    },
-  },
-  scales: {
-    x: {
-      grid: {
-        display: false,
-        drawBorder: false,
-      },
-      ticks: {
-        color: '#7B7B7A',
-        font: {
-          size: 14,
-          weight: 500,
-        },
-      },
-      border: {
-        display: false,
-      },
-    },
-    y: {
-      min: -500,
-      max: 500,
-      stacked: true,
-      grid: {
-        color: '#00000040',
-        drawBorder: false,
-        lineWidth: 1,
-      },
-      ticks: {
-        stepSize: 250,
-        color: '#B0B0B0',
-        font: {
-          size: 14,
-        },
-        callback: function(value) {
-          if (value === 500) return '500';
-          if (value === -500) return '-500';
-          return value;
-        },
-      },
-      border: {
-        display: false,
-      },
-    },
-  },
-  interaction: {
-    mode: 'index',
-    intersect: false,
-  },
-  hover: {
-    mode: 'index',
-    intersect: false,
-  },
-};
+function normalize(bookingData = []) {
+  const done = new Array(12).fill(0);
+  const canc = new Array(12).fill(0);
+  const years = new Array(12).fill(null);
 
-// Custom Tooltip
-function CustomTooltip({ chart, tooltip }) {
-  if (!tooltip || !tooltip.opacity || !chart) return null;
-  const { dataPoints } = tooltip;
-  if (!dataPoints || dataPoints.length === 0) return null;
-  const dp = dataPoints[0];
-  const month = labels[dp.dataIndex];
-  const done = doneData[dp.dataIndex];
-  const cancelled = Math.abs(cancelledData[dp.dataIndex]);
-  const type = dp.datasetIndex === 0 ? 'Done' : 'Cancelled';
-  const value = type === 'Done' ? done : cancelled;
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: tooltip.caretX,
-        top: tooltip.caretY - 60,
-        background: '#D8E4F2',
-        color: '#000',
-        padding: '12px 24px',
-        borderRadius: 12,
-        boxShadow: '0 2px 8px #0001',
-        pointerEvents: 'none',
-        minWidth: 120,
-        textAlign: 'center',
-        zIndex: 100,
-        transform: 'translate(-50%, -100%)',
-      }}
-    >
-      <div className="text-[14px] font-[600]">{month} 2025</div>
-      <div className="text-[16px] font-[700] text-[#000000]">
-        <span className="font-[700] text-[16px]">{type} </span>{value}
-      </div>
-    </div>
-  );
+  (Array.isArray(bookingData) ? bookingData : []).forEach((r) => {
+    const i = monthIndex(r?.name ?? r?.month ?? r?.month_name ?? r?.monthIndex ?? r?.month_index);
+    if (i < 0 || i > 11) return;
+
+    const d = r?.done ?? r?.completed ?? r?.booked ?? r?.total_done ?? 0;
+    const c = r?.cancelled ?? r?.canceled ?? r?.total_cancelled ?? r?.total_canceled ?? 0;
+
+    done[i] = Number(d) || 0;
+    canc[i] = -(Number(c) || 0); // negative -> draw downward
+    years[i] = r?.year ?? years[i];
+  });
+
+  const fallbackYear = new Date().getFullYear();
+  const yearByMonth = years.map((y) => y ?? fallbackYear);
+  return { done, canc, yearByMonth };
 }
 
-function BookingBarChart() {
-  const chartRef = React.useRef();
+export default function BookingBarChart({
+  bookingData = [],
+  dropdownLabel = "Last 8 monts",
+}) {
+  const { done, canc, yearByMonth } = normalize(bookingData);
+
+  const data = {
+    labels: MONTHS,
+    datasets: [
+      {
+        label: "Done",
+        data: done,
+        backgroundColor: "#0955AC",
+        borderRadius: 8,
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+        stack: "bk",
+      },
+      {
+        label: "Cancelled",
+        data: canc,
+        backgroundColor: "#0B0B0B",
+        borderRadius: 8,
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+        stack: "bk",
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }, // custom tooltip below
+    },
+    layout: { padding: { top: 8, right: 8, bottom: 0, left: 8 } },
+    interaction: { mode: "index", intersect: false }, // hover anywhere above month
+    scales: {
+      x: {
+        grid: { display: false, drawBorder: false },
+        ticks: { color: "#7B7B7A", font: { size: 12, weight: 600 } },
+        border: { display: false },
+        stacked: true,
+      },
+      y: {
+        min: -500,
+        max: 500,
+        stacked: true,
+        grid: { color: "#E5E7EB", drawBorder: false },
+        ticks: {
+          stepSize: 250,
+          color: "#7B7B7A",
+          font: { size: 12, weight: 500 },
+          callback: (v) => (v === 0 ? "0" : v),
+        },
+        border: { display: false },
+      },
+    },
+  };
+
+  // ---------- custom arrow tooltip that shows counts ----------
+  const chartRef = React.useRef(null);
   const [tooltipModel, setTooltipModel] = React.useState(null);
 
-  // Find the highest 'Done' value and its index
-  const maxDone = Math.max(...doneData);
-  const maxDoneIndex = doneData.indexOf(maxDone);
-
-  // Custom tooltip handler
   React.useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    chart.options.plugins.tooltip.external = (context) => {
-      setTooltipModel({
-        ...context.tooltip,
-        chart,
-      });
+    chart.options.plugins.tooltip.external = (ctx) => {
+      setTooltipModel({ chart, ...ctx.tooltip });
     };
     chart.update();
-
-    // Show tooltip for the highest 'Done' bar on mount
-    setTimeout(() => {
-      if (!chart) return;
-      const meta = chart.getDatasetMeta(0); // 0 for 'Done' dataset
-      if (!meta || !meta.data || !meta.data[maxDoneIndex]) return;
-      const bar = meta.data[maxDoneIndex];
-      const { x, y } = bar.getCenterPoint();
-      setTooltipModel({
-        opacity: 1,
-        dataPoints: [{
-          dataIndex: maxDoneIndex,
-          datasetIndex: 0,
-        }],
-        caretX: x,
-        caretY: y,
-        chart,
-      });
-    }, 500); // Delay to ensure chart is rendered
   }, []);
 
+  // auto-show on highest Done
+  React.useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const maxDone = done.length ? Math.max(...done) : null;
+    const idx = maxDone !== null ? done.indexOf(maxDone) : -1;
+    if (idx < 0) return;
+
+    const t = setTimeout(() => {
+      const meta = chart.getDatasetMeta(0);
+      if (!meta?.data?.[idx]) return;
+      const bar = meta.data[idx];
+      const { x, y } = bar.getCenterPoint();
+
+      setTooltipModel({
+        opacity: 1,
+        caretX: x,
+        caretY: y,
+        dataPoints: [
+          { dataIndex: idx, datasetIndex: 0 },
+          { dataIndex: idx, datasetIndex: 1 },
+        ],
+        chart,
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [done.join("|")]);
+
+  const noData =
+    (bookingData?.length ?? 0) === 0 ||
+    (done.every((v) => v === 0) && canc.every((v) => v === 0));
+
   return (
-    <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
+    <div className="w-full h-full p-4 sm:p-6">
       {/* Header */}
-      <div className="flex flex-row justify-between items-center mb-6">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-[28px] font-[700]">Booking Overview</h2>
-          <div className="flex flex-row items-center gap-6 mt-1">
-            <div className="flex flex-row items-center gap-2">
-              <span className="inline-block w-6 h-6 rounded bg-[#0955AC]"></span>
-              <span className="text-[20px] font-[600] text-[#7B7B7A]">Done</span>
+      <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
+        <div>
+          <h3 className="text-[16px] sm:text-[20px] font-[700] leading-tight">Booking Overview</h3>
+          <div className="flex gap-4 sm:gap-6 mt-2 sm:mt-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded bg-[#0955AC]" />
+              <span className="text-[12px] sm:text-[14px] font-[600] text-[#111827]">Done</span>
             </div>
-            <div className="flex flex-row items-center gap-2">
-              <span className="inline-block w-6 h-6 rounded bg-black"></span>
-              <span className="text-[20px] font-[600] text-[#7B7B7A]">Cancelled</span>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded bg-black" />
+              <span className="text-[12px] sm:text-[14px] font-[600] text-[#111827]">Cancelled</span>
             </div>
           </div>
         </div>
-        <div className="ml-8">
-          <button className="bg-[#F3F3F3] rounded-lg px-4 py-2 flex flex-row items-center gap-2 text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none">
-            Last 8 months
-            <img src={miniDownArrow} alt="dropdown" />
-          </button>
-        </div>
+
+        <button
+          type="button"
+          className="bg-[#F3F4F6] rounded-md px-3 py-1.5 flex items-center gap-2 text-[12px] sm:text-[13px] font-[600] text-[#374151]"
+        >
+          {dropdownLabel}
+          <img src={miniDownArrow} alt="" className="w-3 h-3" />
+        </button>
       </div>
-      {/* Chart */}
-      <div className="relative w-full" style={{ height: `300px` }}>
-        <Bar
-          ref={chartRef}
-          data={data}
-          options={options}
-        />
-        {/* Custom Tooltip Render */}
-        {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} />}
+
+      {/* Chart - Horizontally scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+        <div className="relative" style={{ height: 280 }}>
+          <Bar ref={chartRef} data={data} options={options} />
+          {noData && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="px-3 py-1.5 rounded bg-[#F3F4F6] text-[#6B7280] text-sm font-semibold">
+                No data to display
+              </div>
+            </div>
+          )}
+
+          {tooltipModel?.opacity && tooltipModel?.dataPoints?.length > 0 && (
+            <ArrowTooltip tooltip={tooltipModel} yearByMonth={yearByMonth} />
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-export default BookingBarChart; 
+function ArrowTooltip({ tooltip, yearByMonth }) {
+  const chart = tooltip.chart;
+  const di = tooltip.dataPoints[0].dataIndex; // current month index
+  const month = chart.data.labels[di];
+  const year = yearByMonth?.[di] ?? new Date().getFullYear();
+
+  // read both datasets for this month (abs to remove minus sign)
+  const doneVal = Math.abs(Number(chart.data.datasets[0]?.data?.[di] ?? 0));
+  const cancVal = Math.abs(Number(chart.data.datasets[1]?.data?.[di] ?? 0));
+
+  // place box near caret; if most recent hover was on cancelled (below), nudge down
+  const hoveredOnCancelled = tooltip.dataPoints.some((p) => p.datasetIndex === 1);
+  const translate = hoveredOnCancelled ? "translate(-50%, 16px)" : "translate(-50%, -110%)";
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: tooltip.caretX,
+        top: tooltip.caretY,
+        transform: translate,
+        background: "#E8EFF8",
+        color: "#0F172A",
+        padding: "10px 14px",
+        borderRadius: 10,
+        boxShadow: "0 2px 8px rgba(0,0,0,.08)",
+        fontSize: 12,
+        fontWeight: 700,
+        pointerEvents: "none",
+        zIndex: 20,
+        minWidth: 110,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontWeight: 700 }}>{month} {year}</div>
+      <div style={{ fontWeight: 800 }}>Done {doneVal}</div>
+      <div style={{ fontWeight: 800 }}>Cancelled {cancVal}</div>
+
+      {/* the little arrow */}
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+          ...(hoveredOnCancelled
+            ? { top: -8, width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderBottom: "8px solid #E8EFF8" }
+            : { bottom: -8, width: 0, height: 0, borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "8px solid #E8EFF8" }
+          ),
+        }}
+      />
+    </div>
+  );
+}

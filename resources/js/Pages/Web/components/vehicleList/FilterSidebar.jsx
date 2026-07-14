@@ -5,6 +5,11 @@ const FilterSidebar = ({ searchParams }) => {
   const [selectedBodyType, setSelectedBodyType] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedCapacity, setSelectedCapacity] = useState("");
+  const [selectedPrice, setSelectedPrice] = useState("");
+  const [selectedMileage, setSelectedMileage] = useState("");
+  const [selectedTransmission, setSelectedTransmission] = useState("");
+  const [selectedFuel, setSelectedFuel] = useState("");
 
   useEffect(() => {
     if (searchParams?.bodyType) {
@@ -16,6 +21,7 @@ const FilterSidebar = ({ searchParams }) => {
   }, [searchParams]);
 
   const handleBodyTypeChange = (bodyType) => {
+    debugger
     const newBodyType = selectedBodyType === bodyType ? "" : bodyType;
     setSelectedBodyType(newBodyType);
     
@@ -43,6 +49,74 @@ const FilterSidebar = ({ searchParams }) => {
     });
   };
 
+const handleCapacityChange = (capacity) => {
+  const newCapacities = selectedCapacity === capacity ? "" : capacity;
+  setSelectedCapacity(newCapacities);
+  // Send to backend
+  router.get('/vehicleList', {
+    ...searchParams,
+    capacity: newCapacities,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+};
+
+const handlePriceChange = (priceRange) => {
+  const newPrice = selectedPrice === priceRange ? "" : priceRange;
+  setSelectedPrice(newPrice);
+  // Send to backend
+  router.get('/vehicleList', {
+    ...searchParams,
+    price: newPrice,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
+const handleMileagesChange = (mileageChange) => {
+  const newMileages = selectedMileage === mileageChange ? "" : mileageChange;
+  setSelectedMileage(newMileages);
+  // Send to backend
+  router.get('/vehicleList', {
+    ...searchParams,
+    mileage: newMileages,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
+const handleTransmissionChange = (transmission) => {
+  const newVal = selectedTransmission === transmission ? "" : transmission;
+  setSelectedTransmission(newVal);
+  router.get('/vehicleList', {
+    ...searchParams,
+    transmission: newVal,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
+const handleFuelChange = (fuel) => {
+  const newVal = selectedFuel === fuel ? "" : fuel;
+  setSelectedFuel(newVal);
+  router.get('/vehicleList', {
+    ...searchParams,
+    fuel: newVal,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
@@ -55,7 +129,8 @@ const FilterSidebar = ({ searchParams }) => {
     { id: "sportcoupe", label: "Sport Coupe", count: 23 },
     { id: "compact", label: "Compact", count: 23 },
     { id: "coupe", label: "Coupe", count: 23 },
-    { id: "truck", label: "Truck", count: 23 }
+    { id: "truck", label: "Truck", count: 23 },
+    { id: "other", label: "Other", count: 23}
   ];
 
   const brands = [
@@ -64,7 +139,8 @@ const FilterSidebar = ({ searchParams }) => {
     { id: "honda", label: "Honda", count: 18 },
     { id: "bmw", label: "BMW", count: 10 },
     { id: "mercedes", label: "Mercedes-Benz", count: 14 },
-    { id: "audi", label: "Audi", count: 9 }
+    { id: "audi", label: "Audi", count: 9 },
+    { id: "other", label: "Other", count: 11 },
   ];
 
   return (
@@ -157,13 +233,16 @@ const FilterSidebar = ({ searchParams }) => {
           </h3>
           <div className="mb-1.5 flex justify-between items-center">
             <div className="flex items-center">
-              <input
+             <input
                 type="checkbox"
                 id="2person"
                 name="capacity"
                 value="2person"
                 className="mr-1.5"
+                checked={selectedCapacity.includes("2person")}
+                onChange={() => handleCapacityChange("2person")}
               />
+
               <label htmlFor="2person">2 Person</label>
             </div>
             <span>(23)</span>
@@ -176,6 +255,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="capacity"
                 value="4person"
                 className="mr-1.5"
+                checked={selectedCapacity.includes("4person")}
+                onChange={() => handleCapacityChange("4person")}
               />
               <label htmlFor="4person">4 Person</label>
             </div>
@@ -189,6 +270,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="capacity"
                 value="6person"
                 className="mr-1.5"
+                checked={selectedCapacity.includes("6person")}
+                onChange={() => handleCapacityChange("6person")}
               />
               <label htmlFor="6person">6 Person</label>
             </div>
@@ -202,6 +285,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="capacity"
                 value="8ormore"
                 className="mr-1.5"
+                checked={selectedCapacity.includes("8ormore")}
+                onChange={() => handleCapacityChange("8ormore")}
               />
               <label htmlFor="8ormore">8 or More</label>
             </div>
@@ -221,6 +306,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="0-50"
                 className="mr-1.5"
+                checked={selectedPrice === "0-50"}
+                onChange={() => handlePriceChange("0-50")}
               />
               <label htmlFor="price0_50">US$ 0 - US$ 50</label>
             </div>
@@ -234,6 +321,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="50-100"
                 className="mr-1.5"
+                checked={selectedPrice === "50-100"}
+                onChange={() => handlePriceChange("50-100")}
               />
               <label htmlFor="price50_100">US$ 50 - US$ 100</label>
             </div>
@@ -247,6 +336,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="100-150"
                 className="mr-1.5"
+                checked={selectedPrice === "100-150"}
+                onChange={() => handlePriceChange("100-150")}
               />
               <label htmlFor="price100_150">US$ 100 - US$ 150</label>
             </div>
@@ -260,6 +351,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="150-200"
                 className="mr-1.5"
+                checked={selectedPrice === "150-200"}
+                onChange={() => handlePriceChange("150-200")}
               />
               <label htmlFor="price150_200">US$ 150 - US$ 200</label>
             </div>
@@ -273,6 +366,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="200plus"
                 className="mr-1.5"
+                checked={selectedPrice === "200plus"}
+                onChange={() => handlePriceChange("200plus")}
               />
               <label htmlFor="price200plus">US$ 200+</label>
             </div>
@@ -292,6 +387,8 @@ const FilterSidebar = ({ searchParams }) => {
                 name="mileage"
                 value="limited"
                 className="mr-1.5"
+                checked={selectedMileage === "limited"}
+                onChange={() => handleMileagesChange("limited")}
               />
               <label htmlFor="limited">Limited</label>
             </div>
@@ -305,11 +402,71 @@ const FilterSidebar = ({ searchParams }) => {
                 name="mileage"
                 value="unlimited"
                 className="mr-1.5"
+                checked={selectedMileage === "unlimited"}
+                onChange={() => handleMileagesChange("unlimited")}
               />
               <label htmlFor="unlimited">Unlimited</label>
             </div>
             <span>(23)</span>
           </div>
+        </div>
+
+        <div className="filter-section mb-15">
+          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
+            TRANSMISSION
+          </h3>
+          {[
+            { id: "automatic", label: "Automatic" },
+            { id: "manual", label: "Manual" },
+            { id: "amt", label: "AMT" },
+            { id: "cvt", label: "CVT" },
+            { id: "dct", label: "DCT" },
+          ].map((t) => (
+            <div key={t.id} className="mb-1.5 flex justify-between items-center">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`transmission_${t.id}`}
+                  name="transmission"
+                  value={t.id}
+                  className="mr-1.5"
+                  checked={selectedTransmission === t.id}
+                  onChange={() => handleTransmissionChange(t.id)}
+                />
+                <label htmlFor={`transmission_${t.id}`}>{t.label}</label>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="filter-section mb-15">
+          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
+            FUEL TYPE
+          </h3>
+          {[
+            { id: "petrol", label: "Petrol" },
+            { id: "diesel", label: "Diesel" },
+            { id: "hybrid", label: "Hybrid" },
+            { id: "electric", label: "Electric" },
+            { id: "cng", label: "CNG" },
+            { id: "lpg", label: "LPG" },
+            { id: "other", label: "Other" },
+          ].map((f) => (
+            <div key={f.id} className="mb-1.5 flex justify-between items-center">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`fuel_${f.id}`}
+                  name="fuel"
+                  value={f.id}
+                  className="mr-1.5"
+                  checked={selectedFuel === f.id}
+                  onChange={() => handleFuelChange(f.id)}
+                />
+                <label htmlFor={`fuel_${f.id}`}>{f.label}</label>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </>

@@ -1,16 +1,21 @@
-import React from 'react'
-import SideMenu from '../../components/vendors/SideMenu';
-import UnitContent from '../../components/vendors/units/UnitContent';
+import React from "react";
+import { usePage } from "@inertiajs/react";
+import VendorLayout from "./VendorLayout";
+import UnitContent from "../../components/vendors/units/UnitContent";
 
 const Unit = () => {
+  const { units, filters, perPage, perPageOptions } = usePage().props;
+
   return (
-    <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
-                <SideMenu />
-                <UnitContent/>
-            </div>
-        </div>
-  )
-}
+    <VendorLayout activeService="Vehicle Rental">
+      <UnitContent
+        units={units}
+        initialFilters={filters}
+        initialPerPage={perPage}
+        perPageOptions={perPageOptions}
+      />
+    </VendorLayout>
+  );
+};
 
 export default Unit;

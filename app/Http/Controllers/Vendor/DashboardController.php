@@ -1,0 +1,520 @@
+<?php
+
+namespace App\Http\Controllers\Vendor;
+
+use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\BookingPayment;
+use App\Models\BookingSchedule;
+use App\Models\AirVehicleBookings;
+use App\Models\AirVehicleBookingPayment;
+use App\Models\AirVehicleBookingSchedule;
+use App\Models\SeaVehicleBookings;
+use App\Models\SeaVehicleBookingPayment;
+use App\Models\SeaVehicleBookingSchedule;
+use App\Models\Vehicle;
+use App\Models\Driver;
+use App\Models\Notification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Carbon\Carbon;
+
+class DashboardController extends Controller
+{
+    public function index(Request $request)
+    {
+        $vendor      = $request->user();
+        $vendorId    = $vendor->id;
+        $now         = now();
+        $year        = (int) $now->year;
+
+        // Vehicles that belong to this vendor
+        $vehicleIds = Vehicle::where('provider_id', $vendorId)->pluck('id');
+
+        // ===== KPI Cards =====
+        $totalCars  = Vehicle::where('provider_id', $vendorId)->count();
+
+        $rentedLandVehicleIds = Booking::whereIn('vehicle_id', $vehicleIds)
+            ->whereIn('status', ['confirmed', 'ongoing'])
+            ->whereHas('schedule', function ($q) use ($now) {
+                $q->where('pickup_at', '<=', $now)->where('dropoff_at', '>=', $now);
+            })
+            ->pluck('vehicle_id');
+
+        $rentedAirVehicleIds = AirVehicleBookings::whereIn('vehicle_id', $vehicleIds)
+            ->whereIn('status', ['confirmed', 'ongoing'])
+            ->whereHas('schedule', function ($q) use ($now) {
+                $q->where('pickup_at', '<=', $now)->where('dropoff_at', '>=', $now);
+            })
+            ->pluck('vehicle_id');
+
+        $rentedSeaVehicleIds = SeaVehicleBookings::whereIn('vehicle_id', $vehicleIds)
+            ->whereIn('status', ['confirmed', 'ongoing'])
+            ->whereHas('schedule', function ($q) use ($now) {
+                $q->where('pickup_at', '<=', $now)->where('dropoff_at', '>=', $now);
+            })
+            ->pluck('vehicle_id');
+
+        $rentedCars = collect([$rentedLandVehicleIds, $rentedAirVehicleIds, $rentedSeaVehicleIds])
+            ->flatten()
+            ->unique()
+            ->count();
+
+        $newLandBookings = Booking::whereIn('vehicle_id', $vehicleIds)
+            ->where('created_at', '>=', $now->copy()->subDays(7))
+            ->count();
+
+        $newAirBookings = AirVehicleBookings::whereIn('vehicle_id', $vehicleIds)
+            ->where('created_at', '>=', $now->copy()->subDays(7))
+            ->count();
+
+        $newSeaBookings = SeaVehicleBookings::whereIn('vehicle_id', $vehicleIds)
+            ->where('created_at', '>=', $now->copy()->subDays(7))
+            ->count();
+
+        $newBookings = $newLandBookings + $newAirBookings + $newSeaBookings;
+
+        // Use payments for revenue
+        $landRevenue = (float) BookingPayment::whereHas('booking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereIn('status', ['paid', 'completed', 'success'])
+            ->sum('amount_paid');
+
+        $airRevenue = (float) AirVehicleBookingPayment::whereHas('airVehicleBooking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereIn('status', ['paid', 'completed', 'success'])
+            ->sum('amount_paid');
+
+        $seaRevenue = (float) SeaVehicleBookingPayment::whereHas('booking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereIn('status', ['paid', 'completed', 'success'])
+            ->sum('amount_paid');
+
+        $totalRevenue = $landRevenue + $airRevenue + $seaRevenue;
+
+        // ===== Booking Overview (monthly counts by pickup date) =====
+        $monthlyLandBookingsMap = BookingSchedule::whereHas('booking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereYear('pickup_at', $year)
+            ->selectRaw('MONTH(pickup_at) as m, COUNT(*) as c')
+            ->groupBy('m')
+            ->pluck('c', 'm');
+
+        $monthlyAirBookingsMap = AirVehicleBookingSchedule::whereHas('airVehicleBooking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereYear('pickup_at', $year)
+            ->selectRaw('MONTH(pickup_at) as m, COUNT(*) as c')
+            ->groupBy('m')
+            ->pluck('c', 'm');
+
+        $monthlySeaBookingsMap = SeaVehicleBookingSchedule::whereHas('seaVehicleBooking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereYear('pickup_at', $year)
+            ->selectRaw('MONTH(pickup_at) as m, COUNT(*) as c')
+            ->groupBy('m')
+            ->pluck('c', 'm');
+
+        $bookingOverview = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $bookingOverview[] = [
+                'name'     => Carbon::createFromDate($year, $m, 1)->shortMonthName,
+                'bookings' => (int) (($monthlyLandBookingsMap[$m] ?? 0) + ($monthlyAirBookingsMap[$m] ?? 0) + ($monthlySeaBookingsMap[$m] ?? 0)),
+            ];
+        }
+
+        // ===== Earning Summary (monthly revenue) =====
+        $monthlyLandRevenueMap = BookingPayment::whereHas('booking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereYear('created_at', $year)
+            ->whereIn('status', ['paid', 'completed', 'success'])
+            ->selectRaw('MONTH(created_at) as m, SUM(amount_paid) as s')
+            ->groupBy('m')
+            ->pluck('s', 'm');
+
+        $monthlyAirRevenueMap = AirVehicleBookingPayment::whereHas('airVehicleBooking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereYear('created_at', $year)
+            ->whereIn('status', ['paid', 'completed', 'success'])
+            ->selectRaw('MONTH(created_at) as m, SUM(amount_paid) as s')
+            ->groupBy('m')
+            ->pluck('s', 'm');
+
+        $monthlySeaRevenueMap = SeaVehicleBookingPayment::whereHas('booking', function ($q) use ($vehicleIds) {
+                $q->whereIn('vehicle_id', $vehicleIds);
+            })
+            ->whereYear('created_at', $year)
+            ->whereIn('status', ['paid', 'completed', 'success'])
+            ->selectRaw('MONTH(created_at) as m, SUM(amount_paid) as s')
+            ->groupBy('m')
+            ->pluck('s', 'm');
+
+        $earningSummary = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $earningSummary[] = [
+                'name'  => Carbon::createFromDate($year, $m, 1)->shortMonthName,
+                'value' => (float) (($monthlyLandRevenueMap[$m] ?? 0) + ($monthlyAirRevenueMap[$m] ?? 0) + ($monthlySeaRevenueMap[$m] ?? 0)),
+            ];
+        }
+
+        // ===== Real Status (donut) =====
+        $landStatusCounts = Booking::whereIn('vehicle_id', $vehicleIds)
+            ->select('status', DB::raw('COUNT(*) as c'))
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $airStatusCounts = AirVehicleBookings::whereIn('vehicle_id', $vehicleIds)
+            ->select('status', DB::raw('COUNT(*) as c'))
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $seaStatusCounts = SeaVehicleBookings::whereIn('vehicle_id', $vehicleIds)
+            ->select('status', DB::raw('COUNT(*) as c'))
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $statusCounts = collect();
+        foreach ([$landStatusCounts, $airStatusCounts, $seaStatusCounts] as $source) {
+            foreach ($source as $status => $count) {
+                $key = strtolower((string) $status);
+                $statusCounts[$key] = (int) ($statusCounts[$key] ?? 0) + (int) $count;
+            }
+        }
+
+        $hired     = (int) ($statusCounts['confirmed'] ?? 0) + (int) ($statusCounts['ongoing'] ?? 0);
+        $pending   = (int) ($statusCounts['pending'] ?? 0);
+        $cancelled = (int) ($statusCounts['cancelled'] ?? $statusCounts['canceled'] ?? 0);
+
+        $realStatus = [
+            ['name' => 'Hired',     'value' => $hired,     'color' => '#3DD0FF', 'change' => null],
+            ['name' => 'Pending',   'value' => $pending,   'color' => '#0955AC', 'change' => null],
+            ['name' => 'Cancelled', 'value' => $cancelled, 'color' => '#C4C4C4', 'change' => null],
+        ];
+
+        // ===== Car Types (distribution by category or model) =====
+        $totalCarsForPercent = max($totalCars, 1);
+        $carTypes = [];
+        try {
+            $rows = Vehicle::where('provider_id', $vendorId)
+                ->select('category_id', DB::raw('COUNT(*) as c'))
+                ->groupBy('category_id')
+                ->orderByDesc('c')
+                ->limit(6)
+                ->get();
+
+            foreach ($rows as $row) {
+                $name = 'Category ' . $row->category_id;
+                // If you have VehicleCategory::class with "name", you can map it here.
+                $carTypes[] = [
+                    'name'    => $name,
+                    'percent' => round(($row->c / $totalCarsForPercent) * 100),
+                    'img'     => null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            $rows = Vehicle::where('provider_id', $vendorId)
+                ->select('model', DB::raw('COUNT(*) as c'))
+                ->groupBy('model')
+                ->orderByDesc('c')
+                ->limit(6)
+                ->get();
+
+            foreach ($rows as $row) {
+                $carTypes[] = [
+                    'name'    => $row->model ?: 'Unknown',
+                    'percent' => round(($row->c / $totalCarsForPercent) * 100),
+                    'img'     => null,
+                ];
+            }
+        }
+
+        // ===== Bookings for table =====
+        $recentLandBookings = Booking::with(['vehicle', 'schedule', 'client', 'customer', 'payments'])
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->latest('created_at')
+            ->limit(10)
+            ->get();
+
+        $recentAirBookings = AirVehicleBookings::with(['vehicle', 'schedule', 'client', 'customer', 'payments'])
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->latest('created_at')
+            ->limit(10)
+            ->get();
+
+        $recentSeaBookings = SeaVehicleBookings::with(['vehicle', 'schedule', 'client', 'customer', 'payments'])
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->latest('created_at')
+            ->limit(10)
+            ->get();
+
+        $resolveCustomerName = static function ($booking): string {
+            $fullName = trim((string) data_get($booking, 'customer.full_name'));
+            if ($fullName !== '') {
+                return $fullName;
+            }
+
+            $combinedName = trim(
+                trim((string) data_get($booking, 'customer.first_name'))
+                . ' ' .
+                trim((string) data_get($booking, 'customer.last_name'))
+            );
+            if ($combinedName !== '') {
+                return $combinedName;
+            }
+
+            $clientName = trim((string) data_get($booking, 'client.name'));
+            if ($clientName !== '') {
+                return $clientName;
+            }
+
+            $clientFullName = trim((string) data_get($booking, 'client.full_name'));
+            if ($clientFullName !== '') {
+                return $clientFullName;
+            }
+
+            return 'Customer';
+        };
+
+        $landRows = $recentLandBookings->map(function (Booking $b) use ($now, $resolveCustomerName) {
+            $veh = $b->vehicle;
+            $sch = $b->schedule;
+
+            $start = optional($sch?->pickup_at)->format('M j, Y');
+            $end   = optional($sch?->dropoff_at)->format('M j, Y');
+
+            $days = $b->rental_days;
+            if (!$days && $sch?->pickup_at && $sch?->dropoff_at) {
+                $days = Carbon::parse($sch->pickup_at)->diffInDays(Carbon::parse($sch->dropoff_at)) ?: 1;
+            }
+
+            $paid  = (float) $b->payments()->whereIn('status', ['paid', 'completed', 'success'])->sum('amount_paid');
+            $total = (float) ($b->total_amount ?? 0.0);
+            $paymentStatus = $paid >= $total && $total > 0 ? 'Paid' : ($paid > 0 ? 'Partial' : 'Pending');
+
+            $status = ucfirst($b->status ?: 'pending');
+            if (in_array($b->status, ['confirmed', 'ongoing']) && $sch?->pickup_at && $sch?->dropoff_at) {
+                $status = (Carbon::parse($sch->pickup_at) <= $now && Carbon::parse($sch->dropoff_at) >= $now)
+                    ? 'Ongoing' : ucfirst($b->status);
+            }
+            if (in_array($b->status, ['returned', 'completed'])) {
+                $status = 'Returned';
+            }
+
+            $customerName = $resolveCustomerName($b);
+
+            return [
+                'id'            => 'BKG-' . str_pad($b->id, 5, '0', STR_PAD_LEFT),
+                'date'          => optional($b->created_at)->format('M j, Y'),
+                'customer'      => $customerName,
+                'car'           => $veh?->model ?? '—',
+                'plate'         => $veh?->registration_number ?? '—',
+                'duration'      => $days ? $days . ' days' : '—',
+                'startDate'     => $start ?? '—',
+                'endDate'       => $end ?? '—',
+                'price'         => '$' . number_format($total, 0),
+                'paymentStatus' => $paymentStatus,
+                'status'        => $status,
+                'created_sort'  => optional($b->created_at)->toIso8601String(),
+            ];
+        })->values();
+
+        $airRows = $recentAirBookings->map(function (AirVehicleBookings $b) use ($now, $resolveCustomerName) {
+            $veh = $b->vehicle;
+            $sch = $b->schedule;
+
+            $start = optional($sch?->pickup_at)->format('M j, Y');
+            $end   = optional($sch?->dropoff_at)->format('M j, Y');
+
+            $days = $b->rental_days;
+            if (!$days && $sch?->pickup_at && $sch?->dropoff_at) {
+                $days = Carbon::parse($sch->pickup_at)->diffInDays(Carbon::parse($sch->dropoff_at)) ?: 1;
+            }
+
+            $paid  = (float) $b->payments()->whereIn('status', ['paid', 'completed', 'success'])->sum('amount_paid');
+            $total = (float) ($b->total_amount ?? 0.0);
+            $paymentStatus = $paid >= $total && $total > 0 ? 'Paid' : ($paid > 0 ? 'Partial' : 'Pending');
+
+            $status = ucfirst($b->status ?: 'pending');
+            if (in_array($b->status, ['confirmed', 'ongoing']) && $sch?->pickup_at && $sch?->dropoff_at) {
+                $status = (Carbon::parse($sch->pickup_at) <= $now && Carbon::parse($sch->dropoff_at) >= $now)
+                    ? 'Ongoing' : ucfirst($b->status);
+            }
+            if (in_array($b->status, ['returned', 'completed'])) {
+                $status = 'Returned';
+            }
+
+            $customerName = $resolveCustomerName($b);
+
+            return [
+                'id'            => 'ABK-' . str_pad($b->id, 5, '0', STR_PAD_LEFT),
+                'date'          => optional($b->created_at)->format('M j, Y'),
+                'customer'      => $customerName,
+                'car'           => $veh?->model ?? '—',
+                'plate'         => $veh?->registration_number ?? '—',
+                'duration'      => $days ? $days . ' days' : '—',
+                'startDate'     => $start ?? '—',
+                'endDate'       => $end ?? '—',
+                'price'         => '$' . number_format($total, 0),
+                'paymentStatus' => $paymentStatus,
+                'status'        => $status,
+                'created_sort'  => optional($b->created_at)->toIso8601String(),
+            ];
+        })->values();
+
+        $seaRows = $recentSeaBookings->map(function (SeaVehicleBookings $b) use ($now, $resolveCustomerName) {
+            $veh = $b->vehicle;
+            $sch = $b->schedule;
+
+            $start = optional($sch?->pickup_at)->format('M j, Y');
+            $end   = optional($sch?->dropoff_at)->format('M j, Y');
+
+            $days = $b->rental_days;
+            if (!$days && $sch?->pickup_at && $sch?->dropoff_at) {
+                $days = Carbon::parse($sch->pickup_at)->diffInDays(Carbon::parse($sch->dropoff_at)) ?: 1;
+            }
+
+            $paid  = (float) $b->payments()->whereIn('status', ['paid', 'completed', 'success'])->sum('amount_paid');
+            $total = (float) ($b->total_amount ?? 0.0);
+            $paymentStatus = $paid >= $total && $total > 0 ? 'Paid' : ($paid > 0 ? 'Partial' : 'Pending');
+
+            $status = ucfirst($b->status ?: 'pending');
+            if (in_array($b->status, ['confirmed', 'ongoing']) && $sch?->pickup_at && $sch?->dropoff_at) {
+                $status = (Carbon::parse($sch->pickup_at) <= $now && Carbon::parse($sch->dropoff_at) >= $now)
+                    ? 'Ongoing' : ucfirst($b->status);
+            }
+            if (in_array($b->status, ['returned', 'completed'])) {
+                $status = 'Returned';
+            }
+
+            $customerName = $resolveCustomerName($b);
+
+            return [
+                'id'            => 'SBK-' . str_pad($b->id, 5, '0', STR_PAD_LEFT),
+                'date'          => optional($b->created_at)->format('M j, Y'),
+                'customer'      => $customerName,
+                'car'           => $veh?->model ?? '—',
+                'plate'         => $veh?->registration_number ?? '—',
+                'duration'      => $days ? $days . ' days' : '—',
+                'startDate'     => $start ?? '—',
+                'endDate'       => $end ?? '—',
+                'price'         => '$' . number_format($total, 0),
+                'paymentStatus' => $paymentStatus,
+                'status'        => $status,
+                'created_sort'  => optional($b->created_at)->toIso8601String(),
+            ];
+        })->values();
+
+        $bookings = $landRows
+            ->merge($airRows)
+            ->merge($seaRows)
+            ->sortByDesc('created_sort')
+            ->take(10)
+            ->values()
+            ->map(function ($row) {
+                unset($row['created_sort']);
+                return $row;
+            })
+            ->values();
+
+        // ===== Recent Activities (robust & sortable) =====
+        $activities = [];
+
+        // From bookings
+        $bookingEvents = Booking::with(['vehicle', 'client', 'customer'])
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->latest('updated_at')
+            ->limit(40)
+            ->get();
+
+        foreach ($bookingEvents as $b) {
+            $veh   = $b->vehicle;
+            $plate = $veh?->registration_number ? " ({$veh->registration_number})" : '';
+            $customerName = $resolveCustomerName($b);
+
+            $desc = match (true) {
+                in_array($b->status, ['returned', 'completed']) =>
+                    "{$customerName} completed a booking for {$veh?->model}{$plate}",
+                in_array($b->status, ['cancelled', 'canceled']) =>
+                    "{$customerName} cancelled a booking for {$veh?->model}{$plate}",
+                in_array($b->status, ['confirmed', 'ongoing']) =>
+                    "{$customerName} booking in progress for {$veh?->model}{$plate}",
+                default => "{$customerName} booked {$veh?->model}{$plate}",
+            };
+
+            $activities[] = [
+                'datetime'    => optional($b->updated_at ?? $b->created_at)->toIso8601String(),
+                'description' => $desc,
+                'type'        => 'booking',
+            ];
+        }
+
+        // From payments
+        $paymentEvents = BookingPayment::with(['booking.vehicle', 'booking.client', 'booking.customer'])
+            ->whereHas('booking', fn($q) => $q->whereIn('vehicle_id', $vehicleIds))
+            ->latest('created_at')
+            ->limit(40)
+            ->get();
+
+        foreach ($paymentEvents as $p) {
+            $b   = $p->booking;
+            if (!$b) continue;
+            $veh = $b->vehicle;
+
+            $amt = number_format((float) $p->amount_paid, 2);
+            $statusLabel = ucfirst($p->status ?? 'paid');
+            $desc = "Payment {$statusLabel} \${$amt} for " . ($veh?->model ?? 'vehicle');
+
+            $activities[] = [
+                'datetime'    => optional($p->created_at)->toIso8601String(),
+                'description' => $desc,
+                'type'        => 'payment',
+            ];
+        }
+
+        // Sort desc by datetime and take top 20
+        usort($activities, function ($a, $b) {
+            return strcmp($b['datetime'] ?? '', $a['datetime'] ?? '');
+        });
+        $recentActivities = array_slice($activities, 0, 20);
+
+        // Get unread notification count
+        $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
+        // Get drivers for this vendor to show expired license alerts
+        $drivers = Driver::where('user_id', $vendorId)
+            ->select('id', 'full_name', 'license_expiry', 'license_review_status', 'license_no')
+            ->get()
+            ->toArray();
+
+        return Inertia::render('Web/home/vendors/Dashboard', [
+            'cards' => [
+                'totalRevenue' => round($totalRevenue, 2),
+                'newBookings'  => (int) $newBookings,
+                'rentedCars'   => (int) $rentedCars,
+                'totalCars'    => (int) $totalCars,
+            ],
+            'bookingOverview' => $bookingOverview,
+            'earningSummary'  => $earningSummary,
+            'realStatus'      => $realStatus,
+            'carTypes'        => $carTypes,
+            'bookings'        => $bookings,
+            'bookings_meta'   => [],
+            'filters'         => [],
+            'vendorUser'      => [
+                'name' => $vendor->name,
+                'role' => 'Vendor',
+            ],
+            'recentActivities'=> $recentActivities,
+            'unreadNotifications' => $unreadNotifications,
+            'drivers' => $drivers,
+        ]);
+    }
+}

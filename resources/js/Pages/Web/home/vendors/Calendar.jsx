@@ -1,16 +1,19 @@
-import React from 'react'
-import SideMenu from '../../components/vendors/SideMenu';
+import React from "react";
+import VendorLayout from "./VendorLayout";
 import CalendarContent from '../../components/vendors/calendar/CalendarContent';
 
-const Calendar = () => {
+const Calendar = ({ events, clients, currentMonth, currentYear, selectedUserId }) => {
   return (
-    <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
-                <SideMenu />
-                <CalendarContent />
-            </div>
-        </div>
-  )
-}
+    <VendorLayout activeService="Vehicle Rental">
+      <CalendarContent
+        events={events || []}
+        clients={clients || []}
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+        selectedUserId={selectedUserId}
+      />
+    </VendorLayout>
+  );
+};
 
 export default Calendar;

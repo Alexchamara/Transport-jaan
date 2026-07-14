@@ -7,11 +7,11 @@ import logo3 from "../../assets/freight/logo3.svg";
 
 const AboutUs = () => {
     return (
-        <div className="flex flex-row items-start justify-between relative px-20 pt-20 pb-[100px]">
+        <div className="flex flex-row items-start justify-between relative p-5 xl:px-12 xl:pt-20 pb-[100px]">
             <div className="xl:block hidden">
-                <img src={ship} />
+                <img src={ship} className="w-[500px]" />
                 <img
-                    className="xl:absolute top-[270px] left-[320px]"
+                    className="xl:absolute top-[300px] left-[300px] w-[300px]"
                     src={shipTwo}
                 />
             </div>
@@ -42,7 +42,7 @@ const AboutUs = () => {
                         Quisque facilisis laoreet feugiat.
                     </p>
                 </div>
-                <div className="flex flex-col md:flex-row justify-center items-center md:w-[599px] md:h-[148px] bg-[#000000] rounded-[20px] text-[#FFFFFF] font-[700] figtree px-10 py-10">
+                <div className="flex flex-col md:flex-row gap-10 xl:gap-0 justify-center items-center md:w-[599px] md:h-[148px] bg-[#000000] rounded-[20px] text-[#FFFFFF] font-[700] figtree px-10 py-10">
                     <div className="flex flex-row items-start justify-center gap-3 md:border-r-[1.5px] border-[#FFFFFFB2] px-10">
                         <img src={logo1} className="w-[25px] h-[33px]" />
                         <div>
@@ -63,7 +63,7 @@ const AboutUs = () => {
                         </div>
                     </div>
                     <div className="flex flex-row items-start justify-center gap-3 px-10">
-                        <img src={logo2} lassName="w-[25px] h-[33px]" />
+                        <img src={logo2} className="w-[25px] h-[33px]" />
                         <div>
                             <h1 className="text-[22px]">1000+</h1>
                             <p className="text-[16px]">

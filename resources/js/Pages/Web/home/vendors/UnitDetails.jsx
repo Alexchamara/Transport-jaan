@@ -1,16 +1,32 @@
 import React from "react";
-import SideMenu from '../../components/vendors/SideMenu';
-import UnitDetailsContent from '../../components/vendors/units/UnitDetailsContent';
+import { Head, usePage } from "@inertiajs/react";
+import VendorShellLayout from "../../../../Components/vendors/VendorShellLayout";
+import UnitDetailsContent from "../../components/vendors/units/UnitDetailsContent.jsx";
 
 const UnitDetails = () => {
-    return (
-        <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
-                <SideMenu />
-                <UnitDetailsContent />
-            </div>
-        </div>
-    );
+  const page = usePage();
+  const vehicle = page?.props?.vehicle ?? null;
+
+  const title =
+    (vehicle?.manufacture ? `${vehicle.manufacture} ` : "") +
+    (vehicle?.model ?? "");
+
+  return (
+    <div className="bg-[#E5E5E5] min-h-screen">
+      <Head title={title ? `${title} — Details` : "Unit Details"} />
+      <VendorShellLayout activeService="Vehicle Rental">
+        {!vehicle ? (
+          <div className="p-6 text-sm text-black/60">Loading unit…</div>
+        ) : (
+          <UnitDetailsContent
+            vehicle={vehicle}
+            vehicleId={vehicle?.id}
+            policyPdfUrl={vehicle?.policy_pdf_url ?? null}
+          />
+        )}
+      </VendorShellLayout>
+    </div>
+  );
 };
 
 export default UnitDetails;

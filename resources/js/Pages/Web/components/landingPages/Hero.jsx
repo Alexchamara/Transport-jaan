@@ -4,11 +4,12 @@ import linkedin from "../../assets/landingPages/in.svg";
 import fb from "../../assets/landingPages/fb.svg";
 import twitter from "../../assets/landingPages/twitter.svg";
 import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
+import CompanyLogo from "../CompanyLogo";
 // If you want to use navigation links, use react-router-dom instead of lucide-react
 import { Link } from '@inertiajs/react';
 
 const Hero = ({ auth }) => {
-    // console.log(auth); 
+    // console.log(auth);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Scroll to section by id
@@ -23,12 +24,12 @@ const Hero = ({ auth }) => {
   return (
     <div className="flex relative justify-center items-center md:py-10 md:px-20 px-10 poppins">
       {/* Logo */}
-      <h1
+      <div
         className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
         onClick={() => (window.location.href = "/")}
       >
-        Company Logo
-      </h1>
+        <CompanyLogo className="h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
+      </div>
 
       {/* Social Icons */}
       <div className="flex xl:flex-col flex-row gap-5 absolute xl:bottom-[330px] bottom-[80px] xl:left-16 xl:pb-10">
@@ -89,7 +90,7 @@ const Hero = ({ auth }) => {
               <>
                 {auth.user.role === "vendor" && (
                   <Link
-                    href="/vendors/mainDashboard"
+                    href="/vendorAllBookings"
                     className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[18px] font-medium"
                   >
                     Dashboard
@@ -97,7 +98,7 @@ const Hero = ({ auth }) => {
                 )}
                 {auth.user.role === "client" && (
                   <Link
-                    href="/"
+                    href="/clientAllBookings"
                     className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[18px] font-medium"
                   >
                     Dashboard
@@ -200,7 +201,7 @@ const Hero = ({ auth }) => {
                   <>
                     {auth.user.role=== "vendor" && (
                       <Link
-                        href="/vendors/mainDashboard"
+                        href="/vendorAllBookings"
                         className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
                       >
                         Dashboard
@@ -208,7 +209,7 @@ const Hero = ({ auth }) => {
                     )}
                     {auth.user.role === "client" && (
                       <Link
-                        href="/"
+                        href="/clientAllBookings"
                         className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
                       >
                         Dashboard

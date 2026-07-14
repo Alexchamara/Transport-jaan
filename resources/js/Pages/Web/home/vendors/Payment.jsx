@@ -1,16 +1,11 @@
 import React from "react";
-import SideMenu from "../../components/vendors/SideMenu";
+import VendorLayout from "./VendorLayout";
 import PaymentContent from "../../components/vendors/financial/payments/PaymentContent";
 
-const Payment = () => {
-    return (
-        <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
-                <SideMenu />
-                <PaymentContent />
-            </div>
-        </div>
-    );
-};
+const Payment = () => (
+  <VendorLayout>
+    <PaymentContent />
+  </VendorLayout>
+);
 
 export default Payment;

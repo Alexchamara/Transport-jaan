@@ -18,16 +18,18 @@ const LandingPage = () => {
         <div className="bg-[#000000] text-[#FFFFFF]">
             <div id="home">
                 {/* <Hero /> */}
-                <TravelExploreAnimation />
+                <TravelExploreAnimation auth={auth} />
 
+                {/* <Hero auth={auth} /> */}
                 {/*                 <Hero auth={auth} /> */}
+                {/* <Hero auth={auth} /> */}
             </div>
             <div id="about">
                 <About />
             </div>
-            <div id="services">
+            {/* <div id="services">
                 <Service />
-            </div>
+            </div> */}
             <Why />
             <div id="blog">
                 <Blog />

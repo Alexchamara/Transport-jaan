@@ -1,0 +1,153 @@
+import React, { useState, useRef, useEffect } from "react";
+import { usePage, router } from "@inertiajs/react";
+import { AnimatePresence } from "framer-motion";
+import ActionModalTemplate from "../SuperAdmin/Common/ActionModalTemplate";
+import proPic from "../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
+import { ChevronDown } from "lucide-react";
+
+const UserDropdown = ({ settingsRoute }) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+  const roleLabel = user?.display_role || user?.role || "User";
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const [actionModalState, setActionModalState] = useState({ isOpen: false });
+  const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    const handleEsc = (e) => e.key === "Escape" && setIsOpen(false);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, []);
+
+  const notifyLogoutModalState = (isModalOpen) => {
+    window.dispatchEvent(
+      new CustomEvent("vendor:logout-modal-state", {
+        detail: { isOpen: isModalOpen },
+      })
+    );
+  };
+
+  const handleOpenLogoutModal = (e) => {
+    e.preventDefault();
+    setIsOpen(false);
+    notifyLogoutModalState(true);
+    setActionModalState({ isOpen: true });
+  };
+
+  const closeActionModal = () => {
+    notifyLogoutModalState(false);
+    setActionModalState({ isOpen: false });
+  };
+
+  const handleActionConfirm = () => {
+    localStorage.removeItem("vendor_theme");
+    router.post(
+      route("logout"),
+      {},
+      {
+        onSuccess: () => router.visit("/"),
+        preserveScroll: true,
+        onFinish: () => closeActionModal(),
+      }
+    );
+  };
+
+  const handleToggle = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <div
+        ref={triggerRef}
+        className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 max-w-full"
+        onClick={handleToggle}
+      >
+        <div className="w-[38px] h-[38px] lg:w-[32px] lg:h-[32px] rounded-full lg:rounded-[6px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
+          {user?.image ? (
+            <img
+              src={user.image}
+              alt="Profile"
+              className="w-full h-full object-cover rounded-full lg:rounded-[10px]"
+              onError={(e) => (e.target.src = proPic)}
+            />
+          ) : (
+            <img
+              src={proPic}
+              alt="Default Profile"
+              className="w-full h-full object-cover rounded-full lg:rounded-[10px]"
+            />
+          )}
+        </div>
+
+        <div className="hidden xl:flex flex-col justify-center min-w-0 flex-1">
+          <h1 className="text-[14px] sm:text-[16px] md:text-[20px] font-[700] truncate">
+            {user?.name || "User"}
+          </h1>
+          <h1 className="text-[12px] sm:text-[14px] md:text-[16px] font-[600] text-[#7B7B7A] truncate">
+            {roleLabel}
+          </h1>
+        </div>
+
+        <ChevronDown
+          className={`hidden xl:block w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
+            }`}
+        />
+      </div>
+
+      {isOpen && (
+        <div
+          className="fixed w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]"
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
+        >
+          <button
+            onClick={handleOpenLogoutModal}
+            className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors text-left"
+          >
+            <img src={logOutLogo} className="w-[20px] h-[20px]" alt="Logout" />
+            <span>Logout</span>
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {actionModalState.isOpen && (
+          <ActionModalTemplate
+            title="Confirm Logout"
+            description="Are you sure you want to logout from your account?"
+            confirmText="Logout"
+            confirmClassName="bg-red-600 hover:bg-red-700"
+            processingText="Logging out..."
+            onClose={closeActionModal}
+            onConfirm={handleActionConfirm}
+            theme="light"
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default UserDropdown;

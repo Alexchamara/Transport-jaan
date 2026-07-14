@@ -1,156 +1,145 @@
 import React, { useState } from "react";
 
-const earningData = [
-  { name: "Jan", value: 5000 },
-  { name: "Feb", value: 7000 },
-  { name: "Mar", value: 6000 },
-  { name: "Apr", value: 23456 }, // Highlighted point
-  { name: "May", value: 8000 },
-  { name: "Jun", value: 4000 },
-  { name: "Jul", value: 9000 },
-  { name: "Aug", value: 12000 },
-  { name: "Sep", value: 10000 },
-  { name: "Oct", value: 9500 },
-  { name: "Nov", value: 15000 },
-  { name: "Dec", value: 21000 },
-];
-
-const maxValue = 24000;
 const chartHeight = 250;
 const chartWidth = 650;
+const chartWidthTablet = 500;
+const chartWidthMobile = 280;
 const padding = 40;
+const paddingTablet = 30;
+const paddingMobile = 20;
 
-function getX(index) {
-  return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
+function getCurrentSizes(isMobile, isTablet) {
+  if (isMobile) return { width: chartWidthMobile, padding: paddingMobile };
+  if (isTablet) return { width: chartWidthTablet, padding: paddingTablet };
+  return { width: chartWidth, padding: padding };
 }
-function getY(value) {
-  return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
+function getX(index, len, currentWidth, currentPadding) {
+  return currentPadding + (index * (currentWidth - 2 * currentPadding)) / Math.max(1, len - 1);
 }
-
-// Helper function to generate smooth curve
+function getY(value, maxValue, currentPadding) {
+  return chartHeight - currentPadding - (value * (chartHeight - 2 * currentPadding)) / Math.max(1, maxValue);
+}
 function generateSmoothPath(points) {
   if (points.length < 2) return "";
-  
   const path = [];
   path.push(`M ${points[0][0]} ${points[0][1]}`);
-  
   for (let i = 0; i < points.length - 1; i++) {
     const current = points[i];
     const next = points[i + 1];
     const controlPointX = (current[0] + next[0]) / 2;
-    
     path.push(`C ${controlPointX} ${current[1]}, ${controlPointX} ${next[1]}, ${next[0]} ${next[1]}`);
   }
-  
   return path.join(" ");
 }
 
-const EarningSummaryChart = () => {
-  // Find the index of the highest value
-  const highestIndex = earningData.reduce(
-    (maxIdx, d, idx, arr) => d.value > arr[maxIdx].value ? idx : maxIdx,
+const EarningSummaryChart = ({ data = [] }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  
+  React.useEffect(() => {
+    const checkSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
+  }, []);
+
+  const maxValue = Math.max(1, ...data.map((d) => Number(d.value || 0)));
+  const highestIndex = data.reduce(
+    (maxIdx, d, idx, arr) => (Number(d.value || 0) > Number(arr[maxIdx]?.value || 0) ? idx : maxIdx),
     0
   );
   const [hovered, setHovered] = useState(highestIndex);
 
-  // Generate points for the paths
-  const points = earningData.map((d, i) => [getX(i), getY(d.value)]);
-  
-  // Build the smooth line path
+  const { width: currentWidth, padding: currentPadding } = getCurrentSizes(isMobile, isTablet);
+
+  const points = data.map((d, i) => [getX(i, data.length, currentWidth, currentPadding), getY(Number(d.value || 0), maxValue, currentPadding)]);
   const linePath = generateSmoothPath(points);
-  
-  // Build the smooth area path
   const areaPath = [
-    `M ${getX(0)} ${chartHeight - padding}`,
-    generateSmoothPath(points).slice(1), // Remove the initial M command
-    `L ${getX(earningData.length - 1)} ${chartHeight - padding}`,
+    `M ${getX(0, data.length, currentWidth, currentPadding)} ${chartHeight - currentPadding}`,
+    generateSmoothPath(points).slice(1),
+    `L ${getX(Math.max(0, data.length - 1), data.length, currentWidth, currentPadding)} ${chartHeight - currentPadding}`,
     "Z",
   ].join(" ");
 
   return (
-    <div className="w-full h-auto ml-10">
-      <svg width={chartWidth} height={chartHeight} className="block mx-auto">
-        {/* Define linear gradient */}
+    <div className="w-full h-auto ml-0 md:ml-10 overflow-x-auto">
+      <svg width={currentWidth} height={chartHeight} className="block mx-auto" viewBox={`0 0 ${currentWidth} ${chartHeight}`} preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#C4E0FF" />
             <stop offset="100%" stopColor="#0955AC1A" />
           </linearGradient>
         </defs>
-        {/* Y axis grid lines and labels */}
-        {[0, 6000, 12000, 18000, 24000].map((val, i) => {
-          const y = getY(val);
+
+        {[0, maxValue * 0.25, maxValue * 0.5, maxValue * 0.75, maxValue].map((val, i) => {
+          const y = getY(val, maxValue, currentPadding);
+          const label = (val / 1000).toFixed(0) + "K";
           return (
             <g key={i}>
-              <line x1={padding} x2={chartWidth - padding} y1={y} y2={y} stroke="#E5E7EB" strokeWidth={1} />
-              <text x={0} y={y + 5} className="fill-[#7B7B7A] text-[14px] font-[500]" textAnchor="start">
-                {val / 1000}K
+              <line x1={currentPadding} x2={currentWidth - currentPadding} y1={y} y2={y} stroke="#E5E7EB" strokeWidth={1} />
+              <text x={isMobile ? 2 : 0} y={y + 5} className={`fill-[#7B7B7A] ${isMobile ? 'text-[10px]' : isTablet ? 'text-[12px]' : 'text-[14px]'} font-[500]`} textAnchor="start">
+                {label}
               </text>
             </g>
           );
         })}
-        {/* Area under the line */}
+
         <path d={areaPath} fill="url(#areaGradient)" />
-        {/* Smooth line */}
         <path d={linePath} fill="none" stroke="#0955AC" strokeWidth={2} />
-        {/* Interactive areas and tooltips */}
-        {earningData.map((d, i) => (
+
+        {data.map((d, i) => (
           <g key={i}>
-            {/* Invisible larger circle for better click detection */}
             <circle
-              cx={getX(i)}
-              cy={getY(d.value)}
-              r={15}
+              cx={getX(i, data.length, currentWidth, currentPadding)}
+              cy={getY(Number(d.value || 0), maxValue, currentPadding)}
+              r={isMobile ? 10 : 15}
               fill="transparent"
               className="cursor-pointer"
               onClick={() => setHovered(i)}
             />
-            {/* Visible point only when selected */}
             {hovered === i && (
               <circle
-                cx={getX(i)}
-                cy={getY(d.value)}
-                r={6}
+                cx={getX(i, data.length, currentWidth, currentPadding)}
+                cy={getY(Number(d.value || 0), maxValue, currentPadding)}
+                r={isMobile ? 4 : 6}
                 fill="rgba(9, 85, 172, 1)"
                 strokeWidth={2}
               />
             )}
           </g>
         ))}
-        {/* Single Tooltip rendered outside the map to prevent flicker */}
-        {hovered !== null && (() => {
-          const tooltipWidth = 108;
-          const tooltipHeight = 55;
-          const pointX = getX(hovered);
-          const pointY = getY(earningData[hovered].value);
+
+        {hovered !== null && data[hovered] && (() => {
+          const tooltipWidth = isMobile ? 90 : 108;
+          const tooltipHeight = isMobile ? 45 : 55;
+          const pointX = getX(hovered, data.length, currentWidth, currentPadding);
+          const pointY = getY(Number(data[hovered].value || 0), maxValue, currentPadding);
           let tooltipX = pointX - tooltipWidth / 2;
-          let tooltipY = pointY - tooltipHeight - 15; // 15px above the point
-
-          // Ensure tooltip stays within left/right bounds
+          let tooltipY = pointY - tooltipHeight - 15;
           if (tooltipX < 0) tooltipX = 0;
-          if (tooltipX + tooltipWidth > chartWidth) tooltipX = chartWidth - tooltipWidth;
-
-          // If tooltip would overflow the top, show it below the point
+          if (tooltipX + tooltipWidth > currentWidth) tooltipX = currentWidth - tooltipWidth;
           if (tooltipY < 0) tooltipY = pointY + 15;
-          // If tooltip would overflow the bottom, show it above the point
           if (tooltipY + tooltipHeight > chartHeight) tooltipY = pointY - tooltipHeight - 15;
-
           return (
             <foreignObject x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} pointerEvents="none">
-              <div className="bg-[#D8E4F2] w-[108px] h-[55px] rounded-[5px] shadow-lg px-4 py-2 flex flex-col items-center">
-                <span className="text-[14px] font-[500] mb-1">{earningData[hovered].name} 2025</span>
-                <span className="text-[16px] font-[700]">${earningData[hovered].value.toLocaleString()}</span>
+              <div className={`bg-[#D8E4F2] ${isMobile ? 'w-[90px] h-[45px]' : 'w-[108px] h-[55px]'} rounded-[5px] shadow-lg px-2 md:px-4 py-2 flex flex-col items-center`}>
+                <span className={`${isMobile ? 'text-[10px]' : isTablet ? 'text-[12px]' : 'text-[14px]'} font-[500] mb-1`}>{data[hovered].name} 2025</span>
+                <span className={`${isMobile ? 'text-[12px]' : isTablet ? 'text-[14px]' : 'text-[16px]'} font-[700]`}>${Number(data[hovered].value || 0).toLocaleString()}</span>
               </div>
             </foreignObject>
           );
         })()}
-        {/* X axis labels */}
-        {earningData.map((d, i) => (
+
+        {data.map((d, i) => (
           <text
             key={i}
-            x={getX(i)}
-            y={chartHeight - padding + 20}
-            className="fill-[#7B7B7A] text-[14px] font-[500]"
+            x={getX(i, data.length, currentWidth, currentPadding)}
+            y={chartHeight - currentPadding + 20}
+            className={`fill-[#7B7B7A] ${isMobile ? 'text-[10px]' : isTablet ? 'text-[12px]' : 'text-[14px]'} font-[500]`}
             textAnchor="middle"
           >
             {d.name}
@@ -161,4 +150,4 @@ const EarningSummaryChart = () => {
   );
 };
 
-export default EarningSummaryChart; 
+export default EarningSummaryChart;

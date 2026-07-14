@@ -9,11 +9,11 @@ import person from "../../assets/flight/person.svg";
 
 const Recommended = () => {
     return (
-        <div className="flex flex-col justify-center items-center px-10 py-10 bg-[#DCDCDC]">
-            <h1 className="bebas-neue text-[52px]/[76px] font-[400]">
+        <div className="flex flex-col justify-center items-center px-6 sm:px-10 py-10 bg-[#DCDCDC]">
+            <h1 className="bebas-neue text-[28px] sm:text-[36px] md:text-[52px] font-[400] text-center">
                 Recommended For You
             </h1>
-            <p className="text-[#737373] font-[500] text-[20px]/[32px]">
+            <p className="text-[#737373] font-[500] text-[14px] sm:text-[18px] md:text-[20px] text-center max-w-[900px]">
                 The best booking platform you can trust
             </p>
 
@@ -27,7 +27,7 @@ const Recommended = () => {
                             className="relative rounded-t-[30px] -mb-[40px] z-0"
                         />
                         <div
-                            className="absolute top-5 left-5 w-[111px] h-[32px] bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer"
+                            className="absolute top-5 left-5 w-[90px] sm:w-[111px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer text-[12px] sm:text-[14px]"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -36,7 +36,7 @@ const Recommended = () => {
                             Top Rated
                         </div>
                         <div
-                            className="absolute top-5 right-5 size-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
+                            className="absolute top-5 right-5 w-8 h-8 sm:w-[32px] sm:h-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -46,14 +46,14 @@ const Recommended = () => {
                         </div>
 
                         <div
-                            className="relative xl:w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-10"
+                            className="relative w-full lg:max-w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-6 sm:p-8 lg:p-10 mx-auto"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
                             }}
                         >
                             <div
-                                className="absolute -top-5 right-10 w-[169px] h-[36px] bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[14px] font-[700]"
+                                className="absolute -top-4 right-4 sm:right-10 w-[120px] sm:w-[169px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[12px] sm:text-[14px] font-[700]"
                                 style={{
                                     boxShadow:
                                         "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -68,11 +68,11 @@ const Recommended = () => {
                                 </h1>
                             </div>
 
-                            <h1 className="text-[24px]/[32px] font-[800]">
+                            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-[800]">
                                 California Sunset/Twilight Boat Cruise
                             </h1>
 
-                            <div className="flex flex-row justify-start items-center gap-5 text-[16px] font-[500] text-[#737373] my-3">
+                            <div className="flex flex-row justify-start items-center gap-5 text-[14px] sm:text-[16px] font-[500] text-[#737373] my-3">
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <img src={clock} />
                                     <h1>2 days 3 nights</h1>
@@ -83,15 +83,15 @@ const Recommended = () => {
                                 </div>
                             </div>
 
-                            <div className="my-10 flex flex-row justify-between">
-                                <h1 className="text-[24px] font-[800] ">
+                            <div className="my-4 sm:my-6 flex flex-row justify-between items-center">
+                                <h1 className="text-[16px] sm:text-[18px] md:text-[24px] font-[800] ">
                                     $48.25{" "}
                                     <span className="text-[#737373] font-[500]">
                                         {" "}
                                         / person
                                     </span>
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
+                                <div className="w-[96px] sm:w-[104px] h-[36px] sm:h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[13px] sm:text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -105,7 +105,7 @@ const Recommended = () => {
                             className="relative rounded-t-[30px] -mb-[40px] z-0"
                         />
                         <div
-                            className="absolute top-5 left-5 w-[111px] h-[32px] bg-[#FFFFFF] rounded-[50px] text-[#3DC262] font-[700] flex justify-center items-center z-20 cursor-pointer"
+                            className="absolute top-5 left-5 w-[90px] sm:w-[111px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#3DC262] font-[700] flex justify-center items-center z-20 cursor-pointer text-[12px] sm:text-[14px]"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -114,7 +114,7 @@ const Recommended = () => {
                             Best Sale
                         </div>
                         <div
-                            className="absolute top-5 right-5 size-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
+                            className="absolute top-5 right-5 w-8 h-8 sm:w-[32px] sm:h-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -124,14 +124,14 @@ const Recommended = () => {
                         </div>
 
                         <div
-                            className="relative xl:w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-10"
+                            className="relative w-full lg:max-w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-6 sm:p-8 lg:p-10 mx-auto"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
                             }}
                         >
                             <div
-                                className="absolute -top-5 right-10 w-[169px] h-[36px] bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[14px] font-[700]"
+                                className="absolute -top-4 right-4 sm:right-10 w-[120px] sm:w-[169px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[12px] sm:text-[14px] font-[700]"
                                 style={{
                                     boxShadow:
                                         "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -146,11 +146,11 @@ const Recommended = () => {
                                 </h1>
                             </div>
 
-                            <h1 className="text-[24px]/[32px] font-[800]">
+                            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-[800]">
                                 NYC: Food Tastings and Culture Tour
                             </h1>
 
-                            <div className="flex flex-row justify-start items-center gap-5 text-[16px] font-[500] text-[#737373] my-3">
+                            <div className="flex flex-row justify-start items-center gap-5 text-[14px] sm:text-[16px] font-[500] text-[#737373] my-3">
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <img src={clock} />
                                     <h1>2 days 3 nights</h1>
@@ -161,15 +161,15 @@ const Recommended = () => {
                                 </div>
                             </div>
 
-                            <div className="my-10 flex flex-row justify-between">
-                                <h1 className="text-[24px] font-[800] ">
+                            <div className="my-4 sm:my-6 flex flex-row justify-between items-center">
+                                <h1 className="text-[16px] sm:text-[18px] md:text-[24px] font-[800] ">
                                     $48.25{" "}
                                     <span className="text-[#737373] font-[500]">
                                         {" "}
                                         / person
                                     </span>
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
+                                <div className="w-[96px] sm:w-[104px] h-[36px] sm:h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[13px] sm:text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -183,7 +183,7 @@ const Recommended = () => {
                             className="relative rounded-t-[30px] -mb-[40px] z-0"
                         />
                         <div
-                            className="absolute top-5 left-5 w-[111px] h-[32px] bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer"
+                            className="absolute top-5 left-5 w-[90px] sm:w-[111px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer text-[12px] sm:text-[14px]"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -192,7 +192,7 @@ const Recommended = () => {
                             25% Off
                         </div>
                         <div
-                            className="absolute top-5 right-5 size-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
+                            className="absolute top-5 right-5 w-8 h-8 sm:w-[32px] sm:h-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -202,14 +202,14 @@ const Recommended = () => {
                         </div>
 
                         <div
-                            className="relative xl:w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-10"
+                            className="relative w-full lg:max-w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-6 sm:p-8 lg:p-10 mx-auto"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
                             }}
                         >
                             <div
-                                className="absolute -top-5 right-10 w-[169px] h-[36px] bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[14px] font-[700]"
+                                className="absolute -top-4 right-4 sm:right-10 w-[120px] sm:w-[169px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[12px] sm:text-[14px] font-[700]"
                                 style={{
                                     boxShadow:
                                         "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -224,11 +224,11 @@ const Recommended = () => {
                                 </h1>
                             </div>
 
-                            <h1 className="text-[24px]/[32px] font-[800]">
+                            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-[800]">
                                 Grand Canyon Horseshoe Bend 2 days
                             </h1>
 
-                            <div className="flex flex-row justify-start items-center gap-5 text-[16px] font-[500] text-[#737373] my-3">
+                            <div className="flex flex-row justify-start items-center gap-5 text-[14px] sm:text-[16px] font-[500] text-[#737373] my-3">
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <img src={clock} />
                                     <h1>2 days 3 nights</h1>
@@ -239,15 +239,15 @@ const Recommended = () => {
                                 </div>
                             </div>
 
-                            <div className="my-10 flex flex-row justify-between">
-                                <h1 className="text-[24px] font-[800] ">
+                            <div className="my-4 sm:my-6 flex flex-row justify-between items-center">
+                                <h1 className="text-[16px] sm:text-[18px] md:text-[24px] font-[800] ">
                                     $48.25{" "}
                                     <span className="text-[#737373] font-[500]">
                                         {" "}
                                         / person
                                     </span>
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
+                                <div className="w-[96px] sm:w-[104px] h-[36px] sm:h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[13px] sm:text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -264,7 +264,7 @@ const Recommended = () => {
                             className="relative rounded-t-[30px] -mb-[40px] z-0"
                         />
                         <div
-                            className="absolute top-5 left-5 w-[111px] h-[32px] bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer"
+                            className="absolute top-5 left-5 w-[90px] sm:w-[111px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer text-[12px] sm:text-[14px]"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -273,7 +273,7 @@ const Recommended = () => {
                             Top Rated
                         </div>
                         <div
-                            className="absolute top-5 right-5 size-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
+                            className="absolute top-5 right-5 w-8 h-8 sm:w-[32px] sm:h-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -283,14 +283,14 @@ const Recommended = () => {
                         </div>
 
                         <div
-                            className="relative xl:w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-10"
+                            className="relative w-full lg:max-w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-6 sm:p-8 lg:p-10 mx-auto"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
                             }}
                         >
                             <div
-                                className="absolute -top-5 right-10 w-[169px] h-[36px] bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[14px] font-[700]"
+                                className="absolute -top-4 right-4 sm:right-10 w-[120px] sm:w-[169px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[12px] sm:text-[14px] font-[700]"
                                 style={{
                                     boxShadow:
                                         "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -305,11 +305,11 @@ const Recommended = () => {
                                 </h1>
                             </div>
 
-                            <h1 className="text-[24px]/[32px] font-[800]">
+                            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-[800]">
                                 California Sunset/Twilight Boat Cruise
                             </h1>
 
-                            <div className="flex flex-row justify-start items-center gap-5 text-[16px] font-[500] text-[#737373] my-3">
+                            <div className="flex flex-row justify-start items-center gap-5 text-[14px] sm:text-[16px] font-[500] text-[#737373] my-3">
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <img src={clock} />
                                     <h1>2 days 3 nights</h1>
@@ -320,15 +320,15 @@ const Recommended = () => {
                                 </div>
                             </div>
 
-                            <div className="my-10 flex flex-row justify-between">
-                                <h1 className="text-[24px] font-[800] ">
+                            <div className="my-4 sm:my-6 flex flex-row justify-between items-center">
+                                <h1 className="text-[16px] sm:text-[18px] md:text-[24px] font-[800] ">
                                     $48.25{" "}
                                     <span className="text-[#737373] font-[500]">
                                         {" "}
                                         / person
                                     </span>
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
+                                <div className="w-[96px] sm:w-[104px] h-[36px] sm:h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[13px] sm:text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -342,7 +342,7 @@ const Recommended = () => {
                             className="relative rounded-t-[30px] -mb-[40px] z-0"
                         />
                         <div
-                            className="absolute top-5 left-5 w-[111px] h-[32px] bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer"
+                            className="absolute top-5 left-5 w-[90px] sm:w-[111px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer text-[12px] sm:text-[14px]"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -351,7 +351,7 @@ const Recommended = () => {
                             25% Off
                         </div>
                         <div
-                            className="absolute top-5 right-5 size-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
+                            className="absolute top-5 right-5 w-8 h-8 sm:w-[32px] sm:h-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -361,14 +361,14 @@ const Recommended = () => {
                         </div>
 
                         <div
-                            className="relative xl:w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-10"
+                            className="relative w-full lg:max-w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-6 sm:p-8 lg:p-10 mx-auto"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
                             }}
                         >
                             <div
-                                className="absolute -top-5 right-10 w-[169px] h-[36px] bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[14px] font-[700]"
+                                className="absolute -top-4 right-4 sm:right-10 w-[120px] sm:w-[169px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[12px] sm:text-[14px] font-[700]"
                                 style={{
                                     boxShadow:
                                         "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -383,11 +383,11 @@ const Recommended = () => {
                                 </h1>
                             </div>
 
-                            <h1 className="text-[24px]/[32px] font-[800]">
+                            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-[800]">
                                 NYC: Food Tastings and Culture Tour
                             </h1>
 
-                            <div className="flex flex-row justify-start items-center gap-5 text-[16px] font-[500] text-[#737373] my-3">
+                            <div className="flex flex-row justify-start items-center gap-5 text-[14px] sm:text-[16px] font-[500] text-[#737373] my-3">
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <img src={clock} />
                                     <h1>2 days 3 nights</h1>
@@ -398,15 +398,15 @@ const Recommended = () => {
                                 </div>
                             </div>
 
-                            <div className="my-10 flex flex-row justify-between">
-                                <h1 className="text-[24px] font-[800] ">
+                            <div className="my-4 sm:my-6 flex flex-row justify-between items-center">
+                                <h1 className="text-[16px] sm:text-[18px] md:text-[24px] font-[800] ">
                                     $48.25{" "}
                                     <span className="text-[#737373] font-[500]">
                                         {" "}
                                         / person
                                     </span>
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
+                                <div className="w-[96px] sm:w-[104px] h-[36px] sm:h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[13px] sm:text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -420,7 +420,7 @@ const Recommended = () => {
                             className="relative rounded-t-[30px] -mb-[40px] z-0"
                         />
                         <div
-                            className="absolute top-5 left-5 w-[111px] h-[32px] bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer"
+                            className="absolute top-5 left-5 w-[90px] sm:w-[111px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#F09814] font-[700] flex justify-center items-center z-20 cursor-pointer text-[12px] sm:text-[14px]"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -429,7 +429,7 @@ const Recommended = () => {
                             Top Rated
                         </div>
                         <div
-                            className="absolute top-5 right-5 size-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
+                            className="absolute top-5 right-5 w-8 h-8 sm:w-[32px] sm:h-[32px] bg-[#FFFFFFD1] rounded-full flex justify-center items-center cursor-pointer"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -439,14 +439,14 @@ const Recommended = () => {
                         </div>
 
                         <div
-                            className="relative xl:w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-10"
+                            className="relative w-full lg:max-w-[390px] xl:h-[259px] bg-[#FFFFFF] rounded-[30px] z-10 p-6 sm:p-8 lg:p-10 mx-auto"
                             style={{
                                 boxShadow:
                                     "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
                             }}
                         >
                             <div
-                                className="absolute -top-5 right-10 w-[169px] h-[36px] bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[14px] font-[700]"
+                                className="absolute -top-4 right-4 sm:right-10 w-[120px] sm:w-[169px] h-7 sm:h-8 bg-[#FFFFFF] rounded-[50px] text-[#000000] flex flex-row justify-center items-center gap-2 text-[12px] sm:text-[14px] font-[700]"
                                 style={{
                                     boxShadow:
                                         "0px 2px 2px 0px rgba(0, 0, 0, 0.25)",
@@ -461,11 +461,11 @@ const Recommended = () => {
                                 </h1>
                             </div>
 
-                            <h1 className="text-[24px]/[32px] font-[800]">
+                            <h1 className="text-[18px] sm:text-[20px] md:text-[24px] font-[800]">
                                 Grand Canyon Horseshoe Bend 2 days
                             </h1>
 
-                            <div className="flex flex-row justify-start items-center gap-5 text-[16px] font-[500] text-[#737373] my-3">
+                            <div className="flex flex-row justify-start items-center gap-5 text-[14px] sm:text-[16px] font-[500] text-[#737373] my-3">
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <img src={clock} />
                                     <h1>2 days 3 nights</h1>
@@ -476,15 +476,15 @@ const Recommended = () => {
                                 </div>
                             </div>
 
-                            <div className="my-10 flex flex-row justify-between">
-                                <h1 className="text-[24px] font-[800] ">
+                            <div className="my-4 sm:my-6 flex flex-row justify-between items-center">
+                                <h1 className="text-[16px] sm:text-[18px] md:text-[24px] font-[800] ">
                                     $48.25{" "}
                                     <span className="text-[#737373] font-[500]">
                                         {" "}
                                         / person
                                     </span>
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
+                                <div className="w-[96px] sm:w-[104px] h-[36px] sm:h-[40px] bg-[#F2F4F6] rounded-[50px] font-[700] text-[13px] sm:text-[14px] flex justify-center items-center border-[1px] border-[#E4E6E8] cursor-pointer">
                                     Book Now
                                 </div>
                             </div>

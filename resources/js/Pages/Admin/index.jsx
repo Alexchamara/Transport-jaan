@@ -14,14 +14,14 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
 
-                            {/* Total Vendors */}
+                            {/* Total Service Providers */}
                             <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-red-500">
-                                <h3 className="text-lg font-semibold mb-1">Total Vendors</h3>
+                                <h3 className="text-lg font-semibold mb-1">Total Service Providers</h3>
                                 <Link
                                     href={route("vendor.list")}
                                     className="text-sm text-blue-600 hover:underline mt-2 block"
                                 >
-                                    View Vendor List
+                                    View Service Provider List
                                 </Link>
                             </div>
 
@@ -145,7 +145,7 @@ export default function Dashboard() {
                             </div>
 
 
-                            {/* Total Vendors */}
+                            {/* Add New Brand */}
                             <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
                                 <h3 className="text-lg font-semibold mb-1">Add New Brand</h3>
                                 <Link
@@ -156,7 +156,7 @@ export default function Dashboard() {
                                 </Link>
                             </div>
 
-                            {/* Total Vendors */}
+                            {/* Add New Body Type */}
                             <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
                                 <h3 className="text-lg font-semibold mb-1">Add New Body Type</h3>
                                 <Link

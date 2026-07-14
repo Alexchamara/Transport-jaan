@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../../layouts/Header";
+import Header from "../../../../Pages/Web/home/client/ClientHeader";
 import Hero from "../../components/warehouse/Hero";
 import AboutUs from "../../components/warehouse/AboutUs";
 import Collection from "../../components/warehouse/Collection";

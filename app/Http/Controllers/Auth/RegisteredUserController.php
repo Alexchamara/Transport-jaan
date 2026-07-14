@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\PasswordStrength;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,8 +34,9 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Rules\Password::defaults(), new PasswordStrength()],
             'role_type' => ['required', 'in:client,vendor'],
+                'vendor_type' => ['required_if:role_type,client,vendor', 'in:individual,business'],
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
             'country' => 'required|string|max:2',
@@ -45,6 +47,8 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role_type,
+                'vendor_type' => $request->vendor_type,
+            'status' => $request->role_type === 'client' ? 'verified' : 'unverified',
             'phone' => $request->phone,
             'address' => $request->address,
             'country' => $request->country,
@@ -55,8 +59,8 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         $redirectTo = match($user->role) {
-            'client' => route('home', absolute: false),
-            'vendor' => route('vendors.mainDashboard', absolute: false),
+            'client' => route('clientAllBookings', absolute: false),
+            'vendor' => route('vendorAllBookings', absolute: false),
             default => route('landingPage.home', absolute: false),
         };
 

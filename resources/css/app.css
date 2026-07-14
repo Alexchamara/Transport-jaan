@@ -1,119 +1,223 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabin:ital,wght@0,400..700;1,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabin:ital,wght@0,400..700;1,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cabin:ital,wght@0,400..700;1,400..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap");
 
 /* Custom Font Face for .otf font */
 @font-face {
-  font-family: 'Gilroy-ExtraBold';
-  src: url('/fonts/Gilroy-ExtraBold.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+    font-family: "Gilroy-ExtraBold";
+    src: url("/fonts/Gilroy-ExtraBold.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-  font-family: 'Gilroy-Bold';
-  src: url('/fonts/Gilroy-Bold.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+    font-family: "Gilroy-Bold";
+    src: url("/fonts/Gilroy-Bold.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-  font-family: 'Gilroy-Medium';
-  src: url('/fonts/Gilroy-Medium.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
+    font-family: "Gilroy-Medium";
+    src: url("/fonts/Gilroy-Medium.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
 }
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
-/* Custom Font Face for .otf font */
-@font-face {
-  font-family: 'Gilroy-ExtraBold';
-  src: url('/fonts/Gilroy-ExtraBold.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Gilroy-Bold';
-  src: url('/fonts/Gilroy-Bold.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Gilroy-Medium';
-  src: url('/fonts/Gilroy-Medium.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 .bebas-neue {
-  font-family: "Bebas Neue", sans-serif;
+    font-family: "Bebas Neue", sans-serif;
 }
 
 .poppins {
-  font-family: "Poppins", sans-serif;
+    font-family: "Poppins", sans-serif;
 }
 
 .figtree {
-  font-family: "Figtree", sans-serif;
+    font-family: "Figtree", sans-serif;
 }
 
 .inter {
-  font-family: "Inter", sans-serif;
+    font-family: "Inter", sans-serif;
 }
 
 .work-sans {
-  font-family: "Work Sans", sans-serif;
+    font-family: "Work Sans", sans-serif;
 }
 
 .cabin {
-  font-family: "Cabin", sans-serif;
+    font-family: "Cabin", sans-serif;
 }
 
 .lato {
-  font-family: "Lato", sans-serif;
+    font-family: "Lato", sans-serif;
 }
 
 .plus-jakarta-sans {
-  font-family: "Plus Jakarta Sans", sans-serif;
+    font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .gilroy-extrabold {
-  font-family: "Gilroy-ExtraBold", sans-serif;
+    font-family: "Gilroy-ExtraBold", sans-serif;
 }
 
 .gilroy-bold {
-  font-family: "Gilroy-Bold", sans-serif;
+    font-family: "Gilroy-Bold", sans-serif;
 }
 
 .gilroy-medium {
-  font-family: "Gilroy-Medium", sans-serif;
+    font-family: "Gilroy-Medium", sans-serif;
 }
 
 /* Custom Scrollbar Styles */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+    width: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+    background: #f1f1f1;
+    border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #0955AC;
-  border-radius: 4px;
+    background: #0955ac;
+    border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #074a94;
+    background: #074a94;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* Keep SuperAdmin page-topic labels visually consistent in the sidebar. */
+.superadmin-nav-pane h1.font-\[500\].text-\[18px\],
+.superadmin-nav-pane a.text-\[14px\].font-\[500\],
+.superadmin-nav-pane div.text-\[14px\].font-\[500\] {
+    font-size: 16px !important;
+    line-height: 1.5;
+}
+
+/* SuperAdmin responsiveness for laptop/desktop breakpoints only */
+@media (min-width: 1024px) {
+    .poppins:has(.superadmin-nav-pane) {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* Keep SuperAdmin page topic headings consistent across sections. */
+    .poppins:has(.superadmin-nav-pane) h1.text-3xl.font-bold.text-white,
+    .poppins:has(.superadmin-nav-pane) h1.text-white.text-3xl.font-bold,
+    .poppins:has(.superadmin-nav-pane)
+        h1.text-white.text-base.md\:text-lg.lg\:text-\[24px\].font-poppins,
+    .poppins:has(.superadmin-nav-pane) h1.text-white.text-\[24px\].font-\[600\],
+    .poppins:has(.superadmin-nav-pane) h1.text-white.text-\[24px\].font-poppins,
+    .poppins:has(.superadmin-nav-pane) h1.text-2xl.font-bold.mb-2,
+    .poppins:has(.superadmin-nav-pane) h1.text-white.text-2xl.font-semibold,
+    .poppins:has(.superadmin-nav-pane)
+        h1.text-white.text-2xl.font-semibold.font-poppins,
+    .poppins:has(.superadmin-nav-pane) h2.text-2xl.font-semibold.mb-6 {
+        font-size: 24px !important;
+        line-height: 1.2 !important;
+        font-weight: 600 !important;
+    }
+
+    .superadmin-nav-pane {
+        width: clamp(240px, 20vw, 300px) !important;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        overflow-y: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .superadmin-nav-pane::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        display: none;
+    }
+
+    .poppins:has(.superadmin-nav-pane) > :has(.superadmin-nav-pane) {
+        flex: 0 0 clamp(240px, 20vw, 300px);
+        width: clamp(240px, 20vw, 300px) !important;
+        min-width: clamp(240px, 20vw, 300px);
+        height: 100vh;
+    }
+
+    .poppins:has(.superadmin-nav-pane) > :not(:has(.superadmin-nav-pane)) {
+        flex: 1 1 auto;
+        width: auto !important;
+        min-width: 0;
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[1125px\],
+    .poppins:has(.superadmin-nav-pane) .xl\:w-\[1125px\] {
+        width: min(100%, 1125px) !important;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[1060px\] {
+        width: min(100%, 1060px) !important;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[1040px\] {
+        width: min(100%, 1040px) !important;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[1035px\],
+    .poppins:has(.superadmin-nav-pane) .max-w-\[1035px\] {
+        width: min(100%, 1035px) !important;
+        max-width: 100%;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[1032px\] {
+        width: min(100%, 1032px) !important;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[980px\] {
+        width: min(100%, 980px) !important;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .w-\[962px\] {
+        width: min(100%, 962px) !important;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .xl\:min-w-\[675px\] {
+        min-width: min(100%, 675px);
+    }
+
+    .poppins:has(.superadmin-nav-pane) .min-w-\[355px\],
+    .poppins:has(.superadmin-nav-pane) .min-w-\[341px\],
+    .poppins:has(.superadmin-nav-pane) .min-w-\[318px\] {
+        min-width: 0;
+    }
+
+    .poppins:has(.superadmin-nav-pane) .mx-\[48px\] {
+        margin-left: clamp(0.75rem, 1.5vw, 1.5rem);
+        margin-right: clamp(0.75rem, 1.5vw, 1.5rem);
+    }
+
+    .poppins:has(.superadmin-nav-pane) .mx-\[35px\] {
+        margin-left: clamp(0.75rem, 1.25vw, 1.25rem);
+        margin-right: clamp(0.75rem, 1.25vw, 1.25rem);
+    }
 }

@@ -98,7 +98,8 @@ export default function Search({ auth, warehouses, filters }) {
             daily: '/day',
             monthly: '/month'
         };
-        return `$${warehouse.price}${priceModel[warehouse.pricing_model]}`;
+        const displayPrice = warehouse.monthly_rate || warehouse.base_price;
+        return `$${displayPrice}${priceModel[warehouse.pricing_model]}`;
     };
 
     return (

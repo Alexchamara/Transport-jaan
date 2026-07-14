@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\VendorUserMembership;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('Auth/signin', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
         ]);
@@ -33,11 +34,25 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $role = Auth::user()->role;
-        
+        $user = Auth::user();
+
+        // Proceed with role-based redirection (both verified and unverified users)
+        $role = $user->role;
+        $status = $user->status;
+
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership) {
+            return redirect()->intended(route('courierService.dashboard'));
+        }
+
         $redirectTo = match($role) {
-            'client' => route('home'),
-            'vendor' => route('vendors.mainDashboard'),
+            'SuperAdmin' => route('superadmin.Analytics'),
+            'client' => route('clientAllBookings'),
+            'vendor' => $status === 'unverified' ? route('vendorAllBookings') : route('vendorAllBookings'),
             'admin' => route('landingPage.home'),
             default => route('landingPage.home'),
         };
@@ -50,12 +65,26 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        try {
+            Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+            $request->session()->invalidate();
 
-        $request->session()->regenerateToken();
+            $request->session()->regenerateToken();
 
-        return redirect('/');
+            // Clear any existing messages and redirect to home
+            return redirect('/')->with('message', 'You have been successfully logged out.');
+        } catch (\Exception $e) {
+            // If there's an error, still try to logout and redirect
+            Auth::guard('web')->logout();
+
+            // Force session regeneration even if there's an error
+            if ($request->session()) {
+                $request->session()->flush();
+                $request->session()->regenerate();
+            }
+
+            return redirect('/')->with('message', 'You have been logged out.');
+        }
     }
 }

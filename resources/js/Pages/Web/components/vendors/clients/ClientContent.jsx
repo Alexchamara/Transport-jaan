@@ -1,50 +1,42 @@
-import React from "react";
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
+// resources/js/Pages/Web/components/vendors/clients/ClientContent.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { usePage, Link } from "@inertiajs/react";
+
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
 
+import NotificationDropdown from "../NotificationDropdown";
 import ClientTable from "./ClientTable";
 
+import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
+
 const ClientContent = () => {
+    const { auth, unreadNotifications = 0, clients: clientsData } = usePage().props;
+    const user = auth?.user;
+
+
     return (
-        <div className="w-full h-auto pr-5 py-10">
-            {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Clients</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
-                </div>
+        <div className="flex flex-col gap-10 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
+            {/* ==================== HEADER WITH NOTIFICATION + DROPDOWN ==================== */}
+            <div className="flex flex-col sm:flex-row gap-5 justify-between lg:items-start items-center">
+                <h1 className="figtree text-[25px] sm:text-[35px] font-[700]">Vehicle Rental Clients</h1>
+{/* 
+                <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div> */}
             </div>
-            {/* end of header section */}
 
+            {/* ==================== CLIENT TABLE ==================== */}
             <div
                 className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
-
-              <ClientTable />
-
+                 <div className="flex flex-row gap-3 sm:gap-5 relative items-center ml-100">
+                    </div>
+                <ClientTable />
             </div>
         </div>
     );
