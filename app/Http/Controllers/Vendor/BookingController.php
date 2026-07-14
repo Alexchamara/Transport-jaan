@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\AirVehicleBookings;
 use App\Models\SeaVehicleBookings;
-use App\Models\CancellationSetting;
 use App\Models\Notification;
+use App\Services\VehicleBookingCancellationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +62,7 @@ class BookingController extends Controller
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
-                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->with(['client', 'customer', 'vehicle', 'driver', 'schedule', 'payments'])
                 ->latest('created_at')
                 ->take(100)
                 ->get()
@@ -119,6 +119,9 @@ class BookingController extends Controller
                     'canCancel'     => true,
                     'policyUrl'     => '/vendors/bookings/' . $b->id . '/vendor/cancellation-policy',
                     'cancelUrl'     => '/vendors/bookings/' . $b->id . '/vendor/cancel-booking',
+                    'rawId'              => $b->id,
+                    'assignedDriverId'   => $b->driver_id,
+                    'assignedDriverName' => $b->driver?->full_name,
                     'cancellationReason' => $b->cancellation_reason,
                     'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                     'cancelledBy'   => $b->cancelled_by,
@@ -130,7 +133,7 @@ class BookingController extends Controller
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
-                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->with(['client', 'customer', 'vehicle', 'driver', 'schedule', 'payments'])
                 ->latest('created_at')
                 ->take(100)
                 ->get()
@@ -185,6 +188,9 @@ class BookingController extends Controller
                         'canCancel'     => true,
                         'policyUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancellation-policy',
                         'cancelUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancel-booking',
+                        'rawId'              => $b->id,
+                        'assignedDriverId'   => $b->driver_id,
+                        'assignedDriverName' => $b->driver?->full_name,
                         'cancellationReason' => $b->cancellation_reason,
                         'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                         'cancelledBy'   => $b->cancelled_by,
@@ -196,7 +202,7 @@ class BookingController extends Controller
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
-                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->with(['client', 'customer', 'vehicle', 'driver', 'schedule', 'payments'])
                 ->latest('created_at')
                 ->take(100)
                 ->get()
@@ -251,6 +257,9 @@ class BookingController extends Controller
                         'canCancel'     => true,
                         'policyUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancellation-policy',
                         'cancelUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancel-booking',
+                        'rawId'              => $b->id,
+                        'assignedDriverId'   => $b->driver_id,
+                        'assignedDriverName' => $b->driver?->full_name,
                         'cancellationReason' => $b->cancellation_reason,
                         'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                         'cancelledBy'   => $b->cancelled_by,
@@ -317,8 +326,17 @@ class BookingController extends Controller
             // Get unread notification count
             $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
 
+            // Vendor's assignable (active) drivers for the assign-driver control
+            $drivers = \App\Models\Driver::where('user_id', $vendorId)
+                ->where('status', 'Active')
+                ->orderBy('full_name')
+                ->get(['id', 'full_name'])
+                ->map(fn ($d) => ['id' => $d->id, 'name' => $d->full_name])
+                ->values();
+
             return Inertia::render('Web/home/vendors/Booking', [
                 'initialBookings' => $initialBookings,
+                'drivers'         => $drivers,
                 'bookingData'     => $bookingData,
                 'vendorUser'      => [
                     'name' => $vendor?->name ?? 'Vendor',
@@ -768,21 +786,8 @@ class BookingController extends Controller
 
         $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
 
-        $refundDetails = $this->buildVehicleRefundPreview(
-            (float) ($booking->total_amount ?? $booking->subtotal ?? 0),
-            $booking->schedule?->pickup_at,
-            'vendor'
-        );
-
-        if (!$refundDetails['success']) {
-            return response()->json($refundDetails, 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'can_cancel' => strtolower((string) $booking->status) !== 'cancelled',
-            'refund_details' => $refundDetails['refund_details'],
-        ]);
+        $cancellationService = app(VehicleBookingCancellationService::class);
+        return response()->json($cancellationService->getRefundPreview($booking, 'vendor'));
     }
 
     public function cancelBookingAsVendorByType(Request $request, string $bookingType, int $bookingId)
@@ -795,56 +800,65 @@ class BookingController extends Controller
 
         $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
 
-        if (strtolower((string) $booking->status) === 'cancelled') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Booking is already cancelled.',
-            ], 422);
-        }
-
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $refundPreview = $this->buildVehicleRefundPreview(
-            (float) ($booking->total_amount ?? $booking->subtotal ?? 0),
-            $booking->schedule?->pickup_at,
-            'vendor'
+        $cancellationService = app(VehicleBookingCancellationService::class);
+
+        $result = $cancellationService->cancelBooking(
+            $booking,
+            'vendor',
+            $validated['reason'] ?? null,
+            $vendorId
         );
 
-        if (!$refundPreview['success']) {
-            return response()->json($refundPreview, 422);
+        if (!$result['success']) {
+            return response()->json($result, 422);
         }
 
-        $notes = trim((string) ($booking->notes ?? ''));
-        $reason = trim((string) ($validated['reason'] ?? ''));
-        $cancelNote = 'Cancelled by vendor on ' . now()->toDateTimeString();
-        if ($reason !== '') {
-            $cancelNote .= ' | Reason: ' . $reason;
+        return response()->json($result);
+    }
+
+    public function assignDriver(Request $request, string $bookingType, int $bookingId)
+    {
+        $vendor   = Auth::user();
+        $vendorId = $vendor?->id;
+
+        $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+            ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+        $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
+
+        $validated = $request->validate([
+            'driver_id' => ['nullable', 'integer'],
+        ]);
+
+        $driverId = $validated['driver_id'] ?? null;
+        $driver   = null;
+
+        if ($driverId) {
+            // Only the vendor's own active drivers may be assigned.
+            $driver = \App\Models\Driver::where('id', $driverId)
+                ->where('user_id', $vendorId)
+                ->where('status', 'Active')
+                ->first();
+
+            if (!$driver) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Driver not found, inactive, or not one of your drivers.',
+                ], 422);
+            }
         }
 
-        $updatePayload = [
-            'status' => 'cancelled',
-            'notes' => trim($notes . "\n" . $cancelNote),
-        ];
-
-        $table = $booking->getTable();
-        if (Schema::hasColumn($table, 'cancellation_reason')) {
-            $updatePayload['cancellation_reason'] = $reason !== '' ? $reason : null;
-        }
-        if (Schema::hasColumn($table, 'cancelled_at')) {
-            $updatePayload['cancelled_at'] = now();
-        }
-        if (Schema::hasColumn($table, 'cancelled_by')) {
-            $updatePayload['cancelled_by'] = 'vendor';
-        }
-
-        $booking->update($updatePayload);
+        $booking->driver_id = $driverId;
+        $booking->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Booking cancelled successfully.',
-            'refund_details' => $refundPreview['refund_details'] ?? null,
+            'message' => $driver ? 'Driver assigned successfully.' : 'Driver unassigned.',
+            'driver'  => $driver ? ['id' => $driver->id, 'name' => $driver->full_name] : null,
         ]);
     }
 
@@ -865,49 +879,6 @@ class BookingController extends Controller
         }
 
         return $booking;
-    }
-
-    private function buildVehicleRefundPreview(float $totalAmount, $pickupAt, string $cancelledBy = 'vendor'): array
-    {
-        try {
-            if (!$pickupAt) {
-                return [
-                    'success' => false,
-                    'message' => 'Cannot calculate refund: booking has no pickup date',
-                ];
-            }
-
-            $pickup = Carbon::parse($pickupAt);
-            $daysUntilPickup = Carbon::now()->diffInDays($pickup, false);
-            $threshold = CancellationSetting::getDaysForContext('vehicle');
-
-            $refundPercentage = $daysUntilPickup >= ($threshold - 0.01) ? 100 : 50;
-            $refundAmount = round(($totalAmount * $refundPercentage) / 100, 2);
-            $cancellationFee = round($totalAmount - $refundAmount, 2);
-            $actor = $cancelledBy === 'vendor' ? 'Vendor' : 'You';
-            $timingText = $daysUntilPickup >= $threshold
-                ? "more than {$threshold} days before pickup"
-                : "less than {$threshold} days before pickup";
-
-            return [
-                'success' => true,
-                'refund_details' => [
-                    'refund_amount' => $refundAmount,
-                    'refund_percentage' => $refundPercentage,
-                    'cancellation_fee' => $cancellationFee,
-                    'days_until_pickup' => round($daysUntilPickup, 2),
-                    'policy_message' => $refundPercentage === 100
-                        ? "{$actor} are cancelling {$timingText} and customer will receive 100% refund."
-                        : "{$actor} are cancelling {$timingText} and customer will receive 50% refund.",
-                    'vendor_commission_refund' => 0,
-                ],
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'message' => 'Cannot calculate refund: ' . $e->getMessage(),
-            ];
-        }
     }
 
     /**
@@ -972,20 +943,13 @@ class BookingController extends Controller
                     'status' => $paymentStatusValue,
                 ]);
                 
-                // If status is paid, set paid_at timestamp on the latest payment
-                if ($paymentStatusValue === 'paid') {
-                    $latestPayment = $booking->payments()->latest()->first();
-                    if ($latestPayment && !$latestPayment->paid_at) {
-                        $latestPayment->update(['paid_at' => now()]);
-                    }
-                }
             } else {
-                // No payment records exist, create one
+                // No payment records exist, create one with valid BookingPayment columns.
                 $booking->payments()->create([
-                    'amount' => $validated['total_amount'],
-                    'payment_method' => 'manual',
-                    'status' => $paymentStatusValue,
-                    'paid_at' => $paymentStatusValue === 'paid' ? now() : null,
+                    'method'      => 'Bank Transfer',
+                    'option'      => 'full',
+                    'amount_paid' => $validated['total_amount'],
+                    'status'      => $paymentStatusValue,
                 ]);
             }
 

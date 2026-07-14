@@ -8,6 +8,8 @@ const FilterSidebar = ({ searchParams }) => {
   const [selectedCapacity, setSelectedCapacity] = useState("");
   const [selectedPrice, setSelectedPrice] = useState("");
   const [selectedMileage, setSelectedMileage] = useState("");
+  const [selectedTransmission, setSelectedTransmission] = useState("");
+  const [selectedFuel, setSelectedFuel] = useState("");
 
   useEffect(() => {
     if (searchParams?.bodyType) {
@@ -82,6 +84,32 @@ const handleMileagesChange = (mileageChange) => {
   router.get('/vehicleList', {
     ...searchParams,
     mileage: newMileages,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
+const handleTransmissionChange = (transmission) => {
+  const newVal = selectedTransmission === transmission ? "" : transmission;
+  setSelectedTransmission(newVal);
+  router.get('/vehicleList', {
+    ...searchParams,
+    transmission: newVal,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
+const handleFuelChange = (fuel) => {
+  const newVal = selectedFuel === fuel ? "" : fuel;
+  setSelectedFuel(newVal);
+  router.get('/vehicleList', {
+    ...searchParams,
+    fuel: newVal,
   }, {
     preserveState: true,
     preserveScroll: true,
@@ -381,6 +409,64 @@ const handleMileagesChange = (mileageChange) => {
             </div>
             <span>(23)</span>
           </div>
+        </div>
+
+        <div className="filter-section mb-15">
+          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
+            TRANSMISSION
+          </h3>
+          {[
+            { id: "automatic", label: "Automatic" },
+            { id: "manual", label: "Manual" },
+            { id: "amt", label: "AMT" },
+            { id: "cvt", label: "CVT" },
+            { id: "dct", label: "DCT" },
+          ].map((t) => (
+            <div key={t.id} className="mb-1.5 flex justify-between items-center">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`transmission_${t.id}`}
+                  name="transmission"
+                  value={t.id}
+                  className="mr-1.5"
+                  checked={selectedTransmission === t.id}
+                  onChange={() => handleTransmissionChange(t.id)}
+                />
+                <label htmlFor={`transmission_${t.id}`}>{t.label}</label>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="filter-section mb-15">
+          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
+            FUEL TYPE
+          </h3>
+          {[
+            { id: "petrol", label: "Petrol" },
+            { id: "diesel", label: "Diesel" },
+            { id: "hybrid", label: "Hybrid" },
+            { id: "electric", label: "Electric" },
+            { id: "cng", label: "CNG" },
+            { id: "lpg", label: "LPG" },
+            { id: "other", label: "Other" },
+          ].map((f) => (
+            <div key={f.id} className="mb-1.5 flex justify-between items-center">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`fuel_${f.id}`}
+                  name="fuel"
+                  value={f.id}
+                  className="mr-1.5"
+                  checked={selectedFuel === f.id}
+                  onChange={() => handleFuelChange(f.id)}
+                />
+                <label htmlFor={`fuel_${f.id}`}>{f.label}</label>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </>

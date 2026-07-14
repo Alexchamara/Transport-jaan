@@ -30,6 +30,12 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
 
+        // Vehicle-rental booking notifications (land / air / sea) — the vendor is
+        // notified on the transition into 'confirmed', not on the pending draft.
+        \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
+        \App\Models\AirVehicleBookings::observe(\App\Observers\BookingObserver::class);
+        \App\Models\SeaVehicleBookings::observe(\App\Observers\BookingObserver::class);
+
         Inertia::share([
         'authUser' => fn () => auth()->user(),
     ]);

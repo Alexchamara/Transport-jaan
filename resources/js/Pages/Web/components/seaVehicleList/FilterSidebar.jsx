@@ -8,6 +8,7 @@ const FilterSidebar = ({ searchParams }) => {
   const [selectedCapacity, setSelectedCapacity] = useState("");
   const [selectedPrice, setSelectedPrice] = useState("");
   const [selectedMileage, setSelectedMileage] = useState("");
+  const [selectedFuel, setSelectedFuel] = useState("");
 
   useEffect(() => {
     if (searchParams?.bodyType) {
@@ -82,6 +83,19 @@ const handleMileagesChange = (mileageChange) => {
   router.get('/seaVehicleList', {
     ...searchParams,
     mileage: newMileages,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
+}
+
+const handleFuelChange = (fuel) => {
+  const newVal = selectedFuel === fuel ? "" : fuel;
+  setSelectedFuel(newVal);
+  router.get('/seaVehicleList', {
+    ...searchParams,
+    fuel: newVal,
   }, {
     preserveState: true,
     preserveScroll: true,
@@ -383,6 +397,33 @@ const handleMileagesChange = (mileageChange) => {
             </div>
             <span>(23)</span>
           </div>
+        </div>
+
+        <div className="filter-section mb-15">
+          <h3 className="bebas-neue text-[20px] text-[#0000008C] mb-2.5 pb-2 border-b border-[#00000026]">
+            FUEL TYPE
+          </h3>
+          {[
+            { id: "diesel", label: "Diesel" },
+            { id: "petrol", label: "Petrol" },
+            { id: "electric", label: "Electric" },
+            { id: "other", label: "Other" },
+          ].map((f) => (
+            <div key={f.id} className="mb-1.5 flex justify-between items-center">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`fuel_${f.id}`}
+                  name="fuel"
+                  value={f.id}
+                  className="mr-1.5"
+                  checked={selectedFuel === f.id}
+                  onChange={() => handleFuelChange(f.id)}
+                />
+                <label htmlFor={`fuel_${f.id}`}>{f.label}</label>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </>

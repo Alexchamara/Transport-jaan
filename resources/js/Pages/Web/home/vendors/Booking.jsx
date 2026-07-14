@@ -8,6 +8,7 @@ const Booking = () => {
     initialBookings = [],
     bookingData = [],
     vendorUser = { name: "Service Provider", role: "Service Provider" },
+    drivers = [],
     server_error = null,
   } = usePage().props || {};
 
@@ -22,6 +23,7 @@ const Booking = () => {
         initialBookings={initialBookings}
         bookingData={bookingData}
         vendorUser={vendorUser}
+        drivers={drivers}
       />
     </VendorLayout>
   );

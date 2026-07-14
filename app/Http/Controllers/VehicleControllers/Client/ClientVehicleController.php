@@ -86,16 +86,42 @@ class ClientVehicleController extends Controller
             'bodyType',
             "capacity",
             'body_type',
+            'transmission',
+            'fuel',
         ]);
 
         $query = Vehicle::with([
             'landSpec',
+            'airSpec',
+            'seaSpec',
             'images' => fn($q) => $q->orderByDesc('is_primary')
                 ->orderBy('sort_order')
                 ->orderBy('id'),
         ])
             ->active()
             ->type('land');
+
+        // Transmission filter (land) — comma-separated enum values
+        if ($request->filled('transmission')) {
+            $transmissions = array_filter(array_map(
+                fn ($t) => mb_strtolower(trim($t)),
+                explode(',', (string) $request->input('transmission'))
+            ));
+            if (!empty($transmissions)) {
+                $query->whereHas('landSpec', fn ($q) => $q->whereIn('transmission_type', $transmissions));
+            }
+        }
+
+        // Fuel-type filter — comma-separated enum values
+        if ($request->filled('fuel')) {
+            $fuels = array_filter(array_map(
+                fn ($f) => mb_strtolower(trim($f)),
+                explode(',', (string) $request->input('fuel'))
+            ));
+            if (!empty($fuels)) {
+                $query->whereHas('landSpec', fn ($q) => $q->whereIn('fuel_type', $fuels));
+            }
+        }
 
         if (!empty($filters['brand'])) {
             $brand = mb_strtolower(trim($filters['brand']));
@@ -192,9 +218,9 @@ class ClientVehicleController extends Controller
                     ])->values(),
 
                     'landSpec' => [
-                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
-                        'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats'             => $v->landSpec->seats ?? null,
+                        'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec?->transmission_type ?? null,
+                        'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
 
                     'mileage_km'         => $v->mileage_km,
@@ -249,6 +275,8 @@ class ClientVehicleController extends Controller
     {
         $query = Vehicle::with([
             'landSpec',
+            'airSpec',
+            'seaSpec',
             'images' => fn($q) => $q->orderByDesc('is_primary')
                 ->orderBy('sort_order')
                 ->orderBy('id'),
@@ -272,9 +300,9 @@ class ClientVehicleController extends Controller
                         'sort_order' => (int) $m->sort_order,
                     ])->values(),
                     'landSpec' => [
-                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
-                        'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats'             => $v->landSpec->seats ?? null,
+                        'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec?->transmission_type ?? null,
+                        'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
@@ -296,6 +324,8 @@ class ClientVehicleController extends Controller
     {
         $query = Vehicle::with([
             'landSpec',
+            'airSpec',
+            'seaSpec',
             'images' => fn($q) => $q->orderByDesc('is_primary')
                 ->orderBy('sort_order')
                 ->orderBy('id'),
@@ -319,9 +349,9 @@ class ClientVehicleController extends Controller
                         'sort_order' => (int) $m->sort_order,
                     ])->values(),
                     'landSpec' => [
-                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
-                        'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats'             => $v->landSpec->seats ?? null,
+                        'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec?->transmission_type ?? null,
+                        'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
@@ -343,6 +373,8 @@ class ClientVehicleController extends Controller
     {
         $query = Vehicle::with([
             'landSpec',
+            'airSpec',
+            'seaSpec',
             'images' => fn($q) => $q->orderByDesc('is_primary')
                 ->orderBy('sort_order')
                 ->orderBy('id'),
@@ -366,9 +398,9 @@ class ClientVehicleController extends Controller
                         'sort_order' => (int) $m->sort_order,
                     ])->values(),
                     'landSpec' => [
-                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
-                        'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats'             => $v->landSpec->seats ?? null,
+                        'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec?->transmission_type ?? null,
+                        'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
                     'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
@@ -398,16 +430,30 @@ class ClientVehicleController extends Controller
             'bodyType',
             "capacity",
             'body_type',
+            'fuel',
         ]);
 
         $query = Vehicle::with([
             'landSpec',
+            'airSpec',
+            'seaSpec',
             'images' => fn($q) => $q->orderByDesc('is_primary')
                 ->orderBy('sort_order')
                 ->orderBy('id'),
         ])
             ->active()
             ->type('sea');
+
+        // Fuel-type filter (sea) — comma-separated enum values
+        if ($request->filled('fuel')) {
+            $fuels = array_filter(array_map(
+                fn ($f) => mb_strtolower(trim($f)),
+                explode(',', (string) $request->input('fuel'))
+            ));
+            if (!empty($fuels)) {
+                $query->whereHas('seaSpec', fn ($q) => $q->whereIn('fuel_type', $fuels));
+            }
+        }
 
         if (!empty($filters['brand'])) {
             $brand = mb_strtolower(trim($filters['brand']));
@@ -504,9 +550,9 @@ class ClientVehicleController extends Controller
                     ])->values(),
 
                     'landSpec' => [
-                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
-                        'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats'             => $v->landSpec->seats ?? null,
+                        'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec?->transmission_type ?? null,
+                        'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
 
                     'mileage_km'         => $v->mileage_km,
@@ -566,16 +612,30 @@ class ClientVehicleController extends Controller
             'bodyType',
             "capacity",
             'body_type',
+            'fuel',
         ]);
 
         $query = Vehicle::with([
             'landSpec',
+            'airSpec',
+            'seaSpec',
             'images' => fn($q) => $q->orderByDesc('is_primary')
                 ->orderBy('sort_order')
                 ->orderBy('id'),
         ])
             ->active()
             ->type('air');
+
+        // Fuel-type filter (air) — comma-separated enum values
+        if ($request->filled('fuel')) {
+            $fuels = array_filter(array_map(
+                fn ($f) => mb_strtolower(trim($f)),
+                explode(',', (string) $request->input('fuel'))
+            ));
+            if (!empty($fuels)) {
+                $query->whereHas('airSpec', fn ($q) => $q->whereIn('fuel_type', $fuels));
+            }
+        }
 
         if (!empty($filters['brand'])) {
             $brand = mb_strtolower(trim($filters['brand']));
@@ -672,9 +732,9 @@ class ClientVehicleController extends Controller
                     ])->values(),
 
                     'landSpec' => [
-                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
-                        'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats'             => $v->landSpec->seats ?? null,
+                        'fuel_type'         => $v->landSpec?->fuel_type ?? $v->airSpec?->fuel_type ?? $v->seaSpec?->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec?->transmission_type ?? null,
+                        'seats'             => $v->landSpec?->seats ?? $v->airSpec?->seats ?? null,
                     ],
 
                     'mileage_km'         => $v->mileage_km,
